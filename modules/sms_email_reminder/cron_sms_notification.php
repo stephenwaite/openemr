@@ -16,8 +16,9 @@ $backpic = "";
 
 // email notification
 $ignoreAuth=1;
-include_once("../../interface/globals.php");
-include_once("cron_functions.php");
+//print_r($_SERVER);
+include_once("/var/www/openemr/interface/globals.php");
+include_once("/var/www/openemr/modules/sms_email_reminder/cron_functions.php");
 
 // check command line for quite option
 $bTestRun = 0;
@@ -36,13 +37,51 @@ $db_email_msg = cron_getNotificationData($TYPE);
 
 // object for sms
 global $mysms;
+$sql="select * from globals where gl_name in ('TWILIO_ACCOUNT_SID','TWILIO_AUTHTOKEN','TWILIO_FROM')";
+$q=mysql_query($sql);
+while($r=mysql_fetch_assoc($q)){
+    if($r['gl_name']=='TWILIO_ACCOUNT_SID')
+    $AccountSid=$r['gl_value'];
+    if($r['gl_name']=='TWILIO_AUTHTOKEN')
+    $AuthToken=$r['gl_value'];
+    if($r['gl_name']=='TWILIO_FROM')
+    $from=$r['gl_value'];
+}
+if($AccountSid)
+{
+	include_once("/var/www/openemr/modules/sms_email_reminder/sendnotifications.php");
+}else
 if( $db_email_msg['sms_gateway_type']=='CLICKATELL' )
 {
-	include_once("sms_clickatell.php");
+	include_once("/var/www/openemr/modules/sms_email_reminder/sms_clickatell.php");
 	
 }else if($db_email_msg['sms_gateway_type']=='TMB4')
 {
-	include_once("sms_tmb4.php");
+	include_once("/var/www/openemr/modules/sms_email_reminder/sms_tmb4.php");
+}
+
+function mysql2dmy($input) {
+
+    $output = false;
+
+    $input1 = $input;
+
+    $input = substr($input, 0, 10);
+
+    $d = explode('-', $input);
+
+    if (is_array($d) && count($d) >= 3) {
+
+        if (checkdate($d[1], $d[2], $d[0]) || ($d[2] == "00" && $d[1] == "00")) {
+
+            $output = "$d[2]/$d[1]/$d[0]";
+        }
+
+        if (substr($input1, 11))
+            $output.=" " . substr($input1, 11);
+    }
+
+    return $output;
 }
 
 // get notification settings
@@ -56,6 +95,7 @@ $CRON_TIME = $vectNotificationSettings['Send_SMS_Before_Hours'];
 //echo "\nDEBUG :: user=".$vectNotificationSettings['SMS_gateway_username']."\n";
 
 // create sms object
+if($AccountSid=='')
 $mysms = new sms( $SMS_GATEWAY_USENAME, $SMS_GATEWAY_PASSWORD, $SMS_GATEWAY_APIKEY );
 
 $db_patient = cron_getAlertpatientData($TYPE);
@@ -69,14 +109,13 @@ for( $p=0; $p<count($db_patient); $p++ )
 	//echo "\n-----\nDEBUG :cron_sms: found patient = ".$prow['fname']." ".$prow['lname']."\n";
 
 	// my_print_r($prow);
-	/*
+	
 	if($prow['pc_eventDate'] < $check_date)
 	{
 		$app_date = date("Y-m-d")." ".$prow['pc_startTime'];
 	}else{
 		$app_date = $prow['pc_eventDate']." ".$prow['pc_startTime'];
 	}
-	*/
 	$app_date = $prow['pc_eventDate']." ".$prow['pc_startTime'];
 	$app_time = strtotime($app_date);
 
@@ -85,7 +124,6 @@ for( $p=0; $p<count($db_patient); $p++ )
 
 	$remaining_app_hour = round($app_time_hour - $curr_total_hour);
 	$remain_hour = round($remaining_app_hour - $SMS_NOTIFICATION_HOUR);
-
 	// larry :: debug
 	//echo "\nDEBUG :: checkdate=$check_date, app_date=$app_date, apptime=$app_time remain_hour=$remain_hour -- CRON_TIME=$CRON_TIME\n";
 
@@ -100,10 +138,18 @@ for( $p=0; $p<count($db_patient); $p++ )
 		cron_InsertNotificationLogEntry($TYPE,$prow,$db_email_msg);
 
 		//set message 
-		$db_email_msg['message'] = cron_setmessage($prow,$db_email_msg);
+		$db_email_msg['message'] = "This is a reminder of your appointment with Vijay Optica on ".mysql2dmy($app_date).". Thank you.";//cron_setmessage($prow,$db_email_msg);
 		
 		// send sms to patinet - if not in test mode
-		if( $bTestRun == 0 )
+                //echo $AccountSid;
+                if($AccountSid){
+                    $people=array(
+                        $prow['phone_cell']=>"Patient"
+                    );
+                    $body=$db_email_msg['message'];
+                    sendtsms($AccountSid, $AuthToken, $from, $people, $body);
+                }
+		elseif( $bTestRun == 0 )
 		{
 			cron_SendSMS( $prow['phone_cell'], $db_email_msg['email_subject'], 
 				$db_email_msg['message'], $db_email_msg['email_sender'] );

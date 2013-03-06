@@ -945,6 +945,29 @@ $GLOBALS_METADATA = array(
       '',                               // default
       xl('API key for SMS Gateway.')
     ),
+      
+      
+      'TWILIO_ACCOUNT_SID' => array(
+      xl('Twilio Account Sid'),
+      'text',                           // data type
+      '',                               // default
+      xl('Account Sid for Twilio.')
+    ),
+  'TWILIO_AUTHTOKEN' => array(
+      xl('Twilio Auth Token'),
+      'text',                           // data type
+      '',                               // default
+      xl('Auth Token for Twilio.')
+    ),
+  
+    'TWILIO_FROM' => array(
+      xl('Twilio From name'),
+      'text',                           // data type
+      '',                               // default
+      xl('Twilio From name')
+    ),
+
+
 
     'phone_notification_hour' => array(
       xl('Phone Notification Hour'),
@@ -1049,32 +1072,6 @@ $GLOBALS_METADATA = array(
       '1',                               // default
       xl('Enable Reporting of Tracking Date For Automated Measure Calculations (AMC)')
     ),
-
-    'cdr_report_nice' => array(
-      xl('CDR Reports Processing Priority'),
-      array(
-        '' => xl('Default Priority'),
-        '5' => xl('Moderate Priority'),
-        '10' => xl('Moderate/Low Priority'),
-        '15' => xl('Low Priority'),
-        '20' => xl('Lowest Priority')
-      ),
-      '',                               // default
-      xl('Set processing priority for CDR engine based reports.')
-    ),
-
-    'pat_rem_clin_nice' => array(
-      xl('Patient Reminder Creation Processing Priority'),
-      array(
-        '' => xl('Default Priority'),
-        '5' => xl('Moderate Priority'),
-        '10' => xl('Moderate/Low Priority'),
-        '15' => xl('Low Priority'),
-        '20' => xl('Lowest Priority')
-      ),
-      '',                               // default
-      xl('Set processing priority for creation of Patient Reminders (in full clinic mode).')
-    ),
  
   ),
 
@@ -1136,13 +1133,6 @@ $GLOBALS_METADATA = array(
       'bool',                           // data type
       '0',                              // default
       xl('Enable logging of all SQL SELECT queries.').' ('.xl('Note that Audit Logging needs to be enabled above').')'
-    ),
-
-    'audit_events_cdr' => array(
-      xl('Audit CDR Engine Queries'),
-      'bool',                           // data type
-      '0',                              // default
-      xl('Enable logging of CDR Engine Queries.').' ('.xl('Note that Audit Logging needs to be enabled above').')'
     ),
 
     'enable_atna_audit' => array(
@@ -1374,13 +1364,6 @@ $GLOBALS_METADATA = array(
       '0',
       xl('Enable Offsite Patient Portal.')
     ),
-
-    'portal_offsite_providerid' => array(
-      xl('Offsite Patient Portal Provider ID'),
-      'text',                           // data type
-      '',
-      xl('Offsite Patient Portal Provider ID(Put Blank If not Registered).')
-    ),    
 
     'portal_offsite_username' => array(
       xl('Offsite Patient Portal Username'),
