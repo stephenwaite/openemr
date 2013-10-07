@@ -5144,15 +5144,15 @@ INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_re
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
 ('ICD9', 'CMS', '2013-10-01', 'cmsv31_master_descriptions.zip', 'fe0d7f9a5338f5ff187683b4737ad2b7');
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
-('ICD10', 'CMS', '2011-10-01', '2012_PCS_long_and_abbreviated_titles.zip', '201a732b649d8c7fba807cc4c083a71a');
+('ICD10', 'CMS', '2013-10-01', '2014_PCS_long_and_abbreviated_titles.zip', '2d03514a0c66d92cf022a0bc28c83d38');
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
-('ICD10', 'CMS', '2011-10-01', 'DiagnosisGEMs_2012.zip', '6758c4a3384c47161ce24f13a2464b53');
+('ICD10', 'CMS', '2013-10-01', 'DiagnosisGEMs_2014.zip', '3ed7b7c5a11c766102b12d97d777a11b');
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
-('ICD10', 'CMS', '2011-10-01', 'ICD10OrderFiles_2012.zip', 'a76601df7a9f5270d8229828a833f6a1');
+('ICD10', 'CMS', '2013-10-01', 'ICD10OrderFiles_2014.zip', '5458b95f6f37228b5cdfa03aefc6c8bb');
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
-('ICD10', 'CMS', '2011-10-01', 'ProcedureGEMs_2012.zip', 'f37416d8fab6cd2700b634ca5025295d');
+('ICD10', 'CMS', '2013-10-01', 'ProcedureGEMs_2014.zip', 'be46de29f4f40f97315d04821273acf9');
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
-('ICD10', 'CMS', '2011-10-01', 'ReimbursementMapping_2012.zip', '8b438d1fd1f34a9bb0e423c15e89744b');
+('ICD10', 'CMS', '2013-10-01', 'ReimbursementMapping_2013.zip', '0d5d36e3f4519bbba08a9508576787fb');
 
 -- --------------------------------------------------------
 
