@@ -17,7 +17,7 @@ $v_realpatch = '0';
 // is a database change in the course of development.  It is used
 // internally to determine when a database upgrade is needed.
 //
-$v_database = 97;
+$v_database = 98;
 
 // Access control version identifier, this is to be incremented whenever there
 // is a access control change in the course of development.  It is used
@@ -26,7 +26,4 @@ $v_database = 97;
 // upgrade and track this value)
 //
 $v_acl = 2;
-
-//Offsite Portal SOAP functions version, which are at myportal directory.
-$v_offsite_portal='1.46';
 ?>
