@@ -39,6 +39,19 @@ function checkAll(check) {
  return false;
 }
 
+function checkAllissues(check) {
+// use w3schools regexp snippet to find elements in dom with issue
+ var patt1=new RegExp("issue");
+ var f = document.forms['report_form'];
+ for (var i = 0; i < f.elements.length; ++i) { 
+  if (f.elements[i].type == 'checkbox' ) {
+   if(patt1.test(f.elements[i].id)) f.elements[i].checked = check;
+   issueClick(f.elements[i]);
+  }
+ }
+ return false;
+}
+
 function show_date_fun(){
   if(document.getElementById('show_date').checked == true){
     document.getElementById('date_div').style.display = '';
@@ -183,7 +196,7 @@ function show_date_fun(){
 <table class="includes">
  <tr>
   <td class='text'>
-   <input type='checkbox' name='include_demographics' id='include_demographics' value="demographics" checked><?php xl('Demographics','e'); ?><br>
+   <input type='checkbox' name='include_demographics' id='include_demographics' value="demographics"><?php xl('Demographics','e'); ?><br>
    <?php if (acl_check('patients', 'med')): ?>
    <input type='checkbox' name='include_history' id='include_history' value="history"><?php xl(' History','e'); ?><br>
    <?php endif; ?>
@@ -191,8 +204,7 @@ function show_date_fun(){
    <input type='checkbox' name='include_employer' id='include_employer' value="employer"><?php xl('Employer','e'); ?><br>
    -->
    <input type='checkbox' name='include_insurance' id='include_insurance' value="insurance"><?php xl('Insurance','e'); ?><br>
-   <input type='checkbox' name='include_billing' id='include_billing' value="billing"
-    <?php if (!$GLOBALS['simplified_demographics']) echo 'checked'; ?>><?php xl('Billing','e'); ?><br>
+   <input type='checkbox' name='include_billing' id='include_billing' value="billing"><?php xl('Billing','e'); ?><br>
   </td>
   <td class='text'>
    <!--
@@ -226,6 +238,9 @@ function show_date_fun(){
   <td class='text'>
   <div class="issues">
   <span class='bold'><?php xl('Issues','e'); ?>:</span>
+  <a class="link_submit" href="#" onclick="return checkAllissues(true)"><?php xl('Check All Issues','e'); ?></a>
+|
+  <a class="link_submit" href="#" onclick="return checkAllissues(false)"><?php xl('Clear All Issues','e'); ?></a>
    <br>
    <br>
 
