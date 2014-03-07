@@ -7,6 +7,7 @@
 // of the License, or (at your option) any later version.
 
 require_once("Claim.class.php");
+// probably should fix typo at some point
 require_once("gen_hfca_1500_02_12.inc.php");
 
 $hcfa_curr_line = 1;
@@ -604,8 +605,10 @@ function gen_hcfa_1500_page($pid, $encounter, &$log, &$claim) {
   // 33. Billing Provider: Phone Number
   $tmp = $claim->billingContactPhone();
   put_hcfa(57, 66,  3, substr($tmp,0,3));
-  put_hcfa(57, 70,  7, substr($tmp,3));
-
+  put_hcfa(57, 70,  3, substr($tmp,3));
+  put_hcfa(57, 73,  1, '-');
+  put_hcfa(57, 74,  4, substr($tmp,6));
+  
   // 32. Service Facility Location Information: Name
   put_hcfa(58, 23, 25, $claim->facilityName());
 
