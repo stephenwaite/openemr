@@ -367,7 +367,7 @@ $ThisPageSearchCriteriaIncludeMaster=array();
 
 $ThisPageSearchCriteriaDisplayMaster= array( xl("Date of Service"),xl("Date of Entry"),xl("Date of Billing"),xl("Claim Type"),xl("Patient Name"),xl("Patient Id"),xl("Insurance Company"),xl("Encounter"),xl("Whether Insured"),xl("Charge Coded"),xl("Billing Status"),xl("Authorization Status"),xl("Last Level Billed"),xl("X12 Partner") );
 $ThisPageSearchCriteriaKeyMaster="form_encounter.date,billing.date,claims.process_time,claims.target,patient_data.fname,".
-                                 "form_encounter.pid,claims.payer_id,form_encounter.encounter,insurance_data.provider,billing.id,billing.billed,".
+                                 "form_encounter.pid,insurance_companies.id,form_encounter.encounter,insurance_data.provider,billing.id,billing.billed,".
                                  "billing.authorized,form_encounter.last_level_billed,billing.x12_partner_id";
 $ThisPageSearchCriteriaDataTypeMaster="datetime,datetime,datetime,radio,text_like,".
                                       "text,include,text,radio,radio,radio,".
