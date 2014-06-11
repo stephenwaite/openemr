@@ -57,6 +57,10 @@
 --  #EndIf
 --    all blocks are terminated with a #EndIf statement.
 
+#IfNotRow4D supported_external_dataloads load_type ICD9 load_source CMS load_release_date 2014-10-01 load_filename ICD-9-CM-v32-master-descriptions.zip
+INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES ('ICD9', 'CMS', '2014-10-01', 'ICD-9-CM-v32-master-descriptions.zip', 'b852b85f770c83433201dc8ae2c59074');
+#EndIf
+
 #IfNotRow4D supported_external_dataloads load_type ICD9 load_source CMS load_release_date 2013-10-01 load_filename cmsv31-master-descriptions.zip
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES ('ICD9', 'CMS', '2013-10-01', 'cmsv31-master-descriptions.zip', 'fe0d7f9a5338f5ff187683b4737ad2b7');
 #EndIf
