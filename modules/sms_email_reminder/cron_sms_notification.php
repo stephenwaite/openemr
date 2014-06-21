@@ -9,6 +9,7 @@
 // Updated by:	Larry Lart on 11/03/2008
 ////////////////////////////////////////////////////////////////////
 
+
 // larry :: hack add for command line version
 $_SERVER['REQUEST_URI']=$_SERVER['PHP_SELF'];
 $_SERVER['SERVER_NAME']='localhost';
@@ -16,9 +17,10 @@ $backpic = "";
 
 // email notification
 $ignoreAuth=1;
-//print_r($_SERVER);
-include_once("/var/www/openemr/interface/globals.php");
-include_once("/var/www/openemr/modules/sms_email_reminder/cron_functions.php");
+
+require_once(dirname(__FILE__) . "/../../interface/globals.php");
+require_once(dirname(__FILE__) . "/cron_functions.php");
+require_once(dirname(__FILE__) . "/sms_email_reminder/sendnotifications.php");
 
 // check command line for quite option
 $bTestRun = 0;
@@ -39,25 +41,14 @@ $db_email_msg = cron_getNotificationData($TYPE);
 global $mysms;
 $sql="select * from globals where gl_name in ('TWILIO_ACCOUNT_SID','TWILIO_AUTHTOKEN','TWILIO_FROM')";
 $q=mysql_query($sql);
-while($r=mysql_fetch_assoc($q)){
-    if($r['gl_name']=='TWILIO_ACCOUNT_SID')
-    $AccountSid=$r['gl_value'];
-    if($r['gl_name']=='TWILIO_AUTHTOKEN')
-    $AuthToken=$r['gl_value'];
-    if($r['gl_name']=='TWILIO_FROM')
-    $from=$r['gl_value'];
-}
-if($AccountSid)
-{
-	include_once("/var/www/openemr/modules/sms_email_reminder/sendnotifications.php");
-}else
+
 if( $db_email_msg['sms_gateway_type']=='CLICKATELL' )
 {
-	include_once("/var/www/openemr/modules/sms_email_reminder/sms_clickatell.php");
+	include_once(dirname(__FILE__) . "/sms_email_reminder/sms_clickatell.php");
 	
 }else if($db_email_msg['sms_gateway_type']=='TMB4')
 {
-	include_once("/var/www/openemr/modules/sms_email_reminder/sms_tmb4.php");
+	include_once(dirname(__FILE__) . "/sms_email_reminder/sms_tmb4.php");
 }
 
 function mysql2dmy($input) {
@@ -95,7 +86,7 @@ $CRON_TIME = $vectNotificationSettings['Send_SMS_Before_Hours'];
 //echo "\nDEBUG :: user=".$vectNotificationSettings['SMS_gateway_username']."\n";
 
 // create sms object
-if($AccountSid=='')
+if($GLOBALS['enable_twilio'] && $GLOBALS['twilio_account_sid'])
 $mysms = new sms( $SMS_GATEWAY_USENAME, $SMS_GATEWAY_PASSWORD, $SMS_GATEWAY_APIKEY );
 
 $db_patient = cron_getAlertpatientData($TYPE);
@@ -138,11 +129,10 @@ for( $p=0; $p<count($db_patient); $p++ )
 		cron_InsertNotificationLogEntry($TYPE,$prow,$db_email_msg);
 
 		//set message 
-		$db_email_msg['message'] = "This is a reminder of your appointment with Vijay Optica on ".mysql2dmy($app_date).". Thank you.";//cron_setmessage($prow,$db_email_msg);
+		$db_email_msg['message'] = cron_setmessage($prow,$db_email_msg);
 		
 		// send sms to patinet - if not in test mode
-                //echo $AccountSid;
-                if($AccountSid){
+                if($GLOBALS['enable_twilio'] && $GLOBALS['twilio_account_sid']){
                     $people=array(
                         $prow['phone_cell']=>"Patient"
                     );

@@ -945,22 +945,30 @@ $GLOBALS_METADATA = array(
       '',                               // default
       xl('API key for SMS Gateway.')
     ),
+// stephen's work picking up torch from NetConnexions per Brady's suggestion 
+// adding additional global 2014-06-21
+    'enable_twilio' => array(
+      xl('Enable Twilio'),
+      'bool',                           // data type
+      '1',                              // default = true
+      xl('Enable Twilio')
+    ),
+          
       
-      
-      'TWILIO_ACCOUNT_SID' => array(
+      'twilio_account_sid' => array(
       xl('Twilio Account Sid'),
       'text',                           // data type
       '',                               // default
       xl('Account Sid for Twilio.')
     ),
-  'TWILIO_AUTHTOKEN' => array(
+  'twilio_authtoken' => array(
       xl('Twilio Auth Token'),
       'text',                           // data type
       '',                               // default
       xl('Auth Token for Twilio.')
     ),
   
-    'TWILIO_FROM' => array(
+    'twilio_from' => array(
       xl('Twilio From name'),
       'text',                           // data type
       '',                               // default
