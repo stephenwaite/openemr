@@ -11,8 +11,11 @@ class Parser_HL7v2 {
 	var $message_type;
 
 	var $MSH;
+	var $PID;
 	var $EVN;
-
+	var $OBX;
+	var $OBR;
+	
 	function Parser_HL7v2 ( $message, $_options = NULL ) {
 		// Assume separator is a pipe
 		$this->message = $message;
@@ -38,7 +41,10 @@ class Parser_HL7v2 {
 			// Determine segment ID
 			$type = substr($segment, 0, 3);
 			switch ($type) {
+				case 'OBR':
+				case 'OBX':
 				case 'MSH':
+				case 'PID':
 				case 'EVN':
 				$this->message_type = trim($type);
 				call_user_func_array(
@@ -150,8 +156,141 @@ class Parser_HL7v2 {
 		// it instead of assuming the defaults.
 	} // end method _MSH
 
-	//----- Truly internal functions
+		function _OBX ($segment) {
+		$composites = $this->__parse_segment ($segment);
+		if ($this->options['debug']) {
+			print "<b>OBX segment</b><br/>\n";
+			foreach ($composites as $k => $v) {
+				print "composite[$k] = ".prepare($v)."<br/>\n";
+			}
+		}
 
+		list (
+			$__garbage, // Skip index [0], it's the segment id
+			$this->OBX['set_id_obx'],
+			$this->OBX['value_type'],			
+			$this->OBX['set_observation_id'],
+			$this->OBX['set_observation_sub_id'],
+			$this->OBX['set_observation_value'],
+			$this->OBX['units'],
+			$this->OBX['reference_range'],
+			$this->OBX['abnormal_flags'],
+			$this->OBX['probability'],
+			$this->OBX['nature_of_abnormal_test'],
+			$this->OBX['observ_result_status'],
+			$this->OBX['data_last_obs_normal_values'],
+			$this->OBX['user_defined_access_checks'],
+			$this->OBX['date/time_of_the_observation'],
+			$this->OBX['producers_id'],
+			$this->OBX['responsible_observer'],
+			$this->OBX['observation_method']
+			
+		) = $composites;
+	} // end method _OBX
+	
+		function _OBR ($segment) {
+		$composites = $this->__parse_segment ($segment);
+		if ($this->options['debug']) {
+			print "<b>OBR segment</b><br/>\n";
+			foreach ($composites as $k => $v) {
+				print "composite[$k] = ".prepare($v)."<br/>\n";
+			}
+		}
+
+		list (
+			$__garbage, // Skip index [0], it's the segment id
+			$this->OBR['set_id_obR'],
+			$this->OBR['placer_order_number'],			
+			$this->OBR['filler_order_number'],
+			$this->OBR['universal_service_id'],
+			$this->OBR['priority'],
+			$this->OBR['requested_date_time'],
+			$this->OBR['observation_date_time'],
+			$this->OBR['observation_end_date_time'],
+			$this->OBR['collection_volume'],
+			$this->OBR['collector_identifier'],
+			$this->OBR['specimen_action_code'],
+			$this->OBR['danger_code'],
+			$this->OBR['relevant_clinical_info'],
+			$this->OBR['specimen_received_datetime'],
+			$this->OBR['specimen_source'],
+			$this->OBR['ordering_provider'],
+			$this->OBR['order_callback_phone_number'],
+			$this->OBR['placer_field_1'],
+			$this->OBR['placer_field_2'],
+			$this->OBR['filler_field_1'],
+			$this->OBR['filler_field_2'],
+			$this->OBR['results_rptstatus_chng_datetime'],
+			$this->OBR['charge_to_practice'],
+			$this->OBR['diagnostic_serv_sect_id'],
+			$this->OBR['result_status'],
+			$this->OBR['patient_result'],
+			$this->OBR['quantity_timing'],
+			$this->OBR['result_copies_to'],
+			$this->OBR['parent'],
+			$this->OBR['transportation_mode'],
+			$this->OBR['reason_for_study'],
+			$this->OBR['principal_result_interpreter'],
+			$this->OBR['assistant_result_interpreter'],
+			$this->OBR['technician'],
+			$this->OBR['transcriptionist'],
+			$this->OBR['scheduled_datetime'],
+			$this->OBR['number_of_sample_containers'],
+			$this->OBR['transport_logistics_of_collected_sample'],
+			$this->OBR['collectors_comment'],
+			$this->OBR['collectors_comment'],
+			$this->OBR['transport_arrangement_responsibility'],
+			$this->OBR['transport_arranged'],
+			$this->OBR['escort_required'],
+			$this->OBR['planned_patient_transport_comment'],
+			
+		) = $composites;
+	} // end method _OBR
+	
+	function _PID ($segment) {
+		$composites = $this->__parse_segment ($segment);
+		if ($this->options['debug']) {
+			print "<b>PID segment</b><br/>\n";
+			foreach ($composites as $k => $v) {
+				print "composite[$k] = ".prepare($v)."<br/>\n";
+			}
+		}
+
+		list (
+			$__garbage, // Skip index [0], it's the segment id		
+			$this->PID['set_id_patient_id'],
+			$this->PID['patient_id_external_id'],
+			$this->PID['patient_id_internal_id'],
+			$this->PID['patient_id_alternate_id'],
+			$this->PID['patient_name'],
+			$this->PID['mothers_maiden_name'],
+			$this->PID['datetime_of_birth'],
+			$this->PID['sex'],
+			$this->PID['patient_alias'],
+			$this->PID['race'],
+			$this->PID['patient_address'],
+			$this->PID['country_code'],
+			$this->PID['phone_number_home'],
+			$this->PID['phone_number_business'],
+			$this->PID['primary_language'],
+			$this->PID['marital_status'],
+			$this->PID['religion'],
+			$this->PID['patient_account_number'],
+			$this->PID['ss_number'],
+			$this->PID['drivers_license_number'],
+			$this->PID['mothers_identifier'],
+			$this->PID['ethnic_group'],
+			$this->PID['birth_place'],
+			$this->PID['multiple_birth_indicator'],
+			$this->PID['birth_order'],
+			$this->PID['citizenship'],
+			$this->PID['veterans_military_status'],
+			$this->PID['nationality'],
+			$this->PID['patient_death_datetime'],
+			$this->PID['patient_death_indicator'],
+		) = $composites;
+	} // end method _OBX
+//----- Truly internal functions
 	function __default_segment_parser ($segment) {
 		$composites = $this->__parse_segment($segment);
 
@@ -200,6 +339,10 @@ class Parser_HL7v2 {
 		$cmp = array();
 		$cmp["MSH"] = $this->MSH;
 		$cmp["EVN"] = $this->EVN;	
+		$cmp["OBX"]=  $this->OBX;
+		$cmp["OBR"]=  $this->OBR;
+		$cmp["PID"]=  $this->PID;
+		
 		return $cmp;
 	}
 } // end class Parser_HL7v2
