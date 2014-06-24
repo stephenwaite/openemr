@@ -381,10 +381,11 @@ function gen_hcfa_1500_page($pid, $encounter, &$log, &$claim) {
     *****************************************************************/
 
     // Box 17. Name of Referring Provider or Other Source
+    put_hcfa(34, 1, 3, "DK");
     $tmp = $claim->referrerLastName() . ', ' . $claim->referrerFirstName();
     if ($claim->referrerMiddleName())
       $tmp .= ', ' . substr($claim->referrerMiddleName(),0,1);
-    put_hcfa(34, 1, 25, $tmp);
+    put_hcfa(34, 4, 25, $tmp);
 
     // Box 17b. Referring Provider NPI
     if ($claim->referrerNPI()) {
