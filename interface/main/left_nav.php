@@ -1,4 +1,4 @@
-<?php
+<?php
 use ESign\Api;
 /* Copyright (C) 2006-2012 Rod Roark <rod@sunsetsystems.com>
  *
@@ -1391,10 +1391,10 @@ if (!empty($reg)) {
       <?php genTreeLink('RTop','orl',xl('Providers')); ?>
       <?php genTreeLink('RTop','ort',xl('Configuration')); ?>
       <?php genTreeLink('RTop','orc',xl('Load Compendium')); ?>
-      <?php genTreeLink('RTop','orp',xl('Pending Review')); ?>
-      <?php genTreeLink('RTop','orr',xl('Patient Results')); ?>
+      <?php // genTreeLink('RTop','orp',xl('Pending Review')); ?>
+      <?php // genTreeLink('RTop','orr',xl('Patient Results')); ?>
       <?php genTreeLink('RTop','lda',xl('Lab Overview')); ?>
-      <?php genTreeLink('RTop','orb',xl('Batch Results')); ?>
+      <?php // genTreeLink('RTop','orb',xl('Batch Results')); ?>
       <?php genTreeLink('RTop','ore',xl('Electronic Reports')); ?>
       <?php genTreeLink('RTop','dld',xl('Lab Documents'));?>
     </ul>
