@@ -1,4 +1,7 @@
 <?php
+
+
+
 // Copyright (C) 2012 Accretics Corp. <md.support@accretics.com>
 //
 // This program is free software; you can redistribute it and/or
@@ -32,11 +35,10 @@ require_once($GLOBALS['srcdir'].'/api.inc');
 require_once($GLOBALS['srcdir'].'/options.inc.php');
 /* for AMC stuff ?? */
 require_once($GLOBALS['srcdir'].'/amc.php');
-
 // To Read the Excel input from ePrescribe, phpExcel package is needed.   
 // Modify the relative path in the following line based on your local structure for  
 // PHPExcel root directory.  Original code assumes this file in 'custom' directory. 
-require_once ("../interface/phpExcel/Classes/PHPExcel.php");
+require_once("../interface/phpExcel/Classes/PHPExcel.php");
 
 /* Check the access control lists to ensure permissions to this page */
 $thisauth = acl_check('patients', 'med');
@@ -54,22 +56,23 @@ function process_xlfile ($strFile) {
 	global $piSTATS, $errFile;
 
 	$xlCols = array(
-		'ProviderName' => 		'',
-		'ProviderMessage' => 	'',
+		'Provider Name' => 		'',
+		'Provider Message' => 	'',
 		'Created' => 			'order_date',
-		'PatientName' => 		'patient_name',
+		'Rx Date' =>                    '',
+		'Patient Name' => 		'patient_name',
 		'Medication' => 		'drug_name',
-		'SIG' => 				'pharmacy_note',
+		'SIG' => 			'pharmacy_note',
 		'Quantity' => 			'quantity_desc',
-		'RefillQuantity' => 	'refills_desc',
-		'RxCount' => 			'presc_count',
-		'RxAction' => 			'pharmacy_name',
-		'RxStatus' => 			'pharmacy_status',
-		'SiteName' => 			'',
+		'Refill Quantity' => 	        'refills_desc',
+		'Rx Count' => 			'presc_count',
+		'Rx Action' => 			'pharmacy_name',
+		'Rx Status' => 			'pharmacy_status',
+		'Site Name' => 			'',
 		'Orginator' => 			'initiator_name',
 		'Authorize' => 			'provider_name',
-		'SenderBy' => 			'filled_by_name',
-		'PrintedBy' => 			''
+		'Sender By' => 			'filled_by_name',
+		'Printed By' => 			''
 		);
 
 	/**  Identify the type of $inputFileName  **/
@@ -182,12 +185,14 @@ function rximportOne ($piRow) {
 				,array($piRow['pi_pid'], $piRow['drug']));
 
 		// 2. Insert into the prescriptions table
+		// 
+		//if you have erx_source = 1 then display is off in prescription view so i'm making it 0 smw 031014
 		$sqlExec = "INSERT INTO prescriptions (patient_id,provider_id,filled_by_id,date_added,date_modified,start_date".
 				",drug,dosage,quantity,refills,note,active,erx_source) ".
 				"SELECT pi.pi_pid,pi.pi_approver_id,pi.id".
 				",STR_TO_DATE(pi.order_date,'%m/%d/%Y'),STR_TO_DATE(pi.order_date,'%m/%d/%Y'),STR_TO_DATE(pi.order_date,'%m/%d/%Y')".
 				",SUBSTRING_INDEX(pi.drug_name, ',', 1) AS drug,SUBSTRING_INDEX(pi.drug_name, ',', -1) AS dosage,pi.quantity_desc,pi.refills_desc,pi.pharmacy_note, ".
-				"IF(pi.pharmacy_status='Active',1,-1) AS active, 1 AS erx_source ".
+				"IF(pi.pharmacy_status='Active',1,-1) AS active, 0 AS erx_source ".
 				"FROM prescriptions_imports AS pi WHERE pi.id = ?";
 		//	echo time().":".$sqlExec."<BR>";
 		$sqlRows = sqlInsert($sqlExec, array($piRow['id']));
