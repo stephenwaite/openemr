@@ -1122,6 +1122,8 @@ if ($GLOBALS['athletic_team']) {
       <?php // genTreeLink('RTop','iss',xl('View/Edit Allergies')); // somehow emphasizing allergies...? ?>
       <?php if (!$GLOBALS['disable_immunizations']) genDualLink('his','imm',xl('Immunizations')); // imm on bottom, his on top ?>
       <?php if (acl_check('patients', 'med') && !$GLOBALS['disable_prescriptions']) genDualLink('his','pre',xl('Prescriptions')); // pre on bottom, his on top ?>
+      <?php if (acl_check('patients', 'med') && !$GLOBALS['disable_prescriptions']) genMiscLink('RTop','rep','0',xl('Rx Import'),'../custom/import_rx_allscripts_1.php'); ?>
+  
       <?php genTreeLink('RTop','doc',xl('Document/Imaging Store'),true); ?>
       <?php genDualLink('dem','pno',xl('Additional Notes')); // with dem on top ?>
     </ul>
