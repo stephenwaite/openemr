@@ -2749,3 +2749,14 @@ INSERT INTO code_types (ct_key, ct_id, ct_seq, ct_mod, ct_just, ct_fee, ct_rel, 
   ('RXCUI', (SELECT MAX(`id`) FROM `temp_table_one`), (SELECT MAX(`seq`) FROM `temp_table_one`), 0, '', 0, 0, 1, 0, 0, 'RXCUI Medication', 1);
 DROP TABLE `temp_table_one`;
 #EndIf
+
+#IfNotColumnType immunizations amount_administered float
+ALTER TABLE openemr.immunizations
+ADD amount_administered_int INT(11) AFTER amount_administered;
+UPDATE immunizations SET amount_administered_int = amount_administered;
+ALTER TABLE openemr.immunizations
+CHANGE amount_administered amount_administered FLOAT;
+UPDATE immunizations SET amount_administered=0.5 WHERE cvx_code=141 AND amount_administered =1;
+ALTER TABLE openemr.immunizations
+DROP COLUMN amount_administered_int;
+#EndIf
