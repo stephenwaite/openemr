@@ -19,6 +19,8 @@
 * @author    Rod Roark <rod@sunsetsystems.com>
 */
 
+require_once("$srcdir/forms.inc");
+
 $rhl7_return = array();
 $rhl7_segnum = 0;
 
