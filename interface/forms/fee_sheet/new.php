@@ -23,6 +23,7 @@ require_once("$srcdir/formdata.inc.php");
 $usbillstyle = $GLOBALS['ippf_specific'] ? " style='display:none'" : "";
 
 // This may be an error message or warning that pops up when the form is loaded.
+if (!acl_check('acct','bill')) die("Not authorized!");
 $alertmsg = '';
 
 function alphaCodeType($id) {
