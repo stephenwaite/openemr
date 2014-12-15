@@ -14,6 +14,12 @@ require_once("$srcdir/patient.inc");
 require_once("$srcdir/amc.php");
 require_once $GLOBALS['srcdir'].'/ESign/Api.php';
 require_once("$srcdir/../controllers/C_Document.class.php");
+require_once("$srcdir/encounter.inc");
+
+// make sure proper authorization is in place  
+$enc_pid = array($_SESSION['pid'], $_SESSION['encounter'], $_SESSION['authId']);
+feeSheetAuth($enc_pid);
+
 ?>
 <html>
 
