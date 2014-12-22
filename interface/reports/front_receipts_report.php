@@ -153,6 +153,7 @@ require_once("$srcdir/formatting.inc.php");
 <table>
  <thead>
   <th> <?php xl('Time','e'); ?> </th>
+  <th> <?php xl('User','e'); ?> </th>
   <th> <?php xl('Patient','e'); ?> </th>
   <th> <?php xl('ID','e'); ?> </th>
   <th> <?php xl('Method','e'); ?> </th>
@@ -196,6 +197,9 @@ require_once("$srcdir/formatting.inc.php");
    </a>
   </td>
   <td>
+   <?php echo $row['user'] ?>
+  </td>
+  <td>
    <?php echo $row['lname'] . ', ' . $row['fname'] . ' ' . $row['mname'] ?>
   </td>
   <td>
@@ -221,14 +225,27 @@ require_once("$srcdir/formatting.inc.php");
     $total1 += $row['amount1'];
     $total2 += $row['amount2'];
   }
+
+  // mdsupport - Sub-totals by payment method
+  $res = sqlStatement(
+      'SELECT user, SUM(amount1 + amount2) amt FROM payments '.
+      'WHERE DATE(dtime) >= ? AND DATE(dtime) <= ? '.
+      'GROUP by user', array($from_date, $to_date));
+  $rownum = 0;
+  while ($row = sqlFetchArray($res)) {
 ?>
 
  <tr>
-  <td colspan='8'>
-   &nbsp;
-  </td>
+ <td class='bold'><?php echo ($rownum ? '&nbsp;' : 'Summary by User')?></td>
+ <td colspan='2'>&nbsp;</td>
+ <td class='bold'><?php echo $row['user'] ?></td>
+ <td colspan='3'>&nbsp;</td>
+ <td class='bold' align='right'><?php echo bucks($row['amt']) ?></td>
  </tr>
-
+<?php
+   $rownum++;
+   } ?> 
+   
  <tr class="report_totals">
   <td colspan='5'>
    <?php xl('Totals','e'); ?>
