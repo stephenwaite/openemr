@@ -116,8 +116,17 @@ else {
       </td>
       <td>
 	      <?php
-         generate_form_field(array('data_type' => 10, 'field_id' => 'provider',
-           'empty_title' => '-- All --'), $form_provider);
+	      $query = "SELECT id, lname, fname FROM users WHERE ".
+	      "authorized = 1 $provider_facility_filter ORDER BY lname, fname"; //(CHEMED) facility filter
+	      $ures = sqlStatement($query);
+	      echo " <select name='form_provider'>\n";
+	      echo " <option value=''>-- " . xl('All') . " --\n";
+	      while ($urow = sqlFetchArray($ures)) {
+	      $provid = $urow['id'];
+	      echo " <option value='$provid'";
+	      if ($provid == $_POST['form_provider']) echo " selected";
+	      echo ">" . $urow['lname'] . ", " . $urow['fname'] . "\n";
+	      }
 	      ?>
       </td>
 			<td class='label'>
