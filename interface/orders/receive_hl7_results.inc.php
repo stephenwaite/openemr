@@ -152,15 +152,18 @@ function rhl7DecodeData($enctype, &$src) {
  *  -1  It's not clear if there is a match.
  */
 function match_patient($in_ss, $in_fname, $in_lname, $in_dob) {
+  $in_ss = str_replace('-', '', $in_ss);
+  $in_fname = strtoupper($in_fname);
+  $in_lname = strtoupper($in_lname);
   $patient_id = 0;
   $tmp = sqlQuery("SELECT pid FROM patient_data WHERE " .
     "((ss IS NULL OR ss = '' OR '' = ?) AND " .
-    "fname IS NOT NULL AND fname != '' AND fname = ? AND " .
-    "lname IS NOT NULL AND lname != '' AND lname = ? AND " .
+    "fname IS NOT NULL AND fname != '' AND UPPER(fname) = ? AND " .
+    "lname IS NOT NULL AND lname != '' AND UPPER(lname) = ? AND " .
     "DOB IS NOT NULL AND DOB = ?) OR " .
-    "(ss IS NOT NULL AND ss != '' AND ss = ? AND (" .
-    "fname IS NOT NULL AND fname != '' AND fname = ? OR " .
-    "lname IS NOT NULL AND lname != '' AND lname = ? OR " .
+    "(ss IS NOT NULL AND ss != '' AND REPLACE(ss, '-', '') = ? AND (" .
+    "fname IS NOT NULL AND fname != '' AND AND UPPER(fname) = ? OR " .
+    "lname IS NOT NULL AND lname != '' AND AND UPPER(lname) = ? OR " .
     "DOB IS NOT NULL AND DOB = ?)) " .
     "ORDER BY ss DESC, pid DESC LIMIT 1",
     array($in_ss, $in_fname, $in_lname, $in_dob, $in_ss, $in_fname, $in_lname, $in_dob));
@@ -171,9 +174,9 @@ function match_patient($in_ss, $in_fname, $in_lname, $in_dob) {
   else {
     // No match good enough, figure out if there's enough ambiguity to ask the user.
     $tmp = sqlQuery("SELECT pid FROM patient_data WHERE " .
-      "(ss IS NOT NULL AND ss != '' AND ss = ?) OR " .
-      "(fname IS NOT NULL AND fname != '' AND fname = ? AND " .
-      "lname IS NOT NULL AND lname != '' AND lname = ?) OR " .
+      "(ss IS NOT NULL AND ss != '' AND REPLACE(ss, '-', '') = ?) OR " .
+      "(fname IS NOT NULL AND fname != '' AND AND UPPER(fname) = ? AND " .
+      "lname IS NOT NULL AND lname != '' AND AND UPPER(lname) = ?) OR " .
       "(DOB IS NOT NULL AND DOB = ?) " .
       "LIMIT 1",
       array($in_ss, $in_fname, $in_lname, $in_dob));
