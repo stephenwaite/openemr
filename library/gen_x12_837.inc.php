@@ -145,8 +145,9 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim=false) {
 
   ++$edicount;
   //Field length is limited to 35. See nucc dataset page 63 www.nucc.org
-  $billingFacilityName = substr($claim->billingFacilityName(), 0, $CMS_5010 ? 60 : 35);
-  $out .= "NM1" .       // Loop 2010AA Billing Provider
+  if ($claim->federalIdType() == "EI") { // check for entity type
+    $billingFacilityName = substr($claim->billingFacilityName(), 0, $CMS_5010 ? 60 : 35);
+    $out .= "NM1" .       // Loop 2010AA Billing Provider
     "*85" .
     "*2" .
     "*" . $billingFacilityName .
@@ -154,6 +155,37 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim=false) {
     "*" .
     "*" .
     "*";
+  }
+  else {
+    $tempName = $claim->billingFacilityName();
+    $partsName = explode(' ', $tempName);// Loop 2010AA Billing Provider entity == person    
+    if (count($partsName) == 3) {
+      $firstName  = $partsName[0];
+      $middleName = $partsName[1];
+      $lastName   = $partsName[2];
+      $suffixName = '';
+    }
+    else if (count($partsName) == 4) {
+      $firstName  = $partsName[0];
+      $middleName = $partsName[1];
+      $lastName   = $partsName[2];
+      $suffixName = $partsName[3];
+    }
+    else {
+      $firstName  = $partsName[0];
+      $middleName = '';
+      $lastName   = $partsName[1];
+      $suffixName = '';
+    }  
+    $out .= "NM1" .       
+    "*85" .
+    "*1" .
+    "*" . $lastName .
+    "*" . $firstName .
+    "*" . $middleName .
+    "*" . // Name Prefix not used 
+    "*" . $suffixName;
+  }  
   if ($claim->billingFacilityNPI()) {
     $out .= "*XX*" . $claim->billingFacilityNPI();
   }
