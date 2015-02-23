@@ -360,6 +360,14 @@ if ($_POST['form_save'] || $_REQUEST['receipt']) {
   $frow = sqlQuery("SELECT * FROM facility " .
     " WHERE id = ?", array($tmprow['facility_id']) );
 
+  // get provider from encounter 
+  $tmprow = sqlQuery("
+  SELECT provider_id
+  FROM form_encounter
+  WHERE encounter = ?", array($payrow['encounter']) );
+  $prow = sqlQuery("SELECT * FROM users " .
+  " WHERE id = ?", array($tmprow['provider_id']) );
+
   // Now proceed with printing the receipt.
 ?>
 
@@ -420,6 +428,10 @@ if ($_POST['form_save'] || $_REQUEST['receipt']) {
 
 <p>
 <table border='0' cellspacing='8'>
+ <tr>
+  <td><?php echo xlt('Provider'); ?>:</td>
+  <td><?php echo text($prow['fname']) . " " . text($prow['lname']) ?></td>
+ </tr>
  <tr>
   <td><?php echo xlt('Date'); ?>:</td>
   <td><?php echo text(oeFormatSDFT(strtotime($payrow['dtime']))) ?></td>
