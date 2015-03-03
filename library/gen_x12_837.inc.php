@@ -1175,7 +1175,18 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim=false) {
 
       ++$edicount;
       $out .= "SVD" . // Service line adjudication. Page 554.
-        "*" . $claim->payerID($ins) .
+      "*";
+      //adding below for vt medicaid payer ids  
+      if ($claim->payerID($ins-1) == "MCDVT") {
+        if (($claim->payerID($ins)) == "BCSVT") $out .= "EE";
+        if (($claim->payerID($ins)) == "14512") $out .= "MDB";
+        if (($claim->payerID($ins)) == "14212") $out .= "MDB";
+      }
+      else {
+        $out .= $claim->payerID($ins);
+      }
+                                                                                    }
+        $out .=
         "*" . $payerpaid[1] .
         "*HC:" . $claim->cptKey($prockey) .
         "*" .

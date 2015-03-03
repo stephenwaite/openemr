@@ -19,6 +19,25 @@ require_once("$srcdir/formatting.inc.php");
 require_once("$srcdir/options.inc.php");
 require_once("$srcdir/formdata.inc.php");
 
+//added check for auth 12-11-14 smw
+function feeSheetAuth() {
+  // get provider id for coding case
+  $tmp_provid = sqlQuery("SELECT provider_id FROM form_encounter " .
+  "WHERE pid = ? AND encounter = ? " , array( $_SESSION['pid'], $_SESSION['encounter']) );
+  $encounter_provid = 0 + $tmp_provid['provider_id'];
+  if (acl_check('acct','bill')) {
+       return;
+  } elseif (acl_check('encounters','coding_a')) {
+       return;
+  } elseif (acl_check('encounters','coding') && ($encounter_provid == $_SESSION['authId'])) {
+       return;
+  } else {
+       die("You are not authorized to view the fee sheet.  Please ask the administrator for permission.");
+  }
+}
+
+feeSheetAuth();      
+
 // Some table cells will not be displayed unless insurance billing is used.
 $usbillstyle = $GLOBALS['ippf_specific'] ? " style='display:none'" : "";
 
