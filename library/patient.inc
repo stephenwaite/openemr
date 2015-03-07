@@ -252,7 +252,10 @@ function getProviderInfo($providerID = "%", $providers_only = true, $facility = 
           ";
       }
       else {
-        $param2 = " AND facility_id = $facility ";
+        /*
+	commenting out this line as it limits multiple facilities display in calendar
+        $param2 = " AND facility_id = $facility "; 
+	*/
       }
     }
     //--------------------------------
