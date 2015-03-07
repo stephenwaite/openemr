@@ -2,7 +2,7 @@
 /**
 * List procedure orders and reports, and fetch new reports and their results.
 *
-* Copyright (C) 2013-2014 Rod Roark <rod@sunsetsystems.com>
+* Copyright (C) 2013-2015 Rod Roark <rod@sunsetsystems.com>
 *
 * LICENSE: This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -185,9 +185,14 @@ if (empty($_POST['form_external_refresh'])) {
 // Attempt to post any incoming results.
 $errmsg = poll_hl7_results($info);
 
+// echo "<!--\n";  // debugging
+// print_r($info); // debugging
+// echo "-->\n";   // debugging
+
 // Display a row for each required patient matching decision or message.
 $s = '';
 $matchreqs = false;
+$errors = false;
 foreach ($info as $infokey => $infoval) {
   $count = 0;
   if (is_array($infoval['match'])) {
@@ -224,23 +229,35 @@ foreach ($info as $infokey => $infoval) {
   if (is_array($infoval['mssgs'])) {
     foreach ($infoval['mssgs'] as $message) {
       $s .= " <tr class='detail' bgcolor='#ccccff'>\n";
-      if (!$count++) {
-        $s .= "  <td><input type='checkbox' name='delete[" . attr($infokey) . "]' value='1' /></td>\n";
-        $s .= "  <td>" . text($infokey) . "</td>\n";
+      if (substr($message, 0, 1) == '*') {
+        $errors = true;
+        // Error message starts with '*'
+        if (!$count++) {
+          $s .= "  <td><input type='checkbox' name='delete[" . attr($infokey) . "]' value='1' /></td>\n";
+          $s .= "  <td>" . text($infokey) . "</td>\n";
+        }
+        else {
+          $s .= "  <td>&nbsp;</td>\n";
+          $s .= "  <td>&nbsp;</td>\n";
+        }
+        $s .= "  <td colspan='2' style='color:red'>". text(substr($message, 1)) . "</td>\n";
       }
       else {
+        // Informational message starts with '>'
         $s .= "  <td>&nbsp;</td>\n";
-        $s .= "  <td>&nbsp;</td>\n";
+        $s .= "  <td>" . text($infokey) . "</td>\n";
+        $s .= "  <td colspan='2' style='color:green'>". text(substr($message, 1)) . "</td>\n";
       }
-      $s .= "  <td colspan='2' style='color:red'>". text($message) . "</td>\n";
       $s .= " </tr>\n";
     }
   }
 }
 if ($s) {
-  echo "<p class='bold' style='color:#008800'>";
-  echo xlt('Incoming results requiring attention:');
-  echo "</p>\n";
+  if ($matchreqs || $errors) {
+    echo "<p class='bold' style='color:#008800'>";
+    echo xlt('Incoming results requiring attention:');
+    echo "</p>\n";
+  }
   echo "<table width='100%'>\n";
   echo " <tr class='head'>\n";
   echo "  <td>" . xlt('Delete'  ) . "</th>\n";
@@ -250,15 +267,17 @@ if ($s) {
   echo " </tr>\n";
   echo $s;
   echo "</table>\n";
-  echo "<p class='bold' style='color:#008800'>";
-  if ($matchreqs) {
-    echo xlt('Click where indicated above to match the patient.') . ' ';
-    echo xlt('After that the Match column will show the selected patient ID, or 0 to create.') . ' ';
-    echo xlt('If you do not select a match the patient will be created.') . ' ';
+  if ($matchreqs || $errors) {
+    echo "<p class='bold' style='color:#008800'>";
+    if ($matchreqs) {
+      echo xlt('Click where indicated above to match the patient.') . ' ';
+      echo xlt('After that the Match column will show the selected patient ID, or 0 to create.') . ' ';
+      echo xlt('If you do not select a match the patient will be created.') . ' ';
+    }
+    echo xlt('Checkboxes above indicate if you want to reject and delete the HL7 file.') . ' ';
+    echo xlt('When done, click Submit (below) to apply your choices.');
+    echo "</p>\n";
   }
-  echo xlt('Checkboxes above indicate if you want to reject and delete the HL7 file.') . ' ';
-  echo xlt('When done, click Submit (below) to apply your choices.');
-  echo "</p>\n";
 }
 
 // If there was a fatal error display that.
