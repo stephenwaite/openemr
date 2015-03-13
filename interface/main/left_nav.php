@@ -414,6 +414,8 @@ function genFindBlock() {
  $(document).ready(function (){
    getReminderCount();//
    parent.loadedFrameCount += 1;
+   $("input[name=cb_bot]").trigger('click');
+   toggleFrame(2);
  }) 
  // end of tajemo work dated reminders counter
  

@@ -49,6 +49,23 @@ $provider  = $_POST['form_provider'];
 $facility  = $_POST['form_facility'];  //(CHEMED) facility filter
 $form_orderby = getComparisonOrder( $_REQUEST['form_orderby'] ) ?  $_REQUEST['form_orderby'] : 'date';
 
+// Prepare a string for CSV export.
+function qescape($str) {
+$str = str_replace('\\', '\\\\', $str);
+return str_replace('"', '\\"', $str);
+}
+
+
+// In the case of CSV export only, a download will be forced.
+if ($_POST['form_csvexport']) {
+header("Pragma: public");
+header("Expires: 0");
+header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+header("Content-Type: application/force-download");
+header("Content-Disposition: attachment; filename=appt_list.csv");
+header("Content-Description: File Transfer");
+}
+else {
 ?>
 
 <html>
@@ -68,6 +85,7 @@ $form_orderby = getComparisonOrder( $_REQUEST['form_orderby'] ) ?  $_REQUEST['fo
 <script type="text/javascript">
 
  var mypcc = '<?php echo $GLOBALS['phone_country_code'] ?>';
+ var siteid = '<?php echo $_SESSION['site_id'] ?>';
 
  function dosort(orderby) {
     var f = document.forms[0];
@@ -125,6 +143,7 @@ $form_orderby = getComparisonOrder( $_REQUEST['form_orderby'] ) ?  $_REQUEST['fo
 </div>
 
 <form method='post' name='theform' id='theform' action='appointments_report.php'>
+
 
 <div id="report_parameters">
 
@@ -229,8 +248,13 @@ $form_orderby = getComparisonOrder( $_REQUEST['form_orderby'] ) ?  $_REQUEST['fo
                                 <?php if ($_POST['form_refresh'] || $_POST['form_orderby'] ) { ?>
 				<a href='#' class='css_button' onclick='window.print()'> 
                                     <span> <?php xl('Print','e'); ?> </span> </a> 
-                                <a href='#' class='css_button' onclick='window.open("../patient_file/printed_fee_sheet.php?fill=2","_blank")'> 
+                                <a href='#' class='css_button' onclick='window.open("../patient_file/printed_fee_sheet_" + siteid + ".php?fill=2","_blank")'> 
                                     <span> <?php xl('Superbills','e'); ?> </span> </a> 
+                                    <a href='#' class='css_button' onclick='$("#form_csvexport").attr("value","true"); $("#theform").submit();'>
+                                    <span>
+                                    <?php xl('Export to CSV','e'); ?>
+                                    </span>
+                                    </a>
                                 <?php } ?></div>
 				</td>
 			</tr>
@@ -241,8 +265,30 @@ $form_orderby = getComparisonOrder( $_REQUEST['form_orderby'] ) ?  $_REQUEST['fo
 </table>
 
 </div>
-<!-- end of search parameters --> <?php
+<!-- end of search parameters --> 
+
+<?php
+} // end not form_csvexport
+
 if ($_POST['form_refresh'] || $_POST['form_orderby']) {
+  if ($_POST['form_csvexport']) {
+    if ($_SESSION['site_id'] != 7400) {
+      // CSV headers:
+      echo '"' . xl('Provider') . '",';
+      echo '"' . xl('Date') . '",';
+      echo '"' . xl('Time') . '",';
+      echo '"' . xl('Patient ID') . '",';
+      echo '"' . xl('Home') . '",';
+      echo '"' . xl('Cell') . '",';
+      echo '"' . xl('Type') . '",';
+      echo '"' . xl('Status') . '",';
+      echo '"' . xl('Comment') . '"' . "\n";
+    } else {
+      // place holder
+    }
+    
+   } else {
+
 	?>
 <div id="report_results">
 <table>
@@ -264,6 +310,10 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 	<?php if ($form_orderby == "patient") echo " style=\"color:#00cc00\"" ?>><?php  xl('Patient','e'); ?></a>
 		</th>
 
+	        <th><a href="nojs.php" onclick="return dosort('dob')"
+        <?php if ($form_orderby == "dob") echo " style=\"color:#00cc00\"  "?>><?php  xl('DOB','e'); ?></a>
+                </th>
+		                                
 		<th><a href="nojs.php" onclick="return dosort('pubpid')"
 	<?php if ($form_orderby == "pubpid") echo " style=\"color:#00cc00\"" ?>><?php  xl('ID','e'); ?></a>
 		</th>
@@ -286,9 +336,10 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 
 	</thead>
 	<tbody>
-		<!-- added for better print-ability -->
-	<?php
 	
+		<!-- added for better print-ability -->
+	<?php } // end not export
+
 	$lastdocname = "";
 	//Appointment Status Checking
         $form_apptstatus = $_POST['form_apptstatus'];
@@ -321,20 +372,80 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 
 	$appointments = sortAppointments( $appointments, $form_orderby );
     $pid_list = array();  // Initialize list of PIDs for Superbill option
+     $apptdate_list = array();
     $totalAppontments = count($appointments);   
-	
+    $count = 0; // added by steve for rmj nurse 	
 	foreach ( $appointments as $appointment ) {
+                $count++;
                 array_push($pid_list,$appointment['pid']);
+                 array_push($apptdate_list,$appointment['pc_eventDate']);
 		$patient_id = $appointment['pid'];
-		$docname  = $appointment['ulname'] . ', ' . $appointment['ufname'] . ' ' . $appointment['umname'];
+		$patient_dob = getPatientData($patient_id, "dob");
+		$docname  = $appointment['ulname'] . '; ' . $appointment['ufname'] . ' ' . $appointment['umname'];
                 
         $errmsg  = "";
 		$pc_apptstatus = $appointment['pc_apptstatus'];
 
+if ($_POST['form_csvexport']) {
+  if ($_SESSION['site_id'] == 7400) {
+    echo '"' . 'Appointments by Date-Time' . '",';
+    echo '"' . 'RUTLAND SKIN CENTER' . '",';
+    echo '"' . 'McCauliffe; Daniel P' . '",';
+    echo '"' . 'Chart' . '",';
+    echo '"' . 'Appointment' . '",';
+    echo '"' . 'Status' . '",';
+    echo '"' . 'Date' . '",';
+    echo '"' . 'Provider' . '",';
+    echo '"' . 'Home Phone' . '",';
+    echo '"' . '' . '",';
+
+    echo '"' . $appointment['fname'] . " " . $appointment['lname'] . '",';
+
+    if($pc_apptstatus != ""){
+      if ($pc_apptstatus == "x") {
+      echo '"' . 'Canceled' . '",';
+      } else {
+      echo '"' . 'Pending' . '",';
+      }
+    }
+
+    echo '"' . oeFormatShortDate($appointment['pc_eventDate']) . '",';
+    if ($docname == "Lane N.P.; Kerry "){
+      echo '"' . 'KLANE' . '",';
+    } else if ($docname == "Nurse; Clinic "){
+      echo '"' . 'NURSE' . '",';
+    } else {
+      echo '"' . 'DPM' . '",';
+    }
+  
+    echo '"' . $appointment['phone_home'] . '",';
+    echo '"' . $appointment['pc_hometext'] . '",';
+    echo '"' . oeFormatTime($appointment['pc_startTime']) . '"' . "\n";
+    //echo '"' . oeFormatShortDate($appointment['pc_catname']) . '",';
+  } else {
+      echo '"' . $docname . '",';
+      echo '"' . oeFormatShortDate($appointment['pc_eventDate']) . '",';
+      echo '"' . oeFormatTime($appointment['pc_startTime']) . '",';
+      echo '"' .  $appointment['pubpid'] . '",';
+      echo '"' . $appointment['phone_home'] . '",';
+      echo '"' . $appointment['phone_cell'] . '",';
+      echo '"' . xl_appt_category($appointment['pc_catname']) . '",';
+      echo '"';
+      if($pc_apptstatus != ""){
+         $frow['data_type']=1;
+         $frow['list_id']='apptstat';
+         generate_print_field($frow, $pc_apptstatus);
+      } 
+      echo '",';
+      echo '"' . $appointment['pc_hometext'] . '"' . "\n";
+  }
+}
+else {
+
 		?>
 
 	<tr bgcolor='<?php echo $bgcolor ?>'>
-		<td class="detail">&nbsp;<?php echo ($docname == $lastdocname) ? "" : $docname ?>
+		<td class="detail">&nbsp;<?php echo ($docname == $lastdocname) ? $count : $docname ?>
 		</td>
 
 		<td class="detail"><?php echo oeFormatShortDate($appointment['pc_eventDate']) ?>
@@ -345,6 +456,8 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 
 		<td class="detail">&nbsp;<?php echo $appointment['fname'] . " " . $appointment['lname'] ?>
 		</td>
+
+                <td class="detail" >&nbsp;<?php echo $patient_dob['dob']?></td>
 
 		<td class="detail">&nbsp;<?php echo $appointment['pubpid'] ?></td>
 
@@ -371,30 +484,42 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 
 	<?php
 	$lastdocname = $docname;
-	}
+	//}
 	// assign the session key with the $pid_list array - note array might be empty -- handle on the printed_fee_sheet.php page.
         $_SESSION['pidList'] = $pid_list;
-	?>
+        $_SESSION['apptdateList'] = $apptdate_list;
+        } // end for each
+        } // end not export
+        if (!$_POST['form_csvexport']) {?>
+        
 	<tr>
 		<td colspan="10" align="left"><?php  xl('Total number of appointments','e'); ?>:&nbsp;<?php echo $totalAppontments;?></td>
 	</tr>
 	</tbody>
+
 </table>
 </div>
-<!-- end of search results --> <?php } else { ?>
+
+<!-- end of search results --> <?php } } else { 
+
+if (!$_POST['form_csvexport']) { ?>
 <div class='text'><?php echo xl('Please input search criteria above, and click Submit to view results.', 'e' ); ?>
 </div>
-	<?php } ?> <input type="hidden" name="form_orderby"
-	value="<?php echo $form_orderby ?>" /> <input type="hidden"
-	name="patient" value="<?php echo $patient ?>" /> <input type='hidden'
-	name='form_refresh' id='form_refresh' value='' /></form>
+	<?php } }
+	if (!$_POST['form_csvexport']) { ?> 
+	<input type="hidden" name="form_orderby" value="<?php echo $form_orderby ?>" /> 
+	<input type="hidden" name="patient" value="<?php echo $patient ?>" /> 
+	<input type='hidden' name='form_refresh' id='form_refresh' value='' />
+	<input type='hidden' name='form_csvexport' id='form_csvexport' value=''/>
+
+	</form>
 
 <script type="text/javascript">
 
-<?php
+<?php } 
 if ($alertmsg) { echo " alert('$alertmsg');\n"; }
 ?>
-
+<?php if (!$_POST['form_csvexport']) { ?>
 </script>
 
 </body>
@@ -413,4 +538,4 @@ if ($alertmsg) { echo " alert('$alertmsg');\n"; }
 </script>
 
 </html>
-
+<?php } ?>

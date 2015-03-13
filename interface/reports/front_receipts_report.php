@@ -221,14 +221,27 @@ require_once("$srcdir/formatting.inc.php");
     $total1 += $row['amount1'];
     $total2 += $row['amount2'];
   }
+
+  // mdsupport - Sub-totals by payment method
+  $res = sqlStatement(
+      'SELECT method, SUM(amount1 + amount2) amt FROM payments '.
+      'WHERE DATE(dtime) >= ? AND DATE(dtime) <= ? '.
+      'GROUP by method', array($from_date, $to_date));
+  $rownum = 0;
+  while ($row = sqlFetchArray($res)) {
 ?>
 
  <tr>
-  <td colspan='8'>
-   &nbsp;
-  </td>
+ <td class='bold'><?php echo ($rownum ? '&nbsp;' : 'Summary by Method')?></td>
+ <td colspan='2'>&nbsp;</td>
+ <td class='bold'><?php echo $row['method'] ?></td>
+ <td colspan='3'>&nbsp;</td>
+ <td class='bold' align='right'><?php echo bucks($row['amt']) ?></td>
  </tr>
-
+<?php
+   $rownum++;
+   } ?> 
+   
  <tr class="report_totals">
   <td colspan='5'>
    <?php xl('Totals','e'); ?>
