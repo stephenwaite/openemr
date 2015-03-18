@@ -179,10 +179,11 @@ function rhl7DecodeData($enctype, &$src) {
  *   0  No patient is close to a match.
  *  -1  It's not clear if there is a match.
  */
-function match_patient($in_ss, $in_fname, $in_lname, $in_dob) {
-  $in_ss = str_replace('-', '', $in_ss);
-  $in_fname = strtoupper($in_fname);
-  $in_lname = strtoupper($in_lname);
+function match_patient($ptarr) {
+  $in_ss = str_replace('-', '', $ptarr['ss']);
+  $in_fname = strtoupper($ptarr['fname']);
+  $in_lname = strtoupper($ptarr['lname']);
+  $in_dob = $ptarr['DOB'];
   $patient_id = 0;
   $tmp = sqlQuery("SELECT pid FROM patient_data WHERE " .
     "((ss IS NULL OR ss = '' OR '' = ?) AND " .
@@ -269,8 +270,11 @@ function create_skeleton_patient($patient_data) {
  * Parse and save.
  *
  * @param  string  &$hl7      The input HL7 text.
+ * @param  int     $lab_id    Lab ID
  * @param  char    $direction B=Bidirectional, R=Results-only
- * @param  book    $dryrun    True = do not update anything, just report errors
+ * @param  bool    $dryrun    True = do not update anything, just report errors
+ * @param  array   $matchresp Array of responses to match requests; key is relative segment number,
+ *                            value is an existing pid or 0 to specify creating a patient.
  * @return array              Array of errors and match requests, if any.
  */
 function receive_hl7_results(&$hl7, $lab_id=0, $direction='B', $dryrun=false, $matchresp=NULL) {
@@ -301,6 +305,7 @@ function receive_hl7_results(&$hl7, $lab_id=0, $direction='B', $dryrun=false, $m
   $in_report_status = '';
   $in_encounter = 0;
   $patient_id = 0; // for results-only patient matching logic
+  $ptstrings = array();
 
   $porow = false;
   $pcrow = false;
@@ -388,8 +393,8 @@ function receive_hl7_results(&$hl7, $lab_id=0, $direction='B', $dryrun=false, $m
     else if ($a[0] == 'PID') {
       $context = $a[0];
       if ('ORU' == $msgtype && !$dryrun) {
+        // Note these calls do nothing if the passed array is empty.
         rhl7FlushResult($ares);
-        // Next line does something only for a report with no results.
         rhl7FlushReport($arep);
       }
       if ('MDM' == $msgtype && !$dryrun) {
@@ -413,30 +418,45 @@ function receive_hl7_results(&$hl7, $lab_id=0, $direction='B', $dryrun=false, $m
       // This could be troublesome if a PID for the same patient appears more than
       // once in the same message file, but that shouldn't happen.
       if ('R' == $direction || 'MDM' == $msgtype) {
-        $patient_id = match_patient($in_ss, $in_fname, $in_lname, $in_dob);
+        $ptarr = array('ss' => $in_ss, 'fname' => $in_fname, 'lname' => $in_lname, 'DOB' => $in_dob);
+        $patient_id = match_patient($ptarr);
         if ($patient_id == -1) {
-          // Indeterminate, check if the user has specified the patient.
-          if (isset($matchresp[$rhl7_segnum]) /* && $matchresp[$rhl7_segnum] !== '' */) {
+          // Result is indeterminate.
+          // Make a stringified form of $ptarr to use as a key.
+          $ptstring = implode(',', $ptarr);
+          // Check if the user has specified the patient.
+          if (isset($matchresp[$rhl7_segnum])) {
             // This will be an existing pid, or 0 to specify creating a patient.
             $patient_id = intval($matchresp[$rhl7_segnum]);
+            // Remember the user choice for this set of patient attributes.
+            $ptstrings[$ptstring] = $patient_id;
           }
           else {
-            // Nope, ask the user to do so.
-            $rhl7_return['match'][$rhl7_segnum] = array('ss' => $in_ss,
-              'fname' => $in_fname, 'lname' => $in_lname, 'DOB' => $in_dob);
+            // Nope, check if the same pt match was already seen in this call.
+            if (isset($ptstrings[$ptstring])) {
+              // It was, use that patient id.
+              $patient_id = $ptstrings[$ptstring];
+            }
+            else if ($dryrun) {
+              // Nope, ask the user to match.
+              $rhl7_return['match'][$rhl7_segnum] = $ptarr;
+              // Also note this match request for this patient so it's not repeated.
+              $ptstrings[$ptstring] = -1;
+            }
+            else {
+              // Should not happen, but it would be bad to abort now.  Create the patient.
+              $patient_id = 0;
+              rhl7LogMsg(xl('Unexpected non-match, creating new patient for segment') .
+                ' ' . $rhl7_segnum, false);
+            }
           }
         }
         if ($patient_id == 0 && !$dryrun) {
           // We must create the patient.
-          $patient_id = create_skeleton_patient(array(
-            'fname' => $in_fname,
-            'lname' => $in_lname,
-            'DOB'   => $in_dob,
-            'ss'    => $in_ssn,
-          ));
+          $patient_id = create_skeleton_patient($ptarr);
         }
         if ($patient_id == -1) $patient_id = 0;
-      } // end results-only logic
+      } // end results-only/MDM logic
     }
 
     else if ('PV1' == $a[0]) {
@@ -938,4 +958,3 @@ function poll_hl7_results(&$info) {
   return '';
 }
 // PHP end tag omitted intentionally.
-
