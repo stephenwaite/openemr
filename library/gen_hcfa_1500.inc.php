@@ -384,8 +384,9 @@ function gen_hcfa_1500_page($pid, $encounter, &$log, &$claim) {
     $tmp = $claim->referrerLastName() . ', ' . $claim->referrerFirstName();
     if ($claim->referrerMiddleName())
       $tmp .= ', ' . substr($claim->referrerMiddleName(),0,1);
-    put_hcfa(34, 1, 25, $tmp);
-
+    put_hcfa(34, 1,  3, "DN");
+    put_hcfa(34, 4, 25, $tmp);
+    
     // Box 17b. Referring Provider NPI
     if ($claim->referrerNPI()) {
       put_hcfa(34, 33, 15, $claim->referrerNPI());
@@ -723,6 +724,8 @@ function gen_hcfa_1500_page($pid, $encounter, &$log, &$claim) {
     put_hcfa(61, 63,  2, $claim->providerNumberType());
     put_hcfa(61, 65, 14, $claim->providerGroupNumber());
   }
+  // this is now for taxonomy code
+  put_hcfa(61, 63, 10, $claim->providerTaxonomy());
 
   // Put an extra line here for compatibility with old hcfa text generated form
     put_hcfa(62, 1, 1, ' ');
