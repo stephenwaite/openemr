@@ -228,7 +228,7 @@ function getServiceFacilities($first = '') {
 }
 
 //(CHEMED) facility filter
-function getProviderInfo($providerID = "%", $providers_only = true, $facility = '' ) {
+function getProviderInfo($providerID = "%", $providers_only = true, $facility = '', $facility_count ) {
     $param1 = "";
     if ($providers_only === 'any') {
       $param1 = " AND authorized = 1 AND active = 1 ";
@@ -251,8 +251,13 @@ function getProviderInfo($providerID = "%", $providers_only = true, $facility = 
 	        )
           ";
       }
-      else {
+      // checking facility table to get around default facility limitation
+      else if($facility_count == 1) {
         $param2 = " AND facility_id = $facility ";
+      }
+
+      else {
+        $param2 = "";
       }
     }
     //--------------------------------

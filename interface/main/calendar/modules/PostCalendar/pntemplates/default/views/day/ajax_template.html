@@ -134,8 +134,10 @@ $timeslotHeightUnit="px";
 //==================================
 //FACILITY FILTERING (CHEMED)
 $facilities = getUserFacilities($_SESSION['authId']); // from users_facility
+// count # of facilites for getting around default facility in users table
+$facility_count = count($facilities);
 if ( $_SESSION['pc_facility'] ) {
-  $provinfo = getProviderInfo('%', true, $_SESSION['pc_facility']);
+  $provinfo = getProviderInfo('%', true, $_SESSION['pc_facility'], $facility_count);
 } else {
   $provinfo = getProviderInfo();
 }
