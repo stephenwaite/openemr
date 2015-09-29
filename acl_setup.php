@@ -179,6 +179,23 @@
  $gacl->add_object('nationnotes', 'Nation Notes Configure', 'nn_configure', 10, 0, 'ACO');
      // xl('Nation Notes Configure')
 
+ // Create ACOs for reports.
+ //
+ $gacl->add_object('reports', 'All Reports'        , 'reports_a'     , 10, 0, 'ACO');
+     // xl('All Reports')
+ $gacl->add_object('reports', 'Client Reports'     , 'reports_client', 10, 0, 'ACO');
+     // xl('Client Reports')
+ $gacl->add_object('reports', 'Clinic Reports'     , 'reports_clinic', 10, 0, 'ACO');
+     // xl('Clinic Reports')
+ $gacl->add_object('reports', 'Procedure Reports'  , 'reports_proc'  , 10, 0, 'ACO');
+     // xl('Procedure Reports')
+ $gacl->add_object('reports', 'Services'           , 'reports_serv'  , 10, 0, 'ACO');
+     // xl('Services Reports')
+ $gacl->add_object('reports', 'Visit Reports'      , 'reports_vis'   , 10, 0, 'ACO');
+     // xl('Visits reports')
+ $gacl->add_object('reports', 'Blank Forms Reports', 'reports_blanco', 10, 0, 'ACO');
+     // xl('Blank Forms Reports')
+
  // Create ARO groups.
  //
  $users = $gacl->add_group('users', 'OpenEMR Users' , 0     , 'ARO');
