@@ -45,26 +45,30 @@
   return;
  }
      // xl('Accounting')
- $gacl->add_object_section('Administration', 'admin'        , 10, 0, 'ACO');
+ $gacl->add_object_section('Administration' , 'admin'        , 10, 0, 'ACO');
      // xl('Administration')
- $gacl->add_object_section('Encounters'    , 'encounters'   , 10, 0, 'ACO');
+ $gacl->add_object_section('Encounters'     , 'encounters'   , 10, 0, 'ACO');
      // xl('Encounters')
- $gacl->add_object_section('Lists'         , 'lists'        , 10, 0, 'ACO');
+ $gacl->add_object_section('Lists'          , 'lists'        , 10, 0, 'ACO');
      // xl('Lists')
- $gacl->add_object_section('Patients'      , 'patients'     , 10, 0, 'ACO');
+ $gacl->add_object_section('Patients'       , 'patients'     , 10, 0, 'ACO');
      // xl('Patients')
- $gacl->add_object_section('Squads'        , 'squads'       , 10, 0, 'ACO');
+ $gacl->add_object_section('Squads'         , 'squads'       , 10, 0, 'ACO');
      // xl('Squads')
- $gacl->add_object_section('Sensitivities' , 'sensitivities', 10, 0, 'ACO');
+ $gacl->add_object_section('Sensitivities'  , 'sensitivities', 10, 0, 'ACO');
      // xl('Sensitivities')
- $gacl->add_object_section('Placeholder'   , 'placeholder'  , 10, 0, 'ACO');
+ $gacl->add_object_section('Placeholder'    , 'placeholder'  , 10, 0, 'ACO');
      // xl('Placeholder')
  $gacl->add_object_section('Nation Notes'   , 'nationnotes'  , 10, 0, 'ACO');
      // xl('Nation Notes')
- $gacl->add_object_section('Patient Portal','patientportal'  , 10, 0, 'ACO');
+ $gacl->add_object_section('Patient Portal' , 'patientportal', 10, 0, 'ACO');
      // xl('Patient Portal')
-  $gacl->add_object_section('Menus','menus'  , 10, 0, 'ACO');
+ $gacl->add_object_section('Menus'          , 'menus'        , 10, 0, 'ACO');
      // xl('Menus')
+ $gacl->add_object_section('Reports'        , 'reports'      , 10, 0, 'ACO');
+     // xl('Reports')
+
+
  // Create Accounting ACOs.
  //
  $gacl->add_object('acct', 'Billing (write optional)'           , 'bill' , 10, 0, 'ACO');
@@ -178,6 +182,26 @@
  //
  $gacl->add_object('nationnotes', 'Nation Notes Configure', 'nn_configure', 10, 0, 'ACO');
      // xl('Nation Notes Configure')
+
+ // Create ACOs for reports.
+ //
+ $gacl->add_object('reports', 'All Reports'        , 'reports_a'     , 10, 0, 'ACO');
+     // xl('All Reports')
+ $gacl->add_object('reports', 'Client Reports'     , 'reports_client', 10, 0, 'ACO');
+     // xl('Client Reports')
+ $gacl->add_object('reports', 'Clinic Reports'     , 'reports_clinic', 10, 0, 'ACO');
+     // xl('Clinic Reports')
+ $gacl->add_object('reports', 'Procedure Reports'  , 'reports_proc'  , 10, 0, 'ACO');
+     // xl('Procedure Reports')
+ $gacl->add_object('reports', 'Services'           , 'reports_serv'  , 10, 0, 'ACO');
+     // xl('Services Reports')
+ $gacl->add_object('reports', 'Visit Reports'      , 'reports_vis'   , 10, 0, 'ACO');
+     // xl('Visits reports')
+ $gacl->add_object('reports', 'Blank Forms Reports', 'reports_blanco', 10, 0, 'ACO');
+     // xl('Blank Forms Reports')
+
+
+
 
  // Create ARO groups.
  //
