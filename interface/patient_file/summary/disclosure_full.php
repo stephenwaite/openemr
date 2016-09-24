@@ -66,7 +66,7 @@ deleteDisclosure($deletelid);
 <head>
 <link rel='stylesheet' href="<?php echo $css_header;?>" type="text/css">
 <!-- supporting javascript code -->
-<script type="text/javascript" src="<?php echo $GLOBALS['webroot'] ?>/library/js/jquery.js"></script>
+<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-min-1-2-1/index.js"></script>
 <link rel="stylesheet" type="text/css" href="../../../library/js/fancybox/jquery.fancybox-1.2.6.css" media="screen" />
 <script type="text/javascript" src="../../../library/dialog.js"></script>
 <script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-min-1-3-2/index.js"></script>
@@ -172,7 +172,7 @@ if ($offset > ($N-1) && $n!=0) {
 <?php 
 
 if ($n >= $N && $noOfRecordsLeft!=$N) {
-  echo "&nbsp;&nbsp;   <a class='link' href='disclosure_full.php?active=" . $active. 
+  echo "&nbsp;&nbsp;   <a class='link' href='disclosure_full.php?active=" . $active.
     "&offset=" . ($offset+$N)  ."&leftrecords=".$noOfRecordsLeft."' onclick='top.restoreSession()'>[" .
     xlt('Next') . "]</a>\n";
 }

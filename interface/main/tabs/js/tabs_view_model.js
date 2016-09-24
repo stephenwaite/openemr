@@ -1,5 +1,6 @@
 /**
  * Copyright (C) 2016 Kevin Yeh <kevin.y@integralemr.com>
+ * Copyright (C) 2016 Brady Miller <brady.g.miller@gmail.com>
  *
  * LICENSE: This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -14,6 +15,7 @@
  *
  * @package OpenEMR
  * @author  Kevin Yeh <kevin.y@integralemr.com>
+ * @author  Brady Miller <brady.g.miller@gmail.com>
  * @link    http://www.open-emr.org
  */
 
@@ -33,8 +35,8 @@ function tabStatus(title,url,name,closable,visible,locked)
 function tabs_view_model()
 {
     this.tabsList=ko.observableArray();
-    this.tabsList.push(new tabStatus("One",webroot_url+"/interface/main/main_info.php","lst",false,true,false));
-    this.tabsList.push(new tabStatus("Two",webroot_url+"/interface/main/messages/messages.php?form_active=1","pat",false,false,false));
+    this.tabsList.push(new tabStatus("One",webroot_url+"/interface/main/main_info.php","cal",true,true,false));
+    this.tabsList.push(new tabStatus("Two",webroot_url+"/interface/main/messages/messages.php?form_active=1","msg",true,false,false));
 //    this.tabsList.push(new tabStatus("Three"));
     this.text=ko.observable("Test");
     return this;
@@ -240,8 +242,9 @@ function clearPatient()
     tabCloseByName('enc');
     tabCloseByName('rev');
     tabCloseByName('pop');
-    navigateTab(webroot_url+'/interface/main/messages/messages.php?form_active=1','pat');
-    activateTabByName('lst',true);    
+    tabCloseByName('pat');
+    navigateTab(webroot_url+'/interface/main/finder/dynamic_finder.php','fin');
+    activateTabByName('fin',true);
     //Ajax call to clear active patient in session
     $.ajax({
         type: "POST",

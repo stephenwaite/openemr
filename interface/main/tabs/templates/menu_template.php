@@ -1,6 +1,7 @@
 <?php
 /**
  * Copyright (C) 2016 Kevin Yeh <kevin.y@integralemr.com>
+ * Copyright (C) 2016 Brady Miller <brady.g.miller@gmail.com>
  *
  * LICENSE: This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,6 +16,7 @@
  *
  * @package OpenEMR
  * @author  Kevin Yeh <kevin.y@integralemr.com>
+ * @author  Brady Miller <brady.g.miller@gmail.com>
  * @link    http://www.open-emr.org
  */
 ?>
@@ -22,7 +24,7 @@
 <script type="text/html" id="menu-action">
     <i data-bind="css: icon,text:helperText" class="fa closeButton"></i>
     <div class='menuLabel' data-bind="text:label,click: menuActionClick,css: {menuDisabled: ! enabled()}"></div>
-    
+
 </script>
 <script type="text/html" id="menu-header">
     <i data-bind="css: icon" class="fa closeButton"></i>

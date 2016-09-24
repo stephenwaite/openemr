@@ -10,7 +10,7 @@ $returnurl = $GLOBALS['concurrent_layout'] ? 'encounter_top.php' : 'patient_enco
 $provider_results = sqlQuery("select fname, lname from users where username=?",array($_SESSION{"authUser"}));
 
 /* name of this form */
-$form_name = "note"; 
+$form_name = "note";
 
 // get the record from the database
 if ($_GET['id'] != "") $obj = formFetch("form_".$form_name, $_GET["id"]);
@@ -25,7 +25,7 @@ if ($obj['date_of_signature'] != "") {
 <link rel="stylesheet" href="<?php echo $css_header;?>" type="text/css">
 
 <!-- supporting javascript code -->
-<script type="text/javascript" src="<?php echo $GLOBALS['webroot'] ?>/library/js/jquery.js"></script>
+<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-min-1-2-1/index.js"></script>
 
 </head>
 <body class="body_top">

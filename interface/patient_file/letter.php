@@ -68,7 +68,7 @@ $patdata = sqlQuery("SELECT " .
 $alertmsg = ''; // anything here pops up in an alert box
 
 // If the Generate button was clicked...
-if ($_POST['formaction']=="generate") {    
+if ($_POST['formaction']=="generate") {
     
     $form_pid      = $_POST['form_pid'];
     $form_from     = $_POST['form_from'];
@@ -152,7 +152,7 @@ if ($_POST['formaction']=="generate") {
       }
       else {
         $pdf->selectFont('Helvetica');
-        $pdf->ezText($cpstring, 12); 
+        $pdf->ezText($cpstring, 12);
       }
       $pdf->ezStream();
       exit;
@@ -221,8 +221,8 @@ else if ($_POST['formaction'] == "loadtemplate" && $_POST['form_template'] != ""
     fclose($fh);
     // translate from constant to the definition
     foreach ($FIELD_TAG as $key => $value) {
-        $bodytext = str_replace("{".$key."}", "{".$value."}", $bodytext);	
-    } 
+        $bodytext = str_replace("{".$key."}", "{".$value."}", $bodytext);
+    }
 }
 else if ($_POST['formaction'] == "newtemplate" && $_POST['newtemplatename'] != "") {
     // attempt to save the template
@@ -314,7 +314,7 @@ while ($srow = sqlFetchArray($sres)) {
 <link rel='stylesheet' href='<?php echo $css_header ?>' type='text/css'>
 
 <!-- supporting javascript code -->
-<script type="text/javascript" src="<?php echo $GLOBALS['webroot'] ?>/library/js/jquery.js"></script>
+<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-min-1-2-1/index.js"></script>
 
 <script type="text/javascript" src="<?php echo $GLOBALS['webroot'] ?>/library/topdialog.js"></script>
 <script type="text/javascript" src="<?php echo $GLOBALS['webroot'] ?>/library/dialog.js"></script>

@@ -276,7 +276,7 @@ else {
         $lab_query_report .= "<tr><td>" .xl("No errors found"). "</td></tr>";
     else
     {
-        $lab_query_report .= "<tr><td>" . 
+        $lab_query_report .= "<tr><td>" .
             xl("First Name") . "</td><td>" .
             xl("Middle Name") . "</td><td>" .
             xl("Last Name") . "</td><td>" .
@@ -314,7 +314,7 @@ else {
         $lab_query_report .= "<tr><td>" . xl("No new results found") . "</td></tr>";
     else
     {
-        $lab_query_report .= "<tr><td>" . 
+        $lab_query_report .= "<tr><td>" .
             xl("First Name") . "</td><td>" .
             xl("Middle Name") . "</td><td>" .
             xl("Last Name") .   "</td><td>" .
@@ -354,7 +354,7 @@ else {
         <link rel="stylesheet" href="<?php echo $css_header; ?>" type="text/css">
         <script type="text/javascript" src="../../../library/dialog.js"></script>
         <script type="text/javascript" src="../../../library/textformat.js"></script>
-        <script type="text/javascript" src="<?php echo $GLOBALS['webroot']; ?>/library/js/jquery.js"></script>
+        <script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-min-1-2-1/index.js"></script>
     </head>
 
     <body class="body_top">

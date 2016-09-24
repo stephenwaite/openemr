@@ -1,6 +1,7 @@
 <?php
 /**
  * Copyright (C) 2016 Kevin Yeh <kevin.y@integralemr.com>
+ * Copyright (C) 2016 Brady Miller <brady.g.miller@gmail.com>
  *
  * LICENSE: This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,6 +16,7 @@
  *
  * @package OpenEMR
  * @author  Kevin Yeh <kevin.y@integralemr.com>
+ * @author  Brady Miller <brady.g.miller@gmail.com>
  * @link    http://www.open-emr.org
  */
 
@@ -37,7 +39,7 @@ function update_modules_menu(&$menu_list)
                             $modulePath = $GLOBALS['customModDir'];
                             $added		= "";
                     }
-                    else{ 	
+                    else{
                             $added		= "index";
                             $modulePath = $GLOBALS['zendModDir'];
                     }
@@ -90,7 +92,7 @@ if (sqlNumRows($lres)) {
         $formEntry->target='enc';
         array_push($menu_list->children,$formEntry);
       }
-    }    
+    }
 }
 function menu_update_entries(&$menu_list)
 {
@@ -104,7 +106,7 @@ function menu_update_entries(&$menu_list)
             if(isset($menu_update_map[$entry->label]))
             {
                 $menu_update_map[$entry->label]($entry);
-            }                
+            }
         }
         // Translate the labels 
         $entry->label=xlt($entry->label);
@@ -189,11 +191,11 @@ function menu_apply_restrictions(&$menu_list_src,&$menu_list_updated)
             {
                 $includeEntry=false;
             }
-        }        
+        }
         if($includeEntry)
         {
 
             array_push($menu_list_updated,$srcEntry);
-        }        
+        }
     }
 }

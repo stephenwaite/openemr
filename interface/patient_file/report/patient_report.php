@@ -34,7 +34,7 @@ if ($GLOBALS['gbl_portal_cms_enable']) {
 <script type="text/javascript" src="../../../library/dynarch_calendar_setup.js"></script>
 
 <!-- include jQuery support -->
-<script type="text/javascript" src="<?php echo $GLOBALS['webroot'] ?>/library/js/jquery.js"></script>
+<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-min-1-2-1/index.js"></script>
 
 <script language='JavaScript'>
 
@@ -61,6 +61,10 @@ function show_date_fun(){
 
 <body class="body_top">
 <div id="patient_reports"> <!-- large outer DIV -->
+
+<p>
+<span class='title'><?php echo xlt('Patient Reports'); ?></span>
+</p>
 
 <?php if ( $GLOBALS['activate_ccr_ccd_report'] ) { // show CCR/CCD reporting options ?>
 <div id="ccr_report">
@@ -332,7 +336,7 @@ while($result = sqlFetchArray($res)) {
     if ($result{"form_name"} == "New Patient Encounter") {
         if ($isfirst == 0) {
             foreach($registry_form_name as $var) {
-                if ($toprint = $html_strings[$var]) { 
+                if ($toprint = $html_strings[$var]) {
                     foreach($toprint as $var) {print $var;}
                 }
             }
@@ -358,11 +362,11 @@ while($result = sqlFetchArray($res)) {
             $result['reason'] = mb_substr($result['reason'], 0, $maxReasonLength) . " ... ";
         }
 
-        echo $result{"reason"}. 
+        echo $result{"reason"}.
                 " (" . date("Y-m-d",strtotime($result{"date"})) .
                 ")\n";
         echo "<div class='encounter_forms'>\n";
-    } 
+    }
     else {
         $form_name = trim($result{"form_name"});
         //if form name is not in registry, look for the closest match by
@@ -385,7 +389,7 @@ while($result = sqlFetchArray($res)) {
     }
 }
 foreach($registry_form_name as $var) {
-    if ($toprint = $html_strings[$var]) { 
+    if ($toprint = $html_strings[$var]) {
         foreach($toprint as $var) {print $var;}
     }
 }
@@ -464,7 +468,7 @@ while ($result && !$result->EOF) {
     echo '&nbsp;&nbsp;<i>' .  xl_document_category($result->fields['name']) . "</i>";
     echo '&nbsp;&nbsp;' . xl('Name') . ': <i>' . basename($result->fields['url']) . "</i>";
     echo '</li>';
-    $result->MoveNext();	
+    $result->MoveNext();
 }
 ?>
 </ul>

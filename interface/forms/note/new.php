@@ -26,14 +26,14 @@ formHeader("Form: note");
 $returnurl = $GLOBALS['concurrent_layout'] ? 'encounter_top.php' : 'patient_encounter.php';
 $provider_results = sqlQuery("select fname, lname from users where username=?",array($_SESSION{"authUser"}));
 /* name of this form */
-$form_name = "note"; 
+$form_name = "note";
 ?>
 
 <html><head>
 <?php html_header_show();?>
 
 <!-- supporting javascript code -->
-<script type="text/javascript" src="<?php echo $GLOBALS['webroot'] ?>/library/js/jquery.js"></script>
+<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-min-1-2-1/index.js"></script>
 <script type="text/javascript" src="<?php echo $GLOBALS['webroot'] ?>/library/textformat.js"></script>
 
 <!-- pop up calendar -->
