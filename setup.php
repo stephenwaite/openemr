@@ -634,16 +634,13 @@ it is important to secure these directories. Additionally, some settings are req
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AllowOverride None<br>
 &nbsp;&nbsp;&lt;/Directory&gt;<br>
 &nbsp;&nbsp;&lt;Directory \"".preg_replace("/${site_id}/","*",realpath($docsDirectory))."\"&gt;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;order deny,allow<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Deny from all<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Require all denied<br>
 &nbsp;&nbsp;&lt;/Directory&gt;<br>
 &nbsp;&nbsp;&lt;Directory \"".preg_replace("/${site_id}/","*",realpath($billingDirectory))."\"&gt;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;order deny,allow<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Deny from all<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Require all denied<br>
 &nbsp;&nbsp;&lt;/Directory&gt;<br>
 &nbsp;&nbsp;&lt;Directory \"".preg_replace("/${site_id}/","*",realpath($billingDirectory2))."\"&gt;<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;order deny,allow<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Deny from all<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Require all denied<br>
 &nbsp;&nbsp;&lt;/Directory&gt;<br><br>";
 
 echo "If you are having difficulty finding your apache configuration file, then refer to the <a href='Documentation/INSTALL' target='_blank'><span STYLE='text-decoration: underline;'>'INSTALL'</span></a> manual for suggestions.<br><br>\n";
