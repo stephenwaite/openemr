@@ -40,7 +40,6 @@ ksort($versions);
 <head>
 <title>OpenEMR Database Upgrade</title>
 <link rel='STYLESHEET' href='interface/themes/style_blue.css'>
-<link rel="shortcut icon" href="public/images/favicon.ico" />
 </head>
 <body>
 <center>
@@ -61,26 +60,33 @@ if (!empty($_POST['form_submit'])) {
     upgradeFromSqlFile('ippf_upgrade.sql');
   }
 
-  if ( (!empty($v_realpatch)) && ($v_realpatch != "") && ($v_realpatch > 0) ) {
-    // This release contains a patch file, so process it.
-    upgradeFromSqlFile('patch.sql');
-  }
-
   flush();
-
   echo "<font color='green'>Updating global configuration defaults...</font><br />\n";
   require_once("library/globals.inc.php");
   foreach ($GLOBALS_METADATA as $grpname => $grparr) {
     foreach ($grparr as $fldid => $fldarr) {
       list($fldname, $fldtype, $flddef, $flddesc) = $fldarr;
-      if (substr($fldtype, 0, 2) !== 'm_') {
-        $row = sqlQuery("SELECT count(*) AS count FROM globals WHERE gl_name = '$fldid'");
-        if (empty($row['count'])) {
-          sqlStatement("INSERT INTO globals ( gl_name, gl_index, gl_value ) " .
-            "VALUES ( '$fldid', '0', '$flddef' )");
+            var_dump($fldtype);
+      if(is_array($fldtype)) {
+        foreach ($fldtype as $fldtype_part) {
+          if (substr($fldtype_part, 0, 2) !== 'm_') {
+            $row = sqlQuery("SELECT count(*) AS count FROM globals WHERE gl_name = '$fldid'");
+            if (empty($row['count'])) {
+              sqlStatement("INSERT INTO globals ( gl_name, gl_index, gl_value ) " .
+              "VALUES ( '$fldid', '0', '$flddef' )");
+            }
+          }
+        }  
+      } else {
+        if (substr($fldtype, 0, 2) !== 'm_') {
+          $row = sqlQuery("SELECT count(*) AS count FROM globals WHERE gl_name = '$fldid'");
+            if (empty($row['count'])) {
+              sqlStatement("INSERT INTO globals ( gl_name, gl_index, gl_value ) " .
+              "VALUES ( '$fldid', '0', '$flddef' )");
+            }
         }
       }
-    }
+    }  
   }
 
   echo "<font color='green'>Updating Access Controls...</font><br />\n";
@@ -90,12 +96,6 @@ if (!empty($_POST['form_submit'])) {
   echo "<font color='green'>Updating version indicators...</font><br />\n";
   sqlStatement("UPDATE version SET v_major = '$v_major', v_minor = '$v_minor', " .
     "v_patch = '$v_patch', v_tag = '$v_tag', v_database = '$v_database'");
-
-  if ( (!empty($v_realpatch)) && ($v_realpatch != "") && ($v_realpatch > 0) ) {
-    // This release contains a patch file, so update patch indicator.
-    echo "<font color='green'>Patch was also installed, so update version patch indicator...</font><br />\n";
-    sqlStatement("UPDATE version SET v_realpatch = '$v_realpatch'");
-  }
 
   echo "<p><font color='green'>Database and Access Control upgrade finished.</font></p>\n";
   echo "</body></html>\n";
@@ -110,8 +110,8 @@ if (!empty($_POST['form_submit'])) {
 <?php
 foreach ($versions as $version => $filename) {
   echo " <option value='$version'";
-  // Defaulting to most recent version, which is now 4.2.2.
-  if ($version === '4.2.2') echo " selected";
+  // Defaulting to most recent version, which is now 4.1.1.
+  if ($version === '4.1.1') echo " selected";
   echo ">$version</option>\n";
 }
 ?>
@@ -119,7 +119,6 @@ foreach ($versions as $version => $filename) {
 </p>
 <p>If you are unsure or were using a development version between two
 releases, then choose the older of possible releases.</p>
-<p style="color:red">If you are upgrading from a version below 5.0.0 to version 5.0.0 or greater, do note that this upgrade can take anywhere from several minutes to several hours (you will only see a whitescreen until it is complete; do not stop the script before it is complete or you risk corrupting your data).</p>
 <p><input type='submit' name='form_submit' value='Upgrade Database' /></p>
 </form>
 </center>
