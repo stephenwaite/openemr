@@ -113,6 +113,19 @@
   //   portal     Patient Portal
   // Section "menus" (Menus):
   //   modle      Module
+  // 
+  // Section "reports" (Reports):
+  //   rpt_e  Enable all reports
+  //   rpt_c  Client Reports
+  //   rpt_f  Clinic reports aka facility
+  //   rpt_v  Visits Reports
+  //   rpt_d  Financial Reports  _d i.e. dollars -note rep and rep_a financial reports are under Accounting, plan to move in next revision - SW
+  //   rpt_p  Procedure Reports
+  //   rpt_i  Insurance Reports
+  //   rpt_s  Services Reports
+  //   rpt_b  Blank Forms Reports
+ 
+// Create ARO groups.
   
   if (isset ($phpgacl_location)) {
     $GLOBALS['phpgacl_location_global'] = $phpgacl_location;

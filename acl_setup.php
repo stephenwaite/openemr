@@ -176,7 +176,7 @@ $gacl->add_object('nationnotes', 'Nation Notes Configure', 'nn_configure', 10, 0
 
 // Create ACOs for reports.
 // xl('All Reports')
-$gacl->add_object('reports', 'Enable Reports'     , 'rpt_e' , 10, 0, 'ACO');
+$gacl->add_object('reports', 'Enable All Reports' , 'rpt_e' , 10, 0, 'ACO');
 // xl('Client Reports')
 $gacl->add_object('reports', 'Client Reports'     , 'rpt_c' , 10, 0, 'ACO');
 // xl('Clinic Reports') _f i.e. facility 
@@ -424,11 +424,10 @@ $gacl->add_acl(
 <html>
     <head>
         <title>OpenEMR ACL Setup</title>
-        <link rel=STYLESHEET href="interface/themes/style_blue.css">
+        <link rel=STYLESHEET href="interface/themes/style_blue.css"></link>
     </head>
     <body>
-        <b>OpenEMR ACL Setup</b>
-        <br>
+        <b>OpenEMR ACL Setup</b><br>
         All done configuring and installing access controls (php-GACL)!
     </body>
 </html>

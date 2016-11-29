@@ -162,7 +162,7 @@ $menu_json='[
       {"label":"Referral","url":"/interface/patient_file/transaction/print_referral.php","target":"rep","children":[],"requirement":0}],"requirement":0},
     {"label":"Services","icon":"fa-caret-right","children":[
       {"label":"Background Services","menu_id":"rep0","target":"rep","url":"/interface/reports/background_services.php","children":[],"requirement":0},
-      {"label":"Direct Message Log","menu_id":"rep0","target":"rep","url":"/interface/reports/direct_message_log.php","children":[],"requirement":0}],"requirement":0,"acl_req":["admin","super"]}],"requirement":0},
+      {"label":"Direct Message Log","menu_id":"rep0","target":"rep","url":"/interface/reports/direct_message_log.php","children":[],"requirement":0}],"requirement":0,"acl_req":["admin","super"]}],"requirement":0,"acl_req":["reports","rpt_e"]},
   {"label":"Miscellaneous","menu_id":"misimg","children":[
     {"label":"Portal Activity","menu_id":"por0","target":"por","url":"/myportal/index.php","children":[],"requirement":0,"global_req_strict":["portal_offsite_enable","portal_offsite_address"],"acl_req":["patientportal","portal"]},
     {"label":"CMS Portal","menu_id":"por1","target":"por","url":"/interface/cmsportal/list_requests.php","children":[],"requirement":0,"global_req":"gbl_portal_cms_enable","acl_req":["patientportal","portal"]},
