@@ -26,24 +26,20 @@
 $fake_register_globals = false;
 $sanitize_all_escapes = true;
 
+require_once(dirname(__FILE__) . "/../../interface/globals.php");
+require_once(dirname(__FILE__) . "/../acl.inc");
+require_once(dirname(__FILE__) . "/../../custom/code_types.inc.php");
+require_once(dirname(__FILE__) . "/../../interface/drugs/drugs.inc.php");
+require_once(dirname(__FILE__) . "/../options.inc.php");
+require_once(dirname(__FILE__) . "/../appointment_status.inc.php");
+require_once(dirname(__FILE__) . "Prescription.class.php");
+require_once(dirname(__FILE__) . "/../forms.inc");
+require_once(dirname(__FILE__) . "/../log.inc");
 
-require_once(dirname(__FILE__) . "/../interface/globals.php");
-require_once(dirname(__FILE__) . "/acl.inc");
-require_once(dirname(__FILE__) . "/../custom/code_types.inc.php");
-require_once(dirname(__FILE__) . "/../interface/drugs/drugs.inc.php");
-require_once(dirname(__FILE__) . "/options.inc.php");
-require_once(dirname(__FILE__) . "/appointment_status.inc.php");
-require_once(dirname(__FILE__) . "/classes/Prescription.class.php");
-require_once(dirname(__FILE__) . "/forms.inc");
-require_once(dirname(__FILE__) . "/log.inc");
 // For logging checksums set this to true.
 define('CHECKSUM_LOGGING', true);
 
-// require_once(dirname(__FILE__) . "/api.inc");
-// require_once(dirname(__FILE__) . "/forms.inc");
-
 class FeeSheet {
-
   public $pid;                                // patient id
   public $encounter;                          // encounter id
   public $got_warehouses = false;             // if there is more than 1 warehouse
@@ -116,7 +112,7 @@ class FeeSheet {
       "WHERE fe.pid = ? AND fe.encounter = ? LIMIT 1", array($this->pid, $this->encounter) );
     $this->visit_date    = substr($visit_row['date'], 0, 10);
     $this->provider_id   = $visit_row['provider_id'];
-    if (empty($this->provider_id)) $this->provider_id = findProvider();
+    if (empty($this->provider_id)) $this->provider_id = $this->findProvider();
     $this->supervisor_id = $visit_row['supervisor_id'];
     // This flag is specific to IPPF validation at form submit time.  It indicates
     // that most contraceptive services and products should match up on the fee sheet.
@@ -153,7 +149,6 @@ class FeeSheet {
 
   // Gets the provider from the encounter, logged-in user or patient demographics.
   // Adapted from work by Terry Hill.
-  //
   public function findProvider() {
     $find_provider = sqlQuery("SELECT provider_id FROM form_encounter " .
       "WHERE pid = ? AND encounter = ? ORDER BY id DESC LIMIT 1",
