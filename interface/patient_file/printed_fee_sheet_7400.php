@@ -247,7 +247,7 @@ $html .= "
 
 #cssinsname {font-family:mono;  font-size: 14px; position:relative; top:55px; display: inline-block; width:200px;}
 #cssrefname {font-family:mono;  font-size: 14px; position:relative; top:55px; left:150px}
-#cssappt_comment {font-family: mono;  font-size: 14px; position: relative; top: 200px; left: 30px;}
+#cssappt_comment {font-family: mono;  font-size: 14px; position: relative; top: 175px; left: 125px; display: block;}
 div.pagebreak {
 page-break-after: always;
 height: ${page_height}pt;
@@ -343,7 +343,7 @@ foreach ($pid_list as $pid) {
           
           $lasttime = $nextappt['pc_startTime'];
 
-          $appt_comment = $nextappt['pc_comment'];
+          $appt_comment = $nextappt['pc_hometext'];
 
           
 //          while(!empty($nextappt)) {
@@ -363,7 +363,7 @@ foreach ($pid_list as $pid) {
              //   $html .=  "<span id=cssadd1>" .  $patdata['street'] . "</span> <span id=cssphone>" . $patdata['phone_home'] 
 
                 $html .=  "<span id=cssdos>" . oeFormatShortDate($whichdate) . "</span>"; 
-                $html .=  "<span id=cssapptime>" . date_format(date_create($nextappt['pc_startTime']),"g:i") . "</span>";
+                $html .=  "<span id=cssapptime>" . date_format(date_create($lasttime),"g:i") . "</span>";
                 $html .=  "<span id=cssappt_comment>" . $appt_comment . "</span>";
 
                 //   $html .=  "<span id=cssadd1>" . $patdata['city'] . ', ' . $patdata['state'] . ' ' . $patdata['postal_code'] . "</span>";
