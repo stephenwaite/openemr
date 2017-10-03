@@ -38,13 +38,25 @@ if (! $encounter) { // comes from globals.php
  die(xlt("Internal error: we do not seem to be in an encounter!"));
 }
 
-$formid   = 0 + formData('id', 'G');
-$obj = $formid ? formFetch("form_misc_billing_options", $formid) : array();
+$formid   = intval(formData('id', 'G'));
 
+if (empty($formid)) {
+    $mboquery = sqlquery("SELECT `fmbo`.`id` FROM `form_misc_billing_options` AS `fmbo`
+                          INNER JOIN `forms` ON (`fmbo`.`id` = `forms`.`form_id`) WHERE
+                          `forms`.`deleted` = 0 AND
+                          `forms`.`encounter` = ? ORDER BY `fmbo`.`id` DESC", array($encounter));
+    if (!empty($mboquery['id'])) {
+        $formid = intval($mboquery['id']);
+    }
+}
+
+$obj = $formid ? formFetch("form_misc_billing_options", $formid) : array();
+error_log($obj->date_initial_treatment);
 formHeader("Form: misc_billing_options");
 function generateDateQualifierSelect($name,$options,$obj)
 {
     echo     "<select name='".attr($name)."'>";
+    error_log($options);
     for($idx=0;$idx<count($options);$idx++)
     {
         echo "<option value='".attr($options[$idx][1])."'";
@@ -92,7 +104,7 @@ function genProviderSelect($selname, $toptext, $default=0, $disabled=false) {
 <form method=post <?php echo "name='my_form' " .  "action='$rootdir/forms/misc_billing_options/save.php?id=" . attr($formid) . "'>\n";?>
 
 <span class="title"><?php echo xlt('Misc Billing Options for HCFA-1500'); ?></span><br><br>
-<span class=text><?php echo xlt('Checked box = yes ,  empty = no');?><br><br>
+<span class=text><?php echo xlt('Checked box = yes ,  empty = no');?></span><br><br>
 <label><span class=text><?php echo xlt('BOX 10 A. Employment related '); ?>: </span><input type=checkbox name="employment_related" value="1" <?php if ($obj['employment_related'] == "1") echo "checked";?>></label><br><br>
 <label><span class=text><?php echo xlt('BOX 10 B. Auto Accident '); ?>: </span><input type=checkbox name="auto_accident" value="1" <?php if ($obj['auto_accident'] == "1") echo "checked";?>></label>
 <span class=text><?php echo xlt('State'); ?>: </span><input type=entry name="accident_state" size=1 value="<?php echo attr($obj{"accident_state"});?>" ><br><br>
@@ -100,44 +112,54 @@ function genProviderSelect($selname, $toptext, $default=0, $disabled=false) {
 <span class=text><?php echo xlt('BOX 10 D. EPSDT Referral Code');?> </span><input type=entry style="width: 25px;" size=2 name="medicaid_referral_code" value="<?php echo attr($obj{"medicaid_referral_code"});?>" >&nbsp;&nbsp;&nbsp;&nbsp;
 <label><span class=text><?php echo xlt('EPSDT'); ?> : </span><input type=checkbox name="epsdt_flag" value="1" <?php if ($obj['epsdt_flag'] == "1") echo "checked";?>></label><br><br>
 <span class="text" title="<?php echo xla("For HCFA 02/12 Onset date specified on the Encounter Form needs a qualifier");?>"></span>
-<span class=text title="<?php echo xla('For HCFA 02/12 Box 15 is Other Date with a qualifier to specify what the date indicates');?>"></span>
- <tr>
-  <td><span class=text><?php echo xlt('BOX 14. Is Populated from the Encounter Screen as the Onset Date');?>.</span></td>
- </tr><br><br>
- <tr>
-  <td><span class=text><?php echo xlt('BOX 16. Date unable to work from');?>:</span></td>
-  <td><?php $off_work_from = $obj{"off_work_from"}; ?>
-    <input type=text style="width: 70px;" size=10 name='off_work_from' id='off_work_from'
-    value='<?php echo attr($off_work_from); ?>'
-    title='<?php echo xla('yyyy-mm-dd'); ?>'
-    onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' />
+<span class=text><?php echo xlt('BOX 14. Onset Date Populated from the Encounter Screen ');?>.</span>
+<label for="box_14_date_qual"><?php echo generateDateQualifierSelect('box_14_date_qual', '$box_14_qualifier_options', $obj); ?></label><br><br>
+<span class=text><?php echo xlt('Box 15. Date of same or similar illness/Other Date ');?></span>
+<?php $date_initial_treatment = $obj{"date_initial_treatment"}; ?>
+    <input type=text style="width: 70px;" size=10 name='date_initial_treatment' id='date_initial_treatment'
+        value='<?php echo attr($date_initial_treatment); ?>'
+        title='<?php echo xla('yyyy-mm-dd'); ?>'
+        onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' />
     <img src='../../pic/show_calendar.gif' align='absbottom' width='24' height='22'
-    id='img_off_work_from' border='0' alt='[?]' style='cursor:pointer'
-    title='<?php echo xla("Click here to choose a date"); ?>'></td>
- </tr>
- &nbsp;&nbsp;
-<tr>
- <td><span class=text><?php echo xlt('BOX 16. Date unable to work to');?>:</span></td>
-  <td><?php $off_work_to = $obj{"off_work_to"}; ?>
+        id='date_initial_treatment' border='0' alt='[?]' style='cursor:pointer'
+        title='<?php echo xla("Click here to choose a date"); ?>'>
+    <span class=text><?php  echo xlt('BOX 15. Qualifier options'); ?>: </span>
+    <?php
+        echo generateDateQualifierSelect('box_15_date_qual', '$box_15_qualifier_options', $obj);
+    ?>
+    <br>
+    <br>
+    <span class=text><?php echo xlt('BOX 16. Date unable to work from');?>:</span>
+  <?php $off_work_from = $obj{"off_work_from"}; ?>
+    <input type=text style="width: 70px;" size=10 name='off_work_from' id='off_work_from'
+        value='<?php echo attr($off_work_from); ?>'
+        title='<?php echo xla('yyyy-mm-dd'); ?>'
+        onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' />
+    <img src='../../pic/show_calendar.gif' align='absbottom' width='24' height='22'
+        id='img_off_work_from' border='0' alt='[?]' style='cursor:pointer'
+        title='<?php echo xla("Click here to choose a date"); ?>'>
+&nbsp;&nbsp;
+<span class=text><?php echo xlt('BOX 16. Date unable to work to');?>:</span>
+  <?php $off_work_to = $obj{"off_work_to"}; ?>
     <input type=text style="width: 70px;" size=10 name='off_work_to' id='off_work_to'
     value='<?php echo attr($off_work_to); ?>'
     title='<?php echo xla('yyyy-mm-dd'); ?>'
     onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' />
     <img src='../../pic/show_calendar.gif' align='absbottom' width='24' height='22'
     id='img_off_work_to' border='0' alt='[?]' style='cursor:pointer'
-    title='<?php echo xla("Click here to choose a date"); ?>'></td>
- </tr>
+    title='<?php echo xla("Click here to choose a date"); ?>'>
+
     <br><br>
 
-    <td class='label'><?php echo xlt('BOX 17. Provider') ?>:</td>
-    <td><?php  # Build a drop-down list of providers. # Added (TLH)
+    <span class='label'><?php echo xlt('BOX 17. Provider') ?>:</span>
+    <span><?php  # Build a drop-down list of providers. # Added (TLH)
                genProviderSelect('provider_id', '-- '.xl("Please Select").' --',$obj{"provider_id"});
-		?></td>&nbsp;&nbsp;
-	<td><span class=text><?php  echo xlt('BOX 17. Provider Qualifier'); ?>: </span>
-	<tr><td><?php
+		?></span>&nbsp;&nbsp;
+	<span class=text><?php  echo xlt('BOX 17. Provider Qualifier'); ?>: </span>
+	<?php
                 echo generate_select_list('provider_qualifier_code', 'provider_qualifier_code',$obj{"provider_qualifier_code"}, 'Provider Qualifier Code');
-            ?></td>
-	</tr></td>
+    ?>
+
 <br><br>
 <tr>
  <td><span class=text><?php echo xlt('BOX 18. Hospitalization date from');?>:</span></td>
