@@ -21,6 +21,7 @@
  * @package OpenEMR
  * @author Terry Hill <terry@lilysystems.com>
  * @author Brady Miller <brady.g.miller@gmail.com>
+ * @author Stephen Waite <stephen.waite@cmsvt.com>
  * @link http://www.open-emr.org
  *
  */
@@ -32,7 +33,6 @@ require_once("$srcdir/options.inc.php");
 require_once("$srcdir/api.inc");
 require_once("$srcdir/formdata.inc.php");
 require_once("date_qualifier_options.php");
-
 
 if (! $encounter) { // comes from globals.php
  die(xlt("Internal error: we do not seem to be in an encounter!"));
@@ -51,12 +51,10 @@ if (empty($formid)) {
 }
 
 $obj = $formid ? formFetch("form_misc_billing_options", $formid) : array();
-error_log($obj->date_initial_treatment);
 formHeader("Form: misc_billing_options");
 function generateDateQualifierSelect($name,$options,$obj)
 {
     echo     "<select name='".attr($name)."'>";
-    error_log($options);
     for($idx=0;$idx<count($options);$idx++)
     {
         echo "<option value='".attr($options[$idx][1])."'";
@@ -113,25 +111,27 @@ function genProviderSelect($selname, $toptext, $default=0, $disabled=false) {
 <label><span class=text><?php echo xlt('EPSDT'); ?> : </span><input type=checkbox name="epsdt_flag" value="1" <?php if ($obj['epsdt_flag'] == "1") echo "checked";?>></label><br><br>
 <span class="text" title="<?php echo xla("For HCFA 02/12 Onset date specified on the Encounter Form needs a qualifier");?>"></span>
 <span class=text><?php echo xlt('BOX 14. Onset Date Populated from the Encounter Screen ');?>.</span>
-<label for="box_14_date_qual"><?php echo generateDateQualifierSelect('box_14_date_qual', '$box_14_qualifier_options', $obj); ?></label><br><br>
+<label for="box_14_date_qual"><?php echo generateDateQualifierSelect("box_14_date_qual", $box_14_qualifier_options, $obj); ?></label><br><br>
+
 <span class=text><?php echo xlt('Box 15. Date of same or similar illness/Other Date ');?></span>
 <?php $date_initial_treatment = $obj{"date_initial_treatment"}; ?>
-    <input type=text style="width: 70px;" size=10 name='date_initial_treatment' id='date_initial_treatment'
+    <input type=text style="width: 80px;" size=10 name='date_initial_treatment' id='date_initial_treatment'
         value='<?php echo attr($date_initial_treatment); ?>'
         title='<?php echo xla('yyyy-mm-dd'); ?>'
         onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' />
     <img src='../../pic/show_calendar.gif' align='absbottom' width='24' height='22'
-        id='date_initial_treatment' border='0' alt='[?]' style='cursor:pointer'
+        id='img_date_initial_treatment' border='0' alt='[?]' style='cursor:pointer'
         title='<?php echo xla("Click here to choose a date"); ?>'>
     <span class=text><?php  echo xlt('BOX 15. Qualifier options'); ?>: </span>
     <?php
-        echo generateDateQualifierSelect('box_15_date_qual', '$box_15_qualifier_options', $obj);
+        echo generateDateQualifierSelect("box_15_date_qual", $box_15_qualifier_options, $obj);
     ?>
     <br>
     <br>
-    <span class=text><?php echo xlt('BOX 16. Date unable to work from');?>:</span>
+
+<span class=text><?php echo xlt('BOX 16. Date unable to work from');?>:</span>
   <?php $off_work_from = $obj{"off_work_from"}; ?>
-    <input type=text style="width: 70px;" size=10 name='off_work_from' id='off_work_from'
+    <input type=text style="width: 80px;" size=10 name='off_work_from' id='off_work_from'
         value='<?php echo attr($off_work_from); ?>'
         title='<?php echo xla('yyyy-mm-dd'); ?>'
         onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' />
@@ -141,7 +141,7 @@ function genProviderSelect($selname, $toptext, $default=0, $disabled=false) {
 &nbsp;&nbsp;
 <span class=text><?php echo xlt('BOX 16. Date unable to work to');?>:</span>
   <?php $off_work_to = $obj{"off_work_to"}; ?>
-    <input type=text style="width: 70px;" size=10 name='off_work_to' id='off_work_to'
+    <input type=text style="width: 80px;" size=10 name='off_work_to' id='off_work_to'
     value='<?php echo attr($off_work_to); ?>'
     title='<?php echo xla('yyyy-mm-dd'); ?>'
     onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' />
@@ -164,7 +164,7 @@ function genProviderSelect($selname, $toptext, $default=0, $disabled=false) {
 <tr>
  <td><span class=text><?php echo xlt('BOX 18. Hospitalization date from');?>:</span></td>
  <td><?php $hospitalization_date_from = $obj{"hospitalization_date_from"}; ?>
-    <input type=text style="width: 70px;" size=10 name='hospitalization_date_from' id='hospitalization_date_from'
+    <input type=text style="width: 80px;" size=10 name='hospitalization_date_from' id='hospitalization_date_from'
     value='<?php echo attr($hospitalization_date_from); ?>'
     title='<?php echo xla('yyyy-mm-dd'); ?>'
     onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' />
@@ -176,7 +176,7 @@ function genProviderSelect($selname, $toptext, $default=0, $disabled=false) {
  <tr>
   <td><span class=text><?php echo xlt('BOX 18. Hospitalization date to');?>:</span></td>
   <td><?php $hospitalization_date_to = $obj{"hospitalization_date_to"}; ?>
-    <input type=text style="width: 70px;" size=10 name='hospitalization_date_to' id='hospitalization_date_to'
+    <input type=text style="width: 80px;" size=10 name='hospitalization_date_to' id='hospitalization_date_to'
     value='<?php echo attr($hospitalization_date_to); ?>'
     title='<?php echo xla('yyyy-mm-dd'); ?>'
     onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' />
@@ -212,6 +212,7 @@ function genProviderSelect($selname, $toptext, $default=0, $disabled=false) {
 /* required for popup calendar */
 Calendar.setup({inputField:"hospitalization_date_from", ifFormat:"%Y-%m-%d", button:"img_hospitalization_date_from"});
 Calendar.setup({inputField:"hospitalization_date_to", ifFormat:"%Y-%m-%d", button:"img_hospitalization_date_to"});
+Calendar.setup({inputField:"date_initial_treatment", ifFormat:"%Y-%m-%d", button:"img_date_initial_treatment"});
 Calendar.setup({inputField:"off_work_from", ifFormat:"%Y-%m-%d", button:"img_off_work_from"});
 Calendar.setup({inputField:"off_work_to", ifFormat:"%Y-%m-%d", button:"img_off_work_to"});
 
