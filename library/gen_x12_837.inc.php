@@ -1031,8 +1031,28 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim=false) {
       "*" .
       "*" .
       "*PI" .
-      "*" . $claim->payerID($ins) .
-      "~\n";
+      "*";
+      if ($claim->payerID($ins-1) == "MCDVT") { // for 2ndary gmc claims
+        if (($claim->payerID($ins)) == "BCSVT") {
+          if (($claim->payerName($ins)) == "BCBS NJ") {
+            $out .= "H6";
+          } else {
+            $out .= "EE";
+          }
+        }  
+        if (($claim->payerID($ins)) == "14512") $out .= "MDB";
+        if (($claim->payerID($ins)) == "14212") $out .= "MDB";
+        if (($claim->payerID($ins)) == "87726") $out .= "MDB";
+        if (($claim->payerID($ins)) == "62308") $out .= "OH";
+        if (($claim->payerID($ins)) == "14165") $out .= "Z2";
+        if (($claim->payerID($ins)) == "60054") $out .= "92";        
+        if (($claim->payerID($ins)) == "00010") $out .= "42";        
+        
+      }
+      else {
+        $out .= $claim->payerID($ins);
+      }
+      $out .= "~\n";
 
     // if (!$claim->payerID($ins)) {
     //   $log .= "*** CMS ID is missing for payer '" . $claim->payerName($ins) . "'.\n";
@@ -1310,8 +1330,28 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim=false) {
 
       ++$edicount;
       $out .= "SVD" . // Service line adjudication. Page 554.
-        "*" . $claim->payerID($ins) .
-        "*" . $payerpaid[1] .
+        "*";
+        //for gmc 2ndary claims
+      if ($claim->payerID($ins-1) == "MCDVT") {
+        if (($claim->payerID($ins)) == "BCSVT") {
+          if (($claim->payerName($ins)) == "BCBS NJ") {
+            $out .= "H6";
+          } else {
+            $out .= "EE";
+          }
+        }
+        if (($claim->payerID($ins)) == "14512") $out .= "MDB";
+        if (($claim->payerID($ins)) == "14212") $out .= "MDB";
+        if (($claim->payerID($ins)) == "87726") $out .= "MDB";
+        if (($claim->payerID($ins)) == "62308") $out .= "OH";
+        if (($claim->payerID($ins)) == "14165") $out .= "Z2";
+        if (($claim->payerID($ins)) == "60054") $out .= "92";        
+        if (($claim->payerID($ins)) == "00010") $out .= "42";        
+      }
+      else {
+        $out .= $claim->payerID($ins);
+      }
+        $out .= "*" . $payerpaid[1] .
         "*HC:" . $claim->cptKey($prockey) .
         "*" .
         "*" . $claim->cptUnits($prockey) .
