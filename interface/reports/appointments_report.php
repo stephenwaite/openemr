@@ -371,11 +371,14 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 <table>
 
 	<thead>
+
 		<th><?php echo xlt('Row'); ?></th>
 
+      <?php if (count(getProviders()) !== 1) { ?>
 		<th><a href="nojs.php" onclick="return dosort('doctor')"
-	<?php if ($form_orderby == "doctor") echo " style=\"color:#00cc00\"" ?>><?php  echo xlt('Provider'); ?>
+	    <?php if ($form_orderby == "doctor") echo " style=\"color:#00cc00\"" ?>><?php  echo xlt('Provider'); ?>
 		</a></th>
+      <?php } ?>
 
 		<th <?php echo $showDate ? '' : 'style="display:none;"' ?>><a href="nojs.php" onclick="return dosort('date')"
 	<?php if ($form_orderby == "date") echo " style=\"color:#00cc00\"" ?>><?php  echo xlt('Date'); ?></a>
@@ -464,6 +467,7 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
     array_push($apptdate_list,$appointment['pc_eventDate']);
 		$patient_id = $appointment['pid'];
 		$patient_dob = getPatientData($patient_id, "dob");
+		$patient_ins = getInsuranceData($patient_id, "primary");
 		$docname  = $appointment['ulname'] . ', ' . $appointment['ufname'] . ' ' . $appointment['umname'];
                 
         $errmsg  = "";
@@ -535,10 +539,11 @@ else {
 
 		?>
 
-        <tr valign='top' id='p1.<?php echo attr($patient_id) ?>' bgcolor='<?php echo $bgcolor ?>'>
+    <tr valign='top' id='p1.<?php echo attr($patient_id) ?>' bgcolor='<?php echo $bgcolor ?>'>
         <td class="detail">&nbsp;<?php echo text($count) ?></td>
+            <?php if (count(getProviders()) !== 1) { ?>
         <td class="detail">&nbsp;<?php echo text($docname) ?></td>
-
+            <?php } ?>
 		<td class="detail" <?php echo $showDate ? '' : 'style="display:none;"' ?>><?php echo text(oeFormatShortDate($appointment['pc_eventDate'])) ?>
 		</td>
 
@@ -548,7 +553,7 @@ else {
 		<td class="detail">&nbsp;<?php echo text($appointment['fname'] . " " . $appointment['lname']) ?>
 		</td>
 
-    <td class="detail" >&nbsp;<?php echo oeFormatShortDate($patient_dob['dob'])?></td>
+        <td class="detail" >&nbsp;<?php echo oeFormatShortDate($patient_dob['dob'])?></td>
 
 		<td class="detail">&nbsp;<?php echo text($appointment['pubpid']) ?></td>
 
@@ -570,7 +575,7 @@ else {
 			?>
 		</td>
 
-		<!-- <td class="detail">&nbsp;<?php echo $appointment['pc_hometext'] ?></td> -->
+		<!-- <td class="detail">&nbsp;<?php //echo $appointment['pc_hometext'] ?></td> -->
 
 	</tr>
 
@@ -581,7 +586,7 @@ else {
     <?php if ($patient_id && (!empty($rems) || !empty($appointment['pc_hometext']))) { // Not display of available slot or not showing reminders and comments empty ?>
 	<tr valign='top' id='p2.<?php echo attr($patient_id) ?>' >
 	   <td colspan=<?php echo $showDate ? '"3"' : '"2"' ?> class="detail" />
-	   <td colspan=<?php echo ($incl_reminders ? "3":"6") ?> class="detail" align='left'>
+	   <td colspan=<?php echo ($incl_reminders ? "3":"4") ?> class="detail" align='left' >
 		<?php
 		if (trim($appointment['pc_hometext'])) {
             echo '<b>'.xlt('Comments') .'</b>: '.attr($appointment['pc_hometext']);
@@ -597,6 +602,9 @@ else {
         }
         ?>
         </td>
+        <td colspan= "3" class="detail" align='left' >
+            <?php echo ' <b>'.xlt('Primary Ins ') .'</b>: '.attr(getInsuranceProvider($patient_ins['provider'])); ?>
+        </td>
 	</tr>
 	<?php
     } // End of row 2 display
@@ -611,7 +619,7 @@ else {
         if (!$_POST['form_csvexport'])
 	{?>
 	<tr>
-		<td colspan="10" align="left"><?php echo xlt('Total number of appointments'); ?>:&nbsp;<?php echo text($totalAppontments);?></td>
+		<td colspan="10" align="left"><?php echo xlt('Total number of appointments (includes cancellations not printed)'); ?>:&nbsp;<?php echo text($totalAppontments);?></td>
 	</tr>
 	</tbody>
 </table>
