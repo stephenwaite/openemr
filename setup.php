@@ -22,6 +22,19 @@
  * 
 **/
 
+// Warning. If you set $allow_multisite_setup to true, this is a potential security vulnerability.
+// Recommend setting it back to false (or removing this setup.php script entirely) after you
+//  are done with the multisite procedure.
+$allow_multisite_setup = false;
+
+// Warning. If you set $allow_cloning_setup to true, this is a potential security vulnerability.
+// Recommend setting it back to false (or removing this setup.php script entirely) after you
+//  are done with the cloning setup procedure.
+$allow_cloning_setup = false;
+if (!$allow_cloning_setup && !empty($_REQUEST['clone_database'])) {
+    die("To turn on support for cloning setup, need to edit this script and change \$allow_cloning_setup to true. After you are done setting up the cloning, ensure you change \$allow_cloning_setup back to false or remove this script altogether");
+}
+
 $COMMAND_LINE = php_sapi_name() == 'cli';
 require_once (dirname(__FILE__) . '/library/authentication/password_hashing.php');
 require_once dirname(__FILE__) . '/library/classes/Installer.class.php';
@@ -73,6 +86,11 @@ if (!$COMMAND_LINE && !empty($_REQUEST['site'])) {
 // Die if site ID is empty or has invalid characters.
 if (empty($site_id) || preg_match('/[^A-Za-z0-9\\-.]/', $site_id))
   die("Site ID '".htmlspecialchars($site_id,ENT_NOQUOTES)."' contains invalid characters.");
+
+// If multisite is turned off, then only allow default for site.
+if (!$allow_multisite_setup && $site_id != 'default') {
+    die("To turn on support for multisite setup, need to edit this script and change \$allow_multisite_setup to true. After you are done setting up the cloning, ensure you change \$allow_multisite_setup back to false or remove this script altogether");
+}
 
 //If having problems with file and directory permission
 // checking, then can be manually disabled here.
@@ -321,7 +339,6 @@ else {
 <br>
 <INPUT TYPE='SUBMIT' VALUE='Continue'><br></FORM><br>";
     break;
-
   case 3:
 
     // Form Validation
@@ -339,9 +356,13 @@ else {
         $pass_step2_validation = FALSE;
         $error_step2_message .=  "Database Server Port, ";
     }
-    if ( ! $installer->char_is_valid($_REQUEST['dbname']))  {
+    if ( ! $installer->databaseNameIsValid($_REQUEST['dbname']))  {
         $pass_step2_validation = FALSE;
         $error_step2_message .= "Database Name, ";
+    }
+    if (! $installer->collateNameIsValid($_REQUEST['collate'])) {
+        $pass_step2_validation = false;
+        $error_step2_message .= "Collation Name, ";
     }
     if ( ! $installer->char_is_valid($_REQUEST['login']))  {
         $pass_step2_validation = FALSE;
@@ -399,7 +420,7 @@ else {
     }
 
     // Only pertinent if cloning another installation database
-    if ( ! empty($installer->clone_database)) {
+    if ($allow_cloning_setup && !empty($installer->clone_database)) {
 
       echo "Dumping source database...";
       flush();
@@ -526,7 +547,7 @@ else {
       flush();
     }
     
-    if ( ! empty($installer->clone_database) ) {
+    if ($allow_cloning_setup && !empty($installer->clone_database)) {
       // Database was cloned, skip ACL setup.
       echo "Click 'continue' for further instructions.";
       $next_state = 7;
@@ -543,8 +564,11 @@ else {
 <INPUT TYPE='HIDDEN' NAME='iuser' VALUE='$installer->iuser'>
 <INPUT TYPE='HIDDEN' NAME='iuserpass' VALUE='$installer->iuserpass'>
 <INPUT TYPE='HIDDEN' NAME='iuname' VALUE='$installer->iuname'>
-<INPUT TYPE='HIDDEN' NAME='iufname' VALUE='$installer->iufname'>
-<INPUT TYPE='HIDDEN' NAME='clone_database' VALUE='$installer->clone_database'>
+<INPUT TYPE='HIDDEN' NAME='iufname' VALUE='$installer->iufname'>";
+            if ($allow_cloning_setup) {
+                echo "<INPUT TYPE='HIDDEN' NAME='clone_database' VALUE='$installer->clone_database'>";
+            }
+            echo "
 <br>\n
 <INPUT TYPE='SUBMIT' VALUE='Continue'><br></FORM><br>\n";
 

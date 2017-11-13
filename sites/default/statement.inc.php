@@ -88,7 +88,7 @@ function report_header_2($stmt,$direction='',$providerID='1') {
       </td>
       <td>
         <em style="font-weight:bold;font-size:1.4em;"><?php echo text($titleres['fname']) . " " . text($titleres['lname']); ?></em><br />
-        <b style="font-weight:bold;"><?php echo xlt('Chart Number'); ?>:</b> <?php echo text($stmt['pid']); ?><br />
+        <b style="font-weight:bold;"><?php echo xlt('Chart'); ?></b> <?php echo text($stmt['pid']); ?><br />
         <b style="font-weight:bold;"><?php echo xlt('Generated on'); ?>:</b> <?php echo oeFormatShortDate(); ?><br />
         <b><?php echo xlt('Provider') . ':</b>  '; ?><?php echo text(getProviderName($providerID)); ?> <br />
       </td>
@@ -164,15 +164,16 @@ function create_HTML_statement($stmt) {
   }
   // Text only labels
 
-  $label_addressee = xl('ADDRESSEE');
-  $label_remitto = xl('REMIT TO');
-  $label_chartnum = xl('Chart Number');
+  $label_addressee = xl('');
+  $label_remitto = xl('');
+  $label_chartnum = xl('Chart');
   $label_insinfo = xl('Insurance information on file');
   $label_totaldue = xl('Total amount due');
   $label_payby = xl('If paying by');
   $label_cards = xl('VISA/MC/Discovery/HSA');
   $label_cardnum = xl('Card');
   $label_expiry = xl('Exp');
+  $label_cvv = xl('CVV');
   $label_sign = xl('Signature');
   $label_retpay = xl('Please return this bottom part with your payment');
   $label_pgbrk = xl('STATEMENT SUMMARY');
@@ -301,8 +302,8 @@ function create_HTML_statement($stmt) {
   $out .= sprintf("%-s\n",$label_call);
   $out .= sprintf("%-s\n",$label_prompt);
   $out .= "\n";
-  $out .= sprintf("%-s\n",$billing_contact);
-  $out .= sprintf("  %-s %-25s\n",$label_dept,$label_bill_phone);
+//  $out .= sprintf("%-s\n",$billing_contact);
+  $out .= sprintf("%-s %-s %-25s\n",$label_dept, $billing_contact, $label_bill_phone);
   if($GLOBALS['statement_message_to_patient']) {
     $out .= "\n";
     $statement_message = $GLOBALS['statement_msg_text'];
@@ -352,13 +353,17 @@ function create_HTML_statement($stmt) {
  ';
   $out .= $label_payby.' '.$label_cards;
   $out .= "<br /><br />";
-  $out .= $label_cardnum .': __________________________________  '.$label_expiry.': ___ / _____ <br /><br />';
+  $out .= $label_cardnum .': __________________________________  '.$label_expiry.': ___ / _____ ' . $label_cvv .'_____<br /><br />';
   $out .= $label_sign .'  ____________________________<br />';
   $out .="      </td><td style=width:2.0in;vertical-align:middle;'>";
           $practice_cards = $GLOBALS['webroot']."/sites/" . $_SESSION['site_id'] . "/images/visa_mc_disc_credit_card_logos_176x35.gif";
           if (file_exists($GLOBALS['OE_SITE_DIR']."/images/visa_mc_disc_credit_card_logos_176x35.gif")) {
-            $out .= "<img src='$practice_cards' style='width:100%;margin:4px auto;'><br /><p>\n".$label_totaldue.": ".$stmt['amount']."</p>";
+            $out .= "<img src='$practice_cards' style='width:100%;margin:4px auto;'><br /><p>\n".$label_totaldue.": ".$stmt['amount']." Chart ".$stmt['pid'] . "</p>";
           }
+          else {
+            $out .= "<br /><p><b>". $label_totaldue . "</b>: " . $stmt['amount']. "<br/>". xla(' Chart ') . ": ". text($stmt['pid'])."</p>";
+            $out .= "<br /><p> Amount Paid: _______ Check #:</p>";
+               }
 
   $out .="</td></tr></table>";
 
@@ -366,23 +371,22 @@ function create_HTML_statement($stmt) {
    <pre>';
   if($stmt['to'][3]!='')//to avoid double blank lines the if condition is put.
   $out .= sprintf("   %-32s\n",$stmt['to'][3]);
-  $out .= ' </pre>
-  <div style="width:7in;border-top:1pt solid black;"><br />';
-  $out .= " <table style='width:6.0in;margin-left:40px;'><tr>";
-  $out .= '<td style="width:3.0in;"><b>'
+  $out .= ' </pre>';
+  $out .= " <table style='width:7.0in;margin:auto;'><tr>";
+  $out .= '<td style="margin:auto;"></td><td style="width:3.0in;"><b>'
       .$label_addressee.'</b><br />'
       .$stmt['to'][0].'<br />'
       .$stmt['to'][1].'<br />'
       .$stmt['to'][2].'
-      </td>
-      <td style="width:3.0in;"><b>'.$label_remitto.'</b><br />'
+      </td><td style="width:0.5in;"></td>
+      <td style="margin:auto;"><b>'.$label_remitto.'</b><br />'
       .$remit_name.'<br />'
       .$remit_addr.'<br />'
       .$remit_csz.'
       </td>
       </tr></table>';
 
-  $out .= "      </div></div>";
+  $out .= "      </div>";
   $out .= "\014
   <br /><br />"; // this is a form feed
   echo $out;
@@ -531,15 +535,16 @@ function create_statement($stmt) {
   }
   // Text only labels
 
-  $label_addressee = xl('ADDRESSEE');
-  $label_remitto = xl('REMIT TO');
-  $label_chartnum = xl('Chart Number');
+  $label_addressee = xl('');
+  $label_remitto = xl('');
+  $label_chartnum = xl('Chart');
   $label_insinfo = xl('Insurance information on file');
   $label_totaldue = xl('Total amount due');
   $label_payby = xl('If paying by');
   $label_cards = xl('VISA/MC/Discovery/HSA');
   $label_cardnum = xl('Card');
   $label_expiry = xl('Exp');
+  $label_cvv    = xl('CVV');
   $label_sign = xl('Signature');
   $label_retpay = xl('Return above part with your payment');
   $label_pgbrk = xl('STATEMENT SUMMARY');
@@ -561,26 +566,26 @@ function create_statement($stmt) {
   $out .= sprintf("%-30s %s\n",$clinic_addr,$label_insinfo);
   $out .= sprintf("%-30s %-s: %-s\n",$clinic_csz,$label_totaldue,$stmt['amount']);
   $out .= "\n";
-  $out .= sprintf("       %-30s %-s\n",$label_addressee,$label_remitto);
-  $out .= sprintf("       %-30s %s\n",$stmt['to'][0],$remit_name);
-  $out .= sprintf("       %-30s %s\n",$stmt['to'][1],$remit_addr);
-  $out .= sprintf("       %-30s %s\n",$stmt['to'][2],$remit_csz);
+  $out .= sprintf("%s %-s\n",$label_addressee,$label_remitto);
+  $out .= sprintf("%s %s\n",$stmt['to'][0],'');
+  $out .= sprintf("%s %s\n",$stmt['to'][1],'');
+  $out .= sprintf("%s %s\n",$stmt['to'][2],'');
 
   if($stmt['to'][3]!='')//to avoid double blank lines the if condition is put.
   $out .= sprintf("   %-32s\n",$stmt['to'][3]);
   $out .= sprintf("_________________________________________________________________\n");
   $out .= "\n";
-  $out .= sprintf("%-32s\n",$label_payby.' '.$label_cards);
+  $out .= sprintf("%-32s \n",$label_payby . ' ' . $label_cards);
   $out .= "\n";
-  $out .= sprintf("%s_____________________  %s______ %s___________________%s\n\n",
-    $label_cardnum,$label_expiry,$label_sign);
+  $out .= sprintf("%s_____________________  %s__/__ %s___ %s_____________\n\n",
+    $label_cardnum,$label_expiry,$label_cvv,$label_sign);
   $out .= sprintf("-----------------------------------------------------------------\n");
   $out .= sprintf("%-20s %s\n",null,$label_retpay);
   $out .= "\n";
   $out .= sprintf("_______________________ %s _______________________\n",$label_pgbrk);
-  $out .= "\n";
+//  $out .= "\n";
   $out .= sprintf("%-11s %-46s %s\n",$label_visit,$label_desc,$label_amt);
-  $out .= "\n";
+//  $out .= "\n";
 
   // This must be set to the number of lines generated above.
   //
@@ -668,12 +673,13 @@ function create_statement($stmt) {
 
   // Fixed text labels
   $label_ptname = xl('Name');
+  $label_chartno = $stmt['pid'];
   $label_today = xl('Date');
   $label_due = xl('Amount Due');
   $label_thanks = xl('Thank you for choosing');
   $label_call = xl('Please call if any of the above information is incorrect.');
   $label_prompt = xl('We appreciate prompt payment of balances due.');
-  $label_dept = xl('Billing Department');
+  $label_dept = xl('Thank you, ');
   $label_bill_phone = (!empty($GLOBALS['billing_phone_number']) ? $GLOBALS['billing_phone_number'] : $billing_phone );
   $label_appointments = xl('Future Appointments').':';
 
@@ -688,13 +694,14 @@ function create_statement($stmt) {
   $out .= "\n";
   $out .= sprintf("%-s: %-25s %-s: %-14s %-s: %8s\n",$label_ptname,$stmt['patient'],
   $label_today,oeFormatShortDate($stmt['today']),$label_due,$stmt['amount']);
+  $out .= sprintf("%-s: %-25s\n",  $label_chartnum, $label_chartno);
   $out .= sprintf("__________________________________________________________________\n");
   $out .= "\n";
   $out .= sprintf("%-s\n",$label_call);
   $out .= sprintf("%-s\n",$label_prompt);
   $out .= "\n";
-  $out .= sprintf("%-s\n",$billing_contact);
-  $out .= sprintf("  %-s %-25s\n",$label_dept,$label_bill_phone);
+//  $out .= sprintf("%-s\n",$billing_contact);
+  $out .= sprintf("%-s %-s. %-25s\n",$label_dept, $billing_contact, $label_bill_phone);
   if($GLOBALS['statement_message_to_patient']) {
     $out .= "\n";
     $statement_message = $GLOBALS['statement_msg_text'];
