@@ -9,7 +9,12 @@
 require_once("Claim.class.php");
 function stripZipCode($zip)
 {
-    return preg_replace('/[-\s]*/','',$zip);
+    $temp = preg_replace('/[-\s]*/','',$zip);
+    if (strlen($temp) == 5) {
+      return $temp . "9999";
+    } else {
+      return $temp;
+    }
 }
 function gen_x12_837($pid, $encounter, &$log, $encounter_claim=false) {
 
@@ -211,7 +216,7 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim=false) {
   // Situational PRV segment for provider taxonomy code for Medicaid.
     if ($claim->claimType() == 'MC') {
         ++$edicount;
-        $out .= "PRV*BI*ZZ" .
+        $out .= "PRV*BI*PXC" .
         "*" . $claim->providerTaxonomy() .
         "~\n";
     }
