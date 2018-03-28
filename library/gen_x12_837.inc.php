@@ -117,15 +117,30 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim=false) {
         $lastName = $partsName[2];
         $suffixName = $partsName[3];
     }
-    $out .= "NM1" . // Loop 1000A Submitter
-    "*41" .
-    "*1" .
-    "*" . $lastName .
-    "*" . $firstName .
-    "*" . $middleName .
-    "*" . // Name Prefix not used
-    "*" . // Name Suffix not used
-    "*46";
+    if ($_SESSION['site_id'] == "700") {
+          $out .= "NM1" . // Loop 1000A Submitter
+              "*41" .
+              "*2" .
+              "*" . "CARE MANAGEMENT SOLUTIONS" .
+              "*" .
+              "*" .
+              "*" .
+              "*" .
+              "*46" .
+              "*" .
+              "030353360";
+    } else {
+        $out .= "NM1" . // Loop 1000A Submitter
+            "*41" .
+            "*1" .
+            "*" . $lastName .
+            "*" . $firstName .
+            "*" . $middleName .
+            "*" . // Name Prefix not used
+            "*" . // Name Suffix not used
+            "*46" .
+            "*" . $claim->billingFacilityETIN();
+    }
   } else {    //Field length is limited to 35. See nucc dataset page 63 www.nucc.org
     $billingFacilityName = substr($claim->billingFacilityName(), 0, $CMS_5010 ? 60 : 35);
     if ($billingFacilityName == '') $log .= "*** billing facility name in 1000A loop is empty\n";
@@ -137,22 +152,32 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim=false) {
     "*" .
     "*" .
     "*" .
-    "*46";
+    "*46" .
+    "*" . $claim->billingFacilityETIN();
   }
 
-  if (trim($claim->x12gsreceiverid()) == '470819582') { // if ECLAIMS EDI
-    $out  .=  "*" . $claim->clearingHouseETIN();
-  } else {
-    $out  .=  "*" . $claim->billingFacilityETIN();
-  }
     $out .= "~\n";
 
   ++$edicount;
-  $out .= "PER" .
-    "*IC" .
-    "*" . $claim->billingContactName() .
-    "*TE" .
-    "*" . $claim->billingContactPhone();
+
+  if ($_SESSION['site_id'] == "700") {
+    $out .= "PER" .
+        "*IC" .
+        "*" . "S WAITE" .
+        "*TE" .
+        "*" . "8003718685" .
+        "*FX" .
+        "*" . "8027705175" .
+        "*EM" .
+        "*" . "CMSWEST@SOVER.NET";
+  } else {
+    $out .= "PER" .
+        "*IC" .
+        "*" . $claim->billingContactName() .
+        "*TE" .
+        "*" . $claim->billingContactPhone();
+  }
+
   if (!$CMS_5010 && $claim->x12gsper06()) {
     $out .= "*ED*" . $claim->x12gsper06();
   }
