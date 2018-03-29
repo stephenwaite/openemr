@@ -289,6 +289,9 @@ function parse_era($filename, $cb) {
         else if ($segid == 'MOA' && $out['loopid'] == '2100') {
             $out['warnings'] .= "MOA segment at claim level ignored.\n";
         }
+        else if ($segid == 'MIA' && $out['loopid'] == '2100') {
+            $out['warnings'] .= "MIA segment at claim level ignored.\n";
+        }
         // REF segments may provide various identifying numbers, where REF02
         // indicates the type of number.
         else if ($segid == 'REF' && $seg[1] == '1W' && $out['loopid'] == '2100') {
