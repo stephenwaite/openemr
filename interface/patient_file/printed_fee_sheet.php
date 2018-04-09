@@ -105,6 +105,13 @@ if (!empty($_SESSION['pidList']) and $form_fill == 2) {
     array_push($pid_list, ''); // empty element for blank form
 }
 
+// create array for appointments to be used in
+$appt_list = array();
+
+if (!empty($_SESSION['apptList']) and $form_fill == 2) {
+    $appt_list = $_SESSION['apptList'];
+}
+
 // This file is optional. You can create it to customize how the printed
 // fee sheet looks, otherwise you'll get a mirror of your actual fee sheet.
 //
@@ -150,11 +157,14 @@ if (empty($SBCODES)) {
     // Create entries based on categories defined within the codes.
     $pres = sqlStatement("SELECT option_id, title FROM list_options " .
             "WHERE list_id = 'superbill' AND activity = 1 ORDER BY seq");
+
     while ($prow = sqlFetchArray($pres)) {
+        error_log("prow says " . $prow);
         $SBCODES[] = '*G|' . xl_list_label($prow['title']);
         $res = sqlStatement("SELECT code_type, code, code_text FROM codes " .
                 "WHERE superbill = '" . $prow['option_id'] . "' AND active = 1 " .
                 "ORDER BY code_text");
+        error_log("steve says " . var_dump($res));
         while ($row = sqlFetchArray($res)) {
             $SBCODES[] = $row['code'] . '|' . $row['code_text'];
         }
@@ -359,7 +369,7 @@ if (is_file("$webserver_root/$ma_logo_path")) {
 
 // Loop on array of PIDS
 $saved_pages = $pages; //Save calculated page count of a single fee sheet
-
+error_log(var_dump($SBCODES));
 foreach ($pid_list as $pid) {
     if ($form_fill) {
         // Get the patient's name and chart number.
@@ -370,7 +380,7 @@ foreach ($pid_list as $pid) {
     $cindex = 0;
 
     while (--$pages >= 0) {
-        $html .= genFacilityTitle(xl('Superbill/Fee Sheet'), -1, $logo);
+        $html .= genFacilityTitle(xl('Superbill/Fee Sheet' . "date"), -1, $logo);
 
         $html .="
 <table class='bordertbl' cellspacing='0' cellpadding='0' width='100%'>

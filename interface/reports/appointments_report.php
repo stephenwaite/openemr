@@ -26,9 +26,11 @@ use OpenEMR\Core\Header;
 # report, which is then used by the 'Superbills' and 'Address Labels'
 # features on this report.
 unset($_SESSION['pidList']);
+# using Rod's strategy to bring in appointment details for printing superbills/fee sheets
+unset($_SESSION['apptList']);
 
 $alertmsg = ''; // not used yet but maybe later
-$patient = $_REQUEST['patient'];
+$patient = isset($_REQUEST['patient']) ? $_REQUEST['patient'] : '';
 
 if ($patient && !isset($_POST['form_from_date'])) {
     // If a specific patient, default to 2 years ago.
@@ -41,17 +43,17 @@ if ($patient && !isset($_POST['form_from_date'])) {
 }
 
 $show_available_times = false;
-if ($_POST['form_show_available']) {
+if (!empty($_POST['form_show_available'])) {
     $show_available_times = true;
 }
 
 $chk_with_out_provider = false;
-if ($_POST['with_out_provider']) {
+if (!empty($_POST['with_out_provider'])) {
     $chk_with_out_provider = true;
 }
 
 $chk_with_out_facility = false;
-if ($_POST['with_out_facility']) {
+if (!empty($_POST['with_out_facility'])) {
     $chk_with_out_facility = true;
 }
 
@@ -153,7 +155,12 @@ function fetch_reminders($pid, $appt_date)
             }
             #report_results table {
                 margin-top: 0px;
+
             }
+            a[href]:after {
+                content: none !important;
+            }
+
         }
 
         /* specifically exclude some from the screen */
@@ -403,6 +410,7 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
     $pid_list = array();  // Initialize list of PIDs for Superbill option
     $totalAppontments = count($appointments);
 
+    $bgcolor = '';
     foreach ($appointments as $appointment) {
                 array_push($pid_list, $appointment['pid']);
         $patient_id = $appointment['pid'];
@@ -481,6 +489,8 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 
     // assign the session key with the $pid_list array - note array might be empty -- handle on the printed_fee_sheet.php page.
         $_SESSION['pidList'] = $pid_list;
+        $_SESSION['apptList'] = $appt_list; // thank you Rod
+
     ?>
     <tr>
         <td colspan="10" align="left"><?php echo xlt('Total number of appointments'); ?>:&nbsp;<?php echo text($totalAppontments);?></td>
