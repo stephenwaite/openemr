@@ -122,7 +122,7 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim=false) {
         $lastName = $partsName[2];
         $suffixName = $partsName[3];
     }
-    if ($_SESSION['site_id'] == "700") {
+    if ($claim->x12_partner['x12_sender_id'] == ('701100357' || '030353360' || '7111' || 'N532')) {
           $out .= "NM1" . // Loop 1000A Submitter
               "*41" .
               "*2" .
@@ -165,7 +165,7 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim=false) {
 
   ++$edicount;
 
-  if ($_SESSION['site_id'] == "700") {
+  if ($claim->x12_partner['x12_sender_id'] == ('701100357' || '030353360' || '7111' || 'N532')) {
     $out .= "PER" .
         "*IC" .
         "*" . "S WAITE" .
