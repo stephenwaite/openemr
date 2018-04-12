@@ -133,7 +133,7 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim=false) {
               "*" .
               "*46" .
               "*" .
-              "030353360";
+              $claim->x12_partner['x12_sender_id'];
     } else {
         $out .= "NM1" . // Loop 1000A Submitter
             "*41" .
