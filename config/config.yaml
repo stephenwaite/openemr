@@ -28,6 +28,7 @@ assets:
         script: js/sidebar.js
         link: css/sidebar.css
     main-theme:
+        basePath:
         alreadyBuilt: true
         link: %css_header%
         autoload: true

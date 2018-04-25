@@ -156,7 +156,6 @@ class Header
         $script = (isset($opts['script'])) ? $opts['script'] : false;
         $link = (isset($opts['link'])) ? $opts['link'] : false;
         $basePath = self::parsePlaceholders($opts['basePath']);
-
         $scripts = [];
         $links = [];
 

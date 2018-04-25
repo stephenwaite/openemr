@@ -15,6 +15,7 @@ require_once("$srcdir/acl.inc");
 require_once("$srcdir/patient.inc");
 require_once("$srcdir/billing.inc");
 
+use OpenEMR\Core\Header;
 use OpenEMR\Services\FacilityService;
 
 $facilityService = new FacilityService();
@@ -164,7 +165,7 @@ if (empty($SBCODES)) {
         $res = sqlStatement("SELECT code_type, code, code_text FROM codes " .
                 "WHERE superbill = '" . $prow['option_id'] . "' AND active = 1 " .
                 "ORDER BY code_text");
-        error_log("steve says " . var_dump($res));
+        error_log("steve says result is " . $res);
         while ($row = sqlFetchArray($res)) {
             $SBCODES[] = $row['code'] . '|' . $row['code_text'];
         }
@@ -221,11 +222,23 @@ if (empty($SBCODES)) {
 
 $lheight = sprintf('%d', ($page_height - $header_height) / $lines_per_page);
 
-// Common HTML Header information
+// upgrade header to core
 
-$html = "<html>
-<head>";
+Header::setupHeader('');
 
+$html = "<script type=\"text/javascript\">
+$(document).ready(function() {
+ var win = top.printLogSetup ? top : opener.top;
+ win.printLogSetup(document.getElementById('printbutton'));
+});
+
+// Process click on Print button.
+function printlog_before_print() {
+ var divstyle = document.getElementById('hideonprint').style;
+ divstyle.display = 'none';
+}
+
+</script>";
 $html .= "
 <style>
 body {
@@ -309,31 +322,11 @@ div.pagebreak {
 page-break-after: always;
 height: ${page_height}pt;
 }
-</style>";
+</style>
 
-$html .= "<title>" . htmlspecialchars($frow['name']) . "</title>
-<script type='text/javascript' src='" . $GLOBALS['assets_static_relative'] . "/jquery-min-1-2-2/index.js'></script>
-<script type=\"text/javascript\" src=\"../../library/dialog.js?v=" . $v_js_includes . "\"></script>
-<script language=\"JavaScript\">";
-
-$html .= "
-$(document).ready(function() {
- var win = top.printLogSetup ? top : opener.top;
- win.printLogSetup(document.getElementById('printbutton'));
-});
-
-// Process click on Print button.
-function printlog_before_print() {
- var divstyle = document.getElementById('hideonprint').style;
- divstyle.display = 'none';
-}
-
-</script>
-</head>
 <body bgcolor='#ffffff'>
 <form name='theform' method='post' action='printed_fee_sheet.php?fill=" . attr($form_fill) . "'
-onsubmit='return opener.top.restoreSession()'>
-<center>";
+onsubmit='return opener.top.restoreSession()'>";
 
 // Set Pagebreak for multi forms
 if ($form_fill == 2) {
@@ -369,7 +362,7 @@ if (is_file("$webserver_root/$ma_logo_path")) {
 
 // Loop on array of PIDS
 $saved_pages = $pages; //Save calculated page count of a single fee sheet
-error_log(var_dump($SBCODES));
+error_log("pages = " . $pages);
 foreach ($pid_list as $pid) {
     if ($form_fill) {
         // Get the patient's name and chart number.
@@ -380,7 +373,7 @@ foreach ($pid_list as $pid) {
     $cindex = 0;
 
     while (--$pages >= 0) {
-        $html .= genFacilityTitle(xl('Superbill/Fee Sheet' . "date"), -1, $logo);
+        $html .= genFacilityTitle(xl('Superbill/Fee Sheet'), -1, $logo);
 
         $html .="
 <table class='bordertbl' cellspacing='0' cellpadding='0' width='100%'>
@@ -578,6 +571,7 @@ foreach ($pid_list as $pid) {
 </table>";
 
         $html .= "</div>";  //end of div.pageLetter
+
     } // end while
     $pages = $saved_pages; //RESET
 }
@@ -595,7 +589,6 @@ if ($form_fill != 2) {   //use native browser 'print' for multipage
 
 $html .= "
 </form>
-</center>
 </body>
 </html>";
 
