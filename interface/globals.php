@@ -3,14 +3,12 @@
 /**
  * Default values for optional variables that are allowed to be set by callers.
  *
- * Note that this will only be used within setup.php, sql_upgrade.php,
- * sql_patch.php, acl_upgrade.php, admin.php, and globals.php.
- *
  * @package OpenEMR
  * @author  Brady Miller <brady.g.miller@gmail.com>
  * @link    http://www.open-emr.org
  * @license https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
- * @copyright Copyright (c) 2018 Brady Miller
+ * @copyright Copyright (c) 2018 Brady MillerPB,
+ *
  */
 
 // Checks if the server's PHP version is compatible with OpenEMR:
