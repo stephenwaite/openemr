@@ -92,16 +92,44 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim = false)
         $lastName = $claim->providerLastName();
         $middleName = $claim->providerMiddleName();
         $suffixName = $claim->providerSuffixName();
-        $out .= "NM1" . // Loop 1000A Submitter
-        "*" . "41" .
-        "*" . "1" .
-        "*" . $lastName .
-        "*" . $firstName .
-        "*" . $middleName .
-        "*" . // Name Prefix not used
-        "*" . $suffixName .
-        "*" . "46";
+        if ($claim->x12_partner['x12_sender_id'] == ('701100357' || '030353360' || '7111' || 'N532')) {
+          $out .= "NM1" . // Loop 1000A Submitter                               
+                  "*41" .                                                       
+                  "*2" .                                                        
+                  "*" . "CARE MANAGEMENT SOLUTIONS" .                           
+                  "*" .                                                         
+                  "*" .                                                         
+                  "*" .                                                         
+                  "*" .                                                        
+                  "*46" .                                                      
+                  "*" .                                                        
+                  $claim->x12_partner['x12_sender_id'];                         
+        } else {                                                                
+          $out .= "NM1" . // Loop 1000A Submitter                           
+                  "*" . "41" .                                            
+                  "*" . "1" .                                         
+                  "*" . $lastName .                                            
+                  "*" . $firstName .                                            
+                  "*" . $middleName .                                       
+                  "*" . // Name Prefix not used                           
+                  "*" . $suffixName .                                 
+                  "*" . "46";
+                  $out .= "*" . $claim->billingFacilityETIN();                                
+        }                                 
     } else {
+      if ($claim->x12_partner['x12_sender_id'] == ('999999999' || '701100357' || '030353360' || '7111' || 'N532')) {       
+          $out .= "NM1" . // Loop 1000A Submitter                                                             
+                  "*41" .                                                                                     
+                  "*2" .                                                                                      
+                  "*" . "CARE MANAGEMENT SOLUTIONS" .                                                         
+                  "*" .                                                                                       
+                  "*" .                                                                                       
+                  "*" .                                                                                       
+                  "*" .                                                                                       
+                  "*46" .                                                                                     
+                  "*" .                                                                                       
+                  $claim->x12_partner['x12_sender_id'];                                                       
+      } else {
         $billingFacilityName = substr($claim->billingFacilityName(), 0, 60);
         if ($billingFacilityName == '') {
             $log .= "*** billing facility name in 1000A loop is empty\n";
@@ -114,19 +142,20 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim = false)
         "*" .
         "*" .
         "*" .
-        "*" . "46";
+        "*" . "46";        
+        $out .= "*" . $claim->billingFacilityETIN();                                
+      }
     }
-    $out .= "*" . $claim->billingFacilityETIN();
     $out .= "~\n";
 
     ++$edicount;
     $out .= "PER" . // Loop 1000A, Submitter EDI contact information
     "*" . "IC" .
-    "*" . $claim->billingContactName() .
+    "*" . "S WAITE" .
     "*" . "TE" .
-    "*" . $claim->billingContactPhone() .
+    "*" . "8003718685" .
     "*" . "EM" .
-    "*" . $claim->billingContactEmail();
+    "*" . "cmswest1@gmail.com";
     $out .= "~\n";
 
     ++$edicount;
@@ -235,7 +264,7 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim = false)
     // Situational PER*1C segment omitted.
 
     // Pay-To Address defaults to billing provider and is no longer required in 5010 but may be useful
-    if ($claim->facilityStreet() != $claim->billingFacilityStreet()) {
+    if ($claim->pay_to_provider != '') {
         ++$edicount;
         $billingFacilityName = substr($claim->billingFacilityName(), 0, 60);
         $out .= "NM1" .       // Loop 2010AB Pay-To Provider
@@ -709,7 +738,7 @@ function gen_x12_837($pid, $encounter, &$log, $encounter_claim = false)
     // End of Loop 2310B
 
     // Loop 2310C is omitted in the case of home visits (POS=12).
-    if ($claim->facilityPOS() != 12 && ($claim->facilityNPI() != $claim->billingFacilityNPI())) {
+    if ($claim->facilityPOS() != 12 && ($claim->facilityName() != $claim->billingFacilityName())) {
         ++$edicount;
         $out .= "NM1" .       // Loop 2310C Service Location
         "*" . "77" .

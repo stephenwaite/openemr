@@ -39,7 +39,7 @@ class Claim
     public $payers;            // array of arrays, for all payers
     public $copay;             // total of copays from the ar_activity table
     public $facilityService;
-
+    public $pay_to_provider;   // tbd should be implemented in facility ui
     // This enforces the X12 Basic Character Set. Page A2.
     private function x12Clean($str)
     {
@@ -145,6 +145,7 @@ class Claim
         $this->copay = 0;
 
         $this->facilityService = new FacilityService();
+        $this->pay_to_provider = '';
 
         // We need the encounter date before we can identify the payers.
         $sql = "SELECT * FROM form_encounter WHERE " .
