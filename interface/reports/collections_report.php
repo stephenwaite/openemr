@@ -306,7 +306,7 @@ if ($_POST['form_csvexport']) {
     header("Expires: 0");
     header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
     header("Content-Type: application/force-download");
-    header("Content-Disposition: attachment; filename=collections_report.csv");
+    header("Content-Disposition: attachment; filename=collt_report.csv");
     header("Content-Description: File Transfer");
 } else {
 ?>
@@ -931,7 +931,7 @@ if ($_POST['form_refresh'] || $_POST['form_export'] || $_POST['form_csvexport'])
         echo "<textarea rows='35' cols='100' readonly>";
     } else if ($_POST['form_csvexport']) {
         # CSV headers added conditions if they are checked to display then export them (TLH)
-        if (true) {
+        if (!$_POST['form_ari']) {
             echo '"' . xl('Insurance') . '",';
             echo '"' . xl('Name') . '",';
             if ($form_cb_ssn) {
@@ -1121,7 +1121,7 @@ if ($form_age_cols) {
         ?>
        <tr bgcolor='<?php echo attr($bgcolor) ?>'>
 <?php
-if ($ptrow['count'] == 1) {
+if ($ptrow['count'] == 1)  {
     if ($is_due_ins) {
         echo "  <td class='detail'>&nbsp;" . text($insname) ."</td>\n";
     }
@@ -1236,7 +1236,41 @@ if ($form_cb_err) {
           // The CSV detail line is written here added conditions for checked items (TLH).
           // Added zero balances for a complete spreadsheet view
             $balance = $row['charges'] + $row['adjustments'] - $row['paid'];
-            if ($balance > 0 || $_POST['form_zero_balances']) {
+            if ($_POST['form_ari']) {
+                if ($balance > 0) {
+                echo $row['pubpid']    . ',';
+                echo $ptname          . ',';
+                echo $row['address1']                          . ',';
+                echo ''                                   . ','; // address2 not pulled
+                echo $row['city']                          . ',';
+                echo $row['state']                        . ',';
+                echo $row['zipcode']                      . ',';
+                echo $row['phone']                       . ',';
+                echo '*,*,*,*,*,*,*,*'                   . ','; // kinne format 8 asterix to pad
+                echo substr($row['dos'], 5, 2) . '/' .
+                     substr($row['dos'], -2, 2) . '/' .
+                     substr($row['dos'], 0, 4) .',';
+                echo '*,*,*,*,*,*,*'                   . ','; // kinne format 7 asterix to pad
+                echo str_replace(',',';',$ptname)                              . ',';
+                echo '*,*'                             . ','; // kinne format 2 asterix to pad
+                echo $ptname                              . ',';
+                echo $row['address1']                          . ',';
+                echo ''                                        . ',';
+                echo $row['city']                          . ',';
+                echo $row['state']                        . ',';
+                echo $row['zipcode']                      . ',';
+                echo $row['phone']                       . ',';
+                echo '*'                             . ','; // kinne format 1 asterix to pad
+                echo substr($row['DOB'], 5, 2) . '/' .
+                     substr($row['DOB'], -2, 2) . '/' .
+                     substr($row['DOB'], 0, 4) . ',';
+                echo 'PETRI'                              . ',';
+                echo $row['pubpid']                         . ','; // try pid if pubpid is diff
+                echo '*,*,*'                             . ','; // kinne format 3 asterix to pad
+                echo oeFormatMoney($balance)             . '' . "\n";
+                }
+
+            } else if ($balance > 0 || $_POST['form_zero_balances']) {
                 echo '"' . $row['ins1']                         . '",'; // insname
                 echo '"' . $ptname                              . '",';
                 if ($form_cb_ssn) {
@@ -1364,6 +1398,9 @@ if (!$_POST['form_csvexport']) {
     </a>
   </div>
 
+  <div style='float:left'>
+    <label><input type='checkbox' name='form_ari' value='1' /> <?php echo xlt('ARI format') ?>&nbsp;&nbsp;</label>
+  </div>
   <div style='float:left'>
     <label><input type='checkbox' name='form_zero_balances' value='1' /> <?php echo xlt('Export Zero Balances') ?>&nbsp;&nbsp;</label>
   </div>
