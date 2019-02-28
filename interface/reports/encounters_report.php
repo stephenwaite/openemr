@@ -397,12 +397,13 @@ if ($res) {
         $patient_id = $row['pid'];
         $mips_enc_date = substr($row['date'], 0, 10);
         //echo $mips_enc_date;
+
         $rres = sqlStatement("SELECT * from rule_patient_data as rpd WHERE rpd.pid = ? " , array($patient_id));
 
         while ($rrow = sqlFetchArray($rres)) {
-            if (!substr($rrow['date'], 0, 10) == $mips_enc_date){
-                continue;
-            }
+            //if (!substr($rrow['date'], 0, 10) == $mips_enc_date){
+            //    continue;
+            //}
 
             $docname = '';
             if (!empty($row['ulname']) || !empty($row['ufname'])) {
@@ -490,7 +491,8 @@ if ($res) {
                         <?php echo text(substr($row['date'], 0, 10)) ?>&nbsp;
                     </td>
                     <td>
-                        <?php echo text($row['lname']); ?>
+                        <?php echo text(strtoupper($row['lname']))
+                        ; ?>
                     </td>
                     <td>
                         <?php echo text($row['fname']) . ' ' . text($row['mname']); ?>
@@ -518,8 +520,32 @@ if ($res) {
                     <td>
                         <?php switch ($rrow['item']) {
                             case 'act_pain':
-                                echo text('G8730');
-                        } ?>&nbsp;
+                                echo $rrow['id'] . ' ' . text('G8730') . ' ';
+                                break;
+                            case 'act_cdai':
+                                if ($rrow['result'] <= 10) {
+                                    echo $rrow['id'] . ' ' . text('3470F') . ' ';
+                                    break;
+                                } else if (($rrow['result'] > 10) && ($rrow['result'] <= 22 )) {
+                                    echo $rrow['id'] . ' ' . text('3471F') . ' ';
+                                    break;
+                                } else {
+                                    echo $rrow['id'] . ' ' . text('3472F') . ' ';
+                                    break;
+                                }
+                            case 'act_rafunc':
+                                echo $rrow['id'] . ' ' . text('1170F') . ' ';
+                                break;
+                            case 'act_glucocorticoid':
+                                if (strtolower(substr($rrow['result'], 0, 2 )) == 'no' ||
+                                    )
+                                   {
+                                    echo $rrow['id'] . ' ' . text('4192F') . ' ';
+                                } else {
+                                    echo $rrow['id'] . ' ' . text('4193F');
+                                }
+                        }
+                    ?>&nbsp;
                     </td>
                     <td>
                         <?php //echo $encnames; //since this variable contains html, have already html escaped it above ?>&nbsp;
