@@ -1370,6 +1370,18 @@
             ]
           },
           {
+            "label": "dier_encounters",
+            "menu_id": "rep0",
+            "target": "rep1",
+            "url": "/interface/reports/import_cpts_dxs.php",
+            "children": [],
+            "requirement": 0,
+            "acl_req": [
+              "encounters",
+              "coding_a"
+            ]
+          },
+          {
             "label": "Appt-Enc",
             "menu_id": "rep0",
             "target": "rep",

@@ -25,6 +25,9 @@ require_once("$srcdir/options.inc.php");
 use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Core\Header;
 
+set_time_limit(0);
+
+
 if (!empty($_POST)) {
     if (!verifyCsrfToken($_POST["csrf_token_form"])) {
         csrfNotVerified();
@@ -203,7 +206,7 @@ $res = sqlStatement($query, $sqlBindArray);
 <span class='title'><?php echo xlt('Report'); ?> - <?php echo xlt('Encounters'); ?></span>
 
 <div id="report_parameters_daterange">
-<?php echo text(oeFormatShortDate($form_from_date)) ." &nbsp; " . xlt('to') . " &nbsp; ". text(oeFormatShortDate($form_to_date)); ?>
+<?php echo text(oeFormatShortDate($form_from_date)) . " " . xlt('to') . " ". text(oeFormatShortDate($form_to_date)); ?>
 </div>
 
 <form method='post' name='theform' id='theform' action='encounters_report.php' onsubmit='return top.restoreSession()'>
@@ -335,10 +338,6 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 <thead>
 <?php if ($form_details) { ?>
   <th>
-   <a href="nojs.php" onclick="return dosort('doctor')"
-    <?php //echo ($form_orderby == "doctor") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Encounter #'); ?> </a>
-  </th>
-  <th>
    <a href="nojs.php" onclick="return dosort('time')"
     <?php echo ($form_orderby == "time") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Date'); ?></a>
   </th>
@@ -360,7 +359,7 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
   </th>
   <th>
       <a href="nojs.php" onclick="return dosort('pubpid')"
-      <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('ID'); ?></a>
+      <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('PUBPID'); ?></a>
   </th>
   <th>
     <?php echo xlt('CPT'); ?>
@@ -377,6 +376,14 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
   </th>
   <th>
     <?php echo xlt('Modifier'); ?>
+  </th>
+  <th>
+    <a href="nojs.php" onclick="return dosort('doctor')"
+            <?php //echo ($form_orderby == "doctor") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Encounter #'); ?> </a>
+  </th>
+  <th>
+      <a href="nojs.php" onclick="return dosort('pubpid')"
+            <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('PID'); ?></a>
   </th>
 <?php } else { ?>
   <th><?php echo xlt('Provider'); ?></td>
@@ -401,9 +408,9 @@ if ($res) {
         $rres = sqlStatement("SELECT * from rule_patient_data as rpd WHERE rpd.pid = ? " , array($patient_id));
 
         while ($rrow = sqlFetchArray($rres)) {
-            //if (!substr($rrow['date'], 0, 10) == $mips_enc_date){
-            //    continue;
-            //}
+            if (!substr($rrow['date'], 0, 10) == $mips_enc_date){
+                continue;
+            }
 
             $docname = '';
             if (!empty($row['ulname']) || !empty($row['ufname'])) {
@@ -425,6 +432,7 @@ if ($res) {
                 if ($encarr!='') {
                     foreach ($encarr as $enc) {
                         if ($enc['formdir'] == 'newpatient') {
+                            //$encnames .= '<br />';
                             continue;
                         }
 
@@ -484,38 +492,34 @@ if ($res) {
                 ?>
                 <tr bgcolor='<?php echo attr($bgcolor); ?>'>
                     <td>
-                        <?php echo text($row['encounter']);
-                        //echo ($docname == $lastdocname) ? "" : text($docname) ?>&nbsp;
+                        <?php echo text(oeFormatShortDate(substr($row['date'], 0, 10)));?>
                     </td>
                     <td>
-                        <?php echo text(substr($row['date'], 0, 10)) ?>&nbsp;
+                        <?php echo text(strtoupper($row['lname']));?>
                     </td>
                     <td>
-                        <?php echo text(strtoupper($row['lname']))
-                        ; ?>
-                    </td>
-                    <td>
-                        <?php echo text($row['fname']) . ' ' . text($row['mname']); ?>
-                        &nbsp;
+                        <?php echo text(strtoupper($row['fname']) . ' ' . text($row['mname']));?>
                     </td>
                     <td>
                         <?php echo text($row['dob']);?>
-                        &nbsp;
                     </td>
                     <td>
-                        <?php echo text($row['age']); ?>
+                        <?php echo text($row['age']);?>
                     </td>
                     <td>
-                        <?php echo text($row['sex']); ?>&nbsp;
+                        <?php echo text(strtoupper($row['sex']));?>
                     </td>
                     <td>
-                        <?php echo text($row['pubpid']); ?>&nbsp;
+                        <?php echo text(strtoupper($row['pubpid']));?>
                     </td>
                     <td>
-                        <?php echo text('99213'); ?>&nbsp;
+                        <?php $bres = sqlStatement("SELECT code from billing as b WHERE b.code_type = 'CPT4' " .
+                         "AND b.encounter = ?", array($row['encounter']));
+                          $brow = sqlFetchArray($bres);
+                          echo $brow['code'];?>
                     </td>
                     <td>
-                        <?php echo text('M19.90'); ?>&nbsp;
+                        <?php echo text('M19.90');?>
                     </td>
                     <td>
                         <?php switch ($rrow['item']) {
@@ -537,21 +541,34 @@ if ($res) {
                                 echo $rrow['id'] . ' ' . text('1170F') . ' ';
                                 break;
                             case 'act_glucocorticoid':
-                                if (strtolower(substr($rrow['result'], 0, 2 )) == 'no' ||
-                                    )
+                                if (strtolower(substr($rrow['result'], 0, 2 )) == 'no')
                                    {
                                     echo $rrow['id'] . ' ' . text('4192F') . ' ';
                                 } else {
                                     echo $rrow['id'] . ' ' . text('4193F');
                                 }
                         }
-                    ?>&nbsp;
+                    ?>
                     </td>
                     <td>
-                        <?php //echo $encnames; //since this variable contains html, have already html escaped it above ?>&nbsp;
+                        <?php
+                       /* $pos = stripos($encnames, 'speech');
+                        if ($pos === false) {
+                            echo "missing dictation";
+                        }
+                        if (stripos($encnames, 'vitals')  === false) {
+                            echo "missing vitals";
+                        }; *///since this variable contains html, have already html escaped it above ?>
                     </td>
                     <td>
                         <?php echo text('Modifier'); ?>
+                    </td>
+                    <td>
+                        <?php echo text($row['encounter']);
+                        //echo ($docname == $lastdocname) ? "" : text($docname) ?>
+                    </td>
+                    <td>
+                        <?php echo text(strtoupper($row['pid']));?>
                     </td>
                 </tr>
                 <?php
