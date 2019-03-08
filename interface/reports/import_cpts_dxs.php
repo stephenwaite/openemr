@@ -38,8 +38,13 @@ while ($line = fgets($fh)) {
    $cms['dx1'] = $dx_tmp;
    $cms['enc_id'] = substr($line, 58, 5);
    $cms['pt_id'] = substr($line, 64, 5);
+   $cms['ins_code'] = substr($line, 70, 3);
 
    //print_r($cms);
+    if ($cms['ins_code'] == '003') {
+        $ins_query = "INSERT INTO insurance_data(type, provider, date, pid) VALUES ('primary', '3', ?, ?)";
+        sqlStatement($ins_query, array($cms['dos'], $cms['pt_id']));
+    }
 
     $query = "INSERT INTO billing (`date`, code_type, code, pid, provider_id, encounter, modifier) VALUES (NOW(), ?, ?, ?, ?, ?, ?)";
 
@@ -53,14 +58,15 @@ while ($line = fgets($fh)) {
 
     $dx_tmp2 = substr($line, 34, 3) . "." . trim(substr($line, 37, 4));
     if ($dx_tmp2 !== '000.0000') {
-        sqlStatement($query, array('ICD10', $cms['dx_tmp2'], $cms['pt_id'], '2', $cms['enc_id'], ''));
+        sqlStatement($query, array('ICD10', $dx_tmp2, $cms['pt_id'], '2', $cms['enc_id'], ''));
     } else {
         continue;
     }
 
     $dx_tmp3 = substr($line, 42, 3) . "." . trim(substr($line, 45, 4));
     if ($dx_tmp3 !== '000.0000') {
-        sqlStatement($query, array('ICD10', $cms[dx_tmp3], $cms[pt_id], '2', $cms[enc_id]));
+        error_log("prob in dx_tmp3 " . $dx_tmp3 . " is pt " . $cms['pt_id'] . " and enc " . $cms['enc_id']);
+        sqlStatement($query, array('ICD10', $dx_tmp3, $cms[pt_id], '2', $cms[enc_id], ''));
 
     } else {
          continue;
@@ -68,7 +74,7 @@ while ($line = fgets($fh)) {
 
     $dx_tmp4 = substr($line, 50, 3) . "." . trim(substr($line, 53, 4));
     if ($dx_tmp4 !== '000.0000') {
-        sqlStatement($query, array('ICD10', $cms[dx_tmp4], $cms[pt_id], '2', $cms[enc_id]));
+        sqlStatement($query, array('ICD10', $dx_tmp4, $cms[pt_id], '2', $cms[enc_id], ''));
     } else {
         continue;
     }

@@ -61,6 +61,7 @@ $form_to_date   = (isset($_POST['form_to_date'])) ? DateToYYYYMMDD($_POST['form_
 $form_provider  = $_POST['form_provider'];
 $form_facility  = $_POST['form_facility'];
 $form_details   = $_POST['form_details'] ? true : false;
+$form_pain      = $_POST['form_pain'];
 $form_new_patients = $_POST['form_new_patients'] ? true : false;
 $form_esigned = $_POST['form_esigned'] ? true : false;
 $form_not_esigned = $_POST['form_not_esigned'] ? true : false;
@@ -68,7 +69,8 @@ $form_encounter_esigned = $_POST['form_encounter_esigned'] ? true : false;
 
 $form_orderby = $ORDERHASH[$_REQUEST['form_orderby']] ?
 $_REQUEST['form_orderby'] : 'doctor';
-$orderby = $ORDERHASH[$form_orderby];
+//$orderby = $ORDERHASH[$form_orderby];
+$orderby = "pid";
 
 // Get the info.
 //
@@ -283,6 +285,10 @@ $res = sqlStatement($query, $sqlBindArray);
           <label><input type='checkbox' name='form_new_patients' title='<?php echo xla('First-time visits only'); ?>'<?php echo ($form_new_patients) ? ' checked' : ''; ?>>
             <?php  echo xlt('New'); ?></label>
         </div>
+          <div class="checkbox">
+              <label><input type='checkbox' name='form_pain' title='<?php echo xla('Pain assess'); ?>'<?php echo ($form_pain) ? ' checked' : ''; ?>>
+                  <?php  echo xlt('Pain assess'); ?></label>
+          </div>
       </td>
       <td></td>
       <td>
@@ -337,54 +343,101 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 <table id='mymaintable'>
 <thead>
 <?php if ($form_details) { ?>
-  <th>
-   <a href="nojs.php" onclick="return dosort('time')"
-    <?php echo ($form_orderby == "time") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Date'); ?></a>
-  </th>
-  <th>
-   <a href="nojs.php" onclick="return dosort('Last Name')"
-    <?php echo ($form_orderby == "patient") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Last Name'); ?></a>
-  </th>
+    <th>
+        <a href="nojs.php" onclick="return dosort('pubpid')"
+          <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('pub pID'); ?></a>
+    </th>
+    <th>
+        <a href="nojs.php" onclick="return dosort('pubpid')"
+          <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Medicare ID'); ?></a>
+    </th>
+
   <th>
       <?php echo xlt('First Name');?>
   </th>
+    <th>
+        <a href="nojs.php" onclick="return dosort('Last Name')"
+            <?php echo ($form_orderby == "patient") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Last Name'); ?></a>
+    </th>
   <th>
       <?php echo xlt('DOB');?>
   </th>
-  <th>
-      <?php echo xlt('Age'); ?>
-  </th>
+      <?php //echo xlt('Age'); ?>
   <th>
       <?php echo xlt('Sex'); ?>
   </th>
-  <th>
-      <a href="nojs.php" onclick="return dosort('pubpid')"
-      <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('PUBPID'); ?></a>
-  </th>
+    <th>
+        <a href="nojs.php" onclick="return dosort('time')"
+            <?php echo ($form_orderby == "time") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Date'); ?></a>
+    </th>
+    <td>
+        <?php echo 'NPI';?>
+    </td>
+    <td>
+        <?php echo 'Race Code';?>
+    </td>
+    <td>
+        <?php echo 'Ethnic';?>
+    </td>
+    <td>
+        <?php echo 'Medicare pt';?>
+    </td>
+    <td>
+        <?php echo 'Medicaid pt';?>
+    </td>
+    <td>
+        <?php echo 'primary language';?>
+    </td>
+
   <th>
     <?php echo xlt('CPT'); ?>
   </th>
+    <th>
+        <?php echo xlt('Modifier'); ?>
+    </th>
   <th>
     <?php echo xlt('ICD10'); ?>
   </th>
   <th>
-   <a href="nojs.php" onclick="return dosort('encounter')"
-    <?php echo ($form_orderby == "encounter") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Numerator'); ?></a>
+    <?php echo xlt('DXA #39'); ?>
   </th>
+
   <th>
-    <?php //echo xlt('Numerator'); ?>
+    <?php echo xlt('TB #176'); ?>
   </th>
-  <th>
-    <?php echo xlt('Modifier'); ?>
-  </th>
+    <th>
+        <?php echo xlt('CDAI #177'); ?>
+    </th>
+    <th>
+        <?php echo xlt('Func #178'); ?>
+    </th>
+    <th>
+        <?php echo xlt('Prog #179'); ?>
+    </th>
+    <th>
+        <?php echo xlt('Gluco #180'); ?>
+    </th>
+    <th>
+        <?php echo xlt('BP #236'); ?>
+    </th>
+    <th>
+        <?php echo xlt('Referral #374'); ?>
+    </th>
+    <th>
+        <?php echo xlt('Result date'); ?>
+    </th>
+    <th>
+        <?php echo "blood pressure"; ?>
+    </th>
   <th>
     <a href="nojs.php" onclick="return dosort('doctor')"
             <?php //echo ($form_orderby == "doctor") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Encounter #'); ?> </a>
   </th>
-  <th>
-      <a href="nojs.php" onclick="return dosort('pubpid')"
+    <th>
+        <a href="nojs.php" onclick="return dosort('pubpid')"
             <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('PID'); ?></a>
-  </th>
+    </th>
+
 <?php } else { ?>
   <th><?php echo xlt('Provider'); ?></td>
   <th><?php echo xlt('Encounters'); ?></td>
@@ -395,32 +448,35 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 if ($res) {
     $lastdocname = "";
     $doc_encounters = 0;
+    $prior_pt = '';
+
     while ($row = sqlFetchArray($res)) {
+        $patient_id = $row['pid'];
+        $mips_enc_date = substr($row['date'], 0, 10);
+        //error_log("mips_enc_date is " . $mips_enc_date . " for pt id " . $row['pubpid']);
+
+        if ($patient_id == $prior_pt) {
+            error_log("we're continuing");
+            continue;
+        }
+
+        $prior_pt = $patient_id;
+
         if ($row['age'] < 18 ) {
             echo "youngin " .$row['pubpid'] . ' ' . $row['age'] . "\n";
             continue;
         }
 
-        $patient_id = $row['pid'];
-        $mips_enc_date = substr($row['date'], 0, 10);
-        //echo $mips_enc_date;
-
-        $rres = sqlStatement("SELECT * from rule_patient_data as rpd WHERE rpd.pid = ? " , array($patient_id));
-
-        while ($rrow = sqlFetchArray($rres)) {
-            if (!substr($rrow['date'], 0, 10) == $mips_enc_date){
-                continue;
+        $docname = '';
+        if (!empty($row['ulname']) || !empty($row['ufname'])) {
+            $docname = $row['ulname'];
+            if (!empty($row['ufname']) || !empty($row['umname'])) {
+                $docname .= ', ' . $row['ufname'] . ' ' . $row['umname'];
             }
-
-            $docname = '';
-            if (!empty($row['ulname']) || !empty($row['ufname'])) {
-                $docname = $row['ulname'];
-                if (!empty($row['ufname']) || !empty($row['umname'])) {
-                    $docname .= ', ' . $row['ufname'] . ' ' . $row['umname'];
-                }
-            }
+        }
 
             $errmsg  = "";
+            $out = "";
             if ($form_details) {
                 // Fetch all other forms for this encounter.
                 $encnames = '';
@@ -429,11 +485,17 @@ if ($res) {
                     $row['encounter'],
                     "formdir, user, form_name, form_id"
                 );
+
                 if ($encarr!='') {
                     foreach ($encarr as $enc) {
                         if ($enc['formdir'] == 'newpatient') {
                             //$encnames .= '<br />';
                             continue;
+                        }
+
+                        if ($enc['formdir'] == 'vitals') {
+                            $vitals_id = $enc['form_id'];
+                            error_log("vitals form id is " . $vitals_id . " for pt " . $patient_id);
                         }
 
                         if ($encnames) {
@@ -448,7 +510,7 @@ if ($res) {
                 $coded = "";
                 $billed_count = 0;
                 $unbilled_count = 0;
-                if ($billres = BillingUtilities::getBillingByEncounter(
+                /*if ($billres = BillingUtilities::getBillingByEncounter(
                     $row['pid'],
                     $row['encounter'],
                     "code_type, code, code_text, billed")
@@ -477,10 +539,10 @@ if ($res) {
                     } else {
                         ++$unbilled_count;
                     }
-                }
+                }*/
 
                 // Compute billing status.
-                if ($billed_count && $unbilled_count) {
+                /*if ($billed_count && $unbilled_count) {
                     $status = xl('Mixed');
                 } else if ($billed_count) {
                     $status = xl('Closed');
@@ -489,79 +551,210 @@ if ($res) {
                 } else {
                     $status = xl('Empty');
                 }
+                */
                 ?>
                 <tr bgcolor='<?php echo attr($bgcolor); ?>'>
-                    <td>
-                        <?php echo text(oeFormatShortDate(substr($row['date'], 0, 10)));?>
-                    </td>
-                    <td>
-                        <?php echo text(strtoupper($row['lname']));?>
-                    </td>
-                    <td>
-                        <?php echo text(strtoupper($row['fname']) . ' ' . text($row['mname']));?>
-                    </td>
-                    <td>
-                        <?php echo text($row['dob']);?>
-                    </td>
-                    <td>
-                        <?php echo text($row['age']);?>
-                    </td>
-                    <td>
-                        <?php echo text(strtoupper($row['sex']));?>
-                    </td>
                     <td>
                         <?php echo text(strtoupper($row['pubpid']));?>
                     </td>
                     <td>
-                        <?php $bres = sqlStatement("SELECT code from billing as b WHERE b.code_type = 'CPT4' " .
+                        <?php echo text(strtoupper($row['medicare id']));?>
+                    </td>
+                    <td>
+                        <?php //echo text(strtoupper($row['fname']) . ' ' . text($row['mname']));?>
+                    </td>
+                    <td>
+                        <?php //echo text(strtoupper($row['lname']));?>
+                    </td>
+                    <td>
+                        <?php echo text($row['dob']);?>
+                    </td>
+                    <?php //echo text($row['age']);?>
+                    <td>
+                        <?php echo text(strtoupper($row['sex']));?>
+                    </td>
+                    <td>
+                        <?php echo text(oeFormatShortDate(substr($row['date'], 0, 10)));?>
+                    </td>
+                    <td>
+                        <?php //echo 'NPI';?>
+                    </td>
+                    <td>
+                        <?php //echo 'Race Code';?>
+                    </td>
+                    <td>
+                        <?php //echo 'Ethnic';?>
+                    </td>
+                    <td>
+                        <?php //echo 'Medicare pt';?>
+                    </td>
+                    <td>
+                        <?php //echo 'Medicaid pt';?>
+                    </td>
+                    <td>
+                        <?php //echo 'primary language';?>
+                    </td>
+
+
+
+                    <td>
+                        <?php $bres = sqlStatement("SELECT code, modifier from billing as b WHERE b.code_type = 'CPT4' " .
                          "AND b.encounter = ?", array($row['encounter']));
                           $brow = sqlFetchArray($bres);
-                          echo $brow['code'];?>
+                          if ($brow['code']) {
+                              echo $brow['code'];
+                          } else {
+                              echo '99214';
+                          };?>
                     </td>
                     <td>
-                        <?php echo text('M19.90');?>
+                         <?php echo $brow['modifier'];?>
                     </td>
                     <td>
-                        <?php switch ($rrow['item']) {
-                            case 'act_pain':
-                                echo $rrow['id'] . ' ' . text('G8730') . ' ';
-                                break;
-                            case 'act_cdai':
-                                if ($rrow['result'] <= 10) {
-                                    echo $rrow['id'] . ' ' . text('3470F') . ' ';
-                                    break;
-                                } else if (($rrow['result'] > 10) && ($rrow['result'] <= 22 )) {
-                                    echo $rrow['id'] . ' ' . text('3471F') . ' ';
-                                    break;
-                                } else {
-                                    echo $rrow['id'] . ' ' . text('3472F') . ' ';
-                                    break;
-                                }
-                            case 'act_rafunc':
-                                echo $rrow['id'] . ' ' . text('1170F') . ' ';
-                                break;
-                            case 'act_glucocorticoid':
-                                if (strtolower(substr($rrow['result'], 0, 2 )) == 'no')
-                                   {
-                                    echo $rrow['id'] . ' ' . text('4192F') . ' ';
-                                } else {
-                                    echo $rrow['id'] . ' ' . text('4193F');
-                                }
+                        <?php $dres = sqlStatement("SELECT code from billing as b WHERE b.code_type = 'ICD10' " .
+                            "AND b.encounter = ?", array($row['encounter']));
+                        $drow = sqlFetchArray($dres);
+                        if ($drow['code']) {
+                        echo $drow['code'];
+                        } else {
+                        echo 'M06.9';
+                        };?>
+                    </td>
+
+                <?php
+                //if ($form_pain) {
+                //    $rpd_where = "AND item = 'act_pain'";
+                //}
+
+                $rres = sqlStatement("SELECT * from rule_patient_data as rpd WHERE rpd.pid = ? " . $rpd_where .
+                    "AND rpd.date > '2017-12-31' AND rpd.date < '2019-01-01' ORDER BY item ASC", array($patient_id));
+                $rpd_data = 0; // indicate if pt has any rpd data
+                $qpp = array();
+                $qpp['39']  = '';
+                $qpp['176'] = '';
+                $qpp['177'] = '';
+                $qpp['178'] = '';
+                $qpp['179'] = '';
+                $qpp['180'] = '';
+
+                while ($rrow = sqlFetchArray($rres)) {
+                    ++$rpd_data;
+                    //error_log("rpd date is " . $rrow['date'] . " for pt id " .
+                    //    $row['pubpid'] . " item is " . $rrow['item']);
+                    //if (!substr($rrow['date'], 0, 10) == $mips_enc_date) {
+                    //    error_log($rrow['pid'] . "has rpd on " . $rrow['date'] . " but not on date of encounter " . $mips_enc_date);
+                    //    continue;
+                    //}
+                    //SELECT * FROM `rule_patient_data` WHERE `item` = 'act_osteo' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
+                    if ($rrow['item'] == 'act_osteo') {  // quality id 39, nqf 0046
+                        if (strpos($rrow['result'], "/")) {
+                            $qpp['39'] = 'G8399';
+                            continue;
+                        } else {
+                            $qpp['39'] = 'G8400';
+                            continue;
                         }
-                    ?>
+                    }
+
+                    //SELECT * FROM `rule_patient_data` WHERE `item` = 'act_tb' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
+                    if ($rrow['item'] == 'act_tb') { // quality id 176
+                        if (strpos($rrow['result'], "2018")) {
+                            $qpp['176'] = '3455F';
+                            continue;
+
+                        } else {
+                            $qpp['176'] = "mod 176?";
+                            continue;
+                        }
+                    }
+
+                    // SELECT * FROM `rule_patient_data` WHERE `item` = 'act_cdai' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
+                    if ($rrow['item'] == 'act_cdai') { // quality id 177
+                        if ($rrow['result'] <= 10) {
+                            $qpp['177'] = '3470F';
+                            continue;
+                        } else if (($rrow['result'] > 10) && ($rrow['result'] <= 22)) {
+                            $qpp['177'] = '3471F';
+                            continue;
+                        } else {
+                            $qpp['177'] = '3472F';
+                            continue;
+                        }
+                    }
+
+                    // SELECT * FROM `rule_patient_data` WHERE `item` = 'act_rafunc' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
+                    if ($rrow['item'] == 'act_rafunc') { //quality id 178
+                        $qpp['178'] = '1170F';
+                        continue;
+                    }
+
+                    // SELECT * FROM `rule_patient_data` WHERE `item` = 'act_disease_prog' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
+                    if ($rrow['item'] == 'act_disease_prog') { //quality id 179
+                        if (strpos($rrow['result'], "positive")) {
+                            $qpp['179'] = '3475F';
+                            continue;
+                        } else if (strpos($rrow['result'], "seronegative")) {
+                            $qpp['179'] = '3476F';
+                            continue;
+                        } else {
+                            $qpp['179'] = 'mod 179?';
+                            continue;
+                        }
+                    }
+
+                    // SELECT * FROM `rule_patient_data` WHERE `item` = 'act_glucocorticoid' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
+                    if ($rrow['item'] == 'act_glucocorticoid') { // quality id 180
+                        if (strpos($rrow['result'], 'no steroids')) {
+                            $qpp['180'] = '4192F';
+                            continue;
+                        } else if (strpos($rrow['result'], "low-dose")) {
+                            $qpp['180'] = '4193F';
+                            continue;
+                        } else if (strpos($rrow['result'], "risks")) {
+                            $qpp['180'] = '4194F';
+                                continue;
+                        } else {
+                            $qpp['180'] = '180 mod?';
+                                continue;
+                        }
+                    }
+            }
+            ksort($qpp);
+
+            foreach($qpp as $meas => $meas_val) {
+                echo "<td> $meas_val </td>";
+            }
+
+            echo $out; // now print it
+
+            // quality id 236 NQF 0018
+            $query_htn = "SELECT title, enddate FROM lists WHERE pid = ? AND type = 'medical_problem'";
+            $htn_res = sqlStatement($query_htn, array($patient_id));
+            while ($htn_row = sqlFetchArray($htn_res)) {
+            //error_log("med problem is " . $htn_row['title']);
+                if ($htn_row['title'] == 'HYPERTENSION') {
+                    $query_bp = "SELECT bps, bpd FROM form_vitals WHERE id = ?";
+                    $bp_res = sqlStatement($query_bp, array($vitals_id));
+                    $bp_row = sqlFetchArray($bp_res);
+                    //echo "systolic " . $bp_row['bps'] . " diastolic " . $bp_row['bpd'];
+                }
+            } ?>
+                    </td>
+                    <td>
+                        <?php echo text('G9969'); // quality id 374 act_ref_sent_sum ?>
+                    </td>
+                    <td>
+                        <?php //echo text('Modifier'); ?>
                     </td>
                     <td>
                         <?php
-                       /* $pos = stripos($encnames, 'speech');
-                        if ($pos === false) {
-                            echo "missing dictation";
-                        }
-                        if (stripos($encnames, 'vitals')  === false) {
-                            echo "missing vitals";
-                        }; *///since this variable contains html, have already html escaped it above ?>
+                        echo $rrow['result'];
+                        ?>
                     </td>
                     <td>
-                        <?php echo text('Modifier'); ?>
+                        <?php
+                        echo $rrow['date'];
+                        ?>
                     </td>
                     <td>
                         <?php echo text($row['encounter']);
@@ -582,7 +775,7 @@ if ($res) {
             }
 
             $lastdocname = $docname;
-        }
+
     }
 
     if (!$form_details) {
