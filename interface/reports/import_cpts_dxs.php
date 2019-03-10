@@ -41,10 +41,10 @@ while ($line = fgets($fh)) {
    $cms['ins_code'] = substr($line, 70, 3);
 
    //print_r($cms);
-    if ($cms['ins_code'] == '003') {
-        $ins_query = "INSERT INTO insurance_data(type, provider, date, pid) VALUES ('primary', '3', ?, ?)";
-        sqlStatement($ins_query, array($cms['dos'], $cms['pt_id']));
-    }
+    //if ($cms['ins_code'] == '003') {
+        $ins_query = "INSERT INTO insurance_data(type, provider, date, pid) VALUES ('primary', ?, ?, ?)";
+        sqlStatement($ins_query, array($cms['ins_code'], $cms['dos'], $cms['pt_id']));
+    //}
 
     $query = "INSERT INTO billing (`date`, code_type, code, pid, provider_id, encounter, modifier) VALUES (NOW(), ?, ?, ?, ?, ?, ?)";
 
