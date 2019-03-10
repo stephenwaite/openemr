@@ -14,7 +14,7 @@ use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Core\Header;
 
 set_time_limit(0);
-
+exit;
 
 if (!empty($_POST)) {
     if (!verifyCsrfToken($_POST["csrf_token_form"])) {
@@ -24,7 +24,7 @@ if (!empty($_POST)) {
 
 $cms = array();
 
-$fh = fopen('/tmp/q2','r');
+$fh = fopen('/tmp/q5','r');
 $line = fgets($fh);
 
 while ($line = fgets($fh)) {
