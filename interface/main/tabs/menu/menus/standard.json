@@ -1370,10 +1370,10 @@
             ]
           },
           {
-            "label": "dier_encounters",
+            "label": "jones_visits",
             "menu_id": "rep0",
             "target": "rep1",
-            "url": "/interface/reports/import_cpts_dxs.php",
+            "url": "/interface/reports/pqrs137.php"s ,
             "children": [],
             "requirement": 0,
             "acl_req": [
