@@ -10,9 +10,11 @@
  * @author    Rod Roark <rod@sunsetsystems.com>
  * @author    Terry Hill <terry@lilysystems.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
+ * @author    Stephen Waite <stephen.waite@cmsvt.com>
  * @copyright Copyright (c) 2007-2016 Rod Roark <rod@sunsetsystems.com>
  * @copyright Copyright (c) 2015 Terry Hill <terry@lillysystems.com>
  * @copyright Copyright (c) 2017-2018 Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2019 Stephen Waite <stephen.waite@cmsvt.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -24,6 +26,9 @@ require_once "$srcdir/options.inc.php";
 
 use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Core\Header;
+
+$file = dirname(__FILE__) . "/../../sites/default/documents/d1.csv";
+error_log("filename is $file");
 
 if (!empty($_POST)) {
     if (!verifyCsrfToken($_POST["csrf_token_form"])) {
@@ -91,7 +96,7 @@ $sqlBindArray = array();
 $query = "SELECT " .
   "fe.encounter, fe.date, fe.reason, " .
   "f.formdir, f.form_name, " .
-  "p.fname, p.mname, p.lname, p.pid, p.pubpid, " .
+  "p.fname, p.mname, p.lname, p.pid, p.pubpid, p.DOB, p.sex, " .
   "u.lname AS ulname, u.fname AS ufname, u.mname AS umname " .
   "$esign_fields" .
   "FROM ( form_encounter AS fe, forms AS f ) " .
@@ -454,19 +459,39 @@ if ($res) {
             } else {
                 $status = xl('Empty');
             }
+
+            if (empty($encnames)) {
+                continue;
+            }
+
+            if (strlen($row['pubpid']) == 8) {
+                continue;
+            }
         ?>
        <tr bgcolor='<?php echo attr($bgcolor); ?>'>
   <td>
         <?php echo ($docname == $lastdocname) ? "" : text($docname) ?>&nbsp;
   </td>
   <td>
-        <?php echo text(oeFormatShortDate(substr($row['date'], 0, 10))) ?>&nbsp;
+        <?php echo trim(oeFormatShortDate(substr($row['date'], 0, 10)));
+        $current = file_get_contents($file);
+        $current .= trim(oeFormatShortDate(substr($row['date'], 0, 10))) . ","; ?>&nbsp;
   </td>
   <td>
-        <?php echo text($row['lname'] . ', ' . $row['fname'] . ' ' . $row['mname']); ?>&nbsp;
+        <?php echo strtoupper(trim($row['lname']));
+              $current .= strtoupper(trim($row['lname'])) . ","; ?>&nbsp;
   </td>
+           <td> <?php echo strtoupper(trim( $row['fname']));
+               $current .= strtoupper(trim( $row['fname']))  . ","; ?> </td>
+           <td> <?php echo text ( $row['DOB']);
+                $current .= text ( $row['DOB']) . ","; ?> </td>
+           <td> <?php echo text ($row['sex']);
+                $current .= text ($row['sex']) . ","; ?> </td>
   <td>
-        <?php echo text($row['pubpid']); ?>&nbsp;
+        <?php echo text($row['pubpid']);
+            $current .= text($row['pubpid']) . "\n";
+        // Write the contents back to the file
+        file_put_contents($file, $current); ?>&nbsp;
   </td>
   <td>
         <?php echo text($status); ?>&nbsp;
