@@ -461,11 +461,12 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                 <!-- Criteria section Starts -->
                 <!-- ============================================================================================================================================= -->
                 <?php
-                // The following are the search criteria per page.All the following variable which ends with 'Master' need to be filled properly.
+                // The following are the search criteria per page.
+                // All of the following variables which end with 'Master' need to be filled properly.
                 // Each item is seperated by a comma(,).
-                // $ThisPageSearchCriteriaDisplayMaster ==>It is the display on screen for the set of criteria.
-                // $ThisPageSearchCriteriaKeyMaster ==>Corresponding database fields in the same order.
-                // $ThisPageSearchCriteriaDataTypeMaster ==>Corresponding data type in the same order.
+                // $ThisPageSearchCriteriaDisplayMaster ==> is the display on screen for the set of criteria.
+                // $ThisPageSearchCriteriaKeyMaster ==> Corresponding database fields in the same order.
+                // $ThisPageSearchCriteriaDataTypeMaster ==> Corresponding data type in the same order.
                 $ThisPageSearchCriteriaDisplayRadioMaster = array();
                 $ThisPageSearchCriteriaRadioKeyMaster = array();
                 $ThisPageSearchCriteriaQueryDropDownMaster = array();

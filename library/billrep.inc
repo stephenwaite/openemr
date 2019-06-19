@@ -9,9 +9,11 @@ function GenerateTheQueryPart()
     $auth='';
     $query_part='';
     $query_part2='';
+    $counter = 0;
     if (isset($_REQUEST['final_this_page_criteria'])) {
         foreach ($_REQUEST['final_this_page_criteria'] as $criteria_key => $criteria_value) {
             $criteria_value=PrepareSearchItem($criteria_value); // this escapes for sql
+            error_log("criteria value is $criteria_value and counter is " . $counter++);
             $SplitArray=array();
           //---------------------------------------------------------
             if (strpos($criteria_value, "billing.billed = '1'")!== false) {
@@ -47,6 +49,7 @@ function GenerateTheQueryPart()
                 $query_part .= ' AND form_encounter.encounter in ('.$SplitArray[1].')';
             } //---------------------------------------------------------
             elseif (strpos($criteria_value, "insurance_data.provider = '1'")!== false) {
+                error_log("we should be here in billrep");
                 $query_part .= ' AND '."insurance_data.provider > '0' and insurance_data.date <= form_encounter.date";
             } elseif (strpos($criteria_value, "insurance_data.provider = '0'")!== false) {
                 $query_part .= ' AND '."(insurance_data.provider = '0' or insurance_data.date > form_encounter.date)";
@@ -83,9 +86,11 @@ function getBillsBetween(
     "WHERE 1=1 $query_part  " . " $auth " ." $billstring " .
     "ORDER BY form_encounter.encounter, form_encounter.pid, billing.code_type, billing.code ASC";
     //echo $sql;
+    error_log("sql statement is " . $sql . " and code type is $code_type");
     $res = sqlStatement($sql, array($code_type));
     $all = false;
     for ($iter=0; $row=sqlFetchArray($res); $iter++) {
+        //var_dump($row);
         $all[$iter] = $row;
     }
 

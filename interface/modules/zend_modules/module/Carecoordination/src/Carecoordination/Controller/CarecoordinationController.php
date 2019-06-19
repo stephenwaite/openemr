@@ -846,6 +846,7 @@ class CarecoordinationController extends AbstractActionController
     public function getCarecoordinationTable()
     {
         return $this->carecoordinationTable;
+        var_dump($this->carecoordinationTable);
     }
 
     /**

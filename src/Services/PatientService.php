@@ -162,6 +162,7 @@ class PatientService
     public function update($pid, $data)
     {
         $sql = " UPDATE patient_data SET";
+        $sql .= "     pubpid=?,";
         $sql .= "     title=?,";
         $sql .= "     fname=?,";
         $sql .= "     mname=?,";
@@ -181,6 +182,7 @@ class PatientService
         return sqlStatement(
             $sql,
             array(
+                $data["pubpid"],
                 $data["title"],
                 $data["fname"],
                 $data["mname"],
