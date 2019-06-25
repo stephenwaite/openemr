@@ -35,11 +35,69 @@ if ($handle) {
             $pid = $pat_array['pid'];
             $pat->setPid("$pid");
             $patient = $pat->getOne();
-            //var_dump($patient);
+            var_dump($patient);
+
+            // $gar_name = trim(substr($line, 8, 24));
+            // move gar street to emr street
+            $gar_addr = trim(substr($line, 32, 22));
+            $gar_suite = trim(substr($line, 54, 22));
+            $patient['street'] = $gar_addr . " " . $gar_suite;
+
+            $gar_city = trim(substr($line, 76, 18));
+            $patient['city'] = $gar_city;
+
+            $gar_state = substr($line, 94, 2);
+            $patient['state'] = $gar_state;
+
+            $gar_zip = trim(substr($line, 96, 9));
+            $patient['postal_code'] = $gar_zip;
+            $patient['country_code'] = "US";
+
+            //$gar_collt = substr($line, 105, 1);
+            //$gar_phone = substr($line, 106, 10);
+
+            $gar_sex = substr($line, 116, 1);
+            $patient['sex'] = $gar_sex;
+
+            $gar_relate = substr($line, 117, 1);
+            $gar_mstat = substr($line, 118, 1);
+            $gar_dob = substr($line, 119, 8);
+            $gar_dunning = substr($line, 127, 1);
+            $gar_acctstat = substr($line, 128, 1);
+            $gar_pr_mplr = substr($line, 129, 4);
+            $gar_prins = substr($line, 133, 3);
+            $gar_pr_assign = substr($line, 136, 1);
+            $gar_pr_office = substr($line, 137, 4);
+            $gar_pr_group = substr($line, 141, 10);
+            $gar_pripol = substr($line, 151, 16);
+            $gar_prname = substr($line, 167, 24);
+            $gar_pr_relate = substr($line, 191, 1);
+            $gar_se_mplr = substr($line, 192, 4);
+            $gar_seins = substr($line, 196, 3);
+            $gar_se_assign = substr($line, 199, 1);
+            $gar_trinsind = substr($line, 200, 1);
+            $gar_trins = substr($line, 201, 3);
+            $gar_se_group = substr($line, 204, 10);
+            $gar_secpol = substr($line, 214, 16);
+            $gar_sename = substr($line, 230, 24);
+            $gar_se_relate = substr($line, 254, 1);
+            $gar_inspend = substr($line, 255, 7);
+            $gar_lastbill = substr($line, 262, 8);
+            $gar_assignm = substr($line, 270, 1);
+            $gar_private = substr($line, 271, 1);
+            $gar_billcycle = substr($line, 272, 1);
+            $gar_delete = substr($line, 273, 1);
+            $gar_filler = substr($line, 274, 3);
+
+            //$pat->update($pid, $patient);
+            echo "<br><br>";
+            echo "replace patient info with this";
+            echo "<br><br>";
+            var_dump($patient);
             echo "<br><br>";
 
             $pri_ins = $ins->doesInsuranceTypeHaveEntry($pid, "primary");
-            var_dump($pri_ins);
+            //var_dump($pri_ins);
             if ($pri_ins) {
                 $insdata = $ins->getOne($pid, "primary");
                 echo "for $pid we're going to update insurance";
