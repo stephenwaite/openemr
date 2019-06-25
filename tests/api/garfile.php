@@ -11,11 +11,11 @@ use OpenEMR\Services\InsuranceService;
 require_once(dirname(__FILE__) . "/../../interface/globals.php");
 //require_once (dirname(__FILE__) . "/../../library/patient.inc")
 
-echo "<b>pt service call:</b><br>";
+//echo "<b>pt service call:</b><br>";
 $pat = new PatientService();
 
-
-$handle = fopen("/tmp/wsteve", "r");
+// w1 is unload of garfile
+$handle = fopen("/tmp/w1", "r");
 if ($handle) {
     while (($line = fgets($handle)) !== false) {
         // process the line read.
@@ -26,15 +26,15 @@ if ($handle) {
         $sql = "select pid from patient_data where pubpid=?";
         $res = sqlStatement($sql, $gar_no);
         $pat_array = sqlFetchArray($res);
-        if ($pat_array['pid']) {
+        if (!$pat_array['pid']) {
+            echo "<br><i>No match for $gar_no!</i><br><br>";
+        } else {
             echo "<br> pid is " . $pat_array['pid'] . "<br>";
             $pid = $pat_array['pid'];
             $pat->setPid("$pid");
             $patient = $pat->getOne();
             var_dump($patient);
             echo "<br><br>";
-        } else {
-            echo "<br><i>No match for $gar_no!</i><br><br>";
         }
 
 

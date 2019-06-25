@@ -6,6 +6,8 @@
  * Time: 5:12 PM
  */
 
+// d1out is output of die-38?
+
 $handle = fopen("/tmp/d1out", "r");
 if ($handle) {
     while (($line = fgets($handle)) !== false) {
