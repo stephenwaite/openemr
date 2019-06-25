@@ -13,6 +13,7 @@ require_once(dirname(__FILE__) . "/../../interface/globals.php");
 
 //echo "<b>pt service call:</b><br>";
 $pat = new PatientService();
+$ins = new InsuranceService();
 
 // w1 is unload of garfile
 $handle = fopen("/tmp/w1", "r");
@@ -29,12 +30,26 @@ if ($handle) {
         if (!$pat_array['pid']) {
             echo "<br><i>No match for $gar_no!</i><br><br>";
         } else {
+            // who is it
             echo "<br> pid is " . $pat_array['pid'] . "<br>";
             $pid = $pat_array['pid'];
             $pat->setPid("$pid");
             $patient = $pat->getOne();
-            var_dump($patient);
+            //var_dump($patient);
             echo "<br><br>";
+
+            $pri_ins = $ins->doesInsuranceTypeHaveEntry($pid, "primary");
+            var_dump($pri_ins);
+            if ($pri_ins) {
+                $insdata = $ins->getOne($pid, "primary");
+                echo "for $pid we're going to update insurance";
+                echo "<br><br>";
+                var_dump($insdata);
+                //$ins->update($pid, "primary", $pri_ins);
+            } else {
+                echo "we're going to insert insurance";
+                echo "<br><br>";
+            };
         }
 
 
