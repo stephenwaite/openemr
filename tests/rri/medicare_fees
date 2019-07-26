@@ -1,0 +1,19 @@
+#IfNotTable medicare_fee_schedule
+CREATE TABLE `medicare_phys_fee_schedule` (
+  `year`       tinyint(4)   DEFAULT NULL,
+  `carrier` varchar(5)   DEFAULT NULL,
+  `locality`       varchar(2) DEFAULT NULL,
+  `hcpcs`  varchar(5) DEFAULT NULL,
+  `mod` varchar(2)   DEFAULT NULL,
+  `non_fac_fee`   decimal(9,2)   DEFAULT '0.00',
+  `fac_fee`       decimal(9,2) DEFAULT '0.00',
+  `pctc_indicator`  varchar(1) DEFAULT NULL,
+  `status_code` varchar(1) DEFAULT NULL,
+  `mult_surg_indicator` varchar(1) DEFAULT NULL,
+  `office_therapy_reduct_amt` decimal (9,2) DEFAULT '0.00',
+  `fac_therapy_reduct_amt` decimal (9,2) DEFAULT '0.00',
+  `opps_indicator` varchar(1) DEFAULT NULL ,
+  `opps_non_fac_fee_amt` decimal(9,2) DEFAULT '0.00',
+  `opps_fac_fee_amt` decimal(9,2) DEFAULT '0.00',
+  PRIMARY KEY (`year`,`carrier`,`locality`,`hcpcs`,`mod`)
+) ENGINE = InnoDB;
