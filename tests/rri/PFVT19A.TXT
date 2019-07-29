@@ -1,4 +1,4 @@
-"year","carrier","locality","hcpcs","mod","non_fac_fee","fac_fee","filler","pctc_indicator","status_code","mult_surg_indicator", "office_therapy_reduct_amt", "fac_therapy_reduct_amt", "opps_indicator", "opps_non_fac_fee_amt", "opps_fac_fee_amt")
+"year","carrier","locality","hcpcs","modifier","non_fac_fee","fac_fee","filler","pctc_indicator","status_code","mult_surg_indicator", "office_therapy_reduct_amt", "fac_therapy_reduct_amt", "opps_indicator", "opps_non_fac_fee_amt", "opps_fac_fee_amt"
 "2019","14512","50","0509T","  ","0000081.42","0000081.42"," ","1","A","7","0000000.00","0000000.00","9","0000000.00","0000000.00"
 "2019","14512","50","0509T","26","0000022.31","0000022.31"," ","1","A","7","0000000.00","0000000.00","9","0000000.00","0000000.00"
 "2019","14512","50","0509T","TC","0000059.11","0000059.11"," ","1","A","7","0000000.00","0000000.00","9","0000000.00","0000000.00"
