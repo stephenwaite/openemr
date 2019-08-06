@@ -15,7 +15,7 @@ $fh = fopen("/tmp/w4", 'r');
 $dbh = new PDO('mysql:dbname=' . $GLOBALS['dbase'] . ';host=' . $GLOBALS['host'], $GLOBALS['login'], $GLOBALS['pass']);
 $sth = $dbh->prepare("SELECT hcpcs, modifier, fac_fee FROM medicare_phys_fee_schedule WHERE hcpcs = :hcpcs AND modifier = :modifier");
 
-$writer = Writer::createFromPath('/tmp/file.csv', 'w+');
+$writer = Writer::createFromPath('/tmp/file.csv', 'w');
 
 echo "<html><pre>";
 if ($fh) {
@@ -41,8 +41,11 @@ if ($fh) {
             //print_r($result['fac_fee']);
             //print("\n");
             $med_multiply = round($procfile['fee'] / $result['fac_fee'] * 100, 2);
-            $writer->insertOne(array($result['hcpcs'], $result['modifier'], $procfile['description'], $result['fac_fee'], $procfile['fee'], $med_multiply));
+            if (($med_multiply/100) < 4.0) {
+                error_log("med mult by 100 is " . $med_multiply / 100 . " for hcpcs " . $result['hcpcs'] . " " . $result['modifier']);
 
+                $writer->insertOne(array($procfile['cdm'] . $procfile['hcpcs'] . $procfile['mod'], round($result['fac_fee']*4)));
+            }
         } /*else {
             print_r($result['fac_fee']);
             echo $procfile['hcpcs'];
