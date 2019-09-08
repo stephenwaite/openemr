@@ -141,7 +141,6 @@ class X12_5010_837P
             $out .= "*" . $claim->billingFacilityETIN();
             }
         }
-        $out .= "*" . $claim->billingFacilityETIN();
         $out .= "~\n";
 
         ++$edicount;
