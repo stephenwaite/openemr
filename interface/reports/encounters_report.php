@@ -27,7 +27,7 @@ require_once "$srcdir/options.inc.php";
 use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Core\Header;
 
-$file = dirname(__FILE__) . "/../../sites/default/documents/d1.csv";
+$file = "/tmp/d1.csv";
 error_log("filename is $file");
 
 if (!empty($_POST)) {
