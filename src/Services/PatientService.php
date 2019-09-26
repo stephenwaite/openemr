@@ -277,13 +277,14 @@ class PatientService
                    state, 
                    country_code, 
                    phone_contact,
-                   email
+                   email,
                    dob,
                    sex,
                    race,
                    ethnicity
                 FROM patient_data
                 WHERE pid = ?";
+        error_log($sql);
 
         return sqlQuery($sql, $this->pid);
     }
