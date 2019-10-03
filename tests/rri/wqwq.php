@@ -10,7 +10,7 @@ require_once("../../interface/globals.php");
 
 $pdf = new Cezpdf('LETTER');
 //$pdf->ezSetMargins(trim($_POST['top_margin']) + 0, 0, trim($_POST['left_margin']) + 0, 0);
-$pdf->ezSetMargins(170, 0, 10, 20);
+$pdf->ezSetMargins(170, 0, 10, 0);
 $pdf->selectFont('Courier');
 $claim_count = 0;
 
@@ -32,37 +32,73 @@ foreach ($alines as $tmplines) {
         $footer_start = strpos($tmplines, chr(034));
         $body_length = $footer_start - $body_start;
         $footer_length = $length - $footer_start;
-     //   error_log("footer lenght is " . $footer_length);
 
+        if ($footer_start ) {
+            $header = substr($tmplines, 0, $body_start);
+            $body = substr($tmplines, $body_start, $body_length);
+            $footer = substr($tmplines, $footer_start, $footer_length);
 
-
-        $header = substr($tmplines, 0, $body_start);
-        $body = substr($tmplines,  $body_start, $body_length);
-        $footer = substr($tmplines, $footer_start, $footer_length);
-
-        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-        $pdf->addPngFromFile("/tmp/rri.png", 0, 0, 612, 792);
-        $pdf->ezText($header, 12, array(
-                    'justification' => 'left',
-                    'leading' => 12
-        ));
+            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
+            $pdf->addPngFromFile("/tmp/RSC.png", 0, 0, 612, 792);
+            $pdf->ezText($header, 12, array(
+                'justification' => 'left',
+                'leading' => 12
+            ));
 //        error_log("page height is " . $pdf->ez['pageHeight']);
 //        error_log("footer is " . $footer);
 
-        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
-        $pdf->ezText($body, 12, array(
-            'justification' => 'left',
-            'leading' => 12
-        ));
+            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
+            $pdf->ezText($body, 12, array(
+                'justification' => 'left',
+                'leading' => 12
+            ));
 
-        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
-        $pdf->ezText($footer, 12, array(
-            'justification' => 'left',
-            'leading' => 12
-        ));
+            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
+            $pdf->ezText($footer, 12, array(
+                'justification' => 'left',
+                'leading' => 12
+            ));
+        } else {
+
+            $header = substr($tmplines, 0, $body_start);
+            $body = substr($tmplines, $body_start, $length);
+            $blines = explode("\012", $body); // form feeds may separate pages
+            $bline_count = 0;
+            $bline_count = count($blines);
+            $i = 0;
+            $altered_body = '';
+            do {
+                $altered_body .= $blines[$i];
+                $i++;
+            } while ($i < ($bline_count -3 ));
 
 
+            $altered_footer  = "\012" . $blines[$bline_count - 3] . "\012";
+            $altered_footer .= $blines[$bline_count - 2] . "\012";
+            $altered_footer .= $blines[$bline_count - 1] . "\012";
 
+            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
+            $pdf->addPngFromFile("/tmp/RSC.png", 0, 0, 612, 792);
+            $pdf->ezText($header, 12, array(
+                'justification' => 'left',
+                'leading' => 12
+            ));
+//        error_log("page height is " . $pdf->ez['pageHeight']);
+//        error_log("footer is " . $footer);
+
+            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
+            $pdf->ezText($altered_body, 12, array(
+                'justification' => 'left',
+                'leading' => 12
+            ));
+
+            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
+            $pdf->ezText($altered_footer, 12, array(
+                'justification' => 'left',
+                'leading' => 12
+            ));
+
+        }
 
     } else {
                 error_log("length is zero");
