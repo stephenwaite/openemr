@@ -6,10 +6,11 @@
  * Time: 12:16 PM
  */
 
-require_once(dirname(__FILE__) . "/../../interface/globals.php");
+
+require_once(dirname(__FILE__) . "/interface/globals.php");
 //require_once (dirname(__FILE__) . "/../../library/patient.inc")
 
-echo "<b>pt service call:</b><br>";
+//echo "<b>pt service call:</b><br>";
 //$pat = new PatientService();
 
 //tmp/wsteve is unload of charcur
@@ -60,99 +61,159 @@ if ($handle) {
             $garfile_handle = fopen("/tmp/w1", "r");
             if ($garfile_handle) {
                 while (($gar_line = fgets($garfile_handle)) !== false) {
+                    // strip out single and double quotes
+                    $gar_line = preg_replace('/[\'"|]/', '', $gar_line);
                     // process the line read.
                     $gar_no = substr($gar_line, 0, 8);
                     //echo "in garfile gar_no is $gar_no" . "<br>";
                     if ($gar_no > $cc_key8) {
                         continue;
                     } else if ($gar_no == $cc_key8) {
-                        //$sql = "select pid from patient_data where pubpid=?";
-                        //$res = sqlStatement($sql, $gar_no);
-                        //$pat_array = sqlFetchArray($res);
-                        //if (!$pat_array['pid']) {
-                        //    echo "<br><i>No match for $gar_no!</i><br><br>";
-                        //} else {
-                        // who is it
-                        //echo "<br> pid is " . $pat_array['pid'] . "<br>";
-                        //$pid = $pat_array['pid'];
-                        //$pat->setPid("$pid");
-                        //$patient = $pat->getOne();
-                        //var_dump($patient);
-                        $patient = array();
+                        $sql = "select pid from patient_data where pubpid=?";
+                        $res = sqlStatement($sql, $gar_no);
+                        $pat_array = sqlFetchArray($res);
+                        if ($pat_array['pid']) {
+                            echo "<br><i>match for $gar_no! will be doing something special </i><br><br>";
+                            echo "<br> pid is " . $pat_array['pid'] . "<br>";
+                            $pid = $pat_array['pid'];
+                            $patient = getPatientData($pid, "*");
 
-                        $gar_name = trim(substr($gar_line, 8, 24));
-                        $patient['name'] = $gar_name;
-                        // move gar street to emr street
-                        $gar_addr = trim(substr($gar_line, 32, 22));
-                        $gar_suite = trim(substr($gar_line, 54, 22));
-                        $patient['street'] = $gar_addr . " " . $gar_suite;
+                            // move gar street to emr street
+                            $gar_addr = trim(substr($gar_line, 32, 22));
+                            $gar_suite = trim(substr($gar_line, 54, 22));
+                            $patient['street'] = $gar_addr . " " . $gar_suite;
 
-                        $gar_city = trim(substr($gar_line, 76, 18));
-                        $patient['city'] = $gar_city;
+                            $gar_city = trim(substr($gar_line, 76, 18));
+                            $patient['city'] = $gar_city;
 
-                        $gar_state = substr($gar_line, 94, 2);
-                        $patient['state'] = $gar_state;
+                            $gar_state = substr($gar_line, 94, 2);
+                            $patient['state'] = $gar_state;
 
-                        $gar_zip = trim(substr($gar_line, 96, 9));
-                        $patient['postal_code'] = $gar_zip;
-                        $patient['country_code'] = "US";
+                            $gar_zip = trim(substr($gar_line, 96, 9));
+                            $patient['postal_code'] = $gar_zip;
+                            $patient['country_code'] = "US";
 
-                        //$gar_collt = substr($gar_line, 105, 1);
-                        $gar_phone = substr($gar_line, 106, 10);
-                        $patient['phone_contact'] = $gar_phone;
+                            //$gar_collt = substr($gar_line, 105, 1);
+                            $gar_phone = substr($gar_line, 106, 10);
+                            $patient['phone_home'] = $gar_phone;
+                            //var_dump($patient);
+                            echo "<br><br>";
 
-                        $gar_sex = substr($gar_line, 116, 1);
-                        $patient['sex'] = $gar_sex;
+                            updatePatientData($pid, $patient);
 
-                        $gar_relate = substr($gar_line, 117, 1);
-                        $gar_mstat = substr($gar_line, 118, 1);
-                        $gar_dob = substr($gar_line, 119, 8);
-                        $gar_dunning = substr($gar_line, 127, 1);
-                        $gar_acctstat = substr($gar_line, 128, 1);
-                        $gar_pr_mplr = substr($gar_line, 129, 4);
-                        $gar_prins = substr($gar_line, 133, 3);
-                        $gar_pr_assign = substr($gar_line, 136, 1);
-                        $gar_pr_office = substr($gar_line, 137, 4);
-                        $gar_pr_group = substr($gar_line, 141, 10);
-                        $gar_pripol = substr($gar_line, 151, 16);
-                        $gar_prname = substr($gar_line, 167, 24);
-                        $gar_pr_relate = substr($gar_line, 191, 1);
-                        $gar_se_mplr = substr($gar_line, 192, 4);
-                        $gar_seins = substr($gar_line, 196, 3);
-                        $gar_se_assign = substr($gar_line, 199, 1);
-                        $gar_trinsind = substr($gar_line, 200, 1);
-                        $gar_trins = substr($gar_line, 201, 3);
-                        $gar_se_group = substr($gar_line, 204, 10);
-                        $gar_secpol = substr($gar_line, 214, 16);
-                        $gar_sename = substr($gar_line, 230, 24);
-                        $gar_se_relate = substr($gar_line, 254, 1);
-                        $gar_inspend = substr($gar_line, 255, 7);
-                        $gar_lastbill = substr($gar_line, 262, 8);
-                        $gar_assignm = substr($gar_line, 270, 1);
-                        $gar_private = substr($gar_line, 271, 1);
-                        $gar_billcycle = substr($gar_line, 272, 1);
-                        $gar_delete = substr($gar_line, 273, 1);
-                        $gar_filler = substr($gar_line, 274, 3);
+                            $pt_check = getPatientData($pid);
+                            //var_dump($pt_check);
+                            echo "<br><br>";
 
-                        //$pat->update($pid, $patient);
-                        //echo "<br><br>";
-                        //echo "replace patient info with this";
-                        //echo "<br><br>";
-                        var_dump($patient);
-                        echo "<br><br>";
+                            //$pat->setPid("$pid");
+                            //$patient = $pat->getOne();
+                            //var_dump($patient);
+                        } else {
+                            // who is it
 
-                        //$pri_ins = $ins->doesInsuranceTypeHaveEntry($pid, "primary");
-                        //var_dump($pri_ins);
-                        //if ($pri_ins) {
-                        //  $insdata = $ins->getOne($pid, "primary");
-                        // echo "for $pid we're going to update insurance";
-                        //echo "<br><br>";
-                        //var_dump($insdata);
-                        //$ins->update($pid, "primary", $pri_ins);
-                        //} else {
-                        //    echo "we're going to insert insurance";
-                        //    echo "<br><br>";
-                        //};
+                            $patient = array();
+                            $patient['pubpid'] = $gar_no;
+
+                            $gar_name = trim(substr($gar_line, 8, 24));
+                            $emr_name = explode(';', $gar_name);
+                            $patient['lname'] = $emr_name[0];
+
+                            if (!empty($emr_name[2])) {
+                                echo "here's a properly entered middle name!";
+                                $patient['fname'] = $emr_name[1];
+                                $patient['mname'] = $emr_name[2];
+                            } else {
+                                $emr_names = explode(' ', $emr_name[1]);
+                                if (!empty($emr_names[1])){
+                                    $patient['fname'] = $emr_names[0];
+                                    $patient['mname'] = $emr_names[1];
+                                } else {
+                                    $patient['fname'] = $emr_names[0];
+                                }
+                            }
+                            // move gar street to emr street
+                            $gar_addr = trim(substr($gar_line, 32, 22));
+                            $gar_suite = trim(substr($gar_line, 54, 22));
+                            $patient['street'] = $gar_addr . " " . $gar_suite;
+
+                            $gar_city = trim(substr($gar_line, 76, 18));
+                            $patient['city'] = $gar_city;
+
+                            $gar_state = substr($gar_line, 94, 2);
+                            $patient['state'] = $gar_state;
+
+                            $gar_zip = trim(substr($gar_line, 96, 9));
+                            $patient['postal_code'] = $gar_zip;
+                            $patient['country_code'] = "USA";
+
+                            //$gar_collt = substr($gar_line, 105, 1);
+                            $gar_phone = substr($gar_line, 106, 10);
+                            $patient['phone_home'] = $gar_phone;
+
+                            $gar_sex = substr($gar_line, 116, 1);
+                            $patient['sex'] = 'Male';
+                            if ($gar_sex != 'M') {
+                                $patient['sex'] = 'Female';
+                            }
+
+                            $gar_relate = substr($gar_line, 117, 1);
+                            $gar_mstat = substr($gar_line, 118, 1);
+
+                            $gar_dob = substr($gar_line, 119, 8);
+                            $patient['DOB'] = substr($gar_dob, 0, 4) .
+                            "-" . substr($gar_dob, 4, 2) .
+                            "-" . substr($gar_dob, 6, 2);
+
+                            $gar_dunning = substr($gar_line, 127, 1);
+                            $gar_acctstat = substr($gar_line, 128, 1);
+                            $gar_pr_mplr = substr($gar_line, 129, 4);
+                            $gar_prins = substr($gar_line, 133, 3);
+                            $gar_pr_assign = substr($gar_line, 136, 1);
+                            $gar_pr_office = substr($gar_line, 137, 4);
+                            $gar_pr_group = substr($gar_line, 141, 10);
+                            $gar_pripol = substr($gar_line, 151, 16);
+                            $gar_prname = substr($gar_line, 167, 24);
+                            $gar_pr_relate = substr($gar_line, 191, 1);
+                            $gar_se_mplr = substr($gar_line, 192, 4);
+                            $gar_seins = substr($gar_line, 196, 3);
+                            $gar_se_assign = substr($gar_line, 199, 1);
+                            $gar_trinsind = substr($gar_line, 200, 1);
+                            $gar_trins = substr($gar_line, 201, 3);
+                            $gar_se_group = substr($gar_line, 204, 10);
+                            $gar_secpol = substr($gar_line, 214, 16);
+                            $gar_sename = substr($gar_line, 230, 24);
+                            $gar_se_relate = substr($gar_line, 254, 1);
+                            $gar_inspend = substr($gar_line, 255, 7);
+                            $gar_lastbill = substr($gar_line, 262, 8);
+                            $gar_assignm = substr($gar_line, 270, 1);
+                            $gar_private = substr($gar_line, 271, 1);
+                            $gar_billcycle = substr($gar_line, 272, 1);
+                            $gar_delete = substr($gar_line, 273, 1);
+                            $gar_filler = substr($gar_line, 274, 3);
+
+                            //$pat->update($pid, $patient);
+                            //echo "<br><br>";
+                            //echo "replace patient info with this";
+                            //echo "<br><br>";
+                            //var_dump($patient);
+                            echo "<br><br>";
+                            $new_pid = sqlQuery("SELECT MAX(pid)+1 AS pid FROM patient_data");
+                            echo "new pid is " .$new_pid['pid'];
+                            updatePatientData($new_pid['pid'], $patient, true);
+
+                            //$pri_ins = $ins->doesInsuranceTypeHaveEntry($pid, "primary");
+                            //var_dump($pri_ins);
+                            //if ($pri_ins) {
+                            //  $insdata = $ins->getOne($pid, "primary");
+                            // echo "for $pid we're going to update insurance";
+                            //echo "<br><br>";
+                            //var_dump($insdata);
+                            //$ins->update($pid, "primary", $pri_ins);
+                            //} else {
+                            //    echo "we're going to insert insurance";
+                            //    echo "<br><br>";
+                            //};
+                        }
                     }
 
 
@@ -328,7 +389,7 @@ if ($handle) {
     echo "total # of people is $count";
     fclose($handle);
 } else {
-    echo "couldn't open wsteve, charcur file";
+    echo "couldn't open wsteve, charcur unload file";
 }
 
 
