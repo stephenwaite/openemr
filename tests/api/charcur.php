@@ -54,15 +54,16 @@ if ($handle) {
         //02 CC-DATE-T PIC X(8).
         $cc_date_t = substr($line, 79, 8);
         //echo "CC-DATE-T is $cc_date_t ";
-        if ($cc_date_t > 20141001) {
+        if ($cc_date_t > 20161001) {
             $import_flag = 1;
             //echo "importing $cc_key8" . "<br>";
             //echo sprintf("%s %03d %08d", $cc_key8, $cc_key3, $cc_date_t) . "<br>";
             $garfile_handle = fopen("/tmp/w1", "r");
             if ($garfile_handle) {
                 while (($gar_line = fgets($garfile_handle)) !== false) {
-                    // strip out single and double quotes
-                    $gar_line = preg_replace('/[\'"|]/', '', $gar_line);
+                    // strip out periods, single and double quotes
+                    $gar_line = preg_replace('/[\'"]/', '', $gar_line);
+                    $gar_line = preg_replace('/[.]/', ' ', $gar_line);
                     // process the line read.
                     $gar_no = substr($gar_line, 0, 8);
                     //echo "in garfile gar_no is $gar_no" . "<br>";
@@ -73,15 +74,15 @@ if ($handle) {
                         $res = sqlStatement($sql, $gar_no);
                         $pat_array = sqlFetchArray($res);
                         if ($pat_array['pid']) {
-                            echo "<br><i>match for $gar_no! will be doing something special </i><br><br>";
-                            echo "<br> pid is " . $pat_array['pid'] . "<br>";
+                            //echo "<br><i>match for $gar_no! will be doing something special </i><br><br>";
+                            //echo "<br> pid is " . $pat_array['pid'] . "<br>";
                             $pid = $pat_array['pid'];
                             $patient = getPatientData($pid, "*");
 
                             // move gar street to emr street
                             $gar_addr = trim(substr($gar_line, 32, 22));
                             $gar_suite = trim(substr($gar_line, 54, 22));
-                            $patient['street'] = $gar_addr . " " . $gar_suite;
+                            $patient['street'] = $gar_suite . " " . $gar_addr;
 
                             $gar_city = trim(substr($gar_line, 76, 18));
                             $patient['city'] = $gar_city;
@@ -91,19 +92,19 @@ if ($handle) {
 
                             $gar_zip = trim(substr($gar_line, 96, 9));
                             $patient['postal_code'] = $gar_zip;
-                            $patient['country_code'] = "US";
+                            $patient['country_code'] = "USA";
 
                             //$gar_collt = substr($gar_line, 105, 1);
                             $gar_phone = substr($gar_line, 106, 10);
                             $patient['phone_home'] = $gar_phone;
                             //var_dump($patient);
-                            echo "<br><br>";
+                            //echo "<br><br>";
 
                             updatePatientData($pid, $patient);
 
-                            $pt_check = getPatientData($pid);
+                            //$pt_check = getPatientData($pid);
                             //var_dump($pt_check);
-                            echo "<br><br>";
+                            //echo "<br><br>";
 
                             //$pat->setPid("$pid");
                             //$patient = $pat->getOne();
@@ -119,7 +120,7 @@ if ($handle) {
                             $patient['lname'] = $emr_name[0];
 
                             if (!empty($emr_name[2])) {
-                                echo "here's a properly entered middle name!";
+                                //echo "here's a properly entered middle name!";
                                 $patient['fname'] = $emr_name[1];
                                 $patient['mname'] = $emr_name[2];
                             } else {
@@ -134,7 +135,19 @@ if ($handle) {
                             // move gar street to emr street
                             $gar_addr = trim(substr($gar_line, 32, 22));
                             $gar_suite = trim(substr($gar_line, 54, 22));
+//                            if ($gar_addr !== '' && $gar_suite !== '') {
+//                                if ($gar_addr == $gar_suite) {
+//                                    $patient['street'] = $gar_addr;
+//                                } else {
+//                                    $patient['street'] = $gar_addr . " " . $gar_suite;
+//                                    echo $gar_no . " " . $patient['street'] . "<br>";
+//                                }
+//                            }
                             $patient['street'] = $gar_addr . " " . $gar_suite;
+
+                            //    echo $gar_no . " " . $patient['street'] . "<br>";
+
+
 
                             $gar_city = trim(substr($gar_line, 76, 18));
                             $patient['city'] = $gar_city;
@@ -148,7 +161,10 @@ if ($handle) {
 
                             //$gar_collt = substr($gar_line, 105, 1);
                             $gar_phone = substr($gar_line, 106, 10);
-                            $patient['phone_home'] = $gar_phone;
+                            $patient['phone_home'] = substr($gar_phone, 0, 3) . "-" .
+                                substr($gar_phone, 3,3) . "-" .
+                                substr($gar_phone, 6, 4);
+                            //echo $patient['phone_home'];
 
                             $gar_sex = substr($gar_line, 116, 1);
                             $patient['sex'] = 'Male';
@@ -196,9 +212,9 @@ if ($handle) {
                             //echo "replace patient info with this";
                             //echo "<br><br>";
                             //var_dump($patient);
-                            echo "<br><br>";
+                            //echo "<br><br>";
                             $new_pid = sqlQuery("SELECT MAX(pid)+1 AS pid FROM patient_data");
-                            echo "new pid is " .$new_pid['pid'];
+                            //echo "new pid is " .$new_pid['pid'];
                             updatePatientData($new_pid['pid'], $patient, true);
 
                             //$pri_ins = $ins->doesInsuranceTypeHaveEntry($pid, "primary");
