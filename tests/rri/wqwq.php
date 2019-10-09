@@ -13,11 +13,12 @@ $pdf = new Cezpdf('LETTER');
 $pdf->ezSetMargins(170, 0, 10, 0);
 $pdf->selectFont('Courier');
 $claim_count = 0;
+$continued = 0;
 
-$lines = file_get_contents('/tmp/wqwq');
+$lines = file_get_contents('/tmp/junk');
 $alines = explode("\014", $lines); // form feeds may separate pages
 foreach ($alines as $tmplines) {
-    if ($claim_count++) {
+    if ($claim_count++ && !$continued) {
         $pdf->ezNewPage();
     }
     //$buffer = '';
@@ -28,12 +29,12 @@ foreach ($alines as $tmplines) {
         //for ($i = 0; $i < $length; $i++) {
             //error_log("buffer is $buffer with $tmplines[$i]");
             //$buffer .= $tmplines[$i];
-        $body_start = strpos($tmplines, chr(032));
+        $body_start = strpos($tmplines, chr(032)) +2;
         $footer_start = strpos($tmplines, chr(034));
         $body_length = $footer_start - $body_start;
         $footer_length = $length - $footer_start;
 
-        if ($footer_start ) {
+        if ($footer_start && !$continued) {
             $header = substr($tmplines, 0, $body_start);
             $body = substr($tmplines, $body_start, $body_length);
             $footer = substr($tmplines, $footer_start, $footer_length);
@@ -47,7 +48,7 @@ foreach ($alines as $tmplines) {
 //        error_log("page height is " . $pdf->ez['pageHeight']);
 //        error_log("footer is " . $footer);
 
-            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
+            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 140);
             $pdf->ezText($body, 12, array(
                 'justification' => 'left',
                 'leading' => 12
@@ -60,48 +61,84 @@ foreach ($alines as $tmplines) {
             ));
         } else {
 
+
             $header = substr($tmplines, 0, $body_start);
             $body = substr($tmplines, $body_start, $length);
-            $blines = explode("\012", $body); // form feeds may separate pages
-            $bline_count = 0;
-            $bline_count = count($blines);
-            $i = 0;
-            $altered_body = '';
-            do {
-                $altered_body .= $blines[$i];
-                $i++;
-            } while ($i < ($bline_count -3 ));
+            if (!strpos($body, "CONTINUED")) {
+                $blines = explode("\012", $body); // form feeds may separate pages
+                $bline_count = 0;
+                $bline_count = count($blines);
+                $i = 0;
+                $altered_body = '';
+                do {
+                    $altered_body .= $blines[$i];
+                    //error_log($i . " " . $blines[$i] . "<br>");
+                    $i++;
+                } while ($i < ($bline_count - 3));
 
 
-            $altered_footer  = "\012" . $blines[$bline_count - 3] . "\012";
-            $altered_footer .= $blines[$bline_count - 2] . "\012";
-            $altered_footer .= $blines[$bline_count - 1] . "\012";
+                $altered_footer = "\012" . $blines[$bline_count - 3] . "\012";
+                $altered_footer .= $blines[$bline_count - 2] . "\012";
+                $altered_footer .= $blines[$bline_count - 1] . "\012";
 
-            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-            $pdf->addPngFromFile("/tmp/RSC.png", 0, 0, 612, 792);
-            $pdf->ezText($header, 12, array(
-                'justification' => 'left',
-                'leading' => 12
-            ));
+                $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
+                $pdf->addPngFromFile("/tmp/RSC.png", 0, 0, 612, 792);
+                $pdf->ezText($header, 12, array(
+                    'justification' => 'left',
+                    'leading' => 12
+                ));
 //        error_log("page height is " . $pdf->ez['pageHeight']);
 //        error_log("footer is " . $footer);
 
-            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
-            $pdf->ezText($altered_body, 12, array(
-                'justification' => 'left',
-                'leading' => 12
-            ));
+                if (!$continued) {
+                    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 140);
+                    $pdf->ezText($altered_body, 12, array(
+                        'justification' => 'left',
+                        'leading' => 12
+                    ));
 
-            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
-            $pdf->ezText($altered_footer, 12, array(
-                'justification' => 'left',
-                'leading' => 12
-            ));
+                    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
+                    $pdf->ezText($altered_footer, 12, array(
+                        'justification' => 'left',
+                        'leading' => 12
+                    ));
+                } else {
+                    $combined_body = $altered_held_body . $altered_body;
+                    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 140);
+                    $pdf->ezText($combined_body, 12, array(
+                        'justification' => 'left',
+                        'leading' => 12
+                    ));
 
+                    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
+                    $pdf->ezText($altered_footer, 12, array(
+                        'justification' => 'left',
+                        'leading' => 12
+                    ));
+                }
+                $continued = 0;
+            } else {
+                $altered_body = '';
+                if ($continued == 0) {
+                    $altered_held_body = '';
+                }
+                $continued++;
+                    $blines = explode("\012", $body); // form feeds may separate pages
+                    $bline_count = 0;
+                    $bline_count = count($blines);
+                    //error_log("blines count is $bline_count");
+                    $i = 0;
+                    do {
+                        $altered_body .= $blines[$i];
+                        //error_log($i . " " . $blines[$i] . "<br>");
+                        $i++;
+                    } while ($i < ($bline_count - 4));
+                    $altered_held_body .= $altered_body;
+            }
         }
 
     } else {
-                error_log("length is zero");
+                //error_log("length is zero");
             }
         //}
 
