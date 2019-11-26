@@ -435,6 +435,7 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
             array_push($pid_list, $appointment['pid']);
             array_push($apptdate_list, $appointment['pc_eventDate']);
             $patient_id = $appointment['pid'];
+            $patient_ins = getInsuranceData($patient_id, "primary");
             $docname = $appointment['ulname'] . ', ' . $appointment['ufname'] . ' ' . $appointment['umname'];
 
             $errmsg = "";
@@ -480,11 +481,16 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
             }
             ?>
             <?php
-            if ($patient_id && (!empty($rems) || !empty($appointment['pc_hometext']))) { // Not display of available slot or not showing reminders and comments empty ?>
+            if ($patient_id && (!empty($rems) || !empty($appointment['pc_hometext']))) { // No display of available slot or not showing reminders and comments empty ?>
                 <tr valign='top' id='p2.<?php echo attr($patient_id) ?>'>
                     <td colspan=<?php echo $showDate ? '"3"' : '"2"' ?> class="detail"/>
                     <td colspan=<?php echo($incl_reminders ? "3" : "6") ?> class="detail" align='left'>
                         <?php
+                        $getIP = getInsuranceProvider($patient_ins['provider']);
+                        if ($getIP) {
+                            echo ' <b>'.xlt('Primary Ins ') . '</b>: '. $getIP . '&nbsp';
+                        }
+
                         if (trim($appointment['pc_hometext'])) {
                             echo '<b>' . xlt('Comments') . '</b>: ' . text($appointment['pc_hometext']);
                         }
@@ -501,6 +507,7 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
                         }
                         ?>
                     </td>
+
                 </tr>
                 <?php
             } // End of row 2 display
