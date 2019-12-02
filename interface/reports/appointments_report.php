@@ -374,14 +374,19 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
     <?php echo ($form_orderby == "patient") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Patient'); ?></a>
         </th>
 
+<!-- putting pubpid back in -->
         <th><a href="nojs.php" onclick="return dosort('pubpid')"
     <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('ID'); ?></a>
+        </th>
+        
+        <th><a href="nojs.php" onclick="return dosort('dob')"
+    <?php echo ($form_orderby == "dob") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('DOB'); ?></a>
         </th>
 
             <th><?php echo xlt('Home'); //Sorting by phone# not really useful ?></th>
 
-                <th><?php echo xlt('Cell'); //Sorting by phone# not really useful ?></th>
-
+                <th><?php if($_SESSION['site_id'] == 200) echo "  $$$";
+                          else xl('Cell','e'); //Sorting by phone# not really useful ?></th>
         <th><a href="nojs.php" onclick="return dosort('type')"
     <?php echo ($form_orderby == "type") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Type'); ?></a>
         </th>
@@ -435,11 +440,14 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
             array_push($pid_list, $appointment['pid']);
             array_push($apptdate_list, $appointment['pc_eventDate']);
             $patient_id = $appointment['pid'];
+            $patient_dob = getPatientData($patient_id, "dob");
             $patient_ins = getInsuranceData($patient_id, "primary");
             $docname = $appointment['ulname'] . ', ' . $appointment['ufname'] . ' ' . $appointment['umname'];
 
             $errmsg = "";
             $pc_apptstatus = $appointment['pc_apptstatus'];
+            $patientbalance = get_patient_balance($appointment['pid'], false);
+
 
             ?>
 
@@ -457,10 +465,12 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
                 </td>
 
                 <td class="detail">&nbsp;<?php echo text($appointment['pubpid']) ?></td>
-
+                <td class="detail" >&nbsp;<?php echo oeFormatShortDate($patient_dob['dob'])?></td>
+                
                 <td class="detail">&nbsp;<?php echo text($appointment['phone_home']) ?></td>
 
-                <td class="detail">&nbsp;<?php echo text($appointment['phone_cell']) ?></td>
+                <td class="detail">&nbsp;<?php if ($_SESSION['site_id'] == 200) echo $patientbalance;
+                                       else echo $appointment['phone_cell']; ?></td>
 
                 <td class="detail">&nbsp;<?php echo text(xl_appt_category($appointment['pc_catname'])) ?></td>
 
@@ -486,15 +496,16 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
                     <td colspan=<?php echo $showDate ? '"3"' : '"2"' ?> class="detail"/>
                     <td colspan=<?php echo($incl_reminders ? "3" : "6") ?> class="detail" align='left'>
                         <?php
+                        
                         $getIP = getInsuranceProvider($patient_ins['provider']);
                         if ($getIP) {
-                            echo ' <b>'.xlt('Primary Ins ') . '</b>: '. $getIP . '&nbsp';
+                            echo ' <b>'.xlt('Primary Ins ') .'</b>: '. $getIP . '&nbsp';
                         }
 
                         if (trim($appointment['pc_hometext'])) {
                             echo '<b>' . xlt('Comments') . '</b>: ' . text($appointment['pc_hometext']);
                         }
-
+                        
                         if ($incl_reminders) {
                             echo "<td class='detail' colspan='3' align='left'>";
                             $new_line = '';
@@ -507,7 +518,6 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
                         }
                         ?>
                     </td>
-
                 </tr>
                 <?php
             } // End of row 2 display
