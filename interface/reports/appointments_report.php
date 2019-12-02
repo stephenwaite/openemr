@@ -111,6 +111,23 @@ function fetch_reminders($pid, $appt_date)
 
     return $rems;
 }
+
+function steveDate($date) {
+    $date = substr($date, 5, 2) . '/' . substr($date, 8, 2) . '/' . substr($date, 0, 4);
+    return $date;
+}
+
+
+
+// In the case of CSV export only, a download will be forced.
+if ($_POST['form_csvexport']) {
+    header("Pragma: public");
+    header("Expires: 0");
+    header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
+    header("Content-Type: application/force-download");
+    header("Content-Disposition: attachment; filename=appt_list.csv");
+    header("Content-Description: File Transfer");
+} else {
 ?>
 
 <html>
@@ -338,6 +355,9 @@ function fetch_reminders($pid, $appt_date)
                                 <a href='#' class='btn btn-default btn-transmit' onclick='window.open("../patient_file/addr_appt_label.php", "_blank").opener = null' onsubmit='return top.restoreSession()'>
                                     <?php echo xlt('Address Labels'); ?>
                                 </a>
+                            <a href='#' class='btn btn-default btn-transmit' onclick='$("#form_csvexport").attr("value","true"); $("#theform").submit();'>
+                            <?php echo xlt('Export to CSV'); ?>
+                                    </a>
                             <?php } ?>
                         </div>
                     </div>
@@ -350,211 +370,248 @@ function fetch_reminders($pid, $appt_date)
 </table>
 
 </div>
-<!-- end of search parameters --> <?php
+<!-- end of search parameters -->
+<?php } // end not form csv export
+
 if ($_POST['form_refresh'] || $_POST['form_orderby']) {
-    $showDate = ($from_date != $to_date) || (!$to_date);
-    ?>
-<div id="report_results">
-<table>
+    if ($_POST['form_csvexport']) {
+        if ($_SESSION['site_id'] == 7400) {
+            // CSV headers:
+            echo '"' . xl('Contact')    . '",';
+            echo '"' . xl('Phone')      . '",';
+            echo '"' . xl('Start Time') . '",';
+            echo "\n";
+        }
+    } else {
+        $showDate = ($from_date != $to_date) || (!$to_date);
+        ?>
+        <div id="report_results">
+        <table>
 
-    <thead>
-        <th><a href="nojs.php" onclick="return dosort('doctor')"
-    <?php echo ($form_orderby == "doctor") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Provider'); ?>
-        </a></th>
+            <thead>
+            <th><a href="nojs.php" onclick="return dosort('doctor')"
+                    <?php echo ($form_orderby == "doctor") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Provider'); ?>
+                </a></th>
 
-        <th <?php echo $showDate ? '' : 'style="display:none;"' ?>><a href="nojs.php" onclick="return dosort('date')"
-    <?php echo ($form_orderby == "date") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Date'); ?></a>
-        </th>
+            <th <?php echo $showDate ? '' : 'style="display:none;"' ?>><a href="nojs.php"
+                                                                          onclick="return dosort('date')"
+                    <?php echo ($form_orderby == "date") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Date'); ?></a>
+            </th>
 
-        <th><a href="nojs.php" onclick="return dosort('time')"
-    <?php echo ($form_orderby == "time") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Time'); ?></a>
-        </th>
+            <th><a href="nojs.php" onclick="return dosort('time')"
+                    <?php echo ($form_orderby == "time") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Time'); ?></a>
+            </th>
 
-        <th><a href="nojs.php" onclick="return dosort('patient')"
-    <?php echo ($form_orderby == "patient") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Patient'); ?></a>
-        </th>
+            <th><a href="nojs.php" onclick="return dosort('patient')"
+                    <?php echo ($form_orderby == "patient") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Patient'); ?></a>
+            </th>
 
-<!-- putting pubpid back in -->
-        <th><a href="nojs.php" onclick="return dosort('pubpid')"
-    <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('ID'); ?></a>
-        </th>
-        
-        <th><a href="nojs.php" onclick="return dosort('dob')"
-    <?php echo ($form_orderby == "dob") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('DOB'); ?></a>
-        </th>
+            <!-- putting pubpid back in -->
+            <th><a href="nojs.php" onclick="return dosort('pubpid')"
+                    <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('ID'); ?></a>
+            </th>
+
+            <th><a href="nojs.php" onclick="return dosort('dob')"
+                    <?php echo ($form_orderby == "dob") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('DOB'); ?></a>
+            </th>
 
             <th><?php echo xlt('Home'); //Sorting by phone# not really useful ?></th>
 
-                <th><?php if($_SESSION['site_id'] == 200) echo "  $$$";
-                          else xl('Cell','e'); //Sorting by phone# not really useful ?></th>
-        <th><a href="nojs.php" onclick="return dosort('type')"
-    <?php echo ($form_orderby == "type") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Type'); ?></a>
-        </th>
+            <th><?php if ($_SESSION['site_id'] == 200) echo "  $$$";
+                else xl('Cell', 'e'); //Sorting by phone# not really useful ?></th>
+            <th><a href="nojs.php" onclick="return dosort('type')"
+                    <?php echo ($form_orderby == "type") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Type'); ?></a>
+            </th>
 
-        <th><a href="nojs.php" onclick="return dosort('status')"
-            <?php echo ($form_orderby == "status") ? " style=\"color:#00cc00\"" : ""; ?>><?php  echo xlt('Status'); ?></a>
-        </th>
-    </thead>
-    <tbody>
-        <!-- added for better print-ability -->
-    <?php
-
-    $lastdocname = "";
-    //Appointment Status Checking
-        $form_apptstatus = $_POST['form_apptstatus'];
-        $form_apptcat=null;
-    if (isset($_POST['form_apptcat'])) {
-        if ($form_apptcat!="ALL") {
-            $form_apptcat=intval($_POST['form_apptcat']);
-        }
-    }
-
-    //Without provider and facility data checking
-    $with_out_provider = null;
-    $with_out_facility = null;
-
-    if (isset($_POST['with_out_provider'])) {
-        $with_out_provider = $_POST['with_out_provider'];
-    }
-
-    if (isset($_POST['with_out_facility'])) {
-        $with_out_facility = $_POST['with_out_facility'];
-    }
-
-    $appointments = fetchAppointments($from_date, $to_date, $patient, $provider, $facility, $form_apptstatus, $with_out_provider, $with_out_facility, $form_apptcat);
-
-    if ($show_available_times) {
-        $availableSlots = getAvailableSlots($from_date, $to_date, $provider, $facility);
-        $appointments = array_merge($appointments, $availableSlots);
-    }
-
-    $appointments = sortAppointments($appointments, $form_orderby);
-    $pid_list = array();  // Initialize list of PIDs for Superbill option
-    $apptdate_list = array(); // same as above for the appt details
-    $totalAppontments = count($appointments);
-
-    foreach ($appointments as $appointment) {
-        if ($appointment['pc_apptstatus'] == "x" && ($_SESSION['site_id'] == "4800" || $_SESSION['site_id'] == "7400")) {
-            continue;
-        } else {
-            array_push($pid_list, $appointment['pid']);
-            array_push($apptdate_list, $appointment['pc_eventDate']);
-            $patient_id = $appointment['pid'];
-            $patient_dob = getPatientData($patient_id, "dob");
-            $patient_ins = getInsuranceData($patient_id, "primary");
-            $docname = $appointment['ulname'] . ', ' . $appointment['ufname'] . ' ' . $appointment['umname'];
-
-            $errmsg = "";
-            $pc_apptstatus = $appointment['pc_apptstatus'];
-            $patientbalance = get_patient_balance($appointment['pid'], false);
-
-
-            ?>
-
-            <tr valign='top' id='p1.<?php echo attr($patient_id) ?>' bgcolor='<?php echo attr($bgcolor); ?>'>
-                <td class="detail">&nbsp;<?php echo ($docname == $lastdocname) ? "" : text($docname) ?>
-                </td>
-
-                <td class="detail" <?php echo $showDate ? '' : 'style="display:none;"' ?>><?php echo text(oeFormatShortDate($appointment['pc_eventDate'])) ?>
-                </td>
-
-                <td class="detail"><?php echo text(oeFormatTime($appointment['pc_startTime'])) ?>
-                </td>
-
-                <td class="detail">&nbsp;<?php echo text($appointment['fname'] . " " . $appointment['lname']) ?>
-                </td>
-
-                <td class="detail">&nbsp;<?php echo text($appointment['pubpid']) ?></td>
-                <td class="detail" >&nbsp;<?php echo oeFormatShortDate($patient_dob['dob'])?></td>
-                
-                <td class="detail">&nbsp;<?php echo text($appointment['phone_home']) ?></td>
-
-                <td class="detail">&nbsp;<?php if ($_SESSION['site_id'] == 200) echo $patientbalance;
-                                       else echo $appointment['phone_cell']; ?></td>
-
-                <td class="detail">&nbsp;<?php echo text(xl_appt_category($appointment['pc_catname'])) ?></td>
-
-                <td class="detail">&nbsp;
-                    <?php
-                    //Appointment Status
-                    if ($pc_apptstatus != "") {
-                        echo text(getListItemTitle('apptstat', $pc_apptstatus));
-                    }
-                    ?>
-                </td>
-            </tr>
-
+            <th><a href="nojs.php" onclick="return dosort('status')"
+                    <?php echo ($form_orderby == "status") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Status'); ?></a>
+            </th>
+            </thead>
+            <tbody>
+            <!-- added for better print-ability -->
             <?php
-            if ($patient_id && $incl_reminders) {
-                // collect reminders first, so can skip it if empty
-                $rems = fetch_reminders($patient_id, $appointment['pc_eventDate']);
             }
-            ?>
-            <?php
-            if ($patient_id && (!empty($rems) || !empty($appointment['pc_hometext']))) { // No display of available slot or not showing reminders and comments empty ?>
-                <tr valign='top' id='p2.<?php echo attr($patient_id) ?>'>
-                    <td colspan=<?php echo $showDate ? '"3"' : '"2"' ?> class="detail"/>
-                    <td colspan=<?php echo($incl_reminders ? "3" : "6") ?> class="detail" align='left'>
-                        <?php
-                        
-                        $getIP = getInsuranceProvider($patient_ins['provider']);
-                        if ($getIP) {
-                            echo ' <b>'.xlt('Primary Ins ') .'</b>: '. $getIP . '&nbsp';
-                        }
 
-                        if (trim($appointment['pc_hometext'])) {
-                            echo '<b>' . xlt('Comments') . '</b>: ' . text($appointment['pc_hometext']);
-                        }
-                        
-                        if ($incl_reminders) {
-                            echo "<td class='detail' colspan='3' align='left'>";
-                            $new_line = '';
-                            foreach ($rems as $rem_due => $rem_items) {
-                                echo "$new_line<b>$rem_due</b>: " . attr($rem_items);
-                                $new_line = '<br>';
+                $lastdocname = "";
+                //Appointment Status Checking
+                $form_apptstatus = $_POST['form_apptstatus'];
+                $form_apptcat=null;
+                if (isset($_POST['form_apptcat'])) {
+                    if ($form_apptcat!="ALL") {
+                        $form_apptcat=intval($_POST['form_apptcat']);
+                    }
+                }
+
+                //Without provider and facility data checking
+                $with_out_provider = null;
+                $with_out_facility = null;
+
+                if (isset($_POST['with_out_provider'])) {
+                    $with_out_provider = $_POST['with_out_provider'];
+                }
+
+                if (isset($_POST['with_out_facility'])) {
+                    $with_out_facility = $_POST['with_out_facility'];
+                }
+
+                $appointments = fetchAppointments($from_date, $to_date, $patient, $provider, $facility, $form_apptstatus, $with_out_provider, $with_out_facility, $form_apptcat);
+
+                if ($show_available_times) {
+                    $availableSlots = getAvailableSlots($from_date, $to_date, $provider, $facility);
+                    $appointments = array_merge($appointments, $availableSlots);
+                }
+
+                $appointments = sortAppointments($appointments, $form_orderby);
+                $pid_list = array();  // Initialize list of PIDs for Superbill option
+                $apptdate_list = array(); // same as above for the appt details
+                $totalAppontments = count($appointments);
+
+                foreach ($appointments as $appointment) {
+                    if ($appointment['pc_apptstatus'] == "x" && ($_SESSION['site_id'] == "4800" || $_SESSION['site_id'] == "7400")) {
+                        continue;
+                    } else { // not a cancelled appt
+                        array_push($pid_list, $appointment['pid']);
+                        array_push($apptdate_list, $appointment['pc_eventDate']);
+                        $patient_id = $appointment['pid'];
+                        $patient_dob = getPatientData($patient_id, "dob");
+                        $patient_ins = getInsuranceData($patient_id, "primary");
+                        $docname = $appointment['ulname'] . ', ' . $appointment['ufname'] . ' ' . $appointment['umname'];
+
+                        $errmsg = "";
+                        $pc_apptstatus = $appointment['pc_apptstatus'];
+                        $patientbalance = get_patient_balance($appointment['pid'], false);
+
+                        if ($_POST['form_csvexport']) {
+
+                            echo '"' . $appointment['fname'] . " " . substr($appointment['lname'], 0, 1) . '",';
+                            if (empty($appointment['phone_home'])) {
+                                echo '"' . $appointment['phone_cell'] . '",';
+                            } else {
+                                echo '"' . $appointment['phone_home'] . '",';
                             }
 
-                            echo "</td>";
+                            echo '"' . steveDate($appointment['pc_eventDate']) . ' ' . $appointment['pc_startTime'] . '"';
+                            echo "\n";
+                        } else { // not outputting csv data
+                            ?>
+                            <tr valign='top' id='p1.<?php echo attr($patient_id) ?>'
+                                bgcolor='<?php echo attr($bgcolor); ?>'>
+                                <td class="detail">&nbsp;<?php echo ($docname == $lastdocname) ? "" : text($docname) ?>
+                                </td>
+
+                                <td class="detail" <?php echo $showDate ? '' : 'style="display:none;"' ?>><?php echo text(oeFormatShortDate($appointment['pc_eventDate'])) ?>
+                                </td>
+
+                                <td class="detail"><?php echo text(oeFormatTime($appointment['pc_startTime'])) ?>
+                                </td>
+
+                                <td class="detail">
+                                    &nbsp;<?php echo text($appointment['fname'] . " " . $appointment['lname']) ?>
+                                </td>
+
+                                <td class="detail">&nbsp;<?php echo text($appointment['pubpid']) ?></td>
+                                <td class="detail">&nbsp;<?php echo oeFormatShortDate($patient_dob['dob']) ?></td>
+
+                                <td class="detail">&nbsp;<?php echo text($appointment['phone_home']) ?></td>
+
+                                <td class="detail">&nbsp;<?php if ($_SESSION['site_id'] == 200) echo $patientbalance;
+                                    else echo $appointment['phone_cell']; ?></td>
+
+                                <td class="detail">
+                                    &nbsp;<?php echo text(xl_appt_category($appointment['pc_catname'])) ?></td>
+
+                                <td class="detail">&nbsp;
+                                    <?php
+                                    //Appointment Status
+                                    if ($pc_apptstatus != "") {
+                                        echo text(getListItemTitle('apptstat', $pc_apptstatus));
+                                    }
+                                    ?>
+                                </td>
+                            </tr>
+
+                            <?php
+                            if ($patient_id && $incl_reminders) {
+                                // collect reminders first, so can skip it if empty
+                                $rems = fetch_reminders($patient_id, $appointment['pc_eventDate']);
+                            }
+                            ?>
+                            <?php
+                            if ($patient_id && (!empty($rems) || !empty($appointment['pc_hometext']))) { // No display of available slot or not showing reminders and comments empty ?>
+                                <tr valign='top' id='p2.<?php echo attr($patient_id) ?>'>
+                                    <td colspan=<?php echo $showDate ? '"3"' : '"2"' ?> class="detail"/>
+                                    <td colspan=<?php echo($incl_reminders ? "3" : "6") ?> class="detail" align='left'>
+                                        <?php
+
+                                        $getIP = getInsuranceProvider($patient_ins['provider']);
+                                        if ($getIP) {
+                                            echo ' <b>' . xlt('Primary Ins ') . '</b>: ' . $getIP . '&nbsp';
+                                        }
+
+                                        if (trim($appointment['pc_hometext'])) {
+                                            echo '<b>' . xlt('Comments') . '</b>: ' . text($appointment['pc_hometext']);
+                                        }
+
+                                        if ($incl_reminders) {
+                                            echo "<td class='detail' colspan='3' align='left'>";
+                                            $new_line = '';
+                                            foreach ($rems as $rem_due => $rem_items) {
+                                                echo "$new_line<b>$rem_due</b>: " . attr($rem_items);
+                                                $new_line = '<br>';
+                                            }
+
+                                            echo "</td>";
+                                        }
+                                        ?>
+                                    </td>
+                                </tr>
+                                <?php
+                            } // End of row 2 display
+
+                            $lastdocname = $docname;
                         }
-                        ?>
-                    </td>
+                    }
+                }
+
+                // assign the session key with the $pid_list array - note array might be empty -- handle on the printed_fee_sheet.php page.
+                $_SESSION['pidList'] = $pid_list;
+                $_SESSION['apptdateList'] = $apptdate_list;
+                if (!$_POST['form_csvexport']) { ?>
+                <tr>
+                    <td colspan="10" align="left"><?php echo xlt('Total number of appointments'); ?>:&nbsp;<?php echo text($totalAppontments);?></td>
                 </tr>
-                <?php
-            } // End of row 2 display
-
-            $lastdocname = $docname;
-        }
-    }
-
-    // assign the session key with the $pid_list array - note array might be empty -- handle on the printed_fee_sheet.php page.
-        $_SESSION['pidList'] = $pid_list;
-        $_SESSION['apptdateList'] = $apptdate_list;
-    ?>
-    <tr>
-        <td colspan="10" align="left"><?php echo xlt('Total number of appointments'); ?>:&nbsp;<?php echo text($totalAppontments);?></td>
-    </tr>
-    </tbody>
-</table>
-</div>
-<!-- end of search results -->
-<?php } else { ?>
+                </tbody>
+            </table>
+        </div>
+        <!-- end of search results -->
+    <?php }
+} else { ?>
 <div class='text'><?php echo xlt('Please input search criteria above, and click Submit to view results.'); ?>
 </div>
-<?php } ?> <input type="hidden" name="form_orderby"
-    value="<?php echo attr($form_orderby) ?>" /> <input type="hidden"
-    name="patient" value="<?php echo attr($patient) ?>" /> <input type='hidden'
-    name='form_refresh' id='form_refresh' value='' /></form>
+<?php } if (!$_POST['form_csvexport']) { ?>
+    <input type="hidden" name="form_orderby"
+    value="<?php echo attr($form_orderby) ?>" />
+    <input type="hidden"
+    name="patient" value="<?php echo attr($patient) ?>" />
+    <input type='hidden'
+    name='form_refresh' id='form_refresh' value='' />
+    <input type='hidden' name='form_csvexport' id='form_csvexport' value=''/>
+</form>
 
 <script type="text/javascript">
 
-<?php
+<?php }
 if ($alertmsg) {
     echo " alert(" . js_escape($alertmsg) . ");\n";
 }
-?>
+
+        if (!$_POST['form_csvexport']) { ?>
+
 
 </script>
 
 </body>
 
 </html>
+
+<?php }
