@@ -1033,9 +1033,12 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
                             }
 
                             if ($eracount && $num_invoices != $eracount) {
+                                error_log("eracount is $eracount and num_invoices is $num_invoices");
+                                error_log("and query is $query");
                                 $alertmsg .= "Of $eracount remittances, there are $num_invoices " .
                                     "matching encounters in OpenEMR. ";
                             }
+
                             ?>
                         <table class="table table-striped table-condensed">
                             <thead>
