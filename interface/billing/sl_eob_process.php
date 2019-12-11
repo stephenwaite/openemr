@@ -23,6 +23,7 @@ use OpenEMR\Billing\InvoiceSummary;
 use OpenEMR\Billing\ParseERA;
 use OpenEMR\Billing\SLEOB;
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Core\Header;
 use OpenEMR\Services\InsuranceService;
 
 $debug = $_GET['debug'] ? 1 : 0; // set to 1 for debugging mode
@@ -124,11 +125,15 @@ function writeOldDetail(&$prev, $ptname, $invnumber, $dos, $code, $bgcolor)
     // $prev['total'] = 0.00; // to accumulate total charges
     ksort($prev['dtl']);
     foreach ($prev['dtl'] as $dkey => $ddata) {
+
         $ddate = substr($dkey, 0, 10);
         $description = $ddata['src'] . $ddata['rsn'];
         if ($ddate == '          ') { // this is the service item
+            error_log("dkey is $dkey and ddata is $ddata ");
+            var_dump($dkey);
+            var_dump($ddata);
             $ddate = $dos;
-            $description = 'Service Item';
+            $description = $prev['code_text'];
         }
 
         $amount = sprintf("%.2f", $ddata['chg'] - $ddata['pmt']);
@@ -155,24 +160,20 @@ function era_callback_check(&$out)
     global $StringToEcho,$debug;
 
     if ($_GET['original']=='original') {
-        $StringToEcho="<br/><br/><br/><br/><br/><br/>";
-        $StringToEcho.="<table border='1' cellpadding='0' cellspacing='0'  width='750'>";
-        $StringToEcho.="<tr bgcolor='#cccccc'><td width='50'></td><td class='dehead' width='150' align='center'>" . xlt('Check Number') . "</td><td class='dehead' width='400'  align='center'>" . xlt('Payee Name') . "</td><td class='dehead'  width='150' align='center'>" . xlt('Check Amount') . "</td></tr>";
+        $StringToEcho="<div table-responsive>";
+        $StringToEcho.="<table class='table table-bordered table-sm table-striped'>";
+        $StringToEcho.="<thead><tr><th scope='col'></th><th scope='col'>" . xlt('Check Number') . "</th><th scope='col'>" . xlt('Payee Name') . "</th><th scope='col'>" . xlt('Check Amount') . "</th></tr></thead>";
         $WarningFlag=false;
         for ($check_count=1; $check_count<=$out['check_count']; $check_count++) {
-            if ($check_count%2==1) {
-                $bgcolor='#ddddff';
-            } else {
-                $bgcolor='#ffdddd';
-            }
+
 
              $rs=sqlQ("select reference from ar_session where reference=?", array($out['check_number'.$check_count]));
             if (sqlNumRows($rs)>0) {
-                $bgcolor='#ff0000';
+                $bgcolor='table-danger';
                 $WarningFlag=true;
             }
 
-            $StringToEcho.="<tr bgcolor='" . attr($bgcolor) . "'>";
+            $StringToEcho.="<tr class='" . attr($bgcolor) . "'>";
             $StringToEcho.="<td><input type='checkbox'  name='chk" . attr($out['check_number'.$check_count]) . "' value='" . attr($out['check_number'.$check_count]) . "'/></td>";
             $StringToEcho.="<td>" . text($out['check_number'.$check_count]) . "</td>";
             $StringToEcho.="<td>" . text($out['payee_name'.$check_count]) . "</td>";
@@ -180,12 +181,12 @@ function era_callback_check(&$out)
             $StringToEcho.="</tr>";
         }
 
-        $StringToEcho.="<tr bgcolor='#cccccc'><td colspan='4' align='center'><input type='submit'  name='CheckSubmit' value='Submit'/></td></tr>";
+        $StringToEcho.="<tr bgcolor='table-secondary'><td colspan='4' align='center'><input type='submit'  name='CheckSubmit' value='Submit'/></td></tr>";
         if ($WarningFlag==true) {
-            $StringToEcho.="<tr bgcolor='#ff0000'><td colspan='4' align='center'>" . xlt('Warning, Check Number already exist in the database') . "</td></tr>";
+            $StringToEcho.="<tr bgcolor='table-danger'><td colspan='4' align='center'>" . xlt('Warning, Check Number already exist in the database') . "</td></tr>";
         }
 
-        $StringToEcho.="</table>";
+        $StringToEcho.="</table></div>";
     } else {
         for ($check_count=1; $check_count<=$out['check_count']; $check_count++) {
             $chk_num=$out['check_number'.$check_count];
@@ -687,7 +688,7 @@ if (!$debug) {
 ?>
 <html>
 <head>
-<link rel=stylesheet href="<?php echo $css_header;?>" type="text/css">
+<?php Header::setupHeader();?>
 <style type="text/css">
  body       { font-family:sans-serif; font-size:8pt; font-weight:normal }
  .dehead    { color:#000000; font-family:sans-serif; font-size:9pt; font-weight:bold }
