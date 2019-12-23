@@ -129,6 +129,8 @@ function row_delete($table, $where)
 
         for (var i = 0; i < f.elements.length; ++i) {
             let ename = f.elements[i].name;
+            //alert('the element name is ' + ename);
+            // + ' prefix length is ' + pfxlen + ' and prefix is ' + pfx +' and the code is '+ code);
             // Count deletes.
             if (ename.substring(0, 9) == 'form_del[') {
                 if (f.elements[i].checked) ++delcount;
@@ -145,7 +147,7 @@ function row_delete($table, $where)
                 allempty = false;
             }
             if(adjDisable) {
-                if ((cAdjust == 0 && f[pfx + '[reason]'].value)) {
+                if ((cAdjust == 0 && ins_done.value == 'changed')) {
                     allempty = false;
                 }
             }
@@ -234,6 +236,11 @@ function row_delete($table, $where)
             <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
             <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
         });
+
+        $("#ins_done").change(function() {
+            $("#ins_done").val('changed');
+        });
+
     });
 
     </script>
@@ -552,7 +559,7 @@ $pdrow = sqlQuery("select billing_note from patient_data where pid = ? limit 1",
                             <input name='form_eobs' type='hidden' value='<?php echo attr($arrow['shipvia']) ?>'/>
                         </div>
                     </div>
-                    <div class="form-group col-lg">
+                    <div class="form-group col-lg" id='ins_done'>
                         <label class="control-label" for=""><?php echo xlt('Done with'); ?>:</label>
                         <div style="padding-left:15px">
                             <?php
@@ -565,7 +572,7 @@ $pdrow = sqlQuery("select billing_note from patient_data where pid = ? limit 1",
                                 }
                                 $checked = ($last_level_closed == $key) ? " checked" : "";
                                 echo "<label class='radio-inline'>";
-                                echo "<input type='radio' name='form_done' value='" . attr($key) . "'$checked />" . text($value);
+                                echo "<input type='radio'  name='form_done' value='" . attr($key) . "'$checked />" . text($value);
                                 echo "</label>";
                             }
                             ?>
