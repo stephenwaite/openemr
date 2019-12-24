@@ -129,8 +129,6 @@ function row_delete($table, $where)
 
         for (var i = 0; i < f.elements.length; ++i) {
             let ename = f.elements[i].name;
-            //alert('the element name is ' + ename);
-            // + ' prefix length is ' + pfxlen + ' and prefix is ' + pfx +' and the code is '+ code);
             // Count deletes.
             if (ename.substring(0, 9) == 'form_del[') {
                 if (f.elements[i].checked) ++delcount;
@@ -237,7 +235,7 @@ function row_delete($table, $where)
             <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
         });
 
-        $("#ins_done").change(function() {
+        $("#ins_done").on("change", function() {
             $("#ins_done").val('changed');
         });
 
@@ -572,7 +570,7 @@ $pdrow = sqlQuery("select billing_note from patient_data where pid = ? limit 1",
                                 }
                                 $checked = ($last_level_closed == $key) ? " checked" : "";
                                 echo "<label class='radio-inline'>";
-                                echo "<input type='radio'  name='form_done' value='" . attr($key) . "'$checked />" . text($value);
+                                echo "<input type='radio' name='form_done' value='" . attr($key) . "'$checked />" . text($value);
                                 echo "</label>";
                             }
                             ?>
