@@ -1373,7 +1373,19 @@
             "label": "jones_visits",
             "menu_id": "rep0",
             "target": "rep1",
-            "url": "/interface/reports/pqrs137.php"s ,
+            "url": "/interface/reports/pqrs137.php",
+            "children": [],
+            "requirement": 0,
+            "acl_req": [
+              "encounters",
+              "coding_a"
+            ]
+          },
+          {
+            "label": "dier_visits",
+            "menu_id": "rep0",
+            "target": "rep1",
+            "url": "/interface/reports/diers_encounters_report.php",
             "children": [],
             "requirement": 0,
             "acl_req": [
