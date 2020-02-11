@@ -28,11 +28,11 @@ use OpenEMR\Core\Header;
 set_time_limit(0);
 
 
-if (!empty($_POST)) {
+/*if (!empty($_POST)) {
     if (!verifyCsrfToken($_POST["csrf_token_form"])) {
         csrfNotVerified();
     }
-}
+}*/
 
 $alertmsg = ''; // not used yet but maybe later
 
@@ -212,8 +212,8 @@ $res = sqlStatement($query, $sqlBindArray);
 <?php echo text(oeFormatShortDate($form_from_date)) . " " . xlt('to') . " ". text(oeFormatShortDate($form_to_date)); ?>
 </div>
 
-<form method='post' name='theform' id='theform' action='encounters_report.php' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<form method='post' name='theform' id='theform' action='diers_encounters_report.php' onsubmit='return top.restoreSession()'>
+<input type="hidden" name="csrf_token_form" value="<?php // echo attr(collectCsrfToken()); ?>" />
 
 <div id="report_parameters">
 <table>
@@ -525,7 +525,7 @@ if ($res) {
             //echo "here's a lady we all know";
             $dxa_pt = true;
             $dexa++;
-            error_log("$patient_id qualifies for dxa");
+            //error_log("$patient_id qualifies for dxa");
         } else {
             $dxa_pt = false;
         }
@@ -564,7 +564,7 @@ if ($res) {
         if ($ra_row && !$icd10_ra) {
             $icd10 = "M06.9";
             $icd10_ra = true;
-            error_log("using M06.9 since $patient_id has $ra_row[title] but not in cms charges");
+            //error_log("using M06.9 since $patient_id has $ra_row[title] but not in cms charges");
         }
 
         if ($icd10_ra) {
@@ -711,7 +711,7 @@ if ($res) {
                         } else {
                             echo "No ";
                             if ($row['age'] >= 65) {
-                                error_log("check $patient_id since not medicare but 65 years or older");
+                                //error_log("check $patient_id since not medicare but 65 years or older");
                             }
                         }?>
 
@@ -757,7 +757,7 @@ if ($res) {
                 $rpd_data = 0; // indicate if pt has any rpd data
                 $qpp = array();
                 if ($dxa_pt) {
-                    error_log("$patient_id is in dxa loop");
+                    //error_log("$patient_id is in dxa loop");
                     $qpp['39']  = 'G8400';
                 } else {
                     $qpp['39'] = '';
@@ -807,6 +807,7 @@ if ($res) {
 
                     // SELECT * FROM `rule_patient_data` WHERE `item` = 'act_cdai' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
                     if ($item == 'act_cdai') { // quality id 177
+                        error_log("in measure 177 logic");
                         /*if ($result <= 10) {
                             $qpp['177'] = 'M1007</td><td>';
                             continue;
