@@ -417,9 +417,6 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
         <?php echo xlt('Codes 177'); ?>
     </th>
     <th>
-        <?php echo xlt('Mod 177'); ?>
-    </th>
-    <th>
         <?php echo xlt('Codes 178'); ?>
     </th>
     <th>
@@ -756,7 +753,7 @@ if ($res) {
                 //}
 
                 $rres = sqlStatement("SELECT * from rule_patient_data as rpd WHERE rpd.pid = ? " . $rpd_where .
-                    "AND rpd.date > '2017-12-31' AND rpd.date < '2019-01-01' ORDER BY item ASC", array($patient_id));
+                    "AND rpd.date > '2018-12-31' AND rpd.date < '2019-12-31' ORDER BY item ASC", array($patient_id));
                 $rpd_data = 0; // indicate if pt has any rpd data
                 $qpp = array();
                 if ($dxa_pt) {
@@ -766,7 +763,7 @@ if ($res) {
                     $qpp['39'] = '';
                 }
                 $qpp['176'] = '<td></td>';
-                $qpp['177'] = '3470F</td><td>8P';
+                $qpp['177'] = '<td></td>';
                 $qpp['178'] = '1170F</td><td>8P';
                 $qpp['179'] = '3475F</td><td>8P';
                 $qpp['180'] = '</td><td>4194F</td><td>8P'; // intialize due to performance hcpcs with glucocorticoid
@@ -810,8 +807,8 @@ if ($res) {
 
                     // SELECT * FROM `rule_patient_data` WHERE `item` = 'act_cdai' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
                     if ($item == 'act_cdai') { // quality id 177
-                        if ($result <= 10) {
-                            $qpp['177'] = '3470F</td><td>';
+                        /*if ($result <= 10) {
+                            $qpp['177'] = 'M1007</td><td>';
                             continue;
                         } else if (($result > 10) && ($result <= 22)) {
                             $qpp['177'] = '3471F</td><td>';
@@ -819,7 +816,10 @@ if ($res) {
                         } else {
                             $qpp['177'] = '3472F</td><td>';
                             continue;
-                        }
+                        }*/
+                        $qpp['177'] = 'M1007</td><td>';
+                    } else {
+                        $qpp['177'] = 'M1006</td><td>';
                     }
 
                     // SELECT * FROM `rule_patient_data` WHERE `item` = 'act_rafunc' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
