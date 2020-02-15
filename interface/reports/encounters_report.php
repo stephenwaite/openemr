@@ -355,6 +355,9 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
   <th>
     <?php echo xlt('Encounter'); ?>
   </th>
+    <th>
+        <?php echo xlt('pid'); ?>
+    </th>
   <th>
    <a href="nojs.php" onclick="return dosort('encounter')"
     <?php echo ($form_orderby == "encounter") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Encounter Number'); ?></a>
@@ -486,7 +489,11 @@ if ($res) {
    <td>
         <?php echo text($row['encounter']); ?>&nbsp;
   </td>
-  <td>
+           <td>
+               <?php echo text($row['pid']); ?>&nbsp;
+           </td>
+
+           <td>
         <?php echo $encnames; //since this variable contains html, have already html escaped it above ?>&nbsp;
   </td>
   <td>
