@@ -66,21 +66,46 @@ if ($handle) {
                 $gar_prname_mname = $gar_pr_name_parts[2];
 
             $gar_pr_relate = substr($line, 191, 1);
-            $emr_p_relate = "self";
-            $emr_p_subscr_sex = "Male";
-            if ($gar_pr_relate == "2") {
+            if ($gar_relate !== $gar_pr_relate) {
+                $emr_p_dob = "1973-02-26";
+                if ($gar_pr_relate == "2") {
+                    $emr_p_subscr_sex = "Male";
+                    if ($gar_sex == "F") {
+                        if ($gar_relate == "K") {
+                            $emr_p_relate = "spouse";
+                        } else if ($gar_relate == "M" || $gar_relate == "4") {
+                            $emr_p_relate = "child";
+                        }
+                    }
+                } else if ($gar_pr_relate == "K") {
+                    if ($gar_sex == "M") {
+                        $emr_p_relate = "spouse";
+                        $emr_p_subscr_sex = "Female";
+                    }
+                } else {
+                    $emr_p_relate = "other";
+                    $emr_p_subscr_sex = "Male";
+                    if ($gar_pr_relate == "Q") {
+                        $emr_p_subscr_sex = "Female";
+                    }
+                }
+            } else {
+                $emr_p_dob = $gar_dob;
+                $emr_p_relate = "self";
+                $emr_p_subscr_sex = "Male";
                 if ($gar_sex == "F") {
-                    $emr_p_relate = "spouse";
+                    $emr_p_subscr_sex = "Female";
                 }
-            } else if ($gar_pr_relate == "K") {
-                if ($gar_sex == "M") {
-                   $emr_p_relate = "spouse";
-                   $emr_p_subscr_sex = "Female";
-                }
+
             }
 
             $gar_se_mplr = substr($line, 192, 4);
             $gar_seins = substr($line, 196, 3);
+            if ($gar_seins == '062') {
+                switch ($gar_pr_group) {
+                    default:
+                }
+            }
             $gar_se_assign = substr($line, 199, 1);
             $gar_trinsind = substr($line, 200, 1);
             $gar_trins = substr($line, 201, 3);
@@ -131,7 +156,11 @@ if ($handle) {
                         $type = 'primary';
                         $cms_ins = $gar_prins;
                         $cms_pol = $gar_pripol;
-                        $cms_grp = $gar_pr_group;
+                        if ($cms_ins == '003') {
+                            $cms_grp = '';
+                        } else {
+                            $cms_grp = $gar_pr_group;
+                        }
                         $sub_rel = $emr_p_relate;
                         $sub_sex = $emr_p_subscr_sex;
                         break;
@@ -159,15 +188,16 @@ if ($handle) {
                   `subscriber_DOB`, `subscriber_street`, `subscriber_postal_code`,
                   `subscriber_city`, `subscriber_state`, `subscriber_country`,
                   `subscriber_phone`, `copay`, `date`, `pid`, `subscriber_sex`, `accept_assignment`)
-                VALUES ($type, $cms_ins, $cms_pol, $cms_group,
-                  $gar_prname_lname, $gar_prname_mname, $gar_prname_fname, $emr_relate,
-                  $gar_dob, $emr_street, $gar_zip,
-                  $emr_city, $emr_state, $emr_country,
-                  $gar_phone, $gar_copay, '2020-01-01', $pid, $emr_subscr_sex, 'TRUE')";
+                VALUES ('$type', '$cms_ins', '$cms_pol', '$cms_grp',
+                  '$gar_prname_lname', '$gar_prname_mname', '$gar_prname_fname', '$sub_rel',
+                  '$gar_dob', '$emr_street', '$gar_zip',
+                  '$gar_city', '$gar_state', 'US',
+                  '$gar_phone', '$gar_copay', now(), '$pid', '$sub_sex', 'TRUE')";
                 } else {
                     break;
                 }
                 echo $q . "</br></br>";
+                sqlQuery($q);
             }
         }
 
