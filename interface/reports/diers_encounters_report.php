@@ -406,7 +406,7 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
     <th bgcolor="#8b0000">
         <?php echo xlt('Codes'); ?>
     </th>
-    <th>
+    <th bgcolor="#adff2f">
         <?php echo xlt('Codes'); ?>
     </th>
     <th>
