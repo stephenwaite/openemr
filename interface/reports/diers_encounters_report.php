@@ -731,9 +731,6 @@ if ($res) {
                           };?>
                     </td>
                     <td>
-                         <?php echo $brow['modifier'];?>
-                    </td>
-                    <td>
                         <?php echo $icd10; // here's the dx ?>
                     </td>
 
