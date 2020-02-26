@@ -397,16 +397,13 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
   <th>
     <?php echo xlt('CPT'); ?>
   </th>
-    <th>
-        <?php echo xlt('Modifier'); ?>
-    </th>
   <th>
     <?php echo xlt('ICD10'); ?>
   </th>
   <th bgcolor="gray">
     <?php echo xlt('Codes'); ?>
   </th>
-    <th>
+    <th bgcolor="#8b0000">
         <?php echo xlt('Codes'); ?>
     </th>
     <th>
