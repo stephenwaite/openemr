@@ -775,13 +775,11 @@ if ($res) {
                     $dexa_row = sqlFetchArray($dexa_res);
                     if ($dexa_row) {  // quality id 39, nqf 0046
                         //echo $result;
-                        //$pos1 = stripos("$result", "DEXA"); // there's been a DXA
-                        //if ($pos1 !== false) {
+                        $pos1 = stripos("$result", "NEEDS"); // there's been a DXA
+                        if ($pos1 !== false) {
+                            $qpp['39'] = 'G8400';
+                        } else {
                             $qpp['39'] = 'G8399';
-                        //    continue;
-                        //} else {
-                        //    $qpp['39'] = 'G8400';
-                        //    continue;
                     }
 
                     //SELECT * FROM `rule_patient_data` WHERE `item` = 'act_tb' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
