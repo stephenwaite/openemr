@@ -775,7 +775,7 @@ if ($res) {
                     $dexa_row = sqlFetchArray($dexa_res);
                     if ($dexa_row) {  // quality id 39, nqf 0046
                         //echo $result;
-                        $pos1 = stripos("$result", "NEEDS"); // there's been a DXA
+                        $pos1 = stripos($dexa_row['result'], "NEEDS"); // there's been a DXA
                         if ($pos1 !== false) {
                             $qpp['39'] = 'G8400';
                         } else {
