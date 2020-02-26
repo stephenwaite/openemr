@@ -403,11 +403,7 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
   <th>
     <?php echo xlt('ICD10'); ?>
   </th>
-  <th>
-    <?php echo xlt('HCPCS 39'); ?>
-  </th>
-
-  <th>
+  <th bgcolor="gray">
     <?php echo xlt('Codes'); ?>
   </th>
     <th>
@@ -880,7 +876,7 @@ if ($res) {
                     }
                 }
             } else {
-                echo "<td>$qpp[39]</td>";
+                echo "<td bgcolor='gray'>$qpp[39]</td>";
                 for ($i=0; $i < 11; $i++) {
                     echo "<td>$icd10_ra</td>";
                 }
