@@ -780,6 +780,7 @@ if ($res) {
                             $qpp['39'] = 'G8400';
                         } else {
                             $qpp['39'] = 'G8399';
+                        }
                     }
 
                     //SELECT * FROM `rule_patient_data` WHERE `item` = 'act_tb' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
