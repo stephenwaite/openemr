@@ -949,8 +949,8 @@ if ($res) {
         show_doc_total($lastdocname, $doc_encounters);
     }
 }
-echo "dexa count is $dexa";
-echo " ra pt count is $ra_pt";
+//echo "dexa count is $dexa";
+//echo " ra pt count is $ra_pt";
 ?>
 </tbody>
 </table>
