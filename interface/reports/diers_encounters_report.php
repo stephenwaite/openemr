@@ -408,34 +408,31 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
   </th>
 
   <th>
-    <?php echo xlt('Codes 176'); ?>
+    <?php echo xlt('Codes'); ?>
   </th>
     <th>
-        <?php echo xlt('Codes 176'); ?>
+        <?php echo xlt('Codes'); ?>
     </th>
     <th>
-        <?php echo xlt('Codes 177'); ?>
+        <?php echo xlt('Codes'); ?>
     </th>
     <th>
-        <?php echo xlt('Codes 178'); ?>
+        <?php echo xlt('Modifier'); ?>
     </th>
     <th>
-        <?php echo xlt('Mod 178'); ?>
+        <?php echo xlt('Codes'); ?>
     </th>
     <th>
-        <?php echo xlt('Codes 179'); ?>
+        <?php echo xlt('Modifier'); ?>
     </th>
     <th>
-        <?php echo xlt('Mod 179'); ?>
+        <?php echo xlt('Codes'); ?>
     </th>
     <th>
-        <?php echo xlt('Codes 180'); ?>
+        <?php echo "Codes"; ?>
     </th>
     <th>
-        <?php echo "Codes 180"; ?>
-    </th>
-    <th>
-        <?php echo 'Mod 180'; ?>
+        <?php echo 'Modifier'; ?>
     </th>
     <th>
         <?php echo "Codes htn"; ?>
@@ -766,8 +763,8 @@ if ($res) {
                 $qpp['177'] = '<td></td>';
                 $qpp['178'] = '1170F</td><td>8P';
                 $qpp['179'] = '3475F</td><td>8P';
-                $qpp['180'] = '</td><td>4194F</td><td>8P'; // intialize due to performance hcpcs with glucocorticoid
-
+                // intialize due to performance hcpcs with glucocorticoid
+                $qpp['180'] = '</td><td>4194F</td><td>8P';
                 while ($rrow = sqlFetchArray($rres)) {
                     ++$rpd_data;
                     $item = $rrow['item'];
@@ -794,9 +791,9 @@ if ($res) {
                     //SELECT * FROM `rule_patient_data` WHERE `item` = 'act_tb' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
                     if ($item == 'act_tb') { // quality id 176
                         //echo "there's an act_tb $result";
-                        $pos1 = stripos("$result", "18");
+                        $pos1 = stripos("$result", "19");
                         if ($pos1 !== false) {
-                            $qpp['176'] = '4195F</td><td>3455F';
+                            $qpp['176'] = 'M1003</td><td>';
                             continue;
 
                         } else {
