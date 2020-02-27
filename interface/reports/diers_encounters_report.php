@@ -406,7 +406,13 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
     <th bgcolor="#8b0000">
         <?php echo xlt('Codes'); ?>
     </th>
+    <th bgcolor="#8b0000">
+        <?php echo xlt('Codes'); ?>
+    </th>
     <th bgcolor="#adff2f">
+        <?php echo xlt('Codes'); ?>
+    </th>
+    <th bgcolor="#00008b">
         <?php echo xlt('Codes'); ?>
     </th>
     <th bgcolor="#00008b">
@@ -414,9 +420,6 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
     </th>
     <th>
         <?php echo xlt('Codes'); ?>
-    </th>
-    <th>
-        <?php echo xlt('Modifier'); ?>
     </th>
     <th>
         <?php echo xlt('Codes'); ?>
@@ -743,12 +746,7 @@ if ($res) {
                     "AND rpd.date > '2018-12-31' AND rpd.date < '2019-12-31' ORDER BY item ASC", array($patient_id));
                 $rpd_data = 0; // indicate if pt has any rpd data
                 $qpp = array();
-                if ($dxa_pt) {
-                    //error_log("$patient_id is in dxa loop");
-                    $qpp['39']  = 'G8400';
-                } else {
-                    $qpp['39'] = '';
-                }
+
                 $qpp['176'] = '<td></td>';
                 $qpp['177'] = '<td></td>';
                 $qpp['178'] = '1170F</td><td>8P';
