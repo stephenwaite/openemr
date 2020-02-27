@@ -793,7 +793,7 @@ if ($res) {
 
                     // SELECT * FROM `rule_patient_data` WHERE `item` = 'act_cdai' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
                     if ($item == 'act_cdai') { // quality id 177
-                        error_log("in measure 177 logic");
+                        error_log("in measure 177 logic with result $result");
                         /*if ($result <= 10) {
                             $qpp['177'] = 'M1007</td><td>';
                             continue;
