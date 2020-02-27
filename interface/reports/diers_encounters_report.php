@@ -746,7 +746,7 @@ if ($res) {
                     "AND rpd.date > '2018-12-31' AND rpd.date < '2019-12-31' ORDER BY item ASC", array($patient_id));
                 $rpd_data = 0; // indicate if pt has any rpd data
                 $qpp = array();
-
+                $qpp['39'] = '<td></td>';
                 $qpp['176'] = '<td></td>';
                 $qpp['177'] = '<td></td>';
                 $qpp['178'] = '1170F</td><td>8P';
