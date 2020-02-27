@@ -266,20 +266,20 @@ $res = sqlStatement($query, $sqlBindArray);
                 <?php echo xlt('From'); ?>:
             </td>
             <td>
-               <input type='text' class='datepicker form-control' name='form_from_date' id="form_from_date" size='10' value='<?php echo attr(oeFormatShortDate($form_from_date)); ?>'>
+               <input type='text' class='datepicker form-control' name='form_from_date' id="form_from_date" size='10' value='2019-12-01'>
             </td>
             <td class='control-label'>
                 <?php echo xlt('To'); ?>:
             </td>
             <td>
-               <input type='text' class='datepicker form-control' name='form_to_date' id="form_to_date" size='10' value='<?php echo attr(oeFormatShortDate($form_to_date)); ?>'>
+               <input type='text' class='datepicker form-control' name='form_to_date' id="form_to_date" size='10' value='2019-12-07'>
             </td>
         </tr>
     <tr>
       <td></td>
       <td>
         <div class="checkbox">
-          <label><input type='checkbox' name='form_details'<?php echo ($form_details) ? ' checked' : ''; ?>>
+          <label><input type='checkbox' name='form_details' checked<?php echo ($form_details) ? ' checked' : ''; ?>>
             <?php echo xlt('Details'); ?></label>
         </div>
         <div class="checkbox">
@@ -287,7 +287,7 @@ $res = sqlStatement($query, $sqlBindArray);
             <?php  echo xlt('New'); ?></label>
         </div>
           <div class="checkbox">
-              <label><input type='checkbox' name='form_ra' title='<?php echo xla('Pain assess'); ?>'<?php echo ($form_ra) ? ' checked' : ''; ?>>
+              <label><input type='checkbox' name='form_ra' checked title='<?php echo xla('Pain assess'); ?>'<?php echo ($form_ra) ? ' checked' : ''; ?>>
                   <?php  echo xlt('RA patients only'); ?></label>
           </div>
           <div class="checkbox">
