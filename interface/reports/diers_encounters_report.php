@@ -266,13 +266,13 @@ $res = sqlStatement($query, $sqlBindArray);
                 <?php echo xlt('From'); ?>:
             </td>
             <td>
-               <input type='text' class='datepicker form-control' name='form_from_date' id="form_from_date" size='10' value='2019-12-01'>
+               <input type='text' class='datepicker form-control' name='form_from_date' id="form_from_date" size='10' value='20191201'>
             </td>
             <td class='control-label'>
                 <?php echo xlt('To'); ?>:
             </td>
             <td>
-               <input type='text' class='datepicker form-control' name='form_to_date' id="form_to_date" size='10' value='2019-12-07'>
+               <input type='text' class='datepicker form-control' name='form_to_date' id="form_to_date" size='10' value='20191207'>
             </td>
         </tr>
     <tr>
@@ -794,16 +794,6 @@ if ($res) {
                     // SELECT * FROM `rule_patient_data` WHERE `item` = 'act_cdai' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
                     if ($item == 'act_cdai') { // quality id 177
                         error_log("in measure 177 logic with result $result");
-                        /*if ($result <= 10) {
-                            $qpp['177'] = 'M1007</td><td>';
-                            continue;
-                        } else if (($result > 10) && ($result <= 22)) {
-                            $qpp['177'] = '3471F</td><td>';
-                            continue;
-                        } else {
-                            $qpp['177'] = '3472F</td><td>';
-                            continue;
-                        }*/
                         $qpp['177'] = 'M1007</td><td>';
                     } else {
                         $qpp['177'] = 'M1006</td><td>';
