@@ -10,9 +10,6 @@ require_once("$srcdir/forms.inc");
 require_once("$srcdir/patient.inc");
 require_once("$srcdir/options.inc.php");
 
-use OpenEMR\Billing\BillingUtilities;
-use OpenEMR\Core\Header;
-
 set_time_limit(0);
 // exit;
 

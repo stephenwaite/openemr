@@ -27,70 +27,21 @@ use OpenEMR\Core\Header;
 
 set_time_limit(0);
 
-
-/*if (!empty($_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
-    }
-}*/
-
-$alertmsg = ''; // not used yet but maybe later
-
-// For each sorting option, specify the ORDER BY argument.
-//
-$ORDERHASH = array(
-  'doctor'  => 'lower(u.lname), lower(u.fname), fe.date',
-  'patient' => 'lower(p.lname), lower(p.fname), fe.date',
-  'pubpid'  => 'lower(p.pubpid), fe.date',
-  'time'    => 'fe.date, lower(u.lname), lower(u.fname)',
-  'encounter'    => 'fe.encounter, fe.date, lower(u.lname), lower(u.fname)',
-);
-
-function show_doc_total($lastdocname, $doc_encounters)
-{
-    if ($lastdocname) {
-        echo " <tr>\n";
-        echo "  <td class='detail'>" .  text($lastdocname) . "</td>\n";
-        echo "  <td class='detail' align='right'>" . text($doc_encounters) . "</td>\n";
-        echo " </tr>\n";
-    }
-}
-
-$form_from_date = (isset($_POST['form_from_date'])) ? DateToYYYYMMDD($_POST['form_from_date']) : date('Y-m-d');
-$form_to_date   = (isset($_POST['form_to_date'])) ? DateToYYYYMMDD($_POST['form_to_date']) : date('Y-m-d');
+$form_from_date = '2019-12-01';
+    //(isset($_POST['form_from_date'])) ? DateToYYYYMMDD($_POST['form_from_date']) : date('Y-m-d');
+$form_to_date   = '2019-12-02';
+    //(isset($_POST['form_to_date'])) ? DateToYYYYMMDD($_POST['form_to_date']) : date('Y-m-d');
 $form_provider  = $_POST['form_provider'];
 $form_facility  = $_POST['form_facility'];
-$form_details   = $_POST['form_details'] ? true : false;
-$form_ra        = $_POST['form_ra'];
+$form_details   = true;
+    //$_POST['form_details'] ? true : false;
+$form_ra        = true;
+    //$_POST['form_ra'];
 $form_results   = $_POST['form_results'];
 $form_new_patients = $_POST['form_new_patients'] ? true : false;
 $form_esigned   = $_POST['form_esigned'] ? true : false;
 $form_not_esigned = $_POST['form_not_esigned'] ? true : false;
 $form_encounter_esigned = $_POST['form_encounter_esigned'] ? true : false;
-
-$form_orderby = $ORDERHASH[$_REQUEST['form_orderby']] ?
-$_REQUEST['form_orderby'] : 'doctor';
-//$orderby = $ORDERHASH[$form_orderby];
-$orderby = "pid";
-
-// Get the info.
-//
-$esign_fields = '';
-$esign_joins = '';
-if ($form_encounter_esigned) {
-    $esign_fields = ", es.table, es.tid ";
-    $esign_joins = "LEFT OUTER JOIN esign_signatures AS es ON es.tid = fe.encounter ";
-}
-
-if ($form_esigned) {
-    $esign_fields = ", es.table, es.tid ";
-    $esign_joins = "LEFT OUTER JOIN esign_signatures AS es ON es.tid = fe.encounter ";
-}
-
-if ($form_not_esigned) {
-    $esign_fields = ", es.table, es.tid ";
-    $esign_joins = "LEFT JOIN esign_signatures AS es on es.tid = fe.encounter ";
-}
 
 $sqlBindArray = array();
 
@@ -106,362 +57,21 @@ $query = "SELECT " .
   "LEFT JOIN users AS u ON u.id = fe.provider_id " .
   "$esign_joins" .
   "WHERE f.pid = fe.pid AND f.encounter = fe.encounter AND f.formdir = 'newpatient' ";
+
+//error_log("form from date is $form_from_date");
+//error_log("form to date is $form_to_date");
+
 if ($form_to_date) {
     $query .= "AND fe.date >= ? AND fe.date <= ? ";
     array_push($sqlBindArray, $form_from_date . ' 00:00:00', $form_to_date . ' 23:59:59');
-} else {
-    $query .= "AND fe.date >= ? AND fe.date <= ? ";
-    array_push($sqlBindArray, $form_from_date . ' 00:00:00', $form_from_date . ' 23:59:59');
 }
 
-if ($form_provider) {
-    $query .= "AND fe.provider_id = ? ";
-    array_push($sqlBindArray, $form_provider);
-}
 
-if ($form_facility) {
-    $query .= "AND fe.facility_id = ? ";
-    array_push($sqlBindArray, $form_facility);
-}
-
-if ($form_new_patients) {
-    $query .= "AND fe.date = (SELECT MIN(fe2.date) FROM form_encounter AS fe2 WHERE fe2.pid = fe.pid) ";
-}
-
-if ($form_encounter_esigned) {
-    $query .= "AND es.tid = fe.encounter AND es.table = 'form_encounter' ";
-}
-
-if ($form_esigned) {
-    $query .= "AND es.tid = fe.encounter ";
-}
-
-if ($form_not_esigned) {
-    $query .= "AND es.tid IS NULL ";
-}
-
-$query .= "ORDER BY $orderby";
-
+$order_by = " ORDER BY p.pid ASC";
+$query = $query . $order_by;
+//print_r($sqlBindArray);
 $res = sqlStatement($query, $sqlBindArray);
-?>
-<html>
-<head>
-    <title><?php echo xlt('Encounters Report'); ?></title>
 
-    <?php Header::setupHeader(['datetime-picker', 'report-helper']); ?>
-
-    <style type="text/css">
-        /* specifically include & exclude from printing */
-        @media print {
-            #report_parameters {
-                visibility: hidden;
-                display: none;
-            }
-            #report_parameters_daterange {
-                visibility: visible;
-                display: inline;
-            }
-            #report_results table {
-               margin-top: 0px;
-            }
-        }
-
-        /* specifically exclude some from the screen */
-        @media screen {
-            #report_parameters_daterange {
-                visibility: hidden;
-                display: none;
-            }
-        }
-    </style>
-
-    <script LANGUAGE="JavaScript">
-        $(document).ready(function() {
-            oeFixedHeaderSetup(document.getElementById('mymaintable'));
-            var win = top.printLogSetup ? top : opener.top;
-            win.printLogSetup(document.getElementById('printbutton'));
-
-            $('.datepicker').datetimepicker({
-                <?php $datetimepicker_timepicker = false; ?>
-                <?php $datetimepicker_showseconds = false; ?>
-                <?php $datetimepicker_formatInput = true; ?>
-                <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
-                <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
-            });
-        });
-
-        function dosort(orderby) {
-            var f = document.forms[0];
-            f.form_orderby.value = orderby;
-            f.submit();
-            return false;
-        }
-
-        function refreshme() {
-            document.forms[0].submit();
-        }
-    </script>
-</head>
-<body class="body_top">
-<!-- Required for the popup date selectors -->
-<div id="overDiv" style="position:absolute; visibility:hidden; z-index:1000;"></div>
-
-<span class='title'><?php echo xlt('Report'); ?> - <?php echo xlt('Encounters'); ?></span>
-
-<div id="report_parameters_daterange">
-<?php echo text(oeFormatShortDate($form_from_date)) . " " . xlt('to') . " ". text(oeFormatShortDate($form_to_date)); ?>
-</div>
-
-<form method='post' name='theform' id='theform' action='diers_encounters_report.php' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php // echo attr(collectCsrfToken()); ?>" />
-
-<div id="report_parameters">
-<table>
- <tr>
-  <td width='550px'>
-    <div style='float:left'>
-
-    <table class='text'>
-        <tr>
-            <td class='control-label'>
-                <?php echo xlt('Facility'); ?>:
-            </td>
-            <td>
-            <?php dropdown_facility($form_facility, 'form_facility', true); ?>
-            </td>
-            <td class='control-label'>
-                <?php echo xlt('Provider'); ?>:
-            </td>
-            <td>
-                <?php
-
-                 // Build a drop-down list of providers.
-                 //
-
-                 $query = "SELECT id, lname, fname FROM users WHERE ".
-                  "authorized = 1 $provider_facility_filter ORDER BY lname, fname"; //(CHEMED) facility filter
-
-                 $ures = sqlStatement($query);
-
-                 echo "   <select name='form_provider' class='form-control'>\n";
-                 echo "    <option value=''>-- " . xlt('All') . " --\n";
-
-                while ($urow = sqlFetchArray($ures)) {
-                    $provid = $urow['id'];
-                    echo "    <option value='" . attr($provid) . "'";
-                    if ($provid == $_POST['form_provider']) {
-                        echo " selected";
-                    }
-
-                    echo ">" . text($urow['lname']) . ", " . text($urow['fname']) . "\n";
-                }
-
-                 echo "   </select>\n";
-
-                ?>
-            </td>
-        </tr>
-        <tr>
-            <td class='control-label'>
-                <?php echo xlt('From'); ?>:
-            </td>
-            <td>
-               <input type='text' class='datepicker form-control' name='form_from_date' id="form_from_date" size='10' value='20191201'>
-            </td>
-            <td class='control-label'>
-                <?php echo xlt('To'); ?>:
-            </td>
-            <td>
-               <input type='text' class='datepicker form-control' name='form_to_date' id="form_to_date" size='10' value='20191207'>
-            </td>
-        </tr>
-    <tr>
-      <td></td>
-      <td>
-        <div class="checkbox">
-          <label><input type='checkbox' name='form_details' checked<?php echo ($form_details) ? ' checked' : ''; ?>>
-            <?php echo xlt('Details'); ?></label>
-        </div>
-        <div class="checkbox">
-          <label><input type='checkbox' name='form_new_patients' title='<?php echo xla('First-time visits only'); ?>'<?php echo ($form_new_patients) ? ' checked' : ''; ?>>
-            <?php  echo xlt('New'); ?></label>
-        </div>
-          <div class="checkbox">
-              <label><input type='checkbox' name='form_ra' checked title='<?php echo xla('Pain assess'); ?>'<?php echo ($form_ra) ? ' checked' : ''; ?>>
-                  <?php  echo xlt('RA patients only'); ?></label>
-          </div>
-          <div class="checkbox">
-              <label><input type='checkbox' name='form_results' title='<?php echo xla('Pain assess'); ?>'<?php echo ($form_results) ? ' checked' : ''; ?>>
-                  <?php  echo xlt('with results'); ?></label>
-          </div>
-      </td>
-      <td></td>
-      <td>
-        <div class="checkbox">
-          <label><input type='checkbox' name='form_esigned'<?php echo ($form_esigned) ? ' checked' : ''; ?>>
-            <?php  echo xlt('Forms Esigned'); ?></label>
-        </div>
-        <div class="checkbox">
-          <label><input type='checkbox' name='form_encounter_esigned'<?php echo ($form_encounter_esigned) ? ' checked' : ''; ?>>
-            <?php  echo xlt('Encounter Esigned'); ?></label>
-        </div>
-        <div class="checkbox">
-          <label><input type='checkbox' name='form_not_esigned'<?php echo ($form_not_esigned) ? ' checked' : ''; ?>>
-            <?php echo xlt('Not Esigned'); ?></label>
-        </div>
-      </td>
-    </tr>
-  </table>
-
-    </div>
-
-  </td>
-  <td align='left' valign='middle' height="100%">
-    <table style='border-left:1px solid; width:100%; height:100%' >
-        <tr>
-            <td>
-                <div class="text-center">
-          <div class="btn-group" role="group">
-                      <a href='#' class='btn btn-default btn-save' onclick='$("#form_refresh").attr("value","true"); $("#theform").submit();'>
-                            <?php echo xlt('Submit'); ?>
-                      </a>
-                        <?php if ($_POST['form_refresh'] || $_POST['form_orderby']) { ?>
-              <a href='#' class='btn btn-default btn-print' id='printbutton'>
-                                <?php echo xlt('Print'); ?>
-                        </a>
-                        <?php } ?>
-          </div>
-                </div>
-            </td>
-        </tr>
-    </table>
-  </td>
- </tr>
-</table>
-
-</div> <!-- end report_parameters -->
-
-<?php
-if ($_POST['form_refresh'] || $_POST['form_orderby']) {
-?>
-<div id="report_results">
-<table id='mymaintable'>
-<thead>
-<?php if ($form_details) { ?>
-    <th>
-        <a href="nojs.php" onclick="return dosort('pubpid')"
-          <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Patient ID'); ?></a>
-    </th>
-    <th>
-        <a href="nojs.php" onclick="return dosort('pubpid')"
-          <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Medicare ID'); ?></a>
-    </th>
-
-  <th>
-      <?php echo xlt('First Name');?>
-  </th>
-    <th>
-        <a href="nojs.php" onclick="return dosort('Last Name')"
-            <?php echo ($form_orderby == "patient") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Last Name'); ?></a>
-    </th>
-  <th>
-      <?php echo xlt('DOB');?>
-  </th>
-      <?php //echo xlt('Age'); ?>
-  <th>
-      <?php echo xlt('Sex'); ?>
-  </th>
-    <th>
-        <a href="nojs.php" onclick="return dosort('time')"
-            <?php echo ($form_orderby == "time") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('DOS'); ?></a>
-    </th>
-    <td>
-        <?php echo 'NPI';?>
-    </td>
-    <td>
-        <?php echo 'Race Code';?>
-    </td>
-    <td>
-        <?php echo 'Ethnic';?>
-    </td>
-    <td>
-        <?php echo 'pt has care';?>
-    </td>
-    <td>
-        <?php echo 'pt has caid';?>
-    </td>
-    <td>
-        <?php echo 'primary language';?>
-    </td>
-
-  <th>
-    <?php echo xlt('CPT'); ?>
-  </th>
-  <th>
-    <?php echo xlt('ICD10'); ?>
-  </th>
-  <th bgcolor="gray">
-    <?php echo xlt('Codes'); ?>
-  </th>
-    <th bgcolor="#8b0000">
-        <?php echo xlt('Codes'); ?>
-    </th>
-    <th bgcolor="#8b0000">
-        <?php echo xlt('Codes'); ?>
-    </th>
-    <th bgcolor="#adff2f">
-        <?php echo xlt('Codes'); ?>
-    </th>
-    <th bgcolor="#00008b">
-        <?php echo xlt('Codes'); ?>
-    </th>
-    <th bgcolor="#00008b">
-        <?php echo xlt('Modifier'); ?>
-    </th>
-    <th>
-        <?php echo xlt('Codes'); ?>
-    </th>
-    <th>
-        <?php echo xlt('Codes'); ?>
-    </th>
-    <th>
-        <?php echo "Codes"; ?>
-    </th>
-    <th>
-        <?php echo 'Modifier'; ?>
-    </th>
-    <th>
-        <?php echo "Codes htn"; ?>
-    </th>
-    <th>
-        <?php echo xlt('Codes #236'); ?>
-    </th>
-    <th>
-        <?php echo xlt('Codes #236'); ?>
-    </th>
-    <th>
-        <?php echo xlt('Codes #374'); ?>
-    </th>
-    <th>
-        <?php echo xlt('Codes #374'); ?>
-    </th>
-
-  <th>
-    <a href="nojs.php" onclick="return dosort('doctor')"
-            <?php //echo ($form_orderby == "doctor") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Encounter #'); ?> </a>
-  </th>
-    <th>
-        <a href="nojs.php" onclick="return dosort('pubpid')"
-            <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('PID'); ?></a>
-    </th>
-
-<?php } else { ?>
-  <th><?php echo xlt('Provider'); ?></td>
-  <th><?php echo xlt('Encounters'); ?></td>
-<?php } ?>
-</thead>
-<tbody>
-<?php
 if ($res) {
     $lastdocname = "";
     $doc_encounters = 0;
@@ -494,60 +104,52 @@ if ($res) {
 "M06.38, M06.39, M06.80, M06.811, M06.812, M06.819, M06.821, M06.822, M06.829, M06.831, M06.832," .
 "M06.839, M06.841, M06.842, M06.849, M06.851, M06.852, M06.859, M06.861, M06.862, M06.869," .
 "M06.871, M06.872, M06.879, M06.88, M06.89, M06.9";
-    $pieces = explode(", ", $ra_dx);
+    $pieces = explode(", ", $ra_dx); //array of ra dx
     //var_dump($pieces);
-    $icd10 = '';
+    $icd10 = ''; // dx from billing row
+    $hmx = array();
+    $i = 0;
     while ($row = sqlFetchArray($res)) {
-        $patient_id = $row['pid'];
+        $i++;
+        $pid = $row['pid'];
+        $hmx[$pid] = array();
+        //print_r($hmx);
         $mips_enc_date = substr($row['date'], 0, 10);
         //error_log("mips_enc_date is " . $mips_enc_date . " for pt id " . $row['pubpid']);
 
-        if ($patient_id == $prior_pt) {
-        //    error_log("we're continuing past $patient_id");
+        if ($pid == $prior_pt) {
+            error_log("we're skipping $pid");
             continue;
-        }
-
-        $prior_pt = $patient_id;
-
-        if ($row['age'] < 18 ) {
-            echo "youngin " .$row['pubpid'] . ' ' . $row['age'] . "\n";
-            continue;
-        }
-
-        if ($row['age'] >= 65 &&  $row['age'] <= 85 && $row['sex'] == 'Female') {
-            //echo "here's a lady we all know";
-            $dxa_pt = true;
-            $dexa++;
-            //error_log("$patient_id qualifies for dxa");
         } else {
-            $dxa_pt = false;
+            error_log("$pid is pid");
         }
 
+        $prior_pt = $pid;
 
-        $dres = sqlStatement("SELECT code from billing as b WHERE b.code_type = 'ICD10' " .
+        if ($row['age'] < 18) {
+            continue;
+        }
+
+        if ($row['age'] >= 65 && $row['age'] <= 85 && $row['sex'] == 'Female') {
+            $hmx[$pid]['dexa'] = true;
+        } else {
+            $hmx[$pid]['dexa'] = false;
+        }
+        /*$dres = sqlStatement("SELECT code from billing as b WHERE b.code_type = 'ICD10' " .
                             "AND b.pid = ?", array($patient_id));
         $match = false;
         $counter = 0;
         $icd10_ra = false;
 
         while ($drow = sqlFetchArray($dres)) {
-            //++$counter;
             $icd10 = $drow['code'];
-            //if ($patient_id = 6114) {
-            //    error_log("counter is $counter and $patient_id has $icd10");
-                //var_dump($drow);
-                //exit;
-            //}
             if (in_array("$icd10", $pieces)) {
-            //    error_log("$icd10 is in pieces aray");
                 $icd10_ra = true;
-                //$match = true;
                 continue;
             } else {
-                //error_log("$patient_id code $drow[code] is not RA");
                 $icd10_ra = false;
             };
-        }
+        }*/
 
         $ra_row = '';
         $ra_res = sqlStatement("SELECT title, enddate FROM lists WHERE pid = ? AND type = 'medical_problem' AND " .
@@ -577,165 +179,164 @@ if ($res) {
             }
         }
 
-            $errmsg  = "";
-            if ($form_details) {
-                // Fetch all other forms for this encounter.
-                $encnames = '';
-                $encarr = getFormByEncounter(
-                    $patient_id,
-                    $row['encounter'],
-                    "formdir, user, form_name, form_id"
-                );
+        $errmsg = "";
+        if ($form_details) {
+            // Fetch all other forms for this encounter.
+            $encnames = '';
+            $encarr = getFormByEncounter(
+                $patient_id,
+                $row['encounter'],
+                "formdir, user, form_name, form_id"
+            );
 
-                $vitals_id = '';
-                if ($encarr!='') {
-                    foreach ($encarr as $enc) {
-                        if ($enc['formdir'] == 'newpatient') {
-                            //$encnames .= '<br />';
-                            continue;
+            $vitals_id = '';
+            if ($encarr != '') {
+                foreach ($encarr as $enc) {
+                    if ($enc['formdir'] == 'newpatient') {
+                        //$encnames .= '<br />';
+                        continue;
+                    }
+
+                    if ($enc['formdir'] == 'vitals') {
+                        $vitals_id = $enc['form_id'];
+                        // error_log("vitals form id is " . $vitals_id . " for pt " . $patient_id);
+                    }
+
+                    if ($encnames) {
+                        $encnames .= '<br />';
+                    }
+
+                    $encnames .= text($enc['form_name']); // need to html escape it here for output below
+                }
+            }
+
+            // Fetch coding and compute billing status.
+            $coded = "";
+            $billed_count = 0;
+            $unbilled_count = 0;
+            /*if ($billres = BillingUtilities::getBillingByEncounter(
+                $row['pid'],
+                $row['encounter'],
+                "code_type, code, code_text, billed")
+            ) {
+                foreach ($billres as $billrow) {
+                    // $title = addslashes($billrow['code_text']);
+                    if ($billrow['code_type'] != 'COPAY' && $billrow['code_type'] != 'TAX') {
+                        $coded .= $billrow['code'] . ', ';
+                        if ($billrow['billed']) {
+                            ++$billed_count;
+                        } else {
+                            ++$unbilled_count;
                         }
-
-                        if ($enc['formdir'] == 'vitals') {
-                            $vitals_id = $enc['form_id'];
-                           // error_log("vitals form id is " . $vitals_id . " for pt " . $patient_id);
-                        }
-
-                        if ($encnames) {
-                            $encnames .= '<br />';
-                        }
-
-                        $encnames .= text($enc['form_name']); // need to html escape it here for output below
                     }
                 }
 
-                // Fetch coding and compute billing status.
-                $coded = "";
-                $billed_count = 0;
-                $unbilled_count = 0;
-                /*if ($billres = BillingUtilities::getBillingByEncounter(
-                    $row['pid'],
-                    $row['encounter'],
-                    "code_type, code, code_text, billed")
-                ) {
-                    foreach ($billres as $billrow) {
-                        // $title = addslashes($billrow['code_text']);
-                        if ($billrow['code_type'] != 'COPAY' && $billrow['code_type'] != 'TAX') {
-                            $coded .= $billrow['code'] . ', ';
-                            if ($billrow['billed']) {
-                                ++$billed_count;
-                            } else {
-                                ++$unbilled_count;
-                            }
-                        }
-                    }
+                $coded = substr($coded, 0, strlen($coded) - 2);
+            }
 
-                    $coded = substr($coded, 0, strlen($coded) - 2);
-                }
-
-                // Figure product sales into billing status.
-                $sres = sqlStatement("SELECT billed FROM drug_sales " .
-                    "WHERE pid = ? AND encounter = ?", array($row['pid'], $row['encounter']));
-                while ($srow = sqlFetchArray($sres)) {
-                    if ($srow['billed']) {
-                        ++$billed_count;
-                    } else {
-                        ++$unbilled_count;
-                    }
-                }*/
-
-                // Compute billing status.
-                /*if ($billed_count && $unbilled_count) {
-                    $status = xl('Mixed');
-                } else if ($billed_count) {
-                    $status = xl('Closed');
-                } else if ($unbilled_count) {
-                    $status = xl('Open');
+            // Figure product sales into billing status.
+            $sres = sqlStatement("SELECT billed FROM drug_sales " .
+                "WHERE pid = ? AND encounter = ?", array($row['pid'], $row['encounter']));
+            while ($srow = sqlFetchArray($sres)) {
+                if ($srow['billed']) {
+                    ++$billed_count;
                 } else {
-                    $status = xl('Empty');
+                    ++$unbilled_count;
                 }
-                */
-                ?>
-                <tr bgcolor='<?php echo attr($bgcolor); ?>'>
-                    <td>
-                        <?php echo text(strtoupper($row['pubpid']));?>
-                    </td>
-                    <td>
-                        <?php echo text(strtoupper($row['medicare id']));?>
-                    </td>
-                    <td>
-                        <?php //echo text(strtoupper($row['fname']) . ' ' . text($row['mname']));?>
-                    </td>
-                    <td>
-                        <?php //echo text(strtoupper($row['lname']));?>
-                    </td>
-                    <td>
-                        <?php echo text($row['dob']);?>
-                    </td>
-                    <?php //echo text($row['age']);?>
-                    <td>
-                        <?php echo text(strtoupper($row['sex']));?>
-                    </td>
-                    <td>
-                        <?php echo text(oeFormatShortDate(substr($row['date'], 0, 10)));?>
-                    </td>
-                    <td>
-                        <?php //echo 'NPI';?>
-                    </td>
-                    <td>
-                        <?php //echo 'Race Code';?>
-                    </td>
-                    <td>
-                        <?php //echo 'Ethnic';?>
-                    </td>
-                    <td>
-                        <?php //echo 'Medicare pt';
-                        $mres = sqlStatement("SELECT provider from insurance_data as ins WHERE ins.type = 'primary' " .
-                                                "AND ins.date > '2018-01-01' AND ins.pid = ?", array($patient_id));
-                        $mrow = sqlFetchArray($mres);
-                        //var_dump($mrow);
-                        $ins_code = $mrow['provider'];
-                        //echo "ins code is . $ins_code";
-                        if ($ins_code == '003') {
-                            echo "Yes";
-                        } else if ($ins_code == '116' && $row['age'] >= 65) {
-                            echo "Yes";
-                        } else if ($ins_code == '475' && $row['age'] >= 65) {
-                            echo "Yes";
-                        } else {
-                            echo "No ";
-                            if ($row['age'] >= 65) {
-                                //error_log("check $patient_id since not medicare but 65 years or older");
-                            }
-                        }?>
+            }*/
 
-                    </td>
-                    <td>
-                        <?php //echo 'Medicaid pt';
-                        if ($mrow['provider'] == '004') {
-                            echo "Yes";
-                        } else {
-                            echo "No ";
-                        }                        ?>
-                    </td>
-                    <td>
-                        <?php //echo 'primary language';?>
-                    </td>
+            // Compute billing status.
+            /*if ($billed_count && $unbilled_count) {
+                $status = xl('Mixed');
+            } else if ($billed_count) {
+                $status = xl('Closed');
+            } else if ($unbilled_count) {
+                $status = xl('Open');
+            } else {
+                $status = xl('Empty');
+            }
+            */
+            ?>
+            <tr bgcolor='<?php echo attr($bgcolor); ?>'>
+                <td>
+                    <?php echo text(strtoupper($row['pubpid'])); ?>
+                </td>
+                <td>
+                    <?php echo text(strtoupper($row['medicare id'])); ?>
+                </td>
+                <td>
+                    <?php //echo text(strtoupper($row['fname']) . ' ' . text($row['mname']));?>
+                </td>
+                <td>
+                    <?php //echo text(strtoupper($row['lname']));?>
+                </td>
+                <td>
+                    <?php echo text($row['dob']); ?>
+                </td>
+                <?php //echo text($row['age']);?>
+                <td>
+                    <?php echo text(strtoupper($row['sex'])); ?>
+                </td>
+                <td>
+                    <?php echo text(oeFormatShortDate(substr($row['date'], 0, 10))); ?>
+                </td>
+                <td>
+                    <?php //echo 'NPI';?>
+                </td>
+                <td>
+                    <?php //echo 'Race Code';?>
+                </td>
+                <td>
+                    <?php //echo 'Ethnic';?>
+                </td>
+                <td>
+                    <?php //echo 'Medicare pt';
+                    $mres = sqlStatement("SELECT provider from insurance_data as ins WHERE ins.type = 'primary' " .
+                        "AND ins.date > '2018-01-01' AND ins.pid = ?", array($patient_id));
+                    $mrow = sqlFetchArray($mres);
+                    //var_dump($mrow);
+                    $ins_code = $mrow['provider'];
+                    //echo "ins code is . $ins_code";
+                    if ($ins_code == '003') {
+                        echo "Yes";
+                    } else if ($ins_code == '116' && $row['age'] >= 65) {
+                        echo "Yes";
+                    } else if ($ins_code == '475' && $row['age'] >= 65) {
+                        echo "Yes";
+                    } else {
+                        echo "No ";
+                        if ($row['age'] >= 65) {
+                            //error_log("check $patient_id since not medicare but 65 years or older");
+                        }
+                    } ?>
+
+                </td>
+                <td>
+                    <?php //echo 'Medicaid pt';
+                    if ($mrow['provider'] == '004') {
+                        echo "Yes";
+                    } else {
+                        echo "No ";
+                    } ?>
+                </td>
+                <td>
+                    <?php //echo 'primary language';?>
+                </td>
 
 
-
-                    <td>
-                        <?php $bres = sqlStatement("SELECT code, modifier from billing as b WHERE b.code_type = 'CPT4' " .
-                         "AND b.encounter = ?", array($row['encounter']));
-                          $brow = sqlFetchArray($bres);
-                          if ($brow['code']) {
-                              echo $brow['code'];
-                          } else {
-                              echo '99214';
-                          };?>
-                    </td>
-                    <td>
-                        <?php echo $icd10; // here's the dx ?>
-                    </td>
+                <td>
+                    <?php $bres = sqlStatement("SELECT code, modifier from billing as b WHERE b.code_type = 'CPT4' " .
+                        "AND b.encounter = ?", array($row['encounter']));
+                    $brow = sqlFetchArray($bres);
+                    if ($brow['code']) {
+                        echo $brow['code'];
+                    } else {
+                        echo '99214';
+                    }; ?>
+                </td>
+                <td>
+                    <?php echo $icd10; // here's the dx ?>
+                </td>
 
                 <?php
                 //if ($form_pain) {
@@ -841,125 +442,97 @@ if ($res) {
                             continue;
                         } else if ($pos3 !== false || $pos7 !== false) {
                             $qpp['180'] = '0540F</td><td>4194F<td>';
-                                continue;
+                            continue;
                         } else {
                             $qpp['180'] = "</td><td>4192F<td>";
                             continue;
                         }
                     }
-            }
-            ksort($qpp);
-
-            if ($icd10_ra) {
-                foreach ($qpp as $meas => $meas_val) {
-                    if (!$form_results) {
-                        echo "<td> $meas_val </td>";
-                    } else {
-                        //echo ;
-                    }
                 }
-            } else {
-                echo "<td bgcolor='gray'>$qpp[39]</td>";
-                for ($i=0; $i < 11; $i++) {
-                    echo "<td>$icd10_ra</td>";
-                }
-            }
+                ksort($qpp);
 
-            // quality id 236 NQF 0018
-            $htn_res = sqlStatement("SELECT title, enddate FROM lists WHERE pid = ? AND type = 'medical_problem' AND " .
-                        "title LIKE '%HYPERTENSION%' LIMIT 1 ", array($patient_id));
-            //error_log("med problem is " . $htn_row['title']);
-            $htn_row = sqlFetchArray($htn_res);
-            if ($htn_row) {
-                echo "<td>I10</td>";
-                $bps_pt = '';
-                $bpd_pt = '';
-                $bps_mips = 140;
-                $bpd_mips = 90;
-                $query_bp = "SELECT bps, bpd FROM form_vitals WHERE id = ?";
-                $bp_res = sqlStatement($query_bp, array($vitals_id));
-                $bp_row = sqlFetchArray($bp_res);
-                $bps_pt = $bp_row['bps'];
-                $bps_test = ($bps_pt < $bps_mips);
-                $bpd_test = ($bpd_pt < $bpd_mips);
-                //? "true </br>" : "false </br>";
-                $bpd_pt = $bp_row['bpd'];
-
-                //echo "$patient_id systolic " . $bps_pt . " diastolic " . $bpd_pt . "</br>";
-                if ($bps_pt != '') {
-                    if ($bps_test) {
-                        //echo "$patient_id is $bps_pt less than $bps_mips";
-                        echo "<td>G8752</td>";
-                    } else {
-                        echo "<td>G8753</td>";
+                if ($icd10_ra) {
+                    foreach ($qpp as $meas => $meas_val) {
+                        if (!$form_results) {
+                            echo "<td> $meas_val </td>";
+                        } else {
+                            //echo ;
+                        }
                     }
                 } else {
-
-                    echo "<td>G8756</td>";
+                    echo "<td bgcolor='gray'>$qpp[39]</td>";
+                    for ($i = 0; $i < 11; $i++) {
+                        echo "<td>$icd10_ra</td>";
+                    }
                 }
 
-                if ($bpd_pt != '') {
-                    if ($bpd_test) {
-                        echo "<td>G8754</td>";
+                // quality id 236 NQF 0018
+                $htn_res = sqlStatement("SELECT title, enddate FROM lists WHERE pid = ? AND type = 'medical_problem' AND " .
+                    "title LIKE '%HYPERTENSION%' LIMIT 1 ", array($patient_id));
+                //error_log("med problem is " . $htn_row['title']);
+                $htn_row = sqlFetchArray($htn_res);
+                if ($htn_row) {
+                    echo "<td>I10</td>";
+                    $bps_pt = '';
+                    $bpd_pt = '';
+                    $bps_mips = 140;
+                    $bpd_mips = 90;
+                    $query_bp = "SELECT bps, bpd FROM form_vitals WHERE id = ?";
+                    $bp_res = sqlStatement($query_bp, array($vitals_id));
+                    $bp_row = sqlFetchArray($bp_res);
+                    $bps_pt = $bp_row['bps'];
+                    $bps_test = ($bps_pt < $bps_mips);
+                    $bpd_test = ($bpd_pt < $bpd_mips);
+                    //? "true </br>" : "false </br>";
+                    $bpd_pt = $bp_row['bpd'];
+
+                    //echo "$patient_id systolic " . $bps_pt . " diastolic " . $bpd_pt . "</br>";
+                    if ($bps_pt != '') {
+                        if ($bps_test) {
+                            //echo "$patient_id is $bps_pt less than $bps_mips";
+                            echo "<td>G8752</td>";
+                        } else {
+                            echo "<td>G8753</td>";
+                        }
                     } else {
-                        echo "<td>G8755</td>";
+
+                        echo "<td>G8756</td>";
+                    }
+
+                    if ($bpd_pt != '') {
+                        if ($bpd_test) {
+                            echo "<td>G8754</td>";
+                        } else {
+                            echo "<td>G8755</td>";
+                        }
+                    } else {
+                        echo "<td>bpd blank</td>";
                     }
                 } else {
-                    echo "<td>bpd blank</td>";
-                }
-            } else {
-                echo "<td></td><td></td><td></td>";
-            }
-
-            ?>
-                        <?php echo "<td>G9968</td><td>G9969</td>"; // quality id 374 act_ref_sent_sum ?>
-                    <td>
-                        <?php echo text($row['encounter']);
-                        //echo ($docname == $lastdocname) ? "" : text($docname) ?>
-                    </td>
-                    <td>
-                        <?php echo text(strtoupper($row['pid']));?>
-                    </td>
-                </tr>
-                <?php
-            } else {
-                if ($docname != $lastdocname) {
-                    show_doc_total($lastdocname, $doc_encounters);
-                    $doc_encounters = 0;
+                    echo "<td></td><td></td><td></td>";
                 }
 
-                ++$doc_encounters;
+                ?>
+                <?php echo "<td>G9968</td><td>G9969</td>"; // quality id 374 act_ref_sent_sum ?>
+                <td>
+                    <?php echo text($row['encounter']);
+                    //echo ($docname == $lastdocname) ? "" : text($docname) ?>
+                </td>
+                <td>
+                    <?php echo text(strtoupper($row['pid'])); ?>
+                </td>
+            </tr>
+        <?php
+        } else {
+            if ($docname != $lastdocname) {
+                show_doc_total($lastdocname, $doc_encounters);
+                $doc_encounters = 0;
             }
 
-            $lastdocname = $docname;
+            ++$doc_encounters;
+        }
 
+        $lastdocname = $docname;
     }
-
-    if (!$form_details) {
-        show_doc_total($lastdocname, $doc_encounters);
-    }
+    var_dump($hmx);
 }
-//echo "dexa count is $dexa";
-//echo " ra pt count is $ra_pt";
-?>
-</tbody>
-</table>
-</div>  <!-- end encresults -->
-<?php } else { ?>
-<div class='text'>
-    <?php echo xlt('Please input search criteria above, and click Submit to view results.'); ?>
-</div>
-<?php } ?>
-
-<input type="hidden" name="form_orderby" value="<?php echo attr($form_orderby) ?>" />
-<input type='hidden' name='form_refresh' id='form_refresh' value=''/>
-
-</form>
-</body>
-
-<script language='JavaScript'>
-<?php if ($alertmsg) {
-    echo " alert(" . js_escape($alertmsg) . ");\n";
-} ?>
-</script>
-</html>
