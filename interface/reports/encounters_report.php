@@ -25,11 +25,6 @@ require_once "$srcdir/options.inc.php";
 use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Core\Header;
 
-if (!empty($_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
-    }
-}
 
 $alertmsg = ''; // not used yet but maybe later
 
@@ -206,7 +201,6 @@ $res = sqlStatement($query, $sqlBindArray);
 </div>
 
 <form method='post' name='theform' id='theform' action='encounters_report.php' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
 
 <div id="report_parameters">
 <table>

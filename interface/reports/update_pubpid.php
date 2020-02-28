@@ -7,7 +7,7 @@
  */
 require_once("../globals.php");
 
-$fh = fopen('qstee.csv','r');
+$fh = fopen('l1out','r');
 
 while ($line = fgets($fh)) {
     // <... Do your work with the line ...>
@@ -18,11 +18,10 @@ while ($line = fgets($fh)) {
     $res = sqlStatement($query);
     //}
     if(sqlFetchArray($res)){
-        var_dump($res);
-        exit();
         echo "we will update $pubpid to $garno" . "</br>";
         $q = "update patient_data set pubpid = '$garno' where pubpid = '$pubpid'";
         sqlStatement($q);
+        echo $q . "</br>";
     } else {
         echo "this isn't matching, did we already update $pubpid?" . "</br>";
     }
