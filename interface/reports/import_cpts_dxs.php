@@ -10,6 +10,10 @@ require_once("$srcdir/forms.inc");
 require_once("$srcdir/patient.inc");
 require_once("$srcdir/options.inc.php");
 
+sqlStatement("TRUNCATE insurance_data");
+sqlStatement("TRUNCATE billing");
+
+
 set_time_limit(0);
 // exit;
 
