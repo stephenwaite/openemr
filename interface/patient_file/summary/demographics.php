@@ -1112,7 +1112,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
 
                                             // Display the eligibility information
                                             echo "<div class='tab'>";
-                                            show_eligibility_information($pid, true);
+                                            //show_eligibility_information($pid, true);
                                             echo "</div>";
 
                                     ///////////////////////////////// END INSURANCE SECTION

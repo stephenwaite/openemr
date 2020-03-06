@@ -10,10 +10,12 @@
 
 require_once(dirname(__FILE__) . "/../../interface/globals.php");
 require_once(dirname(__FILE__) . "/../../library/patient.inc");
+require_once(dirname(__FILE__) . "/../../library/forms.inc");
+
 
 sqlStatement("TRUNCATE insurance_data");
 
-
+//header( 'Content-type: text/html; charset=utf-8' );
 // w1 is unload of garfile
 $handle = fopen("w1", "r");
 if ($handle) {
@@ -26,6 +28,8 @@ if ($handle) {
         $row = sqlQuery("select pid from patient_data where pubpid = ?", $gar_no);
         if (!$row['pid']) {
             echo "<br><i>No match for $gar_no!</i><br><br>";
+        } else if (!getEncounters($row['pid'])){
+            echo "there aren't any encounters for " . $row['pid'];
         } else {
             // who is it
             echo "<br> pid is " . $row['pid'] . "<br>";
@@ -34,7 +38,8 @@ if ($handle) {
             // move gar street to emr street
             $gar_addr = trim(substr($line, 32, 22));
             $gar_suite = trim(substr($line, 54, 22));
-            $emr_street = $gar_addr . " " . $gar_suite;
+            $emr_street = mysqli_real_escape_string($GLOBALS['dbh'], $gar_addr . " " . $gar_suite);
+            //sleep(1);
             $gar_city = trim(substr($line, 76, 18));
             $gar_state = substr($line, 94, 2);
             $gar_zip = trim(substr($line, 96, 9));
@@ -61,7 +66,7 @@ if ($handle) {
             $gar_prname = substr($line, 167, 24);
                 $gar_pr_name_parts = explode(";", $gar_prname);
                 // for emr distinct fields
-                $gar_prname_lname = $gar_pr_name_parts[0];
+                $gar_prname_lname = mysqli_real_escape_string($GLOBALS['dbh'], $gar_pr_name_parts[0]);
                 $gar_prname_fname = $gar_pr_name_parts[1];
                 $gar_prname_mname = $gar_pr_name_parts[2];
 
@@ -114,7 +119,7 @@ if ($handle) {
             $gar_sename = substr($line, 230, 24);
             $gar_se_name_parts = explode(";", $gar_sename);
             // for emr distinct fields
-                $gar_se_name_lname = $gar_se_name_parts[0];
+                $gar_se_name_lname = mysqli_real_escape_string($GLOBALS['dbh'], $gar_se_name_parts[0]);
                 $gar_se_name_fname = $gar_se_name_parts[1];
                 $gar_se_name_mname = $gar_se_name_parts[2];
 
@@ -132,6 +137,9 @@ if ($handle) {
                 }
             }
             $gar_copay = substr($line, 255, 7);
+            if ($gar_copay == 0) {
+                $gar_copay = NULL;
+            }
             $gar_lastbill = substr($line, 262, 8);
             $gar_assignm = substr($line, 270, 1);
             $gar_private = substr($line, 271, 1);
@@ -192,7 +200,7 @@ if ($handle) {
                   '$gar_prname_lname', '$gar_prname_mname', '$gar_prname_fname', '$sub_rel',
                   '$gar_dob', '$emr_street', '$gar_zip',
                   '$gar_city', '$gar_state', 'US',
-                  '$gar_phone', '$gar_copay', now(), '$pid', '$sub_sex', 'TRUE')";
+                  '$gar_phone', '$gar_copay', '20200101', '$pid', '$sub_sex', 'TRUE')";
                 } else {
                     break;
                 }
