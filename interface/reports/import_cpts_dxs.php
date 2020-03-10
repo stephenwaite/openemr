@@ -22,6 +22,8 @@ if (!empty($_POST)) {
     }
 }
 
+echo "<pre>";
+
 //$cms = array();
 // q5 is special report from sid-l off of charcur
 $fh = fopen('q5','r');
@@ -79,7 +81,7 @@ while ($line = fgets($fh)) {
    $dx1 = substr($line, 26, 3) . "." . trim(substr($line, 29, 4));
    //$cms['paycode'] = substr($line, 57, 3);
 
-   if ($dos != "20191202") {
+   if (($dos < "20190101") or ($dos > "20191231")) {
        continue;
    }
    //echo $cms['dos']. "\n";

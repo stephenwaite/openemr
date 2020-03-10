@@ -42,7 +42,7 @@ foreach ($alines as $tmplines) {
             $footer = substr($tmplines, $footer_start, $footer_length);
 
             $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-            $pdf->addPngFromFile("cra.png", 0, 0, 612, 792);
+            $pdf->addPngFromFile("dwb.png", 0, 0, 612, 792);
             $pdf->ezText($header, 12, array(
                 'justification' => 'left',
                 'leading' => 12
@@ -84,7 +84,7 @@ foreach ($alines as $tmplines) {
                 $altered_footer .= $blines[$bline_count - 1] . "\012";
 
                 $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-                $pdf->addPngFromFile("cra.png", 0, 0, 612, 792);
+                $pdf->addPngFromFile("dwb.png", 0, 0, 612, 792);
                 $pdf->ezText($header, 12, array(
                     'justification' => 'left',
                     'leading' => 12
