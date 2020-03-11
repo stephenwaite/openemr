@@ -147,8 +147,9 @@ if ($res) {
         // now get ra pts from emr
         $emr_dx = false;
         if (!$bill_dx) {
+            //echo "this pid doesn't have RA per lynda's billing $pid </br>";
             $ra_res = sqlStatement("SELECT title, enddate FROM lists WHERE pid = ? AND type = 'medical_problem' AND " .
-            "title LIKE '%RHEUMATOID ARTHRITIS%' LIMIT 1", array($pid));
+            "title LIKE 'RHEUMATOID ARTHRITIS' LIMIT 1", array($pid));
             $ra_row = sqlFetchArray($ra_res);
             // M06.9 will be used for the odd balls
             //var_dump($ra_row);
@@ -256,15 +257,15 @@ if ($res) {
             $hmx[$pid]['39']  = ''; // dexa
             $hmx[$pid]['176'] = ''; // tb
             $hmx[$pid]['177'] = '';
-            $hmx[$pid]['178'] = '11708P';
-            $hmx[$pid]['179'] = '34758P';
-            $hmx[$pid]['374'] = 'G9968, G9970';
+            $hmx[$pid]['178'] = '1170,8P';
+            $hmx[$pid]['179'] = '3475,8P';
+            $hmx[$pid]['374'] = 'G9968,G9970';
             $flag_179 = 0;
             $flag_374 = 0;
             if ($glu) {
-                $hmx[$pid]['180'] = '41948P'; // glucocorticoid
+                $hmx[$pid]['180'] = '4194,8P'; // glucocorticoid
             } else {
-                $hmx[$pid]['180'] = '4192F'; // glucocorticoid
+                $hmx[$pid]['180'] = '4192F,'; // glucocorticoid
             }
 
             $rres = sqlStatement("SELECT * from rule_patient_data as rpd WHERE rpd.pid = ? " . $rpd_where .
@@ -316,7 +317,7 @@ if ($res) {
 
                 // SELECT * FROM `rule_patient_data` WHERE `item` = 'act_rafunc' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
                 if ($item == 'act_rafunc') { //quality id 178
-                    $hmx[$pid]['178'] = "1170F";
+                    $hmx[$pid]['178'] = "1170F,";
                 }
 
                 // SELECT * FROM `rule_patient_data` WHERE `item` = 'act_disease_prog' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
@@ -332,11 +333,11 @@ if ($res) {
                     $pos4 = stripos("$result", "good"); // good prognosis
                     $pos45 = stripos("$result", "excellent"); // good prognosis
                     if ($pos1 !== false || $pos2 !== false || $pos25 !== false) {
-                        $hmx[$pid]['179'] = '3475F';
+                        $hmx[$pid]['179'] = '3475F,';
                         $flag_179 = 1;
                     } else if ($pos3 !== false || $pos35 !== false ||
                         $pos4 !== false || $pos45 !== false) {
-                        $hmx[$pid]['179'] = '3476F';
+                        $hmx[$pid]['179'] = '3476F,';
                         $flag_179 = 2;
                     } else {
                         //echo "$pid there's an act_ ". $result;
@@ -357,19 +358,19 @@ if ($res) {
                     $pos7 = stripos("$result", "chronic"); // improvement or no change in disease activity?
 
                     if ($pos1 !== false || $pos5 !== false) {
-                        $hmx[$pid]['180'] = "4192F";
+                        $hmx[$pid]['180'] = "4192F,";
                     } else if ($pos2 !== false || $pos4 !== false || $pos6 !== false) {
-                        $hmx[$pid]['180'] = '4193F';
+                        $hmx[$pid]['180'] = '4193F,';
                     } else if ($pos3 !== false || $pos7 !== false) {
-                        $hmx[$pid]['180'] = '0540F 4194F';
+                        $hmx[$pid]['180'] = '0540F,4194F,';
                     } else {
-                        $hmx[$pid]['180'] = "4192F";
+                        $hmx[$pid]['180'] = "4192F,";
                     }
                 }
                 if ($item == 'act_ref_sent_sum') {
                     // echo "for $pid flag_374 is $flag_374 </br>";
                     if (!$flag_374) { // quality id 180
-                        $hmx[$pid]['374'] = "G9968, G9969";
+                        $hmx[$pid]['374'] = "G9968,G9969";
                         $flag_374++;
                     }
                 }
@@ -441,9 +442,9 @@ if ($res) {
 
     echo "<pre>";
     echo "pid\tgarno\t\tdob\t\tsex\tdos\t\tcpt\tdx\t" .
-         "39\t176\t177\t178\t179\t180\tI10\t236\t374";
-    $ste_head = "pid,garno,dob,sex,dos,cpt,dx," .
-        "39,176,177,178,179,180,I10,236,374";
+         "39\t176\t177\t178\tmod\t\t179\tmod\t\t180\tmod\t\tI10\t236\t374";
+    $ste_head = "pid,patientid,date of birth,gender,date of service,cpt,icd10," .
+        "numerator,numerator,numerator,numerator,modifier,numerator,modifier,numerator,modifier,icd10,numerator,numerator,numerator";
     fwrite($handle_ste, $ste_head . "\n");
 
     foreach ($hmx as $key=>$value) {
@@ -463,7 +464,7 @@ if ($res) {
             $value['39'] . "," .
             $value['176'] . "," .
             $value['177'] . "," .
-            $value['178'] . "." .
+            $value['178'] . "," .
             $value['179'] . "," .
             $value['180'] . "," .
             $value['htn'] . "," . $value['236'] . "," .
