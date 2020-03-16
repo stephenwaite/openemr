@@ -315,7 +315,7 @@ if ($res) {
                     $pos15 = stripos("$result", "failure"); // poor prognosis
                     $pos2 = stripos("$result", "poor"); // poor prognosis
                     $pos25 = stripos("$result", "guarded"); // poor prognosis
-                    $pos3 = stripos("$result", "seronegative"); // good prognosis
+                    $pos3 = stripos("$result", "negative"); // good prognosis
                     $pos35 = stripos("$result", "fair"); // good prognosis
                     $pos4 = stripos("$result", "good"); // good prognosis
                     $pos45 = stripos("$result", "excellent"); // good prognosis
@@ -339,7 +339,7 @@ if ($res) {
                 // SELECT * FROM `rule_patient_data` WHERE `item` = 'act_glucocorticoid' and date > '2017-12-31 23:59:59' and date < '2019-01-01 00:00:00' ORDER BY `date` DESC
                 if ($item == 'act_glucocorticoid') { // quality id 180
                     //$hmx[$pid]['180'] .= $result;
-                    echo "here's $pid and $result</br>";
+                    echo "here's " . $hmx[$pid]['garno'] . " and $result</br>";
                     $pos1 = stripos("$result", "no"); //
                     $pos2 = stripos("$result", "low-dose"); // < 10 mg qd
                     $pos25= stripos("$result", "less than 10"); // < 10 mg qd
