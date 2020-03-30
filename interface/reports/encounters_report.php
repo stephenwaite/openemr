@@ -92,7 +92,7 @@ $sqlBindArray = array();
 $query = "SELECT " .
   "fe.encounter, fe.date, fe.reason, " .
   "f.formdir, f.form_name, " .
-  "p.fname, p.mname, p.lname, p.pid, p.pubpid, " .
+  "p.fname, p.mname, p.lname, p.dob, p.sex, p.pid, p.pubpid, " .
   "u.lname AS ulname, u.fname AS ufname, u.mname AS umname " .
   "$esign_fields" .
   "FROM ( form_encounter AS fe, forms AS f ) " .
@@ -344,9 +344,22 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
   </th>
   <th>
    <a href="nojs.php" onclick="return dosort('patient')"
-        <?php echo ($form_orderby == "patient") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('Patient'); ?></a>
+        <?php echo ($form_orderby == "patient") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('lname'); ?></a>
   </th>
-  <th>
+        <th>
+            <a href="nojs.php" onclick="return dosort('patient')"
+                <?php echo ($form_orderby == "patient") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('fname'); ?></a>
+        </th>
+        <th>
+            <a href="nojs.php" onclick="return dosort('patient')"
+                <?php echo ($form_orderby == "patient") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('dob'); ?></a>
+        </th>
+        <th>
+            <a href="nojs.php" onclick="return dosort('patient')"
+                <?php echo ($form_orderby == "patient") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('sex'); ?></a>
+        </th>
+
+        <th>
    <a href="nojs.php" onclick="return dosort('pubpid')"
         <?php echo ($form_orderby == "pubpid") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('ID'); ?></a>
   </th>
@@ -464,8 +477,17 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
                 <?php echo text(oeFormatShortDate(substr($row['date'], 0, 10))) ?>&nbsp;
   </td>
   <td>
-                <?php echo text($row['lname'] . ', ' . $row['fname'] . ' ' . $row['mname']); ?>&nbsp;
+                <?php echo strtoupper(text($row['lname'])); ?>&nbsp;
   </td>
+           <td>
+               <?php echo strtoupper(text($row['fname'])); ?>&nbsp;
+           </td>
+           <td>
+               <?php echo text($row['dob']); ?>&nbsp;
+           </td>
+           <td>
+               <?php echo text($row['sex']); ?>&nbsp;
+           </td>
   <td>
                 <?php echo text($row['pubpid']); ?>&nbsp;
   </td>
