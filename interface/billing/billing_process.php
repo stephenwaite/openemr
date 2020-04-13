@@ -91,7 +91,7 @@ function append_claim(&$segs)
         if ($elems[0] == 'GS') {
             if ($bat_gscount == 0) {
                 ++$bat_gscount;
-                $bat_content .= "GS*HC*" . $elems[2] . "*" . $elems[3] . "*$bat_yyyymmdd*$bat_hhmm*1*X*" . $elems[8] . "~";
+                $bat_content .= "GS*HC*" . $elems[2] . "*" . $bat_recvid . "*$bat_yyyymmdd*$bat_hhmm*1*X*" . $elems[8] . "~";
             }
             continue;
         }

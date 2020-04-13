@@ -645,7 +645,7 @@ class Claim
         return $this->x12_partner['x12_isa15'];
     }
 
-    public function x12gsgs02()
+    public function x12gs02()
     {
         $tmp = $this->x12_partner['x12_gs02'];
         if ($tmp === '') {

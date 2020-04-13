@@ -53,7 +53,7 @@ class X12_5010_837P
 
         $out .= "GS" .
         "*" . "HC" .
-        "*" . $claim->x12gsgs02() .
+        "*" . $claim->x12gs02() .
         "*" . trim($claim->x12gs03()) .
         "*" . date('Ymd', $today) .
         "*" . date('Hi', $today) .

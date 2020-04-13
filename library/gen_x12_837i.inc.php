@@ -51,7 +51,7 @@ function generate_x12_837I($pid, $encounter, &$log, $ub04id)
     "~\n";
     $out .= "GS" .
         "*HC" .
-        "*" . $claim->x12gsgs02() .
+        "*" . $claim->x12gs02() .
         "*" . trim($claim->x12gs03()) .
         "*" . date('Ymd', $today) .
         "*" . date('Hi', $today) .
