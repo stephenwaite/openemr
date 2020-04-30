@@ -490,9 +490,9 @@ $form_facility   = $_POST['form_facility'];
                         if ($form_doctor) $query .= " AND u.id = '$form_doctor'";
                         ***************************************************************/
                         $sqlBindArray = array();
-                        $query = "SELECT a.pid, a.encounter, a.post_time, a.code, a.modifier, a.pay_amount, " .
+                        $query = "SELECT a.pid, a.encounter, a.post_time, a.code, a.modifier, a.payer_type, a.pay_amount, " .
                         "fe.date, fe.id AS trans_id, fe.provider_id AS docid, fe.invoice_refno, s.deposit_date, s.payer_id, " .
-                        "b.provider_id, concat(p.lname, ' ', p.fname) as 'pat_fulname' " .
+                        "b.provider_id, b.payer_id, concat(p.lname, ' ', p.fname) as 'pat_fulname' " .
                         "FROM ar_activity AS a " .
                         "JOIN form_encounter AS fe ON fe.pid = a.pid AND fe.encounter = a.encounter " .
                         "LEFT OUTER JOIN ar_session AS s ON s.session_id = a.session_id " .
@@ -508,10 +508,10 @@ $form_facility   = $_POST['form_facility'];
                         // If a procedure code was specified.
                         // Support code type if it is in the ar_activity table. Note it is not always included, so
                         // also support a blank code type in ar_activity table.
-                        if ($form_proc_codetype && $form_proc_code) {
+                        /*if ($form_proc_codetype && $form_proc_code) {
                             $query .= " AND (a.code_type = ? OR a.code_type = '') AND a.code = ?";
                             array_push($sqlBindArray, $form_proc_codetype, $form_proc_code);
-                        }
+                        }*/
 
                         // If a facility was specified.
                         if ($form_facility) {
@@ -527,6 +527,12 @@ $form_facility   = $_POST['form_facility'];
                             array_push($sqlBindArray, $form_doctor, $form_doctor);
                         }
 
+                        $form_payer = true;
+                        if ($form_payer) {
+                            $query .= " AND ( b.payer_id = ? OR b.payer_id = ? ) ";
+                            array_push($sqlBindArray, '4', '8');
+                        }
+
                         /**************************************************************/
                         //
                         $res = sqlStatement($query, $sqlBindArray);
@@ -535,8 +541,13 @@ $form_facility   = $_POST['form_facility'];
                             $patient_id = $row['pid'];
                             $encounter_id = $row['encounter'];
                             $patient_name = $row['pat_fulname'];
+                            $payer_type = $row['payer_type'];
                             //
                             if (!empty($ids_to_skip[$trans_id])) {
+                                continue;
+                            }
+
+                            if ($payer_type !== '1') {
                                 continue;
                             }
 
@@ -585,6 +596,7 @@ $form_facility   = $_POST['form_facility'];
                             $arows[$key]['docid'] = $docid;
                             $arows[$key]['project_id'] = empty($row['payer_id']) ? 0 : $row['payer_id'];
                             $arows[$key]['memo'] = $row['code'];
+                            $arows[$key]['payer_type'] = $payer_type;
                             if ($GLOBALS['cash_receipts_report_invoice'] == '0') {
                                 $arows[$key]['invnumber'] = "$patient_id.$encounter_id";
                             } else {
@@ -599,11 +611,25 @@ $form_facility   = $_POST['form_facility'];
 
                         foreach ($arows as $row) {
                         // Get insurance company name
+                            var_dump($row);
                             $insconame = '';
+                            if (!$row['project_id']) {
+                                if ($row['payer_type'] == '1') {
+                                    $inscoid = getInsuranceData($patient_id, $type = "primary");
+                                    $row['project_id'] = $inscoid['provider'];
+                                } else {
+                                    continue;
+                                }//elseif ($row['payer_type'] == '2' &&
+                                  //  ($inscoid['provider'] == "4" || $inscoid['provider'] == "8")) {
+                                  //  $inscoid = getInsuranceData($patient_id, $type = "secondary");
+                                  //  $row['project_id'] = $inscoid['provider'];
+                               // }
+                            }
                             if ($form_proc_codefull  && $row['project_id']) {
                                 $tmp = sqlQuery("SELECT name FROM insurance_companies WHERE " .
                                 "id = ?", array($row['project_id']));
                                 $insconame = $tmp['name'];
+                                error_log("ins name is " . $insconame);
                             }
 
                             $amount1 = 0;
@@ -662,7 +688,7 @@ $form_facility   = $_POST['form_facility'];
                 </td>
                     <?php } ?>
                                 <?php
-                                if ($form_proc_code && $form_proc_codetype) {
+                                /*if ($form_proc_code && $form_proc_codetype) {
                                         echo "  <td class='detail' align='right'>";
                                         list($patient_id, $encounter_id) = explode(".", $row['invnumber']);
                                         $tmp = sqlQuery("SELECT SUM(fee) AS sum FROM billing WHERE " .
@@ -670,7 +696,7 @@ $form_facility   = $_POST['form_facility'];
                                         "code_type = ? AND code = ? AND activity = 1", array($patient_id,$encounter_id,$form_proc_codetype,$form_proc_code));
                                         bucks($tmp['sum']);
                                         echo "  </td>\n";
-                                }
+                                }*/
                                 ?>
                                 <?php
                                 if ($form_proc_codefull) { ?>
