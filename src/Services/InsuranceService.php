@@ -62,7 +62,7 @@ class InsuranceService
 
     public function getOne($pid, $type)
     {
-        $sql = "SELECT * FROM insurance_data WHERE pid=? AND type=?";
+        $sql = "SELECT * FROM insurance_data WHERE pid=? AND type=? ORDER BY date desc";
 
         return sqlQuery($sql, array($pid, $type));
     }
