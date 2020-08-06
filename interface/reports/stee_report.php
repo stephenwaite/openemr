@@ -32,12 +32,13 @@ use OpenEMR\Core\Header;
 use OpenEMR\Services\InsuranceCompanyService;
 use OpenEMR\Services\InsuranceService;
 
+
 if (!empty($_POST)) {
     if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
         CsrfUtils::csrfNotVerified();
     }
 }
-
+global $selfie;
 $alertmsg = '';
 $bgcolor = "#aaaaaa";
 $export_patient_count = 0;
@@ -49,82 +50,79 @@ $form_to_date   = (isset($_POST['form_to_date'])) ? DateToYYYYMMDD($_POST['form_
 //$form_to_date = "2020-07-06";
 
 
-function endInsurance($insrow)
+function endInsurance($insrow, $selfie)
 {
     
     global $charges, $payments;
 
+    //$charges = [];
+    //$payments = [];
+    //$charges = array('medicare', 'medicaid', 'tricare', 'commercial', 'selfpay' );
     $insurance = (new InsuranceService)->getOne($insrow['pid'], "primary");
     $ins_id = $insurance['provider'];
     
-    $code_query = "SELECT code, encounter FROM billing WHERE encounter = ? and code_type = 'CPT4'";
-    $temp = sqlStatement($code_query, array($insrow['encounter']));
-    while ($temp_array = sqlfetcharray($temp)){
-        if ($temp_array['code'] == "NP150") {
-            $charges['selfpay'] += 150;
-            continue;
-        } 
-    }
-
+    $charges['selfpay'] = $selfie;
     $pay_query = "SELECT sequence_no, payer_type, pay_amount FROM ar_activity WHERE pid = ? AND encounter = ? AND pay_amount != 0";
     $pay_state = sqlStatement($pay_query, array($insrow['pid'], $insrow['encounter']));
 
-    if (in_array($ins_id, array('4', '8'))) {
-        $charges['medicare'] += $insrow['charges'];
-        error_log("medicare charges are now " . $charges['medicare']);
+   
         while ($pay_array = sqlFetchArray($pay_state)){
+            
             //var_dump($pay_array);
             if ($pay_array['payer_type'] == "1") {
                 $payments['medicare'] += $pay_array['pay_amount'];
-                error_log("medicare payments are now " . $payments['medicare'] . " for encounter " . $insrow['encounter']);
+                //error_log("medicare payments are now " . $payments['medicare'] . " for encounter " . $insrow['encounter']);
             } else {
                 $payments['selfpay'] += $pay_array['pay_amount'];
-                error_log("selfpay payments are now " . $payments['selfpay'] . " for encounter " . $insrow['encounter']);
+                //error_log("selfpay payments are now " . $payments['selfpay'] . " for encounter " . $insrow['encounter']);
             }
             //error_log("encounter $enc");
         }
     } elseif (in_array($ins_id, array('13'))) {
         $charges['medicaid'] += $insrow['charges'];
-        error_log("medicaid charges are now " . $charges['medicaid']);
+        //error_log("medicaid charges are now " . $charges['medicaid']);
         while ($pay_array = sqlFetchArray($pay_state)){
             //var_dump($pay_array);
             if ($pay_array['payer_type'] == "1") {
                 $payments['medicaid'] += $pay_array['pay_amount'];
-                error_log("medicaid payments are now " . $payments['medicaid'] . " for encounter " . $insrow['encounter']);
+                //error_log("medicaid payments are now " . $payments['medicaid'] . " for encounter " . $insrow['encounter']);
             } else {
                 $payments['selfpay'] += $pay_array['pay_amount'];
-                error_log("selfpay payments are now " . $payments['selfpay'] . " for encounter " . $insrow['encounter']);
+                //error_log("selfpay payments are now " . $payments['selfpay'] . " for encounter " . $insrow['encounter']);
             }
             //error_log("encounter $enc");
         }
     } elseif(in_array($ins_id, array('20', '86', '90'))) {
         $charges['tricare'] += $insrow['charges'];
-        error_log("tricare charges are now " . $charges['tricare']);
+        //error_log("tricare charges are now " . $charges['tricare']);
         while ($pay_array = sqlFetchArray($pay_state)){
             //var_dump($pay_array);
             if ($pay_array['payer_type'] == "1") {
                 $payments['tricare'] += $pay_array['pay_amount'];
-                error_log("tricare payments are now " . $payments['tricare'] . " for encounter " . $insrow['encounter']);
+                //error_log("tricare payments are now " . $payments['tricare'] . " for encounter " . $insrow['encounter']);
             } else {
                 $payments['selfpay'] += $pay_array['pay_amount'];
-                error_log("selfpay payments are now " . $payments['selfpay'] . " for encounter " . $insrow['encounter']);
+                //error_log("selfpay payments are now " . $payments['selfpay'] . " for encounter " . $insrow['encounter']);
             }
             //error_log("encounter $enc");
         }
     } else {
             $charges['commercial'] += $insrow['charges'];
-            error_log("commercial charges are now " . $charges['commercial']);while ($pay_array = sqlFetchArray($pay_state)){
+            //error_log("commercial charges are now " . $charges['commercial']);
+            while ($pay_array = sqlFetchArray($pay_state)){
                 //var_dump($pay_array);
                 if ($pay_array['payer_type'] == "1") {
                     $payments['commercial'] += $pay_array['pay_amount'];
-                    error_log("commercial payments are now " . $payments['commercial'] . " for encounter " . $insrow['encounter']);
+                    //error_log("commercial payments are now " . $payments['commercial'] . " for encounter " . $insrow['encounter']);
                 } else {
                     $payments['selfpay'] += $pay_array['pay_amount'];
-                    error_log("selfpay payments are now " . $payments['selfpay'] . " for encounter " . $insrow['encounter']);
+                    //error_log("selfpay payments are now " . $payments['selfpay'] . " for encounter " . $insrow['encounter']);
                 }
                 //error_log("encounter $enc");
             }
     }
+
+    $charges['selfpay'] = $selfie;
 }
 
 function bucks($amount)
@@ -153,29 +151,7 @@ function getInsName($payerid)
 
     <?php Header::setupHeader(['datetime-picker', 'report-helper']); ?>
 
-    <style type="text/css" >
-        @media print {
-            #report_parameters {
-                visibility: hidden;
-                display: none;
-            }
-            #report_parameters_daterange {
-                visibility: visible;
-                display: inline;
-            }
-            #report_results {
-               margin-top: 30px;
-            }
-        }
-
-        /* specifically exclude some from the screen */
-        @media screen {
-            #report_parameters_daterange {
-                visibility: hidden;
-                display: none;
-            }
-        }
-    </style>
+    
 
     <script>
         function reSubmit() {
@@ -220,7 +196,7 @@ function getInsName($payerid)
 
 <body class="body_top">
 
-<span class='title'><?php echo xlt('Report'); ?> - <?php echo xlt('Revenue'); ?></span>
+<span class='title'><?php echo xlt('Rebecca M Jones MD LLC Report'); ?> - <?php echo xlt('Revenue'); ?></span>
 
 <form method='post' action='stee_report.php' enctype='multipart/form-data' id='theform' onsubmit='return top.restoreSession()'>
 <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
@@ -309,17 +285,29 @@ function getInsName($payerid)
             continue;
         }
 
-        endInsurance($erow);
+        $code_query = "SELECT code, encounter, fee FROM billing WHERE encounter = ? AND pid = ? AND code_type = 'CPT4'";
+        $temp = sqlStatement($code_query, array($erow['encounter'], $erow['pid']));
+        while ($temp_array = sqlFetchArray($temp)){
+            if ($temp_array['code'] == "NP150") {
+                $selfie += $temp_array['fee'];
+                //array_push($np, $erow['encounter']);
+                //error_log("found charges for pid " . $erow['pid'] . " and encounter " . $erow['encounter'] . " " . $charges['selfpay'] );
+            } 
+        }
+
+        endInsurance($erow, $selfie);
         //var_dump($row);
         
     } // end while
 
+    //var_dump($charges);
     foreach($charges as $item) {
 
         $grand_total_charges += $item; 
         
     }
 
+    //var_dump($payments);
     foreach($payments as $item) {
         $grand_total_payments += $item; 
     }
