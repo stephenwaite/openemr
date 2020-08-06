@@ -65,9 +65,10 @@ function endInsurance($insrow, $selfie)
     $pay_query = "SELECT sequence_no, payer_type, pay_amount FROM ar_activity WHERE pid = ? AND encounter = ? AND pay_amount != 0";
     $pay_state = sqlStatement($pay_query, array($insrow['pid'], $insrow['encounter']));
 
-   
+    if (in_array($ins_id, array('4', '8'))) {
+        $charges['medicare'] += $insrow['charges'];
+        //error_log("medicare charges are now " . $charges['medicare']);
         while ($pay_array = sqlFetchArray($pay_state)){
-            
             //var_dump($pay_array);
             if ($pay_array['payer_type'] == "1") {
                 $payments['medicare'] += $pay_array['pay_amount'];
