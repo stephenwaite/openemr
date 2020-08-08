@@ -501,6 +501,19 @@
           "eob"
         ],
         "global_req": "enable_edihistory_in_left_menu"
+      },
+      {
+        "label": "wqwq",
+        "menu_id": "edi0",
+        "target": "edi",
+        "url": "/interface/reports/wqwq.php",
+        "children": [],
+        "requirement": 0,
+        "acl_req": [
+          "acct",
+          "eob"
+        ],
+        "global_req": "enable_edihistory_in_left_menu"
       }
     ],
     "requirement": 0,
