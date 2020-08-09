@@ -858,9 +858,11 @@ function upgradeFromSqlFile($filename)
                 echo '<font color="black">Starting conversion of *TEXT types to use default NULL.</font><br />',"\n";
                 while ($item = sqlFetchArray($items_to_convert)) {
                     if (!empty($item['column_comment'])) {
+                        var_dump($item);
                         $res = sqlStatement("ALTER TABLE `" . add_escape_custom($item['table_name']) . "` MODIFY `" . add_escape_custom($item['column_name']) . "` " . add_escape_custom($item['data_type'])  . " COMMENT '" . add_escape_custom($item['column_comment']) . "'");
                     } else {
-                        $res = sqlStatement("ALTER TABLE `" . add_escape_custom($item['table_name']) . "` MODIFY `" . add_escape_custom($item['column_name']) . "` " . add_escape_custom($item['data_type']));
+                        var_dump($item);
+                        $res = sqlStatement("ALTER TABLE `" . add_escape_custom($item['TABLE_NAME']) . "` MODIFY `" . add_escape_custom($item['COLUMN_NAME']) . "` " . add_escape_custom($item['DATA_TYPE']));
                     }
 
                     // If above query didn't work, then error will be outputted via the sqlStatement function.
@@ -889,11 +891,15 @@ function upgradeFromSqlFile($filename)
                 $skipping = false;
                 echo '<font color="black">Starting migration to InnoDB, please wait.</font><br />',"\n";
                 foreach ($tables_list as $k => $t) {
+                    var_dump($t);
+                    if ($t == NULL) {
+                        continue;
+                    }    
                     if (in_array($t, $tables_skip_migration)) {
                         printf('<font color="green">Table %s was purposefully skipped and NOT migrated to InnoDB.</font><br />', $t);
                         continue;
                     }
-
+//var_dump($t);
                     $res = MigrateTableEngine($t, 'InnoDB');
                     if ($res === true) {
                         printf('<font color="green">Table %s migrated to InnoDB.</font><br />', $t);

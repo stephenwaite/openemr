@@ -114,7 +114,7 @@ ALTER TABLE `claims` ENGINE="InnoDB";
 DROP TABLE procedure_order_code_20190504;
 #EndIf
 
-#IfTableEngine `form_quest_order` MyISAM
+#IfTable `form_quest_order`
 -- Modify the table for InnoDB
 alter table `form_quest_order` modify `user` text;
 alter table `form_quest_order` modify `groupname` text; 
@@ -195,7 +195,7 @@ alter table `form_quest_order` modify `request_handling` text;
 ALTER TABLE `form_quest_order` ENGINE="InnoDB";
 #EndIf
 
-#IfTableEngine `form_quest_order_item` MyISAM
+#IfTable `form_quest_order_item`
 -- Modify the table for InnoDB
 alter table `form_quest_order_item` modify `user` text;
 alter table `form_quest_order_item` modify `groupname` text;
