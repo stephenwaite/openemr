@@ -1,22 +1,8 @@
 <?php
-/**
- * Patient selector screen.
- *
- * LICENSE: This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://opensource.org/licenses/gpl-license.php>;.
- *
- * @package OpenEMR
- * @author  Brady Miller <brady@sparmy.com>
- * @link    http://www.open-emr.org
- */
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
 
 //SANITIZE ALL ESCAPES
 $sanitize_all_escapes=true;
@@ -114,7 +100,6 @@ function submitList(offset) {
  var i = parseInt(f.fstart.value) + offset;
  if (i < 0) i = 0;
  f.fstart.value = i;
- top.restoreSession();
  f.submit();
 }
 
@@ -123,7 +108,7 @@ function submitList(offset) {
 </head>
 <body class="body_top">
 
-<form method='post' action='patient_select.php' name='theform' onsubmit='return top.restoreSession()'>
+<form method='post' action='patient_select.php' name='theform'>
 <input type='hidden' name='fstart'  value='<?php echo htmlspecialchars( $fstart, ENT_QUOTES); ?>' />
 
 <?php
@@ -143,7 +128,11 @@ if ($popup) {
 
   // Construct WHERE clause and save search parameters as form fields.
   $sqlBindArray = array();
-  $where = "1 = 1";
+//------------------
+//RON  $where = "1 = 1";
+//RON - exclude special 'QUESTLABS' patient account from all results
+$where = "lname != '#QUESTLABS#' ";
+//------------------
   $fres = sqlStatement("SELECT * FROM layout_options " .
     "WHERE form_id = 'DEM' AND uor > 0 AND field_id != '' " .
     "ORDER BY group_name, seq");
@@ -223,7 +212,7 @@ else {
 <table border='0' cellpadding='5' cellspacing='0' width='100%'>
  <tr>
   <td class='text'>
-   <a href="./patient_select_help.php" target=_new onclick='top.restoreSession()'>[<?php echo htmlspecialchars( xl('Help'), ENT_NOQUOTES); ?>]&nbsp</a>
+   <a href="./patient_select_help.php" target=_new>[<?php echo htmlspecialchars( xl('Help'), ENT_NOQUOTES); ?>]&nbsp</a>
   </td>
   <td class='text' align='center'>
 <?php if ($message) echo "<font color='red'><b>".htmlspecialchars( $message, ENT_NOQUOTES)."</b></font>\n"; ?>
@@ -451,7 +440,6 @@ else {
 ?>
     objID = eObj.id;
     var parts = objID.split("~");
-    <?php if (!$popup) echo "top.restoreSession();\n"; ?>
     <?php if ($popup) echo "opener."; echo $target; ?>.location.href = '<?php echo $newPage; ?>' + parts[0];
     <?php if ($popup) echo "window.close();\n"; ?>
     return true;

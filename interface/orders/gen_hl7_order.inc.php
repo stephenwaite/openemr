@@ -37,6 +37,7 @@
 require_once("$srcdir/classes/Address.class.php");
 require_once("$srcdir/classes/InsuranceCompany.class.php");
 require_once("$webserver_root/custom/code_types.inc.php");
+require_once ("labCustom.inc.php");
 
 function hl7Text($s) {
   // See http://www.interfaceware.com/hl7_escape_protocol.html:
@@ -149,30 +150,33 @@ function gen_hl7_order($orderid, &$out) {
   $today = time();
   $out = '';
 
+
   $porow = sqlQuery("SELECT " .
     "po.date_collected, po.date_ordered, po.order_priority, " .
     "pp.*, " .
     "pd.pid, pd.pubpid, pd.fname, pd.lname, pd.mname, pd.DOB, pd.ss, " .
-    "pd.phone_home, pd.phone_biz, pd.sex, pd.street, pd.city, pd.state, pd.postal_code, " .
-    "f.encounter, u.fname AS docfname, u.lname AS doclname, u.npi AS docnpi " .
+    "pd.phone_home, pd.phone_biz, pd.sex, pd.street, pd.city, pd.state, pd.postal_code as zip, " .
+    "f.encounter, u1.fname AS docfname, u1.lname AS doclname, u1.npi AS docnpi, " .
+    "u2.fname AS entrdfname, u2.lname AS entrdlname " .
     "FROM procedure_order AS po, procedure_providers AS pp, " .
-    "forms AS f, patient_data AS pd, users AS u " .
+    "forms AS f, patient_data AS pd, users AS u1, users AS u2 " .
     "WHERE " .
     "po.procedure_order_id = ? AND " .
     "pp.ppid = po.lab_id AND " .
     "f.formdir = 'procedure_order' AND " .
     "f.form_id = po.procedure_order_id AND " .
     "pd.pid = f.pid AND " .
-    "u.id = po.provider_id",
+    "u1.id = po.provider_id AND " . 
+    "u2.username = f.user",
     array($orderid));
-  if (empty($porow)) return "Procedure order, ordering provider or lab is missing for order ID '$orderid'";
-
+  if (empty($porow)) return "Procedure order or lab is missing for order ID '$orderid'";
+  $orderPrint = externalOrderId($orderid, $porow);
+  
   $pcres = sqlStatement("SELECT " .
     "pc.procedure_code, pc.procedure_name, pc.procedure_order_seq, pc.diagnoses " .
     "FROM procedure_order_code AS pc " .
     "WHERE " .
-    "pc.procedure_order_id = ? AND " .
-    "pc.do_not_send = 0 " .
+    "pc.procedure_order_id = ? " .
     "ORDER BY pc.procedure_order_seq",
     array($orderid));
 
@@ -186,7 +190,7 @@ function gen_hl7_order($orderid, &$out) {
     $d1 . date('YmdHis', $today) .  // Date and time of this message
     $d1 .
     $d1 . 'ORM' . $d2 . 'O01' .     // Message Type
-    $d1 . $orderid .                // Unique Message Number
+    $d1 . $orderPrint .                // Unique Message Number
     $d1 . $porow['DorP'] .          // D=Debugging, P=Production
     $d1 . '2.3' .                   // HL7 Version ID
     $d0;
@@ -241,10 +245,11 @@ function gen_hl7_order($orderid, &$out) {
   foreach ($payers as $payer) {
     $payer_object = $payer['object'];
     $payer_address = $payer_object->get_address();
+    $labInsCode = getLabInsuranceCode($porow['ppid'], $payer['company']['id']);
     $out .= "IN1" .
       $d1 . ++$setid .                                // Set ID
       $d1 .                                           // Insurance Plan Identifier ??
-      $d1 . hl7Text($payer['company']['id']) .        // Insurance Company ID
+      $d1 . hl7Text($labInsCode) .                    // Lab mapped Insurance Company ID
       $d1 . hl7Text($payer['company']['name'])   .    // Insurance Company Name
       $d1 . hl7Text($payer_address->get_line1()) .    // Street Address
         $d2 .
@@ -302,10 +307,13 @@ function gen_hl7_order($orderid, &$out) {
   // Common Order.
   $out .= "ORC" .
     $d1 . "NW" .                     // New Order
-    $d1 . $orderid .                 // Placer Order Number
+    $d1 . $orderPrint .                 // Placer Order Number
     str_repeat($d1, 6) .             // ORC 3-8 not used
     $d1 . date('YmdHis') .           // Transaction date/time
-    $d1 . $d1 .
+    $d1 .                            // Entered by
+      $d2 . hl7Text($porow['entrdlname']) . //Last Name
+      $d2 . hl7Text($porow['entrdfname']) .   // First Name
+    $d1 . 
     $d1 . hl7Text($porow['docnpi']) .     // Ordering Provider
       $d2 . hl7Text($porow['doclname']) . // Last Name
       $d2 . hl7Text($porow['docfname']) . // First Name
@@ -318,7 +326,7 @@ function gen_hl7_order($orderid, &$out) {
     // Observation Request.
     $out .= "OBR" .
       $d1 . ++$setid .                              // Set ID
-      $d1 . $orderid .                              // Placer Order Number
+      $d1 . $orderPrint .                              // Placer Order Number
       $d1 .
       $d1 . hl7Text($pcrow['procedure_code']) .
         $d2 . hl7Text($pcrow['procedure_name']) .
@@ -343,11 +351,11 @@ function gen_hl7_order($orderid, &$out) {
       foreach ($relcodes as $codestring) {
         if ($codestring === '') continue;
         list($codetype, $code) = explode(':', $codestring);
-        if ($codetype !== 'ICD9') continue;
+   //     if ($codetype !== 'ICD9') continue;
         $desc = lookup_code_descriptions($codestring);
         $out .= "DG1" .
           $d1 . ++$setid2 .                         // Set ID
-          $d1 .                                     // Diagnosis Coding Method
+          $d1 .			                    // Diagnosis Coding Method
           $d1 . $code .                             // Diagnosis Code
           $d1 . hl7Text($desc) .                    // Diagnosis Description
           $d0;
@@ -425,7 +433,7 @@ function send_hl7_order($ppid, $out) {
     require_once("$srcdir/phpseclib/Net/SFTP.php");
 
     // Compute the target path/file name.
-    $filename = $msgid . '.txt';
+    $filename = $msgid . '.hl7';
     if ($pprow['orders_path']) $filename = $pprow['orders_path'] . '/' . $filename;
 
     // Connect to the server and write the file.

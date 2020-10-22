@@ -23,7 +23,7 @@
               elseif(strpos($criteria_value,"billing.billed = '0'")!== false)
                {
                 //3 is an error condition
-                $billstring .= ' AND '."(billing.billed is null or billing.billed = '0' or (billing.billed = '1' and billing.bill_process = '3'))";
+                $billstring .= ' AND '."(billing.billed = '0' or (billing.billed = '1' and billing.bill_process = '3'))";
                }
               elseif(strpos($criteria_value,"billing.billed = '7'")!== false)
                {
@@ -107,7 +107,7 @@
             "ORDER BY form_encounter.encounter, form_encounter.pid, billing.code_type, billing.code ASC";
             //echo $sql;
         $res = sqlStatement($sql,array($code_type));
-        $all = False;
+
         for($iter=0; $row=sqlFetchArray($res); $iter++)
         {
             $all[$iter] = $row;
@@ -139,7 +139,7 @@
             "ORDER BY form_encounter.encounter, form_encounter.pid, billing.code_type, billing.code ASC";
             //echo $sql;
         $res = sqlStatement($sql,array($code_type));
-        $all = False;
+
         for($iter=0; $row=sqlFetchArray($res); $iter++)
         {
             $all[$iter] = $row;

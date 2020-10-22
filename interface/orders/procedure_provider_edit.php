@@ -197,6 +197,7 @@ foreach(array(
   // Add to this list as more protocols are supported.
   'DL' => xl('Download'),
   'SFTP' => xl('SFTP'),
+  'PRINT' => xl('Print Only'),
   ) as $key => $value)
 {
   echo "    <option value='" . attr($key) . "'";

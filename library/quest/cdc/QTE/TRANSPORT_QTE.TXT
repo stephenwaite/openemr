@@ -1,0 +1,5272 @@
+MSH|^~\&|OERDB|QTE|NEON||201410241953||MFN^DX|01|P|2.3
+QTE^10005F^1^Unless otherwise specified, refrigerate sample until
+QTE^10005F^2^transport.
+QTE^10018T^1^Room Temperature
+QTE^10019T^1^Room temperature
+QTE^10024X^1^Room Temperature
+QTE^10027X^1^Room Temperature
+QTE^10028X^1^Room Temperature
+QTE^10041E^1^Unless otherwise specified, refrigerate specimen until
+QTE^10041E^2^transport.
+QTE^10051X^1^Refrigerated
+QTE^10055N^1^Room Temperature
+QTE^10060A^1^Transport whole blood specimens at room temperature.
+QTE^10062X^1^Shipping Room Temperature is preferred,
+QTE^10062X^2^Shipping refrigerated will remain acceptable.
+QTE^10063N^1^REFRIGERATED
+QTE^10066R^1^Unless otherwise specified, refrigerate specimen until
+QTE^10066R^2^transport.
+QTE^10068X^1^Frozen
+QTE^10068X^2^Do not thaw.
+QTE^10072X^1^Room Temperature
+QTE^10072X^2^Shipping refrigerated is acceptable.
+QTE^10078X^1^Room Temperature
+QTE^10078X^2^Shipping refrigerated is acceptable.
+QTE^10090E^1^Unless otherwise specified, refrigerate sample until
+QTE^10090E^2^transport.
+QTE^10101X^1^Refrigerated
+QTE^10104X^1^Refrigerated
+QTE^10106F^1^Room Temperature
+QTE^10107T^1^Cold packs are recommended during transportation.  If
+QTE^10107T^2^urine is not shipped immediately after collection,
+QTE^10107T^3^refrigerate immediately (DO NOT FREEZE) and ship via
+QTE^10107T^4^overnight courier within 24 hours.  Under no circumstances
+QTE^10107T^5^should urine specimens be stored or shipped at temperatures
+QTE^10107T^6^at or above 37 degrees C.
+QTE^10113X^1^Refrigerated
+QTE^10122A^1^Refrigerated
+QTE^10124F^1^Room Temperature
+QTE^10140X^1^Room temperature
+QTE^10140X^2^Shipping refrigerated will remain acceptable
+QTE^10148T^1^Refrigerated
+QTE^10156X^1^Frozen
+QTE^10157T^1^Refrigerate or Room Temperature
+QTE^10162N^1^Frozen
+QTE^10163X^1^Refrigerated or Frozen
+QTE^10163X^2^Room Temperature is acceptable.
+QTE^10165F^1^Refrigerated
+QTE^1016F^1^Unless otherwise specified, refrigerate sample until
+QTE^1016F^2^transport.
+QTE^10170X^1^FROZEN
+QTE^10170X^2^Do not thaw.
+QTE^10176X^1^Frozen
+QTE^10177X^1^Refrigerated
+QTE^10184X^1^Refrigerated
+QTE^10185X^1^Room temperature
+QTE^10185X^2^Shipping refrigerated is acceptable
+QTE^10186X^1^Refrigerated
+QTE^10211X^1^Room Temperature
+QTE^10211X^2^Shipping refrigerated is acceptable.
+QTE^10221N^1^Room temperature.
+QTE^10222N^1^Room temperature
+QTE^10224N^1^Room temperature
+QTE^10225F^1^Transport at room temperature.
+QTE^10225F^2^DO NOT FREEZE.
+QTE^10226X^1^Ship at room temperature.
+QTE^10230N^1^Ship Refrigerated
+QTE^10231A^1^Refrigerated
+QTE^10241X^1^Room temperature
+QTE^10247X^1^Room temperature
+QTE^10247X^2^Shipping Refrigerated is acceptable.
+QTE^10248N^1^Ship blood/bone marrow at room temperature.
+QTE^10248N^2^Ship tissue/fluid refrigerated
+QTE^1024N^1^Ship refrigerated
+QTE^10256F^1^Refrigerated
+QTE^10262N^1^Ship room temperature.
+QTE^10268T^1^Unless otherwise specified, refrigerate sample until
+QTE^10268T^2^transport.
+QTE^10287X^1^FROZEN
+QTE^10288X^1^Ship frozen
+QTE^10289X^1^Ship frozen
+QTE^10290X^1^Ship frozen
+QTE^10294X^1^Room temperature
+QTE^10295X^1^Room temperature
+QTE^10314F^1^Refrigerated
+QTE^10318X^1^Room temperature
+QTE^10318X^2^Shipping refrigerated is acceptable
+QTE^10323X^1^Room temperature
+QTE^10323X^2^Shipping refrigerated is acceptable
+QTE^10326X^1^Room Temperature
+QTE^10326X^2^Shipping refrigerated is acceptable.
+QTE^103275R^1^Room Tempature
+QTE^10328N^1^Ship Refrigerated
+QTE^10329X^1^Refrigerated
+QTE^103317W^1^Unless otherwise specified, refrigerate sample until
+QTE^103317W^2^transport.
+QTE^103341E^1^Refrigerated
+QTE^103341E^2^Room Temperature
+QTE^103473E^1^Room Temp
+QTE^103523E^1^Room Temp.  DO NOT REFRIGERATE
+QTE^103531E^1^Room Temp
+QTE^103572E^1^Room Temperature
+QTE^103689W^1^Unless otherwise specified, refrigerate sample until
+QTE^103689W^2^transport.
+QTE^104497W^1^Unless otherwise specified, refrigerate specimen until
+QTE^104497W^2^transport.
+QTE^10454X^1^Room temperature
+QTE^10456N^1^REFRIGERATED
+QTE^10458X^1^Room temperature
+QTE^10458X^2^Shipping refrigerated is acceptable
+QTE^10463X^1^Room temperature
+QTE^10463X^2^Shipping refrigerated is acceptable
+QTE^10477X^1^Ship room temperature.
+QTE^10478X^1^Ship at room temperature.
+QTE^10480X^1^Refrigerated
+QTE^10481N^1^Ship refrigerated.
+QTE^10483N^1^Refrigerated
+QTE^10490N^1^Room temperature
+QTE^10494X^1^Refrigerated
+QTE^10498X^1^Frozen
+QTE^10511A^1^Frozen: Both STAT and Routine
+QTE^10514X^1^Frozen
+QTE^10520N^1^Refrigerated
+QTE^105262E^1^Room temperature
+QTE^10526X^1^Room Temp
+QTE^10527X^1^Frozen
+QTE^10529N^1^Frozen
+QTE^10547T^1^Refrigerate or Room Temperature
+QTE^10553X^1^Room temperature
+QTE^10553X^2^Avoid extremes of heat and cold.
+QTE^10556X^1^Room temperature
+QTE^10557X^1^Room temperature
+QTE^10570X^1^Refrigerated.
+QTE^10582X^1^Room temperature
+QTE^10582X^2^Shipping refrigerated will remain acceptable
+QTE^10590X^1^Refrigerated
+QTE^10600X^1^Whole Blood, Plasma, Amniotic fluid, CSF, serum: Refrigerate
+QTE^10600X^2^Urine: Frozen
+QTE^10601X^1^Refrigerated:  All others
+QTE^10601X^2^Frozen: Tissue and Urine
+QTE^10611X^1^Refrigerated
+QTE^10625X^1^Refrigerated
+QTE^10626X^1^Refrigerated
+QTE^10627X^1^Refrigerated
+QTE^10635X^1^Room Temperature
+QTE^10639X^1^Room temperature
+QTE^10639X^2^Shipping refrigerated is acceptable
+QTE^10640X^1^Refrigerated
+QTE^106443E^1^Ambient
+QTE^10661X^1^FROZEN
+QTE^10662Z^1^Refrigerated
+QTE^10663X^1^Frozen
+QTE^10671X^1^Refrigerated
+QTE^106724R^1^Room Temp
+QTE^10678P^1^Ship room temperature
+QTE^10680X^1^Room temperature
+QTE^10680X^2^Shipping refrigerated is acceptable
+QTE^10682X^1^Refrigerated
+QTE^10694X^1^Room Temperature
+QTE^10707X^1^Room temperature
+QTE^10708X^1^Room Temperature
+QTE^10710A^1^Room Temp
+QTE^107151E^1^Room Temp
+QTE^10718X^1^Refrigerated
+QTE^10723X^1^Ship room temperature
+QTE^10723X^2^Shipping Refrigerated is acceptable.
+QTE^10724X^1^Room temperature
+QTE^10724X^2^Shipping refrigerated will remain acceptable.
+QTE^107284R^1^Room Temp.  Do not refrigerate
+QTE^107292E^1^Room Temp
+QTE^10729X^1^Frozen.  Do not thaw
+QTE^1073A^1^Unless otherwise specified, refrigerate sample until
+QTE^1073A^2^transport.
+QTE^10742X^1^Refrigerated
+QTE^10756X^1^Room temperature
+QTE^10756X^2^Shipping refrigerated is acceptable
+QTE^10759X^1^Refrigerated
+QTE^10761X^1^Refrigerated
+QTE^10794X^1^Refrigerated
+QTE^10798X^1^Refrigerated
+QTE^108399W^1^Frozen
+QTE^108514R^1^Room Temp
+QTE^108555R^1^Room Temp
+QTE^108571E^1^Room Temperature
+QTE^108605R^1^Refrigerated (Cold packs)
+QTE^10868X^1^Room Temperature
+QTE^108886P^1^Refrigerated
+QTE^108951E^1^Frozen
+QTE^109009W^1^Refrigerated
+QTE^10913X^1^Room Temperature
+QTE^10913X^2^Shipping refrigerated is acceptable
+QTE^10914X^1^Room Temperature
+QTE^10914X^2^Shipping refrigerated is acceptable
+QTE^10915X^1^Room Temperature
+QTE^10916X^1^Room:  8 days/Whole Blood
+QTE^10916X^2^Refrigerated:  8 days/Whole Blood
+QTE^10916X^3^Frozen:  Unacceptable
+QTE^10917X^1^Ambient
+QTE^10917X^2^Shipping refrigerated is acceptable
+QTE^10919X^1^Ambient
+QTE^10919X^2^Shipping refrigerated is acceptable
+QTE^10920X^1^Ship Refrigerated
+QTE^10921X^1^Room Temperature
+QTE^10924X^1^Ship frozen / Do not thaw
+QTE^10931X^1^Refrigerated
+QTE^10933X^1^Refrigerated
+QTE^10937X^1^Room Temperature
+QTE^10937X^2^Refrigerated is also acceptable.
+QTE^10944X^1^Room Temperature
+QTE^10945X^1^Refrigerated
+QTE^10947X^1^Frozen
+QTE^10950X^1^Ship room temperature
+QTE^10950X^2^Shipping refrigerated is acceptable.
+QTE^10951X^1^Ship room temperature
+QTE^10951X^2^Shipping refrigerated is acceptable.
+QTE^10952X^1^Ship room temperature
+QTE^10952X^2^Shipping refrigerated is acceptable
+QTE^10953X^1^Ship room temperature
+QTE^10953X^2^Shipping refrigerated is acceptable
+QTE^10969Z^1^Room temperature
+QTE^10970Z^1^Ship room temperature
+QTE^10976X^1^Ship refrigerated
+QTE^10977X^1^Room temperature
+QTE^10978X^1^Room temperature, avoid freezing.
+QTE^10978X^2^Ship same day
+QTE^10980X^1^Room temperature
+QTE^10981X^1^Room temperature
+QTE^10982X^1^Room Temperature
+QTE^10986X^1^Refrigerated
+QTE^10992X^1^Frozen
+QTE^1099T^1^Room Temperature
+QTE^109T^1^Unless otherwise specified, refrigerate sample until
+QTE^109T^2^transport.
+QTE^11002X^1^Refrigerated
+QTE^11004X^1^Ship refrigerated.
+QTE^11005X^1^FROZEN
+QTE^110114R^1^Refrigerated
+QTE^11011X^1^Refrigerated
+QTE^11013X^1^Refrigerated
+QTE^11013X^2^Frozen Ok
+QTE^11014X^1^Refrigerated
+QTE^11015N^1^Blood/bone marrow: Room Temperature
+QTE^11015N^2^Tissue/fluid:      Refrigerated
+QTE^11021X^1^Room temperature
+QTE^11022X^1^Refrigerated
+QTE^11022X^2^Room temperature is also acceptable.
+QTE^11025X^1^Frozen
+QTE^11026X^1^Room temperature
+QTE^11028X^1^Room temperature
+QTE^11032X^1^Refrigerated
+QTE^11034X^1^Frozen
+QTE^110379W^1^Refrigerated
+QTE^11040X^1^Refrigerated
+QTE^11041X^1^Refrigerated
+QTE^11042X^1^Refrigerated
+QTE^11051X^1^FROZEN
+QTE^11051X^2^DO NOT THAW.
+QTE^110551P^1^Frozen
+QTE^11061X^1^Frozen
+QTE^110684R^1^Room temperature
+QTE^11068X^1^Frozen
+QTE^11068X^2^Ship Whole blood at Room temperature
+QTE^110700E^1^Room temperature
+QTE^11070X^1^Refrigerated
+QTE^11074X^1^Frozen
+QTE^11079X^1^Refrigerated
+QTE^11083X^1^Refrigerated
+QTE^11084X^1^Room temperature
+QTE^11084X^2^Shipping refrigerated will remain acceptable
+QTE^11108X^1^Refrigerated: Whole blood
+QTE^11108X^2^Frozen: Tissue
+QTE^11109X^1^Room Temperature
+QTE^11110X^1^Frozen
+QTE^11118X^1^Ship room temperature.
+QTE^11118X^2^Shipping refrigerated remains acceptable
+QTE^11121X^1^Room temperature.
+QTE^11121X^2^Shipping refrigerated will remain acceptable.
+QTE^11126X^1^Ship room temperature
+QTE^11126X^2^Shipping refrigerated acceptable
+QTE^11137X^1^Room temperature or Refrigerated
+QTE^11151X^1^Refrigerated
+QTE^1115F^1^Room temperature
+QTE^111724N^1^Ship refrigerated/ Okay to thaw
+QTE^11173X^1^Refrigerated (preferred); ambient and frozen are acceptable.
+QTE^11174X^1^Room temperature
+QTE^11174X^2^Shipping refrigerated is acceptable
+QTE^11175X^1^Room temperature
+QTE^11175X^2^Shipping refrigerated is acceptable
+QTE^11176X^1^Room Temperature
+QTE^11177X^1^Refrigerated
+QTE^11188X^1^Refrigerated
+QTE^111906N^1^Refrigerated
+QTE^11190X^1^Frozen
+QTE^111914N^1^Ship refrigerated
+QTE^11192X^1^Room temperature
+QTE^11194X^1^Refrigerated or Frozen
+QTE^11195X^1^Ship room Temperature
+QTE^11195X^2^Shipping refrigerated is acceptable
+QTE^11195X^3^Shipping frozen is acceptable
+QTE^111971A^1^Room Temperature
+QTE^112011N^1^Refrigerated
+QTE^11201X^1^Room temperature
+QTE^11201X^2^Shipping refrigerated is acceptable
+QTE^11209X^1^Tissue: Frozen
+QTE^11209X^2^All others: Refrigerated
+QTE^11210X^1^Refrigerated
+QTE^11211X^1^Refrigerated
+QTE^11212X^1^Refrigerated
+QTE^11216X^1^Room Temperature
+QTE^11216X^2^Unpreserved urine:  Refrigerated
+QTE^11225X^1^Refrigerate
+QTE^11228X^1^Refrigerated
+QTE^11230X^1^Room Temperature
+QTE^11233X^1^Refrigerated
+QTE^11234X^1^Refrigerated
+QTE^11235X^1^Refrigerated
+QTE^11236X^1^Ship Room Temperature
+QTE^11237X^1^Room temperature
+QTE^11242X^1^Room temperature
+QTE^11242X^2^Shipping refrigerated remains acceptable
+QTE^11244X^1^Room temperature
+QTE^11247X^1^Room temperature
+QTE^11261X^1^Frozen
+QTE^11265X^1^Frozen
+QTE^112680E^1^Room Temp
+QTE^112680E^2^Avoid extremes of heat and cold
+QTE^112730E^1^Room Temperature
+QTE^11274Z^1^Frozen
+QTE^11274Z^2^Whole blood ship Room Temperature
+QTE^11278X^1^Refrigerated (cold paks)
+QTE^11278X^2^Sending room temperature is also acceptable
+QTE^11280X^1^Refrigerated
+QTE^11281X^1^Refrigerated
+QTE^11290X^1^Room temperature
+QTE^11293X^1^Room temperature
+QTE^11294X^1^Room temperature
+QTE^11295X^1^Room temperature
+QTE^11303X^1^Refrigerated
+QTE^11306X^1^Refrigerated
+QTE^11313X^1^Room temperature
+QTE^11313X^2^Shipping refrigerated will remain acceptable
+QTE^11315X^1^Refrigerated
+QTE^11318X^1^Room temperature
+QTE^11318X^2^Shipping refrigerated is acceptable
+QTE^11321X^1^Room Temperature
+QTE^11322X^1^Refrigerated
+QTE^11326X^1^Room temperature
+QTE^11327X^1^Frozen
+QTE^11328X^1^Plasma and whole blood submit frozen.
+QTE^11328X^2^Serum submit refrigerated.
+QTE^11332X^1^Refrigerated
+QTE^11335X^1^Frozen
+QTE^11343X^1^Frozen
+QTE^11345X^1^Frozen
+QTE^11348X^1^Refrigerated
+QTE^11351X^1^Room Temperature- whole blood
+QTE^11352X^1^Refrigerated: Whole blood and CSF
+QTE^11352X^2^Frozen: Tissue
+QTE^11353X^1^Refrigerated
+QTE^11361X^1^2 - 30 C
+QTE^11362X^1^2 - 30 C
+QTE^11363X^1^2 - 30 C
+QTE^11365X^1^Refrigerated
+QTE^11365X^2^Frozen:  Respiratory sample in VCM or M4 medium
+QTE^11367X^1^Frozen
+QTE^11368X^1^Room Temperature
+QTE^11369Z^1^Ship room temperature
+QTE^11369Z^2^Shipping refrigerated is acceptable
+QTE^1138X^1^Refrigerated
+QTE^1139X^1^Refrigerated
+QTE^1156F^1^Unless otherwise specified, refrigerate sample until
+QTE^1156F^2^transport.
+QTE^115725R^1^Refrigerated
+QTE^1198X^1^Refrigerated
+QTE^1199X^1^Refrigerated
+QTE^12070X^1^Room Temperature
+QTE^12112X^1^Room Temperature
+QTE^122390E^1^Frozen
+QTE^125F^1^Room temperature. Do not freeze.
+QTE^1271A^1^Unless otherwise specified, refrigerate sample until
+QTE^1271A^2^transport.
+QTE^1304X^1^Frozen
+QTE^130542E^1^Room Temperature.
+QTE^131698W^1^Refrigerated
+QTE^133165R^1^Room Temperature
+QTE^13383X^1^Frozen
+QTE^134403E^1^Room Temperature
+QTE^136556R^1^Room Temp
+QTE^1370A^1^Unless otherwise specified, refrigerate sample until
+QTE^1370A^2^transport.
+QTE^1388T^1^Frozen. Both STAT and Routine
+QTE^139261P^1^Refrigerated
+QTE^140129P^1^Room Temperature Only
+QTE^141275R^1^Room temperature; avoid extremes of heat and cold
+QTE^141275R^2^DO NOT REFRIGERATE
+QTE^141A^1^Avoid exposure to extreme hot or cold temperatures. Must
+QTE^141A^2^be received in the lab within 24h of collection.
+QTE^141A^3^Room Temperature, shipping refrigerated is also acceptable.
+QTE^143255R^1^Room Temp
+QTE^143255R^2^Avoid extremes of heat and cold.
+QTE^14450X^1^Room Temperature
+QTE^14450X^2^Refrigerated is also acceptable.
+QTE^14451X^1^Room Temperature
+QTE^14451X^2^Refrigerated is also acceptable
+QTE^14453X^1^Frozen
+QTE^14459X^1^Frozen
+QTE^14461X^1^Frozen
+QTE^14470Z^1^Ship room temperature.
+QTE^14470Z^2^Shipping refrigerated is acceptable
+QTE^14505X^1^Refrigerated
+QTE^14507X^1^Room temperature
+QTE^14507X^2^Shipping refrigerated is acceptable
+QTE^14511X^1^Room temperature or refrigerate
+QTE^14512X^1^Frozen
+QTE^14513X^1^Room Temperature
+QTE^14518X^1^ Room Temperature
+QTE^14520X^1^Refrigerated
+QTE^14524X^1^Room temperature
+QTE^14524X^2^Shipping refrigerated will remain acceptable.
+QTE^14530X^1^Refrigerated
+QTE^14532X^1^Frozen
+QTE^14566X^1^Frozen
+QTE^14567X^1^Frozen
+QTE^14568X^1^Refrigerated
+QTE^14571X^1^Unless otherwise specified, refrigerate sample until
+QTE^14571X^2^transport. Or Room Temperature.
+QTE^14573X^1^Unless otherwise specified, refrigerate sample until
+QTE^14573X^2^transport.
+QTE^14573X^3^Ship refrigerated
+QTE^14577X^1^Preferred: Ambient
+QTE^14577X^2^Acceptable: Refrigerated
+QTE^14578X^1^Room Temperature
+QTE^14588X^1^Room temperature
+QTE^14588X^2^Shipping refrigerated is acceptable
+QTE^14589X^1^Room temperature
+QTE^14590X^1^Room Temperature. DO NOT FREEZE.
+QTE^14590X^2^OR
+QTE^14590X^3^Refrigerated - when this test is ordered as with AFP using
+QTE^14590X^4^order code 14591X, Chromosome&AFP w/reflex.
+QTE^14592X^1^Room temperature
+QTE^14593X^1^Refrigerated
+QTE^14594X^1^Ship refrigerated
+QTE^14594X^2^DO NOT FREEZE
+QTE^14595X^1^Room Temperature
+QTE^14596X^1^Room temperature
+QTE^14597X^1^Room Temperature
+QTE^14598Z^1^Room temperature
+QTE^14599Z^1^Room temperature
+QTE^14600X^1^Room Temperature
+QTE^14601X^1^Room Temperature
+QTE^14602X^1^Refrigerate (DO NOT FREEZE)
+QTE^14603X^1^Refrigerate (DO NOT FREEZE)
+QTE^14604X^1^Room Temperature
+QTE^14605X^1^Room Temperature
+QTE^14606X^1^Room Temperature
+QTE^14607X^1^Room Temperature
+QTE^14608X^1^Room Temperature
+QTE^14609X^1^Room Temperature
+QTE^14610X^1^Room Temperature
+QTE^14611X^1^Room Temperature
+QTE^14612X^1^Room Temperature
+QTE^14613X^1^Room Temperature
+QTE^14614X^1^Room Temperature
+QTE^14615X^1^Room Temperature
+QTE^14617X^1^Room Temperature
+QTE^14618X^1^Room Temperature
+QTE^14619X^1^Room Temperature
+QTE^14620X^1^Room temperature
+QTE^14621X^1^Room temperature
+QTE^14627X^1^Frozen
+QTE^14628X^1^Frozen
+QTE^14673X^1^Room Temperature
+QTE^14675X^1^Room temperature
+QTE^14675X^2^Shipping refrigeratured is also acceptable.
+QTE^14678X^1^Room Temperature. Ship Monday-Thursday only.
+QTE^14678X^2^Ship within 24 hours.
+QTE^14679N^1^Room temperature
+QTE^14679N^2^Shipping refrigerated is acceptable
+QTE^1468X^1^Frozen
+QTE^14693Z^1^Ship refrigerated
+QTE^14700X^1^Room temperature
+QTE^14706X^1^Room temperature
+QTE^14706X^2^Shipping refrigerated is acceptable
+QTE^14741X^1^Refrigerated (cold packs)
+QTE^14742X^1^Refrigerated
+QTE^14755X^1^Room temperature
+QTE^14761X^1^Ship refrigerated
+QTE^14762X^1^Frozen
+QTE^14801X^1^Refrigerated
+QTE^14808X^1^Ship refrigerated/ Okay to thaw
+QTE^14839X^1^Room Temperature
+QTE^14852X^1^Unless otherwise specified, refrigerate sample until
+QTE^14852X^2^transport.
+QTE^14857X^1^Refrigerated
+QTE^14860X^1^Refrigerated (Cold packs)
+QTE^14867X^1^Refrigerated (Cold packs)
+QTE^14871X^1^Room temperature
+QTE^14874X^1^FROZEN
+QTE^14890X^1^Frozen - Do Not Thaw
+QTE^14907X^1^Ship refrigerated.
+QTE^14930X^1^Refrigerate or Room Temperature
+QTE^14937X^1^Refrigerated
+QTE^14950Z^1^Frozen
+QTE^14961X^1^Room temperature
+QTE^14961X^2^Shipping refrigerated is acceptable
+QTE^14966X^1^Refrigerated
+QTE^14968X^1^Refrigerated
+QTE^14974X^1^Room temperature
+QTE^14978X^1^Unless otherwise specified, refrigerate sample until
+QTE^14978X^2^transport.
+QTE^14978X^3^Ship refrigerated
+QTE^14979X^1^Room temperature
+QTE^14980X^1^Frozen
+QTE^14981X^1^Room temperature
+QTE^14983X^1^Room temperature
+QTE^14984X^1^Room temperature
+QTE^14989X^1^Room temperature
+QTE^14991X^1^Whole blood or bone marrow:  Ship refrigerated or room temp
+QTE^14991X^2^Paraffin blocks: Ship room temperature
+QTE^14991X^3^Fresh frozen tissue:  Ship frozen
+QTE^14991X^4^Tissue in formalin fixative or RPMI: Ship room temperature
+QTE^14992X^1^Room Temperature
+QTE^14992X^2^Refrigerated is acceptable.
+QTE^14994X^1^Room temperature
+QTE^14994X^2^Shipping refrigerated is acceptable
+QTE^14995X^1^Room temperature
+QTE^15007X^1^Whole Blood: Refrigerated
+QTE^15007X^2^Paraffin block: Room Temperature
+QTE^15007X^3^Tissue: Frozen
+QTE^15012X^1^Room temperature
+QTE^15013X^1^Room temperature
+QTE^15014X^1^Room temperature
+QTE^15018X^1^Ship room temperature   /   Okay to thaw
+QTE^15031X^1^Room temperature
+QTE^15033X^1^Room temperature
+QTE^15038X^1^Refrigerated preferred
+QTE^15038X^2^Frozen acceptable
+QTE^15040E^1^Unless otherwise specified, refrigerate specimen until
+QTE^15040E^2^transport.
+QTE^15043X^1^Room temperature
+QTE^15043X^2^Shipping referigerated remains acceptable
+QTE^15053X^1^Room temperature
+QTE^15060X^1^Refrigerated
+QTE^15061X^1^Refrigerated
+QTE^15062X^1^Refrigerated
+QTE^15063X^1^Room temperature
+QTE^15064X^1^Refrigerated
+QTE^15075X^1^Refrigerated
+QTE^15076X^1^Refrigerated
+QTE^15082X^1^Refrigerated:  CSF, Plasma, Swab, Serum
+QTE^15082X^2^Frozen:        Stool
+QTE^15087X^1^Refrigerated
+QTE^15088X^1^Room temperature
+QTE^15089X^1^Room temperature
+QTE^15102X^1^Unless otherwise specified, refrigerate sample until
+QTE^15102X^2^transport.
+QTE^15102X^3^Specimens can be transported at ambient temperature.
+QTE^15113X^1^Ship Refrigerated
+QTE^15114X^1^Refrigerated
+QTE^15116X^1^Room Temperature
+QTE^15116X^2^Shipping refrigerated remains acceptable.
+QTE^15119X^1^Refrigerated or Room Temperature
+QTE^15122X^1^Refrigerated
+QTE^15126X^1^Room temperature
+QTE^15142X^1^Room Temperature
+QTE^15142X^2^Shipping refrigerated is acceptable.
+QTE^15180E^1^Unless otherwise specified, store refrigerated until
+QTE^15180E^2^transport.
+QTE^15201X^1^REFRIGERATED
+QTE^15202X^1^Refrigerated
+QTE^15203X^1^Refrigerated (cold packs)
+QTE^15214R^1^Unless otherwise specified, refrigerate specimen until
+QTE^15214R^2^transport.
+QTE^15220X^1^Room Temperature or Refrigerated
+QTE^15240X^1^Room temperature
+QTE^15240X^2^Shipping refrigerated will remain acceptable
+QTE^15260X^1^Refrigerated
+QTE^15273X^1^Refrigerated
+QTE^1529T^1^Unless otherwise specified, refrigerate sample until
+QTE^1529T^2^transport.
+QTE^15319X^1^Room temperature
+QTE^15332X^1^Room temperature
+QTE^15340X^1^Room temperature
+QTE^15341X^1^Room temperature
+QTE^15348X^1^Frozen
+QTE^15384X^1^Refigerated
+QTE^15435X^1^Room temperature
+QTE^15447X^1^Room temperature
+QTE^15463X^1^Ship room temperature
+QTE^15463X^2^Shipping refrigerated is acceptable.
+QTE^15465X^1^Room Temperature
+QTE^15472X^1^Room temperature
+QTE^15472X^2^Shipping room temperature is acceptable.
+QTE^15474X^1^Room Temperature
+QTE^15475X^1^Room Temperature
+QTE^15475X^2^Refrigerated is acceptable.
+QTE^15480X^1^Room temperature or refrigerated
+QTE^15484X^1^Ship room temperature
+QTE^15484X^2^Shipping refrigerated is acceptable
+QTE^15485X^1^Ship room temperature
+QTE^15485X^2^Shipping refrigerated is acceptable.
+QTE^15501X^1^Refrigerated
+QTE^15507X^1^Refrigerated
+QTE^15509X^1^Room temperature
+QTE^15509X^2^Shipping refrigerated remains acceptable
+QTE^15510X^1^Room Temperature
+QTE^15516X^1^FROZEN
+QTE^15518Z^1^Refrigerated.
+QTE^15524X^1^Refrigerated
+QTE^1552A^1^Room Temperature
+QTE^15532X^1^Refrigerated
+QTE^15538X^1^Room temperature
+QTE^15539X^1^Room temperature
+QTE^15544X^1^Frozen
+QTE^15547X^1^Room Temperature
+QTE^15561X^1^Refrigerated or Room Temperature
+QTE^15564X^1^Refrigerated
+QTE^15565Z^1^Room Temperature
+QTE^15565Z^2^Refrigerated is acceptable.
+QTE^15567X^1^Room Temperature
+QTE^15567X^2^Refrigerated is acceptable.
+QTE^15568X^1^Room Temperature
+QTE^15568X^2^Refrigerated is acceptable.
+QTE^15569X^1^Room Temperature
+QTE^15569X^2^Refrigerated is acceptable.
+QTE^15575X^1^Room temperature
+QTE^15575X^2^Shipping refrigerated is acceptable.
+QTE^15584X^1^Ship room temperature
+QTE^15683X^1^Refrigerated
+QTE^15701E^1^Unless otherwise specified, refrigerate specimen until
+QTE^15701E^2^transport
+QTE^15714X^1^Room Temperature.
+QTE^15714X^2^Shipping refrigerated will remain acceptable.
+QTE^15757X^1^Ship room temperature
+QTE^15757X^2^Shipping refrigerated is acceptable.
+QTE^15777X^1^Room Temperature
+QTE^15780X^1^Frozen
+QTE^15798X^1^Room Temperature
+QTE^15802X^1^Refrigerated
+QTE^15804X^1^Frozen
+QTE^15805X^1^Frozen
+QTE^15843X^1^Frozen
+QTE^15844X^1^FROZEN
+QTE^15845X^1^FROZEN
+QTE^15846X^1^Frozen
+QTE^15847X^1^Frozen
+QTE^15848X^1^Frozen
+QTE^15857X^1^Refrigerated
+QTE^15858X^1^Refrigerated
+QTE^15861X^1^Whole blood:  Room temperature
+QTE^15861X^2^Amniotic fluid:  Refrigerated
+QTE^15868X^1^Frozen
+QTE^15873X^1^Whole blood:  room temperature
+QTE^15873X^2^Tissue:  Frozen
+QTE^15873X^3^Plasma or serum:  refrigerated
+QTE^15903X^1^Refrigerated
+QTE^15914X^1^Frozen
+QTE^15922X^1^Room Temperature
+QTE^15922X^2^Refrigerated is also acceptable
+QTE^15934X^1^Refrigerated
+QTE^15935Z^1^Room temperature
+QTE^15935Z^2^Shipping refrigerated is accetpable
+QTE^15939X^1^Room temperature
+QTE^15940X^1^Room temperature
+QTE^15940X^2^Shipping refrigerated is acceptable
+QTE^15942X^1^Refrigerated
+QTE^15943X^1^Refrigerated
+QTE^15949X^1^Room Temperature
+QTE^15960X^1^Frozen
+QTE^15977X^1^Refrigerated
+QTE^15983X^1^Room Temperature
+QTE^15983X^2^Shipping refrigerated remains acceptable.
+QTE^15997X^1^Refrigerated
+QTE^16000X^1^Room temperature
+QTE^16001X^1^Refrigerated
+QTE^16003X^1^Refrigerated
+QTE^16010X^1^Room temperature
+QTE^16010X^2^Shipping referigerated is acceptable
+QTE^16011X^1^Room temperature
+QTE^16012X^1^Refrigerated
+QTE^16013X^1^Refrigerated
+QTE^16018X^1^Room temperature
+QTE^16020X^1^Refrigerated
+QTE^16023X^1^Room temperature
+QTE^16024X^1^Room temperature
+QTE^16029X^1^Refrigerated
+QTE^16031X^1^Whole Blood:
+QTE^16031X^2^Room Temperature:     Acceptable
+QTE^16031X^3^Refrigerated:         Preferred
+QTE^16031X^4^Frozen:               Unacceptable
+QTE^16033X^1^Refrigerated.
+QTE^16039X^1^Frozen
+QTE^16040X^1^Room temperature
+QTE^16046X^1^Refrigerated
+QTE^16049X^1^Frozen
+QTE^16053X^1^Ship room temperature
+QTE^16053X^2^Shipping refrigerated is acceptable
+QTE^16054X^1^Ship room temperature
+QTE^16054X^2^Shipping refrigerated is acceptable
+QTE^16061X^1^Room temperature
+QTE^16062X^1^Room temperature
+QTE^16064X^1^Refrigerated
+QTE^16067X^1^Room temperature
+QTE^16069X^1^Room temperature
+QTE^1606X^1^Room Temperature
+QTE^1606X^2^Shipping refrigerated is acceptable
+QTE^16072X^1^Room temperature
+QTE^16073X^1^Room temperature
+QTE^16073X^2^Shipping refrigerated or frozen is unacceptable
+QTE^16076X^1^Room Temperature
+QTE^16076X^2^Shipping refrigerated is acceptable
+QTE^16077X^1^Room temperature
+QTE^16080X^1^Room temperature
+QTE^16081X^1^Room temperature
+QTE^16086X^1^Refrigerated
+QTE^16088X^1^Room Temperature (18-25 degrees Celsius)
+QTE^16090X^1^Refrigerated
+QTE^16093X^1^Refrigerated
+QTE^16103X^1^Frozen
+QTE^16108X^1^Ambient - Ship room temperature
+QTE^16111X^1^Room temperature
+QTE^16116X^1^Room temperature
+QTE^16116X^2^Shipping refrigerated or frozen is unacceptable
+QTE^16117X^1^Room temperature
+QTE^16117X^2^Shipping refrigerated or frozen is unacceptable
+QTE^16122X^1^Room temperature
+QTE^16124X^1^Room temperature
+QTE^16125X^1^Room temperature
+QTE^16127X^1^Room Temperature
+QTE^16127X^2^Shipping refrigerated is acceptable.
+QTE^16128X^1^Room temperature
+QTE^16128X^2^Shipping refrigerated is acceptable
+QTE^16131X^1^Refrigerated
+QTE^16133X^1^Refrigerated
+QTE^16136X^1^Ship room temperature
+QTE^16136X^2^Shipping refrigerated will remain acceptable
+QTE^16141X^1^Ship room temperature
+QTE^16142X^1^Ship room temperature
+QTE^16143X^1^Room Temperature
+QTE^16143X^2^Shipping refrigerated is acceptable.
+QTE^16145X^1^Refrigerated
+QTE^16145X^2^Okay to thaw
+QTE^16148X^1^Refrigerated
+QTE^16150X^1^Refrigerated
+QTE^16155X^1^Room temperature
+QTE^16156X^1^Room temperature
+QTE^16158X^1^Room temperature
+QTE^16158X^2^Shipping refrigerated is acceptable
+QTE^16159X^1^Room temperature
+QTE^16159X^2^Shipping refrigerated is acceptable
+QTE^16160X^1^Ship room temperature
+QTE^16160X^2^Shipping refrigerated is acceptable
+QTE^16161X^1^Ship room temperature
+QTE^16161X^2^Shipping refrigerated is acceptable
+QTE^16165X^1^Refrigerated
+QTE^16167X^1^Refrigerated
+QTE^16171X^1^Ship FROZEN / Do not thaw
+QTE^16174X^1^Room Temperature
+QTE^16174X^2^Shipping refrigerated remains acceptable
+QTE^16175X^1^Refrigerated
+QTE^16176X^1^Room temperature
+QTE^16177X^1^Room temperature
+QTE^16178X^1^Room Temperature
+QTE^16178X^2^Refrigerated is acceptable.
+QTE^16179X^1^Room Temperature
+QTE^16179X^2^Refrigerated is acceptable.
+QTE^16180X^1^Room temperature
+QTE^16180X^2^Refrigerated is acceptable.
+QTE^16181X^1^Room Temperature
+QTE^16181X^2^Refrigerated is acceptable.
+QTE^16182X^1^Room temperature
+QTE^16183X^1^Room temperature
+QTE^16184X^1^Refrigerated
+QTE^16185X^1^Frozen
+QTE^16186X^1^Frozen
+QTE^16207X^1^Room Temperature
+QTE^16207X^2^Refrigerated is also acceptable.
+QTE^16213X^1^Room Temperature
+QTE^16213X^2^Refrigerated is also acceptable.
+QTE^16223X^1^Room Temperature
+QTE^16224X^1^Room Temperature
+QTE^16235X^1^Room Temperature
+QTE^16236X^1^Room Temperature
+QTE^16240X^1^Room temperature, avoid freezing. Ship the same day.
+QTE^16241X^1^Room Temperature
+QTE^16251X^1^Refrigerated
+QTE^16252X^1^Room Temperature
+QTE^16252X^2^Shipping refrigerated is acceptable
+QTE^16254X^1^Room Temperature
+QTE^16254X^2^Shipping refrigerated is acceptable
+QTE^16256X^1^Refrigerated
+QTE^16257X^1^Room Temperature
+QTE^16257X^2^Shipping refrigerated is acceptable.
+QTE^16258X^1^Room Temperature
+QTE^16258X^2^Shipping refrigerated is acceptable
+QTE^16259X^1^Room Temperature
+QTE^16259X^2^Refrigerated is also acceptable.
+QTE^16260X^1^Room Temperature
+QTE^16260X^2^Refrigerated is also acceptable.
+QTE^16262X^1^Room Temperature
+QTE^16265X^1^Frozen
+QTE^16278X^1^Room temperature
+QTE^16278X^2^Refrigerated is also acceptable.
+QTE^16280X^1^Frozen
+QTE^16282X^1^Room Temperature
+QTE^16282X^2^Shipping refrigerated is acceptable.
+QTE^16283X^1^Refrigerated
+QTE^16284X^1^Frozen
+QTE^16285X^1^Frozen
+QTE^16288X^1^FROZEN
+QTE^1628X^1^Refrigerate
+QTE^16292X^1^Unless otherwise specified, refrigerate sample until
+QTE^16292X^2^transport.
+QTE^16293X^1^Refrigerated
+QTE^16296X^1^Room temperature
+QTE^16298X^1^Room Temperature
+QTE^16298X^2^Refrigerated is also acceptable.
+QTE^1629X^1^Frozen
+QTE^16300X^1^Room temperature
+QTE^16301X^1^Room temperature
+QTE^16302X^1^Refrigerated
+QTE^16310X^1^Room Temperature
+QTE^16310X^2^Refrigerated is also acceptable.
+QTE^16313X^1^Room temperature.
+QTE^16313X^2^Shipping refrigerated is acceptable
+QTE^16314X^1^Room Temperature
+QTE^16314X^2^Refrigerated is also acceptable.
+QTE^16316X^1^Room Temperature
+QTE^16316X^2^Shipping refrigerated is acceptable.
+QTE^16317X^1^Room Temperature
+QTE^16317X^2^Shipping refrigerated is acceptable
+QTE^16318X^1^Room Temperature
+QTE^16320X^1^Room Temperature
+QTE^16320X^2^Shipping refrigerated is also acceptable
+QTE^16321X^1^Room temperature
+QTE^16321X^2^Shipping refrigerated is acceptable
+QTE^16322X^1^Frozen
+QTE^16326X^1^Room temperature
+QTE^16326X^2^Shipping refrigerated is acceptable.
+QTE^16327X^1^Room temperature
+QTE^16327X^2^shipping refrigerated is acceptable
+QTE^16332X^1^Room temperature.
+QTE^16332X^2^Shipping refrigerated is acceptable
+QTE^16336X^1^Frozen
+QTE^1633X^1^Urine with pH adjusted <3.0  ship room temp or refrigerated
+QTE^1633X^2^Urine without preservative:  ship refrigerated
+QTE^16344X^1^Room Temperature
+QTE^16344X^2^Shipping refrigerated is acceptable
+QTE^1635X^1^Room temperature
+QTE^1635X^2^Shipping refrigerated is acceptable
+QTE^16374X^1^Room Temperature
+QTE^16374X^2^Refrigerated is also acceptable.
+QTE^16377X^1^FROZEN
+QTE^16379X^1^Room temperature
+QTE^16379X^2^Refrigerated is acceptable
+QTE^16404X^1^Room Temperature
+QTE^16407X^1^Room temperature
+QTE^16427X^1^Room Temperature
+QTE^16433X^1^Room Temperature (ship immediately)
+QTE^16440X^1^Room Temperature
+QTE^16440X^2^Shipping refrigerated is acceptable.
+QTE^16441X^1^FROZEN
+QTE^16442X^1^FROZEN
+QTE^16446X^1^FROZEN
+QTE^16447X^1^FROZEN
+QTE^16454X^1^Room Temperature
+QTE^16454X^2^Refrigerated is also acceptable.
+QTE^16455X^1^Room Temperature
+QTE^16455X^2^Refrigerated is also acceptable.
+QTE^16456X^1^Room Temperature
+QTE^16456X^2^Refrigerated is also acceptable.
+QTE^16457X^1^Room Temperature
+QTE^16457X^2^Refrigerated is also acceptable.
+QTE^16460X^1^Room Temperature
+QTE^16460X^2^Shipping refrigerated is acceptable.
+QTE^16463X^1^Refrigerated
+QTE^16464X^1^Refrigerated
+QTE^16465X^1^Refrigerated
+QTE^16466X^1^Refrigerated
+QTE^16478X^1^Room temperature
+QTE^16478X^2^Shipping refrigerated is acceptable
+QTE^16480X^1^Refrigerated
+QTE^16482X^1^Room temperature
+QTE^16483X^1^Room Temperature
+QTE^16483X^2^Refrigerated is also acceptable.
+QTE^16484X^1^Room Temperature
+QTE^16484X^2^Refrigerated is also acceptable.
+QTE^16486X^1^Room Temperature
+QTE^16486X^2^Refrigerated is also acceptable.
+QTE^1648X^1^Room Temperature
+QTE^1648X^2^Shipping Refrigerated is acceptable.
+QTE^16490X^1^Refrigerated
+QTE^16491X^1^Room temperature
+QTE^16491X^2^Shipping refrigerated remains acceptable
+QTE^16494X^1^Room temperature
+QTE^16494X^2^Shipping refrigerated remains acceptable
+QTE^16495X^1^Room Temperature
+QTE^16495X^2^Shipping refrigerated or frozen is also accecptable.
+QTE^16500X^1^FROZEN
+QTE^16500X^2^Shipping refrigerated is acceptable
+QTE^16502X^1^Room Temperatuire
+QTE^16502X^2^Refrigerated is acceptable
+QTE^16503X^1^Room Temperature
+QTE^16503X^2^Shipping refrigerated is acceptable.
+QTE^16504X^1^Room temperature
+QTE^16505X^1^Room temperature
+QTE^16506X^1^Room temperature
+QTE^16510X^1^Room Temperature
+QTE^16515X^1^Refrigerated
+QTE^16523X^1^Room temperature
+QTE^16526X^1^Room temperature
+QTE^16529X^1^Room temperature
+QTE^16529X^2^Shipping refrigerated is acceptable
+QTE^16530X^1^Refrigerated
+QTE^16533X^1^Room temperature
+QTE^16534X^1^Room temperature
+QTE^16536X^1^Refigerated
+QTE^16537X^1^Serum : Frozen
+QTE^16537X^2^Whole blood: Room temperature
+QTE^16538X^1^Refrigerated
+QTE^16539X^1^Refrigerated
+QTE^16553X^1^Frozen
+QTE^16558X^1^Room temperature
+QTE^16558X^2^Refrigerated is also acceptable.
+QTE^16559X^1^Frozen
+QTE^16559X^2^Shipping refrigerated is acceptable
+QTE^16560X^1^Frozen
+QTE^16578X^1^Room temperature
+QTE^16578X^2^Shipping refrigerated is accepatable.
+QTE^16579X^1^Room Temperature
+QTE^16579X^2^Refrigerated is also acceptable.
+QTE^16581X^1^Frozen
+QTE^16594X^1^Refrigerated
+QTE^16595X^1^Refrigerated
+QTE^16596X^1^Refrigerated
+QTE^16597X^1^Refrigerated
+QTE^16599X^1^Room Temperature
+QTE^16599X^2^Refrigerated is acceptable.
+QTE^16601X^1^Room Temperature
+QTE^16601X^2^Refrigerated is acceptable.
+QTE^16602X^1^Room Temperature
+QTE^16602X^2^Refrigerated is acceptable.
+QTE^16603X^1^Ambient temperature (22C +/- 5C)
+QTE^16603X^2^Do not transport on ice or refrigerated.
+QTE^16605X^1^Room temperature
+QTE^16607X^1^Refrigerated
+QTE^16608X^1^Room temperature
+QTE^16609X^1^Refrigerated
+QTE^16612X^1^Room temperature
+QTE^16613X^1^Room temperature
+QTE^16614X^1^Room temperature
+QTE^16619X^1^Refrigerated
+QTE^16655X^1^Room Temperature
+QTE^16655X^2^Refrigerated is also acceptable.
+QTE^16662X^1^Room Temperature
+QTE^16662X^2^Shipping refrigerated is acceptable.
+QTE^16672X^1^Room temperature
+QTE^16677X^1^Refrigerated
+QTE^16678X^1^Refrigerated
+QTE^16679X^1^Refrigerated
+QTE^16680X^1^Refrigerated
+QTE^16681X^1^Refrigerated
+QTE^16682X^1^Refrigerated
+QTE^16684X^1^Refrigerated
+QTE^16685X^1^Refrigerated
+QTE^16686X^1^Refrigerated
+QTE^16688X^1^Room Temperature
+QTE^16694X^1^FROZEN
+QTE^16703X^1^Room temperature
+QTE^16704X^1^Room temperature
+QTE^16705X^1^Room temperature
+QTE^16706X^1^Room temperature
+QTE^16707X^1^Room temperature
+QTE^16708X^1^Room temperature
+QTE^16711X^1^Room temperature
+QTE^16712X^1^Room temperature
+QTE^16713X^1^Room temperature
+QTE^16715X^1^Room Temperature
+QTE^16715X^2^Shipping refrigerated is also acceptable
+QTE^16720X^1^Room Temperature
+QTE^16721X^1^Room Temperature
+QTE^16730X^1^Refrigerated
+QTE^16731X^1^Room temperature
+QTE^16732X^1^Room temperature
+QTE^16736X^1^Room temperature
+QTE^16739X^1^Frozen
+QTE^16748X^1^Refrigerate
+QTE^16749X^1^Room temperature. Do not freeze.
+QTE^16767X^1^Room Temperature
+QTE^16768X^1^Room Temperature
+QTE^16768X^2^Refrigerated is acceptable.
+QTE^16773X^1^Room Temperature
+QTE^16773X^2^Shipping refrigerated is also acceptable.
+QTE^16775X^1^Ambient
+QTE^16775X^2^Shipping refrigerated is also acceptable.
+QTE^1677T^1^Room Temperature
+QTE^16796X^1^Frozen
+QTE^16796X^2^Okay to thaw
+QTE^16802X^1^Room Temperature
+QTE^16807X^1^Refrigerated
+QTE^16811X^1^Room temperature
+QTE^16812X^1^Room temperature
+QTE^16814X^1^Room Temperature (18-25 degrees Celsius)
+QTE^16818X^1^Refrigerated
+QTE^16828X^1^Refrigerated
+QTE^16835X^1^Room Temperature
+QTE^16835X^2^Shipping refrigerated is acceptable
+QTE^16837X^1^Room Temperature
+QTE^16838X^1^Room Temperature
+QTE^16838X^2^Shipping refrigerated and frozen remains acceptable.
+QTE^16842X^1^Frozen
+QTE^16845X^1^Ship frozen
+QTE^16845X^2^Do not thaw
+QTE^16846X^1^Ship frozen
+QTE^16846X^2^Do not thaw
+QTE^16851X^1^Room Temperature
+QTE^16852X^1^Room Temperature
+QTE^16852X^2^Refrigerated is also acceptable.
+QTE^16853X^1^Room Temperature
+QTE^16853X^2^Refrigerated is also acceptable.
+QTE^16854X^1^Room Temperature
+QTE^16854X^2^Refrigerated is also acceptable.
+QTE^16855X^1^Room Temperature
+QTE^16855X^2^Refrigerated is also acceptable.
+QTE^16856X^1^Room Temperature
+QTE^16856X^2^Refrigerated is also acceptable.
+QTE^16858X^1^Room Temperature
+QTE^16858X^2^Refrigerated is also acceptable.
+QTE^16859X^1^Tissue sample: Room temp. Refrigerated is acceptable
+QTE^16859X^2^Bone Marrow: Refrigerated
+QTE^16859X^3^Whole Blood: Refrigerated
+QTE^1685F^1^Unless otherwise specified, refrigerate sample until
+QTE^1685F^2^transport.
+QTE^16860X^1^Room temperature
+QTE^16864X^1^Room Temperature
+QTE^16868X^1^FROZEN / do not thaw
+QTE^16869X^1^Room Temperature
+QTE^16872X^1^Room Temperature
+QTE^16872X^2^Refrigerated is acceptable
+QTE^16872X^3^Frozen is NOT acceptable
+QTE^16879X^1^FROZEN
+QTE^1687X^1^Room temperature preferred.
+QTE^1687X^2^Refrigerated acceptable
+QTE^16885X^1^Room Temperature
+QTE^16885X^2^Refrigerated is also acceptable.
+QTE^16886X^1^Room Temperature
+QTE^16886X^2^Refrigerated is also acceptable.
+QTE^16887X^1^Room Temperature
+QTE^16887X^2^Refrigerated is also acceptable.
+QTE^16888X^1^Room Temperature
+QTE^16888X^2^Refrigerated is also acceptable.
+QTE^16889X^1^Room Temperature
+QTE^16889X^2^Refrigerated is also acceptable.
+QTE^1688X^1^Refrigerated
+QTE^16890X^1^Room Temperature
+QTE^16890X^2^Refrigerated is also acceptable.
+QTE^16891X^1^Room Temperature
+QTE^16891X^2^Refrigerated is also acceptable.
+QTE^16892X^1^Room Temperature
+QTE^16892X^2^Shipping refrigerated is acceptable.
+QTE^16893X^1^Room Temperature
+QTE^16893X^2^Refrigerated is also acceptable.
+QTE^16894X^1^Room Temperatue
+QTE^16894X^2^Refrigerated is also acceptable.
+QTE^16897X^1^Room temperature
+QTE^16897X^2^Shipping refrigerated is acceptable
+QTE^16898X^1^Room temperature
+QTE^16898X^2^Shipping refrigerated remains acceptable
+QTE^16900X^1^Room Temperature
+QTE^16900X^2^Refrigerated is also acceptable.
+QTE^16901X^1^Room Temperatue
+QTE^16901X^2^Refrigerated is also acceptable.
+QTE^16902X^1^Room Temperature
+QTE^16902X^2^Refrigerated is also acceptable.
+QTE^16903X^1^Room Temperature
+QTE^16903X^2^Refrigerated is also acceptable.
+QTE^16904X^1^Room Temperature
+QTE^16904X^2^Refrigerated is also acceptable.
+QTE^16905X^1^Room Temperature
+QTE^16905X^2^Refrigerated is also acceptable.
+QTE^16906X^1^Room Temperature
+QTE^16906X^2^Refrigerated is also acceptable.
+QTE^16908X^1^Room Temperature
+QTE^16908X^2^Refrigerated is also acceptable.
+QTE^16909X^1^Room Temperature
+QTE^16909X^2^Refrigerated is also acceptable.
+QTE^16910X^1^Room Temperature
+QTE^16910X^2^Refrigerated is also acceptable.
+QTE^16911X^1^Room Temperature
+QTE^16911X^2^Refrigerated is also acceptable.
+QTE^16912X^1^Room Temperature
+QTE^16912X^2^Refrigerated is also acceptable.
+QTE^16913X^1^Room Temperature
+QTE^16913X^2^Refrigerated is also acceptable.
+QTE^16914X^1^Room Temperature
+QTE^16914X^2^Refrigerated is also acceptable.
+QTE^16916X^1^Room Temperature
+QTE^16916X^2^Refrigerated is also acceptable.
+QTE^16917X^1^Room Temperature
+QTE^16917X^2^Refrigerated is also acceptable.
+QTE^16918X^1^Room Temperature
+QTE^16918X^2^Refrigerated is also acceptable.
+QTE^16920X^1^Room Temperature
+QTE^16920X^2^Refrigerated is also acceptable.
+QTE^16921X^1^Room Temperature
+QTE^16921X^2^Shipping refrigerated is acceptable.
+QTE^16922X^1^Room Temperature
+QTE^16922X^2^Refrigerated is also acceptable.
+QTE^16924X^1^Room temperature
+QTE^16925X^1^Room temperature
+QTE^16925X^2^Shipping refrigerated is acceptable
+QTE^16930X^1^Room Temperature
+QTE^16934X^1^Room Temperature
+QTE^16934X^2^Shipping Refrigerated is acceptable.
+QTE^16936X^1^Room Temperature
+QTE^16936X^2^Refrigerated is acceptable.
+QTE^16937X^1^Room Temperature
+QTE^16937X^2^Shipping refrigerated is acceptable
+QTE^16938X^1^Room Temperature
+QTE^16938X^2^Shipping refrigerated is acceptable.
+QTE^16957X^1^Room Temperature
+QTE^16957X^2^Refrigerated is also acceptable
+QTE^16959X^1^Room Temperature
+QTE^16962X^1^Refrigerated
+QTE^16963X^1^Room Temperature
+QTE^16963X^2^Shipping refrigerated is acceptable
+QTE^16965X^1^Room Temperature
+QTE^16965X^2^Refrigerated is acceptable
+QTE^16966X^1^Refrigerated
+QTE^16967X^1^Room Temperature
+QTE^16967X^2^Shipping refrigerated will remain acceptable
+QTE^16968X^1^Refrigerated
+QTE^16969X^1^Refrigerated
+QTE^16970X^1^Refrigerated
+QTE^16971X^1^Room temperature
+QTE^16971X^2^Shipping refrigerated will remain acceptable
+QTE^16973X^1^Refrigerated
+QTE^16974X^1^Refrigerated
+QTE^16975X^1^Refrigerated
+QTE^16976X^1^Refrigerated
+QTE^16977X^1^Refrigerated
+QTE^16979X^1^Room temperature
+QTE^16979X^2^Shipping refrigerated is acceptable.
+QTE^16983X^1^Frozen
+QTE^16984X^1^Frozen
+QTE^16985X^1^Refrigerated
+QTE^16986X^1^Room Temperature
+QTE^16988X^1^Room temperature
+QTE^16988X^2^Shipping refrigerated is acceptable.
+QTE^16991X^1^Refrigerated
+QTE^16992X^1^Refrigerated
+QTE^17029X^1^Room temperature
+QTE^17029X^2^Shipping refrigerated is accpetable
+QTE^17072X^1^Refrigerated
+QTE^17075X^1^Room Temperature
+QTE^17075X^2^Refrigerated is also acceptable
+QTE^17085X^1^Frozen
+QTE^17086X^1^Room Temperature
+QTE^17086X^2^Refrigerated is also acceptable.
+QTE^17088X^1^Room temperature
+QTE^17088X^2^Shipping refrigerated is acceptable.
+QTE^17092X^1^Room Temperature
+QTE^17101X^1^Ship refrigerated or frozen.
+QTE^17110X^1^Room temperature
+QTE^17125X^1^Room temperature
+QTE^17125X^2^Refrigerated is also acceptable
+QTE^17131X^1^Refrigerated
+QTE^17131X^2^Shipping room temperature is also acceptable.
+QTE^17133X^1^Refrigerated
+QTE^17143X^1^Refrigerated
+QTE^17145R^1^Refrigerated
+QTE^17161X^1^Refrigerated
+QTE^17165X^1^Frozen
+QTE^17166X^1^Frozen
+QTE^17170X^1^Unless otherwise specified, refrigerate sample until
+QTE^17170X^2^transport.
+QTE^17171X^1^Refrigerated
+QTE^17172X^1^Refrigerated
+QTE^17180X^1^Refrigerated
+QTE^17181X^1^Refrigerated
+QTE^17182X^1^Room Temperature
+QTE^17182X^2^Shipping refrigerated remains acceptable.
+QTE^17183X^1^Room Temperature
+QTE^17183X^2^Shipping refrigerated is acceptable.
+QTE^17185X^1^Room Temperature
+QTE^17198X^1^Refrigerated
+QTE^17220X^1^Frozen
+QTE^17221X^1^Room Temperature
+QTE^17221X^2^Refrigerated is acceptable.
+QTE^17231X^1^Refrigerated
+QTE^17239X^1^Room Temperature
+QTE^17268X^1^Frozen
+QTE^17270X^1^Room temperature
+QTE^17271X^1^Refrigerated
+QTE^17273X^1^Frozen
+QTE^17274X^1^Room temperature
+QTE^17286X^1^Refrigerated.
+QTE^17289X^1^Refrigerated
+QTE^17295X^1^Room Temperature
+QTE^17297X^1^Room Temp
+QTE^17300Z^1^Refrigerated
+QTE^17303X^1^All specimen types Room Temperature or Refrigerated.
+QTE^17303X^2^Sterile urine MUST be refrigerated.
+QTE^17304X^1^All specimen types: Room Temperature or Refrigerated.
+QTE^17304X^2^Sterile Urine MUST be refrigerated.
+QTE^17305X^1^All specimen types Room Temperature or Refrigerated.
+QTE^17305X^2^Sterile urine MUST be refrigerated.
+QTE^17306C^1^Transport refrigerated or at room temperature.
+QTE^17306X^1^Transport refrigerated or at room temperature.
+QTE^17307X^1^Ship room temperature
+QTE^17307X^2^Refrigerated is also acceptable
+QTE^17308X^1^Room temperature
+QTE^17312X^1^Room temperature
+QTE^17313X^1^Room Temperature
+QTE^17313X^2^Refrigerated is also acceptable.
+QTE^17320X^1^Whole blood : Refrigerated
+QTE^17320X^2^Tick - Room temperature in ethanol or live
+QTE^17321X^1^Frozen
+QTE^17333X^1^Room temperature
+QTE^17333X^2^Shipping refrigerated remains acceptable
+QTE^17346X^1^Room Temperature
+QTE^17347X^1^Room Temperature
+QTE^17348X^1^Room Temperature
+QTE^17352X^1^Room Temperature
+QTE^17364X^1^Ship Refrigerated
+QTE^17375X^1^Refrigerated
+QTE^17378X^1^Refrigerated
+QTE^17379X^1^Refrigerated
+QTE^17380X^1^Refrigerated
+QTE^17382X^1^Refrigerated
+QTE^17385X^1^REFRIGERATED
+QTE^17388Z^1^Refrigerated
+QTE^17393X^1^Room temperature
+QTE^17394X^1^Room temperature
+QTE^17395X^1^Room temperature
+QTE^17396X^1^Room temperature
+QTE^17397X^1^Room temperature
+QTE^17401X^1^Frozen
+QTE^17404X^1^Ship refrigerated on refrigerant coolant.
+QTE^17406X^1^Frozen
+QTE^17407X^1^Frozen
+QTE^17408X^1^Frozen
+QTE^17409X^1^Frozen
+QTE^17410X^1^Frozen
+QTE^17411X^1^Frozen
+QTE^17412X^1^Frozen
+QTE^17413X^1^Frozen
+QTE^17414X^1^Frozen
+QTE^17415X^1^Frozen
+QTE^17417X^1^Frozen
+QTE^17419X^1^F
+QTE^17420X^1^Frozen
+QTE^17421X^1^Frozen
+QTE^17422X^1^Frozen
+QTE^17423X^1^Frozen
+QTE^17424X^1^Frozen
+QTE^17425X^1^Refrigerated
+QTE^17426R^1^Room Temperature/Refrigerated
+QTE^17427X^1^Frozen
+QTE^17428X^1^Frozen
+QTE^17429X^1^Frozen
+QTE^17454X^1^Refrigerted
+QTE^17455X^1^Room Temperature
+QTE^17456X^1^Room Temperature
+QTE^17467P^1^Non-Frozen and Frozen samples are acceptable.
+QTE^17467P^2^Unless otherwise specified, refrigerate sample until
+QTE^17467P^3^transport.
+QTE^17494X^1^FROZEN
+QTE^17494X^2^Do Not Thaw
+QTE^17495X^1^Refrigerated (Cold packs)
+QTE^174F^1^Unless otherwise specified, refrigerate sample until
+QTE^174F^2^transport.
+QTE^17515X^1^Refrigerated
+QTE^17516X^1^Refrigerated
+QTE^17517W^1^Room Temperature/Refrigerated
+QTE^17548X^1^Frozen
+QTE^17554X^1^Frozen
+QTE^17555X^1^Frozen
+QTE^17563X^1^Refrigerated
+QTE^1757Z^1^Ship Frozen
+QTE^17584X^1^Frozen
+QTE^17585X^1^Frozen
+QTE^17586X^1^Frozen
+QTE^17587X^1^Frozen
+QTE^17588X^1^Frozen
+QTE^17589X^1^Frozen
+QTE^17591X^1^Frozen
+QTE^17592X^1^Frozen
+QTE^17593X^1^Frozen preferred
+QTE^17593X^2^Refrigerated acceptable
+QTE^17594X^1^Frozen preferred
+QTE^17594X^2^Refrigerated acceptable
+QTE^17595X^1^Frozen preferred
+QTE^17595X^2^Refrigerated:  acceptable
+QTE^17596X^1^Frozen preferred
+QTE^17596X^2^Refrigerated acceptable
+QTE^17597X^1^Frozen preferred
+QTE^17597X^2^Refrigerated acceptable
+QTE^17598X^1^Frozen preferred
+QTE^17598X^2^Refrigerated acceptable
+QTE^17601X^1^Frozen
+QTE^17602X^1^Frozen
+QTE^17603X^1^Frozen
+QTE^17604X^1^Frozen
+QTE^17605X^1^Frozen
+QTE^17607X^1^Refrigerated.
+QTE^17607X^2^Room Temperature or Frozen also acceptable.
+QTE^17610X^1^Refrigerated
+QTE^17611X^1^Frozen
+QTE^17615X^1^ROOM TEMPERATURE
+QTE^17617X^1^ROOM TEMPERATURE
+QTE^17618X^1^ ROOM TEMPERATURE
+QTE^17634X^1^Whole Blood: Store and ship at room temperature.
+QTE^17634X^2^Shipping refrigerated is acceptable
+QTE^17638X^1^Frozen
+QTE^17639X^1^Frozen
+QTE^17641X^1^Frozen
+QTE^17642X^1^Frozen
+QTE^17643X^1^Frozen
+QTE^17644X^1^Frozen
+QTE^17646X^1^Frozen
+QTE^17647X^1^Frozen
+QTE^17654X^1^Refrigerated
+QTE^17656X^1^Refrigerated
+QTE^17658X^1^Frozen
+QTE^17662X^1^Whole blood: Store and ship at room Temperature.
+QTE^17662X^2^Shipping refrigerated is acceptable
+QTE^17662X^3^Extracted DNA: Please call the Molecular Genetics
+QTE^17662X^4^Laboratory for shipping instructions.
+QTE^17670X^1^Room temperature
+QTE^17670X^2^Shipping refrigerated will remain acceptable
+QTE^17674X^1^Transport at room temperature
+QTE^17677X^1^Frozen
+QTE^17679X^1^                      WHOLE BLOOD         PLASMA
+QTE^17679X^2^Room temp:            Acceptable          Unacceptable
+QTE^17679X^3^Refrigerated:         Preferred           Unacceptable
+QTE^17679X^4^Frozen:               Unacceptable        Preferred
+QTE^17680X^1^Room temperature
+QTE^17682X^1^Refrigerated
+QTE^17689X^1^Ship Frozen
+QTE^17690X^1^Room Temperature:     Acceptable
+QTE^17690X^2^Refrigerated:         Preferred
+QTE^17690X^3^Frozen:               Unacceptable
+QTE^17696X^1^Frozen
+QTE^17697X^1^Frozen
+QTE^17698X^1^Frozen
+QTE^1769X^1^Refrigerated
+QTE^17702X^1^                      WHOLE BLOOD
+QTE^17702X^2^                   or BONE MARROW
+QTE^17702X^3^Room Temperature:     Acceptable
+QTE^17702X^4^Refrigerated:         Preferred
+QTE^17702X^5^Frozen:               Unacceptable
+QTE^17712X^1^Room Temperature
+QTE^17712X^2^Shipping refrigerated is acceptable
+QTE^17717X^1^Room temperature
+QTE^17718X^1^Frozen preferred
+QTE^17718X^2^Refrigerated acceptable
+QTE^17719X^1^Frozen preferred
+QTE^17719X^2^Refrigerated acceptable
+QTE^17726X^1^Room Temperature
+QTE^17727X^1^Ship room temperture
+QTE^1776X^1^Frozen
+QTE^17771X^1^Room temperature
+QTE^17771X^2^Shippping refrigerated is also acceptable.
+QTE^17778X^1^Refrigerated
+QTE^1777X^1^FROZEN
+QTE^1777X^2^Do not thaw.
+QTE^177808W^1^Frozen
+QTE^17793Z^1^Refrigerated.
+QTE^1779X^1^FROZEN
+QTE^1779X^2^Do not thaw.
+QTE^17805X^1^Room Temperature
+QTE^17805X^2^Shipping refrigerated is also acceptable.
+QTE^17813X^1^Room temperature
+QTE^17823X^1^Ship room temperature
+QTE^17825X^1^Room Temperature
+QTE^17825X^2^Shipping refrigerated is acceptable
+QTE^17826X^1^Room Temperature
+QTE^17832X^1^Ship room temperature
+QTE^17836X^1^Room temperature
+QTE^17840X^1^Frozen
+QTE^17843X^1^FROZEN
+QTE^17844X^1^Frozen
+QTE^17845X^1^Frozen
+QTE^17850X^1^Refrigerated
+QTE^17854X^1^Frozen
+QTE^17857X^1^Refrigerated
+QTE^17865X^1^Refrigerated or Frozen on dry ice
+QTE^17866X^1^Refrigerated
+QTE^17874X^1^Room temperature
+QTE^17876X^1^Refrigerated
+QTE^17877X^1^Refrigerated
+QTE^17902X^1^Room temperature
+QTE^17902X^2^Shipping refrigerated acceptable
+QTE^17903X^1^Room temperature
+QTE^17903X^2^Shipping refrigerated acceptable
+QTE^17904X^1^Ship room temperature
+QTE^17904X^2^Shipping refrigerated acceptable
+QTE^17907X^1^Room Temperature / Ambient
+QTE^17907X^2^Shipping refrigerated acceptable
+QTE^17922X^1^Room temperature
+QTE^17988W^1^Room Temperature/Refrigerated
+QTE^18041X^1^Room Temperature
+QTE^18041X^2^Refrigerated is also acceptable, except for amniotic fluid.
+QTE^18184R^1^Refrigerated
+QTE^18366P^1^Unless otherwise specified, refrigerate sample until
+QTE^18366P^2^transport.
+QTE^18366P^3^Ship refrigerated
+QTE^18416R^1^FROZEN
+QTE^184838W^1^Room Temp
+QTE^18572E^1^Unless otherwise specified, refrigerate specimen until
+QTE^18572E^2^transport.
+QTE^18697W^1^Unless otherwise specified, refrigerate sample until
+QTE^18697W^2^transport
+QTE^18810X^1^Room Temerature
+QTE^18811X^1^Room Temperature
+QTE^18814X^1^Room Temperature
+QTE^18818X^1^Refrigerated
+QTE^18819X^1^Refrigerated
+QTE^18821X^1^Refrigerated
+QTE^18821X^2^Ok to thaw
+QTE^18822X^1^Refrigerated
+QTE^18822X^2^Ok to thaw
+QTE^18823X^1^Refrigerated
+QTE^18823X^2^Ok to thaw
+QTE^18824X^1^Refrigerated
+QTE^18824X^2^Ok to thaw
+QTE^18825X^1^Refrigerated
+QTE^18825X^2^Ok to thaw
+QTE^18826X^1^Refrigerated
+QTE^18826X^2^Ok to thaw
+QTE^18827X^1^Refrigerated
+QTE^18827X^2^Ok to thaw
+QTE^18831X^1^Refrigerated
+QTE^18833X^1^Room temperature
+QTE^18834X^1^Refrigerated
+QTE^18835X^1^Refrigerated
+QTE^18842X^1^Refrigerated
+QTE^18846R^1^Unless otherwise specified, refrigerate sample until
+QTE^18846R^2^transport.
+QTE^18847X^1^Room Temperature
+QTE^18847X^2^Refrigerated is also acceptable.
+QTE^18851X^1^Room temperature
+QTE^18852X^1^Refrigerated
+QTE^18858X^1^Refrigerated
+QTE^18859X^1^Room temperature
+QTE^18859X^2^Shipping refrigerated is acceptable
+QTE^18862X^1^Room Temperature
+QTE^18862X^2^Shipping refrigerated is acceptable
+QTE^18865X^1^Room temperature
+QTE^18866X^1^Room temperature
+QTE^18867X^1^Refrigerated
+QTE^18869X^1^Room Temperature
+QTE^18871X^1^Frozen
+QTE^18871X^2^Do not thaw
+QTE^18873X^1^TISSUE: FROZEN
+QTE^18873X^2^All other samples refrigerated.
+QTE^18877X^1^Room Temperature
+QTE^18877X^2^Shipping refrigerated is acceptable.
+QTE^18883X^1^Refrigerated
+QTE^18885X^1^Room temperature
+QTE^18885X^2^Refrigerated is also acceptable
+QTE^18886X^1^Refrigerated
+QTE^18889X^1^FROZEN
+QTE^18899X^1^Room Temperature
+QTE^18901X^1^FROZEN
+QTE^18921X^1^Refrigerated
+QTE^18927X^1^Room Temperature
+QTE^18939X^1^Frozen
+QTE^18946X^1^Room temperature
+QTE^18946X^2^Shipping refrigerated is acceptable
+QTE^18947X^1^Room temperature
+QTE^18947X^2^Shipping refrigerated is acceptable.
+QTE^18948X^1^Room Temperature
+QTE^18951X^1^Refrigerated
+QTE^18951X^2^Shipping room temp unacceptable
+QTE^18964X^1^Refrigerated
+QTE^18967X^1^FROZEN
+QTE^18969X^1^Room temperature
+QTE^18969X^2^Refrigerated is also acceptable
+QTE^18973X^1^Room Temperature
+QTE^18976X^1^Refrigerated
+QTE^18989X^1^Room Temperature
+QTE^18989X^2^Refrigerated is also acceptable.
+QTE^18990X^1^Room Temperature
+QTE^18991X^1^Room Temperature
+QTE^18991X^2^Shipping refrigerated is acceptable.
+QTE^18992X^1^Room Temperature
+QTE^18992X^2^Shipping refrigerated is acceptable.
+QTE^18993X^1^Room Temperature
+QTE^18993X^2^Shipping refrigerated is acceptable.
+QTE^18995X^1^Room Temperature
+QTE^18995X^2^Refrigerated is also acceptable.
+QTE^18996X^1^Room Temperature
+QTE^18996X^2^Refrigerated is also acceptable.
+QTE^18998X^1^Room Temperatue
+QTE^18998X^2^Refrigerated is also acceptable.
+QTE^18999X^1^Room Temperature
+QTE^18T^1^Unless otherwise specified, refrigerate sample until
+QTE^18T^2^transport.
+QTE^19045X^1^Room temperature
+QTE^19070X^1^Room Temperature
+QTE^19071X^1^Room Temperature
+QTE^19079X^1^Room temperature
+QTE^19082X^1^Room temperature
+QTE^19098X^1^Frozen
+QTE^1909T^1^Room Temperature
+QTE^190A^1^Must be recieved within 24 hours of collection.
+QTE^190A^2^Room Temperature. Shipping refrigerated is also acceptable
+QTE^19100X^1^Room Temperature
+QTE^19107X^1^Room Temperature/Refrigerated
+QTE^19108X^1^Refrigerated
+QTE^19110X^1^Refrigerated
+QTE^19112X^1^Refrigerated
+QTE^19119X^1^Refrigerated
+QTE^19122X^1^Room Temperature
+QTE^19123X^1^Room Temperature
+QTE^19124X^1^Room Temperature
+QTE^19126X^1^Room Temperature
+QTE^19127X^1^Room Temperature
+QTE^19128X^1^Room Temperature
+QTE^19129X^1^Room Temperature
+QTE^19130X^1^Room Temperature
+QTE^19131X^1^Room Temperature
+QTE^19132X^1^Room Temperature
+QTE^19134X^1^Room Temperature
+QTE^19137X^1^Room Temperature
+QTE^19138X^1^Room Temperature
+QTE^19139X^1^Room Temperature
+QTE^19140X^1^Room Temperature
+QTE^19142X^1^Room Temperature
+QTE^19143X^1^Room Temperature
+QTE^19144X^1^Room Temperature
+QTE^19145X^1^Room Temperature
+QTE^19146X^1^Room Temperature
+QTE^19146X^2^Refrigerated is also acceptable.
+QTE^19147X^1^Room Temperature
+QTE^19147X^2^Refrigerated is also acceptable.
+QTE^19148X^1^Room Temperature
+QTE^19148X^2^Refrigerated is also acceptable.
+QTE^19149X^1^Room Temperature
+QTE^19149X^2^Refrigerated is also acceptable.
+QTE^19150X^1^Room Temperature
+QTE^19150X^2^Refrigerated is also acceptable.
+QTE^19151X^1^Room Temperataure
+QTE^19151X^2^Refrigerated is also acceptable.
+QTE^19152X^1^Room Temperature
+QTE^19152X^2^Refrigerated is also acceptable.
+QTE^19153X^1^Room Temperature
+QTE^19153X^2^Refrigerated is also acceptable.
+QTE^19154X^1^Room Temperature
+QTE^19154X^2^Refrigerated is also acceptable.
+QTE^19155X^1^Room Temperature
+QTE^19155X^2^Refrigerated is also acceptable.
+QTE^19156X^1^Room Temperature
+QTE^19156X^2^Refrigerated is also acceptable.
+QTE^19157X^1^Room Temperature
+QTE^19157X^2^Refrigerated is also acceptable.
+QTE^19159X^1^Room Temperature
+QTE^19159X^2^Refrigerated is also acceptable.
+QTE^19160X^1^Room Temperature
+QTE^19160X^2^Refrigerated is also acceptable.
+QTE^19161X^1^Room temperature
+QTE^19162X^1^Room Temperature
+QTE^19162X^2^Refrigerated is also acceptable.
+QTE^19163X^1^Room Temperature
+QTE^19163X^2^Refrigerated is also acceptable.
+QTE^19164X^1^Room Temperature
+QTE^19164X^2^Refrigerated is also acceptable.
+QTE^19165X^1^Room Temperature
+QTE^19165X^2^Refrigerated is also acceptable.
+QTE^19167X^1^Room Temperature
+QTE^19167X^2^Refrigerated is also acceptable.
+QTE^19168X^1^Room Temperature
+QTE^19168X^2^Refrigerated is also acceptable.
+QTE^19169X^1^Room Temperature
+QTE^19169X^2^Refrigerated is also acceptable.
+QTE^19170X^1^Room Temperature
+QTE^19170X^2^Refrigerated is also acceptable.
+QTE^19171X^1^Room Temperature
+QTE^19171X^2^Refrigerated is also acceptable.
+QTE^19172X^1^Room Temperature
+QTE^19172X^2^Refrigerated is also acceptable.
+QTE^19173X^1^Room Temperature
+QTE^19173X^2^Refrigerated is also acceptable.
+QTE^19175X^1^Room Temperature
+QTE^19175X^2^Refrigerated is also acceptable.
+QTE^19176X^1^Room Temperature
+QTE^19176X^2^Refrigerated is also acceptable.
+QTE^19177X^1^Room Temperature
+QTE^19177X^2^Refrigerated is also acceptable.
+QTE^19178X^1^Room Temperature
+QTE^19178X^2^Refrigerated is also acceptable.
+QTE^19179X^1^Room Temperature
+QTE^19179X^2^Refrigerated is also acceptable.
+QTE^19180X^1^Room Temperature
+QTE^19180X^2^Refrigerated is also acceptable.
+QTE^19181X^1^Room Temperature
+QTE^19181X^2^Refrigerated is also acceptable.
+QTE^19183X^1^Room Temperature
+QTE^19183X^2^Refrigerated is also acceptable.
+QTE^19184X^1^Room Temperature
+QTE^19184X^2^Refrigerated is also acceptable.
+QTE^19185X^1^Room Temperature
+QTE^19185X^2^Refrigerated is also acceptable.
+QTE^19186X^1^Room Temperature
+QTE^19186X^2^Refrigerated is also acceptable.
+QTE^19187X^1^Room Temperature
+QTE^19187X^2^Refrigerated is also acceptable.
+QTE^19188X^1^Room Temperature
+QTE^19189X^1^Room Temperature
+QTE^19189X^2^Refrigerated is also acceptable.
+QTE^19191X^1^Room Temperature
+QTE^19191X^2^Refrigerated is also acceptable.
+QTE^19192X^1^Room Temperature
+QTE^19192X^2^Refrigerated is also acceptable.
+QTE^19194X^1^Room Temperature
+QTE^19194X^2^Refrigerated is also acceptable.
+QTE^19195X^1^Room Temperature
+QTE^19195X^2^Refrigerated is also acceptable.
+QTE^19196X^1^Room Temperature
+QTE^19196X^2^Refrigerated is also acceptable.
+QTE^19197X^1^Room Temperature
+QTE^19197X^2^Refrigerated is also acceptable.
+QTE^19198X^1^Room Temperature
+QTE^19198X^2^Refrigerated is also acceptable.
+QTE^19199X^1^Room Temperature
+QTE^19199X^2^Refrigerated is also acceptable.
+QTE^19200X^1^Room Temperature
+QTE^19200X^2^Refrigerated is also acceptable.
+QTE^19201X^1^Room Temperature
+QTE^19201X^2^Refrigerated is also acceptable.
+QTE^19202X^1^Room Temperature
+QTE^19202X^2^Refrigerated is also acceptable.
+QTE^19203X^1^Room Temperature
+QTE^19203X^2^Refrigerated is also acceptable.
+QTE^19204X^1^Room Temperature
+QTE^19204X^2^Refrigerated is also acceptable.
+QTE^19205X^1^Room Temperature
+QTE^19205X^2^Refrigerated is also acceptable.
+QTE^19206X^1^Room Temperature
+QTE^19206X^2^Refrigerated is also acceptable.
+QTE^19207X^1^Room Temperature
+QTE^19207X^2^Refrigerated is also acceptable.
+QTE^19208W^1^Room Temperature/Refrigerated
+QTE^19210X^1^Room Temperature
+QTE^19210X^2^Refrigerated is also acceptable.
+QTE^19211X^1^Room Temperature
+QTE^19211X^2^Refrigerated is also acceptable.
+QTE^19212X^1^Room Temperature
+QTE^19212X^2^Refrigerated is also acceptable.
+QTE^19213X^1^Room Temperature
+QTE^19213X^2^Refrigerated is also acceptable.
+QTE^19214X^1^Room Temperature
+QTE^19214X^2^Refrigerated is also acceptable.
+QTE^19215X^1^Refrigerated
+QTE^19217X^1^Room Temperature
+QTE^19217X^2^Refrigerated is also acceptable.
+QTE^19218X^1^Room Temperature
+QTE^19218X^2^Refrigerated is also acceptable.
+QTE^19219X^1^Room Temperature
+QTE^19219X^2^Refrigerated is also acceptable.
+QTE^19221X^1^Room Temperature
+QTE^19222X^1^Room Temperature
+QTE^19223X^1^Room Temperature
+QTE^19225X^1^Room Temperature
+QTE^19225X^2^Refrigerated is also acceptable.
+QTE^19226X^1^Room Temperature
+QTE^19226X^2^Refrigerated is also acceptable.
+QTE^19227X^1^Room Temperature
+QTE^19228X^1^Room Temperature
+QTE^19228X^2^Refrigerated is also acceptable.
+QTE^19229X^1^Room Temperature
+QTE^19229X^2^Refrigerated is also acceptable.
+QTE^19230X^1^Room Temperature
+QTE^19230X^2^Refrigerated is also acceptable.
+QTE^19231X^1^Room Temperature
+QTE^19231X^2^Refrigerated is also acceptable.
+QTE^19233X^1^Room Temperature
+QTE^19233X^2^Refrigerated is also acceptable.
+QTE^19234X^1^Room Temperature
+QTE^19234X^2^Refrigerated is also acceptable.
+QTE^19235X^1^Room Temperature
+QTE^19235X^2^Refrigerated is also acceptable.
+QTE^19238X^1^Room Temperature
+QTE^19238X^2^Refrigerated is also acceptable.
+QTE^19239X^1^Room Temperature
+QTE^19241X^1^Room Temperature
+QTE^19241X^2^Refrigerated is also acceptable.
+QTE^19242X^1^Room Temperature
+QTE^19242X^2^Refrigerated is also acceptable.
+QTE^19243X^1^Room Temperature
+QTE^19243X^2^Refrigerated is also acceptable.
+QTE^19244X^1^Room Temperature
+QTE^19244X^2^Refrigerated is also acceptable.
+QTE^19245X^1^Room Temperature
+QTE^19245X^2^Refrigerated is also acceptable.
+QTE^19246X^1^Room Temperature
+QTE^19246X^2^Refrigerated is acceptable
+QTE^19247X^1^Room Temperature
+QTE^19247X^2^Refrigerated is acceptable
+QTE^19248X^1^Room Temperature
+QTE^19248X^2^Refrigerated is acceptable
+QTE^19249X^1^Room Temperature
+QTE^19249X^2^Refrigerated is acceptable
+QTE^19250X^1^Room Temperature
+QTE^19250X^2^Refrigerated is acceptable
+QTE^19251X^1^Room temperature
+QTE^19251X^2^Shipping refrigerated will remain acceptable.
+QTE^19252X^1^Room Temperature
+QTE^19252X^2^Refrigerated is acceptable
+QTE^19253X^1^Room Temperature
+QTE^19253X^2^Refrigerated is acceptable
+QTE^19254X^1^Room Temperature
+QTE^19254X^2^Refrigerated is acceptable
+QTE^19255X^1^Room Temperature
+QTE^19255X^2^Refrigerated is acceptable
+QTE^19256X^1^Room Temperature
+QTE^19258X^1^Room Temperature
+QTE^19258X^2^Refrigerated is acceptable
+QTE^19259X^1^Room Temperature
+QTE^19259X^2^Refrigerated is acceptable
+QTE^19260X^1^Room Temperature
+QTE^19260X^2^Refrigerated is acceptable
+QTE^19261X^1^Room Temperature
+QTE^19261X^2^Refrigerated is acceptable
+QTE^19262X^1^Room Temperature
+QTE^19262X^2^Refrigerated is acceptable
+QTE^19263X^1^Room Temperature
+QTE^19263X^2^Refrigerated is acceptable
+QTE^19264X^1^Room Temperature
+QTE^19264X^2^Refrigerated is acceptable
+QTE^19266X^1^Room Temperature
+QTE^19266X^2^Refrigerated is acceptable
+QTE^19267X^1^Room Temperature
+QTE^19267X^2^Refrigerated is acceptable
+QTE^19268X^1^Room Temperature
+QTE^19268X^2^Refrigerated is acceptable
+QTE^19269X^1^ Room Temperature
+QTE^19270X^1^Room Temperature
+QTE^19270X^2^Refrigerated is acceptable
+QTE^19271X^1^Room Temperature
+QTE^19271X^2^Refrigerated is acceptable
+QTE^19272X^1^Room Temperature
+QTE^19272X^2^Refrigerated is acceptable
+QTE^19274X^1^Room Temperature
+QTE^19274X^2^Refrigerated is acceptable
+QTE^19275X^1^Room Temperature
+QTE^19275X^2^Refrigerated is acceptable
+QTE^19276X^1^Room Temperature
+QTE^19276X^2^Refrigerated is acceptable
+QTE^19277X^1^Room Temperature
+QTE^19277X^2^Refrigerated is acceptable
+QTE^19278X^1^Room Temperature
+QTE^19278X^2^Refrigerated is acceptable
+QTE^19279X^1^Room Temperature
+QTE^19279X^2^Refrigerated is acceptable
+QTE^19280X^1^Room Temperature
+QTE^19280X^2^Refrigerated is acceptable
+QTE^19282X^1^Room Temperature
+QTE^19282X^2^Refrigerated is acceptable
+QTE^19283X^1^Room Temperature
+QTE^19283X^2^Refrigerated is acceptable
+QTE^19284X^1^Room Temperature
+QTE^19284X^2^Refrigerated is acceptable
+QTE^19285X^1^Room Temperature
+QTE^19285X^2^Refrigerated is acceptable
+QTE^19286X^1^Room Temperature
+QTE^19286X^2^Refrigerated is acceptable
+QTE^19287X^1^Room Temperature
+QTE^19287X^2^Refrigerated is acceptable
+QTE^19288X^1^Room Temperature
+QTE^19288X^2^Refrigerated is acceptable
+QTE^19289X^1^Room Temperature
+QTE^19289X^2^Refrigerated is acceptable
+QTE^19290X^1^Room Temperature
+QTE^19290X^2^Refrigerated is acceptable
+QTE^19292X^1^Room Temperature
+QTE^19292X^2^Refrigerated is acceptable
+QTE^19293X^1^Room Temperature
+QTE^19293X^2^Shipping refrigerated is acceptable.
+QTE^19295X^1^Room Temperature
+QTE^19295X^2^Shipping refrigerated is acceptable.
+QTE^19296X^1^Room Temperature
+QTE^19296X^2^Shipping refrigerated is acceptable.
+QTE^19297X^1^Room Temperature
+QTE^19297X^2^Shipping refrigerated is acceptable.
+QTE^19298X^1^Room Temperature
+QTE^19298X^2^Shipping refrigerated is acceptable
+QTE^19300X^1^Room Temperature
+QTE^19300X^2^Shipping refrigerated is acceptable.
+QTE^19301X^1^Room Temperature
+QTE^19301X^2^Shipping refrigerated is acceptable.
+QTE^19302X^1^Room Temperature
+QTE^19302X^2^Shipping refrigerated is acceptable.
+QTE^19303X^1^Room Temperature
+QTE^19303X^2^Shipping refrigerated is acceptable.
+QTE^19304X^1^Room Temperature
+QTE^19304X^2^Shipping refrigerated is acceptable.
+QTE^19305X^1^Room Temperature
+QTE^19305X^2^Shipping refrigerated is acceptable.
+QTE^19306X^1^Room Temperature
+QTE^19306X^2^Shipping refrigerated is acceptable.
+QTE^19308X^1^Room Temperature
+QTE^19308X^2^Shipping refrigerated is acceptable.
+QTE^19309X^1^Room Temperature
+QTE^19309X^2^Shipping refrigerated is acceptable.
+QTE^19310X^1^Room Temperature
+QTE^19310X^2^Shipping refrigerated is acceptable.
+QTE^19311X^1^Room Temperature
+QTE^19311X^2^Shipping refrigerated is acceptable.
+QTE^19312X^1^Room Temperature
+QTE^19312X^2^Shipping refrigerated is acceptable.
+QTE^19313X^1^Room Temperature
+QTE^19313X^2^Shipping refrigerated is acceptable.
+QTE^19314X^1^Room Temperature
+QTE^19314X^2^Shipping refrigerated is acceptable.
+QTE^19316X^1^Room Temperature
+QTE^19316X^2^Shipping refrigerated is acceptable.
+QTE^19317X^1^Room Temperature
+QTE^19317X^2^Shipping refrigerated is acceptable.
+QTE^19318X^1^Room Temperature
+QTE^19318X^2^Shipping refrigerated is acceptable.
+QTE^19319X^1^Room Temperature
+QTE^19319X^2^Shipping refrigerated is acceptable.
+QTE^19320X^1^Room Temperature
+QTE^19320X^2^Shipping refrigerated is acceptable.
+QTE^19321X^1^Room Temperature
+QTE^19321X^2^Shipping refrigerated is acceptable.
+QTE^19322X^1^Room Temperature
+QTE^19322X^2^Shipping refrigerated is acceptable.
+QTE^19324X^1^Room Temperature
+QTE^19324X^2^Refrigerated is acceptable.
+QTE^19325X^1^Room Temperature
+QTE^19325X^2^Shipping refrigerated is acceptable.
+QTE^19326X^1^Room Temperature
+QTE^19326X^2^Shipping refrigerated is acceptable.
+QTE^19327X^1^Room Temperature
+QTE^19327X^2^Shipping refrigerated is acceptable.
+QTE^19328X^1^Room Temperature
+QTE^19328X^2^Shipping refrigerated is acceptable.
+QTE^19329X^1^Room Temperature
+QTE^19330X^1^Room Temperature
+QTE^19330X^2^Shipping refrigerated is acceptable.
+QTE^19332X^1^Room Temperature
+QTE^19332X^2^Shipping refrigerated is acceptable.
+QTE^19333X^1^Room Temperature
+QTE^19333X^2^Shipping refrigerated is acceptable.
+QTE^19335X^1^Room Temperature
+QTE^19335X^2^Shipping refrigerated is acceptable.
+QTE^19336X^1^Room Temperature
+QTE^19336X^2^Shipping refrigerated is acceptable.
+QTE^19338X^1^Room Temperature
+QTE^19338X^2^Shipping refrigerated is acceptable.
+QTE^19339X^1^Room Temperature
+QTE^19339X^2^Shipping refrigerated is acceptable.
+QTE^19341X^1^Room Temperature
+QTE^19342X^1^Room Temperature
+QTE^19343X^1^Room Temperature
+QTE^19344X^1^Room Temperature
+QTE^19345X^1^Room Temperature
+QTE^19346X^1^Room Temperature
+QTE^19348X^1^Room Temperature
+QTE^19350X^1^Room Temperature
+QTE^19351X^1^Room Temperature
+QTE^19352X^1^Room Temperature
+QTE^19353X^1^Room Temperature
+QTE^19354X^1^Room Temperature
+QTE^19355X^1^Room Temperature
+QTE^19359X^1^Room Temperature
+QTE^19360X^1^Room Temperature
+QTE^19361X^1^Room Temperature
+QTE^19365X^1^Room Temperature
+QTE^19366X^1^Room Temperature
+QTE^19367X^1^Room Temperature
+QTE^19370X^1^Room Temperature
+QTE^19373X^1^Room Temperature
+QTE^19374X^1^Room Temperature
+QTE^19375X^1^Room Temperature
+QTE^19376X^1^Room Temperature
+QTE^19377X^1^Room Temperature
+QTE^19378X^1^Room Temperature
+QTE^19379X^1^Room Temperature
+QTE^19381X^1^Room Temperature
+QTE^19382X^1^Room Temperature
+QTE^19383X^1^Room Temperature
+QTE^19384X^1^Room Temperature
+QTE^19385X^1^Room Temperature
+QTE^19387X^1^Room Temperature
+QTE^19388X^1^Room Temperature
+QTE^19389X^1^Room Temperature
+QTE^19390X^1^Room Temperature
+QTE^19391X^1^Room Temperature
+QTE^19392X^1^Room Temperature
+QTE^19393X^1^Room Temperature
+QTE^19394X^1^Room Temperature
+QTE^19394X^2^Shipping refrigerated is acceptable
+QTE^19395X^1^Room Temperature
+QTE^19395X^2^Shipping refrigerated is acceptable.
+QTE^19396X^1^Room Temperature
+QTE^19396X^2^Shipping refrigerated is acceptable.
+QTE^19397X^1^Room Temperature
+QTE^19397X^2^Shipping refrigerated is acceptable.
+QTE^19399X^1^Room Temperature
+QTE^19399X^2^Shipping refrigerated is acceptable.
+QTE^19400X^1^Room Temperature
+QTE^19400X^2^Shipping refrigerated is acceptable.
+QTE^19402X^1^Room Temperature
+QTE^19402X^2^Shipping refrigerated is acceptable.
+QTE^19403X^1^Room Temperature
+QTE^19403X^2^Shipping refrigerated is acceptable.
+QTE^19404X^1^Room Temperature
+QTE^19404X^2^Shipping refrigerated is acceptable.
+QTE^19405X^1^Room Temperature
+QTE^19405X^2^Shipping refrigerated is acceptable.
+QTE^19407X^1^Room Temperature
+QTE^19407X^2^Shipping refrigerated is acceptable.
+QTE^19408X^1^Room Temperature
+QTE^19408X^2^Shipping refrigerated is acceptable.
+QTE^19409X^1^Room Temperature
+QTE^19409X^2^Shipping refrigerated is acceptable.
+QTE^19410X^1^Room Temperature
+QTE^19410X^2^Shipping refrigerated is acceptable.
+QTE^19411X^1^Room Temperature
+QTE^19411X^2^Shipping refrigerated is acceptable.
+QTE^19412X^1^Refrigerated
+QTE^19416X^1^Room Temperature
+QTE^19416X^2^Shipping refrigerated is acceptable.
+QTE^19417X^1^Room Temperature
+QTE^19417X^2^Shipping refrigerated is acceptable.
+QTE^19418X^1^Room Temperature
+QTE^19418X^2^Shipping refrigerated is acceptable.
+QTE^19419X^1^Room Temperature
+QTE^19419X^2^Shipping refrigerated is acceptable.
+QTE^19420X^1^Room Temperature
+QTE^19420X^2^Shipping refrigerated is acceptable.
+QTE^19421X^1^Room Temperature
+QTE^19421X^2^Shipping refrigerated is acceptable.
+QTE^19427X^1^Room Temperature
+QTE^19427X^2^Shipping refrigerated is acceptable.
+QTE^19428X^1^Room Temperature
+QTE^19428X^2^Shipping refrigerated is acceptable.
+QTE^19429X^1^Room Temperature
+QTE^19429X^2^Shipping refrigerated is acceptable.
+QTE^19430E^1^REFRIGERATED
+QTE^19431X^1^Room Temperature
+QTE^19431X^2^Shipping refrigerated is acceptable.
+QTE^19432X^1^Room Temperature
+QTE^19433X^1^Room Temperature
+QTE^19433X^2^Shipping refrigerated is acceptable.
+QTE^19435X^1^Room Temperature
+QTE^19435X^2^Shipping refrigerated is acceptable.
+QTE^19436X^1^Room Temperature
+QTE^19436X^2^Shipping refrigerated is acceptable.
+QTE^19438X^1^Room Temperature
+QTE^19438X^2^Shipping refrigerated is acceptable.
+QTE^19439X^1^Room Temperature
+QTE^19439X^2^Shipping refrigerated is acceptable.
+QTE^19440X^1^Room Temperature
+QTE^19440X^2^Shipping refrigerated is acceptable.
+QTE^19442X^1^Room Temperature
+QTE^19442X^2^Shipping refrigerated is acceptable.
+QTE^19443X^1^Room Temperature
+QTE^19443X^2^Shipping refrigerated is acceptable.
+QTE^19449X^1^Room Temperature
+QTE^19449X^2^Shipping refrigerated is acceptable.
+QTE^19453X^1^Ambient temperature (22C +/- 5C).
+QTE^19453X^2^Do not transport on ice or refrigerated.
+QTE^19464X^1^Room Temperature
+QTE^19464X^2^Shipping refrigerated is also acceptable
+QTE^19470X^1^Room Temperature
+QTE^19470X^2^Shipping refrigerated is acceptable.
+QTE^19474X^1^Refrigerated
+QTE^19476X^1^Refrigerated
+QTE^19479X^1^Refrigerated
+QTE^19485X^1^Unless otherwise specified, refrigerate sample until
+QTE^19485X^2^transport.
+QTE^19491X^1^Frozen
+QTE^19492X^1^Refrigerated
+QTE^19493X^1^Refrigerated
+QTE^19502X^1^FROZEN
+QTE^19502X^2^Whole Blood refrigerate only
+QTE^19503X^1^FROZEN
+QTE^19509X^1^Refrigerated
+QTE^19511X^1^Refrigerated
+QTE^19521E^1^Unless otherwise specified, refrigerate specimen until
+QTE^19521E^2^transport.
+QTE^19525X^1^Room Temperature
+QTE^19526X^1^Room Temperature
+QTE^19526X^2^Refrigerated is also acceptable
+QTE^19529X^1^Refrigerated
+QTE^19537X^1^Room Temperature
+QTE^19546X^1^Room Temperature
+QTE^19546X^2^Refrigerated is acceptable.
+QTE^19548X^1^Refrigerated
+QTE^19550X^1^Room Temperature
+QTE^19550X^2^Shipping refrigerated is acceptable
+QTE^19559X^1^Refrigerated
+QTE^19563X^1^Room Temperature
+QTE^19563X^2^Shipping refrigerated is also acceptable.
+QTE^19564X^1^Room Temperature
+QTE^19564X^2^Shipping refrigerated is also acceptable.
+QTE^19573X^1^Refrigerated
+QTE^19574X^1^Refrigerated
+QTE^19583X^1^Refrigerated
+QTE^19584X^1^Room temperature
+QTE^19585X^1^Refrigerated
+QTE^1958T^1^Unless otherwise specified, refrigerate sample until
+QTE^1958T^2^transport.
+QTE^19595X^1^Room temperature
+QTE^19599X^1^Room temperature
+QTE^19599X^2^Shipping refrigerated is acceptable
+QTE^19618X^1^Refrigerated
+QTE^19619X^1^Room Temperature
+QTE^19642X^1^Room temperature
+QTE^19649X^1^Frozen
+QTE^19687W^1^Room Temperature/Refrigerated
+QTE^19688X^1^Room temperature
+QTE^19701X^1^Ship Frozen
+QTE^19705X^1^Refrigerated
+QTE^19707X^1^Refrigerated
+QTE^19718X^1^Refrigerated
+QTE^19720X^1^Room Temperature
+QTE^19722X^1^Room Temperature
+QTE^19723X^1^Ship refrigerated
+QTE^19726X^1^Refrigerated
+QTE^19730X^1^Frozen / Okay to thaw
+QTE^19731X^1^Frozen / Okay to thaw
+QTE^19732X^1^Frozen / Okay to thaw
+QTE^19733X^1^Room temperature
+QTE^19742X^1^Ship refrigerated
+QTE^19752E^1^Room Temperature/Refrigerated
+QTE^19768X^1^Frozen
+QTE^19770X^1^FROZEN
+QTE^19775X^1^Room temperature
+QTE^19779X^1^Frozen
+QTE^19779X^2^Okay to thaw.
+QTE^19780X^1^Frozen
+QTE^19780X^2^Okay to thaw
+QTE^19781X^1^Frozen
+QTE^19782X^1^Refrigerated
+QTE^19783X^1^Refrigerated
+QTE^19790X^1^Frozen
+QTE^19796X^1^Room Temperature
+QTE^19799X^1^Room Temperature
+QTE^19805X^1^Refrigerated
+QTE^19817X^1^Room Temperature
+QTE^19817X^2^Shipping Refrigerated is also acceptable.
+QTE^19826X^1^Ship frozen.
+QTE^19833X^1^Unless otherwise specified, refrigerate specimen until
+QTE^19833X^2^transport.
+QTE^19834X^1^Unless otherwise specified, store refrigerated until
+QTE^19834X^2^transport.
+QTE^19837X^1^Room Temperature
+QTE^19838X^1^Room Temperature
+QTE^19844R^1^Refrigerate
+QTE^19849X^1^Room temperature
+QTE^19849X^2^Shipping refrigerated is acceptable
+QTE^19854X^1^Refrigerated
+QTE^19856X^1^Ship room temperature
+QTE^19860X^1^Room Temperature
+QTE^19863X^1^Room temperature
+QTE^19863X^2^Shipping refrigerated is acceptable
+QTE^19864X^1^Room temperature
+QTE^19864X^2^Shipping refrigerated is acceptable
+QTE^19865X^1^Room temperature
+QTE^19865X^2^Shipping refrigerated is acceptable
+QTE^19872X^1^Frozen
+QTE^19872X^2^Do not thaw.
+QTE^19873X^1^Refrigerated
+QTE^19884X^1^Room temperature
+QTE^19884X^2^Shipping refrigerated is acceptable
+QTE^19885R^1^Unless otherwise specified, refrigerate specimen until
+QTE^19885R^2^transport.
+QTE^19887X^1^Room Temperature (18-25 degrees Celsius)
+QTE^19894X^1^Room temperature
+QTE^19894X^2^Shipping refrigerated is accepatable
+QTE^19896X^1^Room temperature
+QTE^19896X^2^Shipping refrigerated is also acceptable.
+QTE^19897X^1^Refrigerated
+QTE^19899X^1^Ship refrigerated
+QTE^19938X^1^Room Temperature
+QTE^19946X^1^Room Temperature (18-25 degrees Celsius)
+QTE^19950E^1^Unless otherwise specified, refrigerate specimen until
+QTE^19950E^2^transport.
+QTE^19960X^1^Ship room temperature
+QTE^19960X^2^Shipping refrigerated will remain acceptable.
+QTE^19961X^1^Ship room temperature
+QTE^19961X^2^Shipping refrigerated will remain acceptable.
+QTE^19962X^1^Room temperature
+QTE^19962X^2^Shipping refrigerated is acceptable
+QTE^19963X^1^Room temperature
+QTE^19963X^2^Shipping refrigerated is acceptable
+QTE^19982X^1^Frozen
+QTE^19982X^2^Shipping refrigerated is acceptable.
+QTE^19996X^1^Room temperature
+QTE^19996X^2^Shipping refrigerated is acceptable.
+QTE^19997X^1^Room Temperature
+QTE^19999X^1^Room Temperature
+QTE^19999X^2^Shipping refrigerated is acceptable.
+QTE^20008W^1^Room Temperature/Refrigerated
+QTE^20099W^1^Unless otherwise specified, refrigerate specimen until
+QTE^20099W^2^transport.
+QTE^20123E^1^Unless otherwise specified, refrigerate specimen until
+QTE^20123E^2^transport.
+QTE^20289W^1^Room Temperature/Refrigerated
+QTE^20321E^1^Unless otherwise specified, refrigerate specimen until
+QTE^20321E^2^transport.
+QTE^20341X^1^Room Temperature
+QTE^20341X^2^Shipping refrigerated will remain acceptable
+QTE^20396R^1^Unless otherwise specified, refrigerate specimen until
+QTE^20396R^2^transport.
+QTE^20537W^1^Refrigerate sample until transport.
+QTE^20537W^2^Ship refrigerated and protected from light.
+QTE^20537W^3^Ship frozen if not protected from light.
+QTE^205X^1^Room Temperature; Do not open
+QTE^20644R^1^Room temperature
+QTE^206X^1^Refrigerated
+QTE^20750E^1^Room Temperature/Refrigerated
+QTE^20867W^1^Room Temperature/Refrigerated
+QTE^20909W^1^Unless otherwise specified, refrigerated specimen until
+QTE^20909W^2^transport
+QTE^20933E^1^Room Temperature/Refrigerated
+QTE^2105N^1^Room temperature
+QTE^21063E^1^Transport at Room Temperature
+QTE^21105R^1^Unless otherwise specified, refrigerate specimen until
+QTE^21105R^2^transport.
+QTE^21113E^1^Unless otherwise specified, refrigerate sample until
+QTE^21113E^2^transport.
+QTE^21190X^1^Refrigerated
+QTE^21357X^1^Refrigerated
+QTE^21358X^1^Refrigerated
+QTE^21360X^1^Transport refrigerated; room temp okay
+QTE^21361X^1^Refrigerated
+QTE^21410E^1^FROZEN
+QTE^21436R^1^Refrigerated or Room Temperature
+QTE^214X^1^Ship refrigerated
+QTE^21502X^1^Room temperature
+QTE^21576R^1^Room temperature/Refrigerated
+QTE^21600E^1^Unless otherwise specified, store refrigerated until
+QTE^21600E^2^transport.
+QTE^21618W^1^Room temperature
+QTE^21618W^2^Shipping refrigerated remains acceptable
+QTE^216X^1^FROZEN
+QTE^216X^2^Do not thaw.
+QTE^21709W^1^Transport refrigerated (Ambient acceptable if not ordered
+QTE^21709W^2^with Folate)
+QTE^21915R^1^Refrigerated or Room Temperature
+QTE^219X^1^Refrigerated (cold packs); Room temp is NOT acceptable.
+QTE^2204F^1^Room Temp (20-25C)
+QTE^22186P^1^Refrigerated
+QTE^22301P^1^Frozen Do not thaw.
+QTE^22376R^1^Room Temperature
+QTE^22434R^1^Room Temperature
+QTE^22541P^1^Frozen or Refrigerated
+QTE^22707W^1^Refrigerated or Frozen
+QTE^22749P^1^Frozen
+QTE^22764R^1^Unless otherwise specified, refrigerate sample until
+QTE^22764R^2^transport.
+QTE^227X^1^Frozen
+QTE^22848W^1^Transport refrigerated
+QTE^22863E^1^Room Temp (20-25C)
+QTE^228X^1^Unless otherwise specified, refrigerate sample until
+QTE^228X^2^transport.
+QTE^228X^3^Ship refrigerated
+QTE^22947W^1^Room Temperature/Refrigerated
+QTE^22X^1^Ship Frozen/Do not thaw
+QTE^2311X^1^Refrigerated
+QTE^2313X^1^Refrigerated
+QTE^2314X^1^Refrigerated
+QTE^2315X^1^Refrigerated
+QTE^2316X^1^Refrigerated
+QTE^23230Z^1^Ship Frozen
+QTE^23232Z^1^Ship frozen
+QTE^23242E^1^Room Temperature/Refrigerated
+QTE^23244X^1^Ship Frozen or Refrigerated.
+QTE^23244X^2^Ship refrigerated
+QTE^232A^1^Unless otherwise specified, refrigerate sample until
+QTE^232A^2^transport.
+QTE^232Z^1^Refrigerated
+QTE^2337T^1^FROZEN
+QTE^2337T^2^Ambient if received within 24 hours.
+QTE^2339X^1^Room temperature
+QTE^2339X^2^Shipping refrigerated will remain acceptable.
+QTE^236X^1^Room temperature
+QTE^236X^2^Shipping refrigerated is acceptable
+QTE^23861X^1^Room temperature
+QTE^23861X^2^Shipping refrigerated is acceptable
+QTE^23892X^1^Room temperature
+QTE^23892X^2^Shipping refrigerated will remain acceptable.
+QTE^23893X^1^Room Temperature
+QTE^2407X^1^Refrigerated
+QTE^2415X^1^Refrigerated
+QTE^2417X^1^Refrigerated
+QTE^241Z^1^Room Temperature
+QTE^241Z^2^Shipping refrigerated remains acceptable.
+QTE^2420X^1^Refrigerated
+QTE^24281E^1^Room Temperature
+QTE^24588W^1^Unless otherwise specified, refrigerate sample until
+QTE^24588W^2^transport.
+QTE^24620E^1^Room Temperature or Refrigerated
+QTE^24653E^1^Unless otherwise specified, refrigerate sample until
+QTE^24653E^2^transport.
+QTE^24729W^1^Unless otherwise specified, refrigerate sample until
+QTE^24729W^2^transport.
+QTE^24786R^1^Frozen, Ambient, or Refrigerated is acceptable.
+QTE^2485F^1^Room temperature
+QTE^24984R^1^Unless otherwise specified, refrigerate sample until
+QTE^24984R^2^transport.
+QTE^24995X^1^Refrigerated
+QTE^249X^1^Refrigerated or Room Temperature
+QTE^25197W^1^Frozen
+QTE^25205R^1^-20 C
+QTE^2520X^1^Refrigerated
+QTE^2521X^1^Refrigerated
+QTE^252X^1^FROZEN
+QTE^25320E^1^Room Temperature or Refrigerated
+QTE^2539X^1^Room Temperature
+QTE^2554X^1^Refrigerated
+QTE^2556X^1^Refrigerated
+QTE^25577W^1^Frozen
+QTE^2558X^1^Room Temperature
+QTE^2558X^2^Shipping refrigerated is acceptable
+QTE^256X^1^Refrigerated
+QTE^25791E^1^Room Temp (20-25C)
+QTE^257X^1^Ship room temperature
+QTE^257X^2^Shipping refrigerated is acceptable
+QTE^26013E^1^Room Temperature/Refrigerated
+QTE^26146R^1^Unless otherwise specified, refrigerate sample until
+QTE^26146R^2^transport.
+QTE^2622X^1^Refrigerated
+QTE^2625X^1^Ship Room Temperature
+QTE^2625X^2^Shipping refrigerated is acceptable.
+QTE^2625X^3^Shipping frozen is acceptable.
+QTE^2627T^1^REFRIGERATED (COLD PACKS)
+QTE^26281Z^1^Room temperature
+QTE^26281Z^2^Shipping refrigterated is acceptable
+QTE^26294R^1^Unless otherwise specified, refrigerate sample until
+QTE^26294R^2^transport.
+QTE^2633X^1^Room temperature.
+QTE^2633X^2^Shipping refrigerated will remain acceptable.
+QTE^2636X^1^Room Temperature
+QTE^2638X^1^Room Temperature
+QTE^2638X^2^Shipping refrigerated is acceptable
+QTE^26393E^1^Unless otherwise specified, refrigerate sample until
+QTE^26393E^2^transport.
+QTE^26474X^1^Refrigerated
+QTE^2647X^1^Unless otherwise specified, refrigerate sample until
+QTE^2647X^2^transport.
+QTE^2647X^3^Ship refrigerated
+QTE^2649T^1^REFRIGERATED (COLD PACKS)
+QTE^264X^1^Refrigerated
+QTE^26500X^1^Refrigerated
+QTE^26505X^1^Room temperature
+QTE^26506X^1^Refrigerated
+QTE^26513Z^1^Room Temperature
+QTE^26513Z^2^Shipping refrigerated is acceptable
+QTE^26517X^1^Room temperature
+QTE^26518X^1^Room temperature
+QTE^26519X^1^Room temperature
+QTE^26520X^1^Refrigerated
+QTE^26520X^2^Shipping room temperature is acceptable
+QTE^2653X^1^Refrigerated
+QTE^26567X^1^Refrigerated
+QTE^2656X^1^Refrigerated
+QTE^26578X^1^Room temperature
+QTE^26578X^2^Shipping refrigerated is acceptable
+QTE^26591E^1^Frozen
+QTE^265F^1^Room Temperature.
+QTE^265F^2^Shipping refrigerated is acceptable.
+QTE^2662X^1^Room temperature
+QTE^2662X^2^Shipping refrigerated will remain acceptable
+QTE^266X^1^Room temperature
+QTE^2679X^1^Ambient
+QTE^2679X^2^Shipping refrigerated is also acceptable
+QTE^2682X^1^Room Temperature
+QTE^2682X^2^Shipping refrigerated is acceptable
+QTE^26922E^1^Room temperature
+QTE^26922E^2^Shipping refrigerated or frozen remains acceptable
+QTE^2692E^1^Refrigerated
+QTE^26955R^1^Room temperature
+QTE^26955R^2^Shipping refrigerated or frozen remains acceptable
+QTE^26963E^1^Ship refrigerated
+QTE^269X^1^Room temperature
+QTE^269X^2^Shipping refrigerated is acceptable
+QTE^26F^1^Room Temperature: Whole Blood from a Light Blue Top Tube.
+QTE^26F^2^Frozen: Plasma from a Light Blue Top Tube.
+QTE^270X^1^Unless otherwise specified, refrigerate sample until
+QTE^270X^2^transport.
+QTE^270X^3^Ship refrigerated
+QTE^2713N^1^Ship refrigerated
+QTE^2718X^1^Room temperature
+QTE^2719X^1^Room temperature
+QTE^2719X^2^Shipping refrigerated is acceptable
+QTE^2720Z^1^Room temperature
+QTE^2720Z^2^Shipping refrigerated is acceptable
+QTE^2725X^1^Refrigerated
+QTE^27284R^1^Frozen
+QTE^2729X^1^Refrigerated
+QTE^2741X^1^Refrigerated
+QTE^2744X^1^Ship Room Temperature
+QTE^2751X^1^Refrigerated
+QTE^2752X^1^Refrigerated
+QTE^2753X^1^Refrigerated
+QTE^2757X^1^Refrigerated
+QTE^2758X^1^Refrigerated
+QTE^27771E^1^Room Temperature/Refrigerated
+QTE^2782A^1^Refrigerated
+QTE^2782A^2^Shipping room temperature is acceptable
+QTE^27854R^1^Frozen for Routine
+QTE^27854R^2^Refrigerated or on wet ice for STAT.
+QTE^28233E^1^Room Temperature/Refrigerated
+QTE^28399W^1^Unless otherwise specified, refrigerate sample until
+QTE^28399W^2^transport.
+QTE^28423E^1^Transport at Room Temperature
+QTE^2852X^1^Room Temperature
+QTE^28571E^1^Refrigerated or Room Temperature
+QTE^28852E^1^Room Temperature/Refrigerated
+QTE^2887X^1^Room Temperature
+QTE^28951E^1^Refrigerated or Room Temperature
+QTE^289X^1^Refrigerated
+QTE^29009P^1^Frozen
+QTE^2916X^1^Ship refrigerated
+QTE^2918X^1^Room Temperature
+QTE^2921X^1^Refrigerated
+QTE^29231E^1^Refrigerate sample until transport.
+QTE^29231E^2^Ship refrigerated and protected from light.
+QTE^29231E^3^Ship frozen if not protected from light.
+QTE^29273X^1^Frozen
+QTE^29385Z^1^Refrigerated
+QTE^29391X^1^Unless otherwise specified, refrigerate sample until
+QTE^29391X^2^transport.
+QTE^29391X^3^Ship refrigerated
+QTE^29393X^1^Frozen
+QTE^29397P^1^FROZEN
+QTE^29405P^1^Frozen
+QTE^29439P^1^Unless otherwise specified, refrigerate sample until
+QTE^29439P^2^transport.
+QTE^29439P^3^Ship refrigerated
+QTE^29479X^1^Ship Room Temperature.
+QTE^29479X^2^Shipping refrigerated will remain acceptable.
+QTE^29488X^1^Refrigerated
+QTE^29498X^1^Room temperature
+QTE^29498X^2^Shipping refrigerated is acceptable.
+QTE^29512E^1^Room Temperature/Refrigerated
+QTE^2958X^1^Room temperature
+QTE^2958X^2^Shipping refrigerated remains acceptable
+QTE^295X^1^Refrigerated
+QTE^29645R^1^Unless otherwise specified, refrigerate sample until
+QTE^29645R^2^transport.
+QTE^297X^1^Frozen
+QTE^29812X^1^Frozen
+QTE^29816X^1^FROZEN
+QTE^29837X^1^Ship refrigerated
+QTE^29868W^1^Unless otherwise specified, refrigerate sample until
+QTE^29868W^2^transport.
+QTE^29881X^1^FROZEN ONLY
+QTE^298X^1^Room temperature
+QTE^298X^2^Shipping refrigerated is acceptable
+QTE^29914X^1^Room temperature
+QTE^29983P^1^Frozen
+QTE^299X^1^Refrigerated
+QTE^30013X^1^Refrigerated
+QTE^30075X^1^Refrigerated
+QTE^300X^1^Frozen
+QTE^3012A^1^Room Temperature.
+QTE^3012A^2^Shipping refrigerated is acceptable.
+QTE^30163E^1^Unless otherwise specified, refrigerate sample until
+QTE^30163E^2^transport.
+QTE^30163E^3^Specimens can be transported at ambient temperature.
+QTE^30163X^1^Room temperature
+QTE^30165X^1^Refrigerated
+QTE^30166X^1^Refrigerated
+QTE^30175X^1^Ship room temperature, ship same day.
+QTE^30175X^2^Refrigerate if not shipped same day.
+QTE^3020A^1^Unless otherwise specified, refrigerate sample until
+QTE^3020A^2^transport.
+QTE^3021A^1^Vacutainer Brand Urine C&S Transport kits stable at room
+QTE^3021A^2^temperature or refrigerated for 48 hours.
+QTE^3021A^3^Low volume specimens stable in sterile urine container for
+QTE^3021A^4^24 hours when refrigerated.
+QTE^30247W^1^Unless otherwise specified, refrigerate sample until
+QTE^30247W^2^transport.
+QTE^30260X^1^Room temperature
+QTE^30260X^2^Shipping refrigerated will remain acceptable
+QTE^30262E^1^Unless otherwise specified, refrigerate sample until
+QTE^30262E^2^transport.
+QTE^30277X^1^Ship refrigerated
+QTE^30283X^1^Refrigerated
+QTE^30289X^1^FROZEN
+QTE^30292X^1^Frozen
+QTE^30298X^1^Unless otherwise specified, refrigerate sample until
+QTE^30298X^2^transport.
+QTE^30298X^3^Ship refrigerated
+QTE^30316X^1^Room temperature
+QTE^30321X^1^Refrigerated
+QTE^30329X^1^Refrigerated
+QTE^30332X^1^Room temperature
+QTE^30332X^2^Shipping refrigerated is acceptable.
+QTE^30333X^1^Refrigerated
+QTE^30337X^1^Refrigerated
+QTE^30338X^1^Transport frozen
+QTE^30340X^1^Room Temperature
+QTE^30340X^2^Shipping refrigerated is acceptable
+QTE^30346R^1^Unless otherwise specified, refrigerate sample until
+QTE^30346R^2^transport.
+QTE^30347X^1^Refrigerated
+QTE^30348T^1^Refrigerated
+QTE^30403E^1^Refrigerated/Room Temperature
+QTE^30419X^1^Refrigerated
+QTE^30427X^1^Refrigerated
+QTE^30429X^1^Refrigerated
+QTE^30429X^2^Shipping Frozen is acceptable
+QTE^30440X^1^Room temperature
+QTE^30440X^2^Refrigerated is acceptable.
+QTE^30443X^1^Refrigerated
+QTE^3046X^1^Room Temperature
+QTE^3046X^2^Shipping Refrigerated is acceptable
+QTE^30494R^1^Room Temperature/Refrigerated
+QTE^30499X^1^Refrigerated.
+QTE^30502E^1^Refrigerated
+QTE^30510P^1^Unless otherwise specified, refrigerate sample until
+QTE^30510P^2^transport.
+QTE^30523X^1^Frozen
+QTE^30527X^1^REFRIGERATED
+QTE^30529X^1^Refrigerated
+QTE^30536R^1^Unless otherwise specified, refrigerate sample until
+QTE^30536R^2^transport.
+QTE^30543X^1^Frozen
+QTE^30551X^1^Ship refrigerated
+QTE^305X^1^Room temperature
+QTE^305X^2^Shipping refrigerated is acceptable
+QTE^3061A^1^Room Temperature
+QTE^30708X^1^Room Temeprature
+QTE^30740X^1^Refrigerated
+QTE^30742X^1^Frozen
+QTE^30751X^1^Room Temperature
+QTE^30753X^1^Room Temperature
+QTE^30753X^2^Shipping Refrigerated is acceptable
+QTE^30753X^3^Shipping frozen is acceptable.
+QTE^30760X^1^Room temperature
+QTE^30760X^2^Shipping refrigerated is acceptable
+QTE^30765Z^1^Room Temperature
+QTE^30765Z^2^Refrigerated is acceptable.
+QTE^30787X^1^Room Temperature
+QTE^30788X^1^Room temperature
+QTE^30789X^1^Room temperature
+QTE^30792X^1^Room temperature
+QTE^30793X^1^Room Temperature
+QTE^30793X^2^Refrigerated is acceptable.
+QTE^3081X^1^Ship refrigerated/ okay to thaw
+QTE^30841E^1^Room Temperature/Refrigerated
+QTE^30940E^1^Room Temperature/Refrigerated
+QTE^30958X^1^Room temperature
+QTE^30958X^2^Refrigerated is also acceptable
+QTE^30959X^1^Refrigerated
+QTE^30964X^1^Room Temperature.
+QTE^30965X^1^Room Temperature
+QTE^30965X^2^Refrigerated is also acceptable.
+QTE^30972X^1^Refrigerated
+QTE^3101X^1^Room temperature
+QTE^3125X^1^Refrigerated
+QTE^31286R^1^Unless otherwise specified, refrigerate sample until
+QTE^31286R^2^transport.
+QTE^312X^1^Refrigerated
+QTE^31345X^1^Frozen
+QTE^31493X^1^Refrigerated
+QTE^314X^1^Frozen - Do not thaw
+QTE^31569X^1^Frozen
+QTE^315F^1^Unless otherwise specified, refrigerate sample until
+QTE^315F^2^transport.
+QTE^31732E^1^ROOM TEMPERATURE: Light Blue-Top Tube (Whole Blood)
+QTE^31732E^2^FROZEN: Plasma
+QTE^31815R^1^Refrigerated
+QTE^31823E^1^Refrigerated
+QTE^31872P^1^Frozen
+QTE^3189X^1^Refrigerated
+QTE^318X^1^24 hour urine with preservative: Room temp. or refrigerated
+QTE^318X^2^24 hour urine without preservative: Frozen
+QTE^31930P^1^Frozen
+QTE^31989P^1^Frozen
+QTE^32094P^1^FROZEN
+QTE^3210X^1^Refrigerated
+QTE^3210X^2^Specimens received at Room Temperature will be rejected.
+QTE^32185P^1^Frozen
+QTE^32268P^1^Frozen
+QTE^3228N^1^Room temperature
+QTE^3228N^2^Shipping refrigerated will remain acceptable
+QTE^32326P^1^Frozen
+QTE^3236F^1^Room temperature; avoid extremes of heat and cold
+QTE^323A^1^Room temperature
+QTE^32466P^1^FROZEN
+QTE^32524R^1^FREEZE
+QTE^32557W^1^ROOM TEMPERATURE: Blue top tube (Whole blood)
+QTE^32557W^2^FROZEN: Plasma
+QTE^327X^1^Ambient
+QTE^32987W^1^Unless otherwise specified, refrigerate sample until
+QTE^32987W^2^transport.
+QTE^3299X^1^Room temperature
+QTE^3301X^1^Refrigerated
+QTE^3308X^1^Room Temperature
+QTE^3314X^1^Refrigerated
+QTE^3318X^1^Refrigerated
+QTE^331X^1^Frozen
+QTE^3328N^1^Refrigerated
+QTE^3335F^1^Unless otherwise specified, refrigerate sample until
+QTE^3335F^2^transport.
+QTE^33381E^1^Unless otherwise specified, refrigerate sample until
+QTE^33381E^2^transport.
+QTE^3346X^1^Room Temperature
+QTE^3346X^2^Refrigerated is also acceptable
+QTE^3353X^1^Refrigerated.
+QTE^3358X^1^Refrigerated
+QTE^335X^1^Refrigerated (cold packs)
+QTE^3373X^1^Frozen
+QTE^3382X^1^Room temperature
+QTE^3382X^2^Shipping refrigerated is acceptable
+QTE^3383X^1^Refrigerated
+QTE^3384F^1^Unless otherwise specified, refrigerate sample until
+QTE^3384F^2^transport.
+QTE^3384X^1^Refrigerated
+QTE^3388X^1^FROZEN
+QTE^338X^1^Refrigerated
+QTE^33944R^1^Room Temp
+QTE^33960X^1^Refrigerated
+QTE^339X^1^Refrigerated
+QTE^34002X^1^Refrigerated
+QTE^34007X^1^Refrigerated
+QTE^34052X^1^Refrigerated
+QTE^34057X^1^Refrigerated
+QTE^34060X^1^Ship refrigerated
+QTE^34085Z^1^Frozen:  Serum do not thaw.
+QTE^34085Z^2^Room temperature:  Isolate
+QTE^34088X^1^Refrigerated and Room Temperature
+QTE^34099X^1^Refrigerated
+QTE^340X^1^Frozen
+QTE^34122X^1^Room temperature
+QTE^34122X^2^Shipping refrigerated is acceptable
+QTE^34123X^1^Room temperature
+QTE^34144X^1^Room temperature
+QTE^34144X^2^Shipping refrigerated will remain acceptable.
+QTE^34159X^1^2-8 degrees centigrade
+QTE^34161X^1^Frozen
+QTE^34164X^1^Room temperature
+QTE^34164X^2^Shipping refrigerated is acceptable.
+QTE^34166X^1^Room temperature
+QTE^34168X^1^Room Temperature
+QTE^34177X^1^Room temperature
+QTE^34177X^2^Refrigerated is acceptable
+QTE^34178X^1^Room temperature
+QTE^34178X^2^Shipping refrigerated is acceptable
+QTE^34179X^1^Refrigerated
+QTE^34181X^1^Frozen
+QTE^34184X^1^Room temperature
+QTE^34184X^2^Do NOT refrigerated or freeze
+QTE^34188X^1^Refrigerated
+QTE^34191X^1^Room temperature
+QTE^34192X^1^Room temperature
+QTE^34194X^1^Room temperature
+QTE^34194X^2^Shipping refrigerated is acceptable.
+QTE^34256X^1^Room Temperature
+QTE^34257X^1^WHOLE BLOOD:             REFRIGERATED
+QTE^34257X^2^ALL OTHER SAMPLE TYPES:  FROZEN
+QTE^34263X^1^Room Temperature
+QTE^34263X^2^Shipping refrigerated is also acceptable.
+QTE^34265X^1^2-8 degrees centigrade
+QTE^34270X^1^Frozen -70 degrees C on dry ice
+QTE^34271X^1^Ship refrigerated
+QTE^34278X^1^Refrigerated
+QTE^34279X^1^Refrigerated
+QTE^34282X^1^Room temperature
+QTE^34282X^2^Shipping refrigerated is acceptable
+QTE^34283X^1^Room Temperature
+QTE^34286X^1^Refrigerated
+QTE^34290X^1^Refrigerated
+QTE^34296X^1^Refrigerated (cold packs)
+QTE^34296X^2^Tissue: Store and ship frozen
+QTE^34298X^1^Frozen
+QTE^34301X^1^Room Temperature
+QTE^34301X^2^Refrigerated is also acceptable
+QTE^34304X^1^2-8 degrees Centigrade
+QTE^34306X^1^2-8 degrees centigrade
+QTE^34309X^1^Room Temperature
+QTE^34309X^2^Shipping refrigerated is acceptable
+QTE^34318X^1^Refrigerated
+QTE^34321X^1^Room Temperature
+QTE^34322E^1^Room temperature
+QTE^34323X^1^2-28 degrees centigrade
+QTE^34329X^1^2-8 degrees Centigrade
+QTE^34336X^1^Refrigerated
+QTE^34345X^1^2-8 degrees centigrade
+QTE^34401X^1^Refrigerated
+QTE^34403X^1^Refrigerated
+QTE^34441X^1^Room Temperature
+QTE^34441X^2^Refrigerated is acceptable.
+QTE^34445X^1^Refrigerated
+QTE^34451X^1^Refrigerated
+QTE^34458X^1^Refrigerated
+QTE^34459X^1^Refrigerated
+QTE^34464X^1^Room Temperature
+QTE^34464X^2^Shipping refrigerated is acceptable.
+QTE^34469X^1^Refrigerated
+QTE^34471X^1^Frozen
+QTE^34473X^1^Frozen
+QTE^34473X^2^Do not thaw
+QTE^34475X^1^Refrigerated
+QTE^34476X^1^Room temperature
+QTE^34476X^2^Shipping refrigerated is acceptable.
+QTE^34478Z^1^Room Temperature; Refrigerated is acceptable
+QTE^34480X^1^Frozen
+QTE^34483X^1^Frozen
+QTE^34484X^1^Refrigerated
+QTE^34485X^1^Frozen
+QTE^34500X^1^Ship room temperature, ship same day.
+QTE^34500X^2^Unless otherwise specified, refrigerate sample until
+QTE^34500X^3^transport.
+QTE^34510X^1^Frozen
+QTE^34511X^1^Room temperature
+QTE^34511X^2^Shipping refrigerated is acceptable
+QTE^34514X^1^Ship frozen
+QTE^34519X^1^Refrigerated
+QTE^34521Z^1^Refrigerated
+QTE^34522X^1^Refrigerated
+QTE^34524X^1^Refrigerated
+QTE^34525X^1^Refrigerated
+QTE^34526X^1^Refrigerated
+QTE^34535X^1^Refrigerated
+QTE^34537X^1^Refrigerated
+QTE^34547X^1^Room Temperature
+QTE^34549X^1^Refrigerated
+QTE^345X^1^Refrigerated
+QTE^345X^2^Shipping room temperature is also acceptable.
+QTE^34604X^1^Room temperature
+QTE^34604X^2^Refrigerated is acceptable
+QTE^34678X^1^Refrigerated
+QTE^34679X^1^Refrigerated
+QTE^34680X^1^Refrigerated
+QTE^34681X^1^Room Temperature, refrigerated is also acceptable.
+QTE^34690X^1^Refrigerated
+QTE^34692X^1^Frozen
+QTE^34694X^1^Refrigerated
+QTE^34696X^1^Refrigerated
+QTE^34811X^1^Refrigerated
+QTE^3481X^1^Room temperature
+QTE^3481X^2^Shipping refrigerated is acceptable
+QTE^34841X^1^Frozen
+QTE^34842X^1^Refrigerated
+QTE^3484X^1^Ship refrigerated
+QTE^34869X^1^Room temperature
+QTE^34869X^2^Shipping Refrigerated is acceptable.
+QTE^3486X^1^Room Temperature
+QTE^34880X^1^Room temperature
+QTE^34880X^2^Shipping refrigerated is acceptable.
+QTE^34882X^1^Refrigerated
+QTE^34883X^1^Frozen or Refrigerated
+QTE^34887X^1^Frozen
+QTE^34889X^1^Ship refrigerated
+QTE^34890X^1^Frozen
+QTE^34896X^1^Ship refrigerated
+QTE^34897X^1^Room temperature
+QTE^34897X^2^Shipping refrigerated will remain acceptable
+QTE^34899X^1^Room temperature
+QTE^3492X^1^Room temperature
+QTE^3492X^2^Shipping refrigerated is acceptable
+QTE^34937X^1^Ship room temperature
+QTE^34949X^1^FROZEN ONLY
+QTE^34964X^1^Frozen
+QTE^34966X^1^Refrigerated
+QTE^34966X^2^Room Temperature acceptable
+QTE^34972X^1^Room temperature
+QTE^34972X^2^Shipping refrigerated is acceptable.
+QTE^34973X^1^Refrigerated
+QTE^34977X^1^Room temperature
+QTE^34977X^2^Shipping refrigerated is acceptable
+QTE^34982X^1^Room temperature
+QTE^34985X^1^Refrigerated
+QTE^34986X^1^2-8 degrees centigrade
+QTE^349X^1^Room temperature
+QTE^349X^2^Shipping refrigerated will remain acceptable.
+QTE^34F^1^Unless otherwise specified, refrigerate sample until
+QTE^34F^2^transport.
+QTE^35079X^1^Room Temperature
+QTE^35135X^1^Room Temperature
+QTE^35135X^2^Refrigerated is also acceptable.
+QTE^35139X^1^Room temperature
+QTE^35139X^2^Shipping refrigerated is acceptable
+QTE^35167X^1^Room temperature
+QTE^35167X^2^Shipping refrigerated is acceptable
+QTE^35176X^1^Room Temperature
+QTE^35208X^1^Refrigerated.
+QTE^35267X^1^Refrigerated
+QTE^35287W^1^Refrigerated
+QTE^35299X^1^Refrigerated
+QTE^3529X^1^Refrigerated
+QTE^35311E^1^Unless otherwise specified, refrigerate sample until
+QTE^35311E^2^transport.
+QTE^35352X^1^Room Temerperature
+QTE^35352X^2^Refrigerated is acceptable.
+QTE^35386X^1^Refrigerated
+QTE^35412N^1^Refrigerated
+QTE^35417X^1^Refrigerated
+QTE^354X^1^Ship refrigerated
+QTE^35634R^1^Unless otherwise specified, refrigerate sample until
+QTE^35634R^2^transport.
+QTE^35664X^1^2-8 degrees centigrade
+QTE^356F^1^Unless otherwise specified, refrigerate sample until
+QTE^356F^2^transport.
+QTE^35945F^1^Refrigerated (Cold Packs)
+QTE^36053X^1^Room temperature
+QTE^36055X^1^Room Temperature
+QTE^36055X^2^Refrigerated is ok.
+QTE^36086X^1^Room temperature
+QTE^36086X^2^Shipping refrigerated is acceptable
+QTE^36091X^1^Ship room temperature
+QTE^36158X^1^Room Temp
+QTE^36159X^1^Room Temperature
+QTE^36159X^2^Shipping refrigerated is acceptable.
+QTE^36160X^1^Room Temp
+QTE^36162X^1^Ship at room temperature
+QTE^36169X^1^Refrigerated
+QTE^3616F^1^Unless otherwise specified, refrigerate sample until
+QTE^3616F^2^transport.
+QTE^36170X^1^Refrigerated
+QTE^36175Z^1^Refrigerated
+QTE^36177X^1^Refirgerated
+QTE^36178X^1^Room Temperature
+QTE^36178X^2^Shipping Refrigerated remains acceptable.
+QTE^36182X^1^Frozen
+QTE^36187X^1^Refrigerated
+QTE^36192N^1^Room Temperature
+QTE^36192N^2^Shipping refrigerated is acceptable.
+QTE^36193X^1^Room temperature
+QTE^36194X^1^Room temperature
+QTE^36208X^1^Ship refrigerated
+QTE^3636F^1^Unless otherwise specified, refrigerate sample until
+QTE^3636F^2^transport.
+QTE^36399X^1^Frozen
+QTE^36423X^1^Refrigerated
+QTE^36433X^1^Ship refrigerated
+QTE^36434X^1^Room temperature
+QTE^36438X^1^Refrigerated
+QTE^36440X^1^Unless otherwise specified, refrigerate sample until
+QTE^36440X^2^transport.
+QTE^36440X^3^Ship refrigerated
+QTE^36441X^1^Ship refrigerated
+QTE^36443X^1^Refrigerated
+QTE^36447X^1^Refrigerated
+QTE^3650X^1^Refrigerated
+QTE^36552X^1^Room Temperature
+QTE^36552X^2^Shipping refrigerated is acceptable
+QTE^36553X^1^Room Temperature
+QTE^36553X^2^Shipping refrigerated is acceptable
+QTE^36554X^1^Room Temperature
+QTE^36554X^2^Shipping refrigerated is acceptable
+QTE^36555X^1^Frozen
+QTE^36558X^1^Room Temperature
+QTE^36565X^1^Room Temperature is preferred, refrigerated remains
+QTE^36565X^2^acceptable.
+QTE^36573X^1^Frozen
+QTE^36574X^1^Room Temperature
+QTE^36574X^2^Refrigerated is also acceptable
+QTE^36576X^1^Room Temperature
+QTE^36577X^1^Room Temperature
+QTE^36578X^1^Room Temperature
+QTE^36582X^1^Ship Room Temperature.
+QTE^36582X^2^Shipping refrigerated will remain acceptable.
+QTE^36583X^1^Ship Room Temperature.
+QTE^36583X^2^Shipping refrigerated will remain acceptable.
+QTE^36585X^1^Frozen
+QTE^36586X^1^Frozen
+QTE^36587X^1^Room Temperature
+QTE^36590X^1^Refrigerated
+QTE^36592X^1^Refrigerated
+QTE^36595X^1^Shipping Room Temperature is preferred,
+QTE^36595X^2^Shipping refrigerated will remain acceptable.
+QTE^36598X^1^Room Temperature
+QTE^365X^1^Room Temperature
+QTE^36632E^1^Unless otherwise specified, refrigerate sample until
+QTE^36632E^2^transport.
+QTE^36637P^1^Refrigerated
+QTE^36657W^1^Unless otherwise specified, refrigerate sample until
+QTE^36657W^2^transport.
+QTE^3665F^1^Unless otherwise specified, refrigerate sample until
+QTE^3665F^2^transport.
+QTE^36664X^1^Refrigerated
+QTE^36665R^1^Unless otherwise specified, refrigerate sample until
+QTE^36665R^2^transport.
+QTE^36676Z^1^Room Temperature
+QTE^36676Z^2^Shipping refrigerated is acceptable
+QTE^36700X^1^Ship Refrigerated
+QTE^36712X^1^Ship refrigerated
+QTE^36718X^1^Frozen
+QTE^36734Z^1^Room temperature
+QTE^36735X^1^Frozen
+QTE^36741X^1^Unless otherwise specified, refrigerate sample until
+QTE^36741X^2^transport.
+QTE^36741X^3^Ship refrigerated
+QTE^36742X^1^FROZEN
+QTE^37053X^1^Room temperature
+QTE^37053X^2^Shipping room temperature will remain acceptable
+QTE^37054X^1^Refrigerated
+QTE^37071X^1^Refrigerated
+QTE^37074X^1^Room Temperature
+QTE^37074X^2^Shipping refrigerated is acceptable.
+QTE^37077X^1^Ship refrigerated
+QTE^37078X^1^Unless otherwise specified, refrigerate sample until
+QTE^37078X^2^transport.
+QTE^37078X^3^Ship refrigerated
+QTE^37079X^1^Ship room temperature
+QTE^3707T^1^Unless otherwise specified, refrigerate sample until
+QTE^3707T^2^transport.
+QTE^37081X^1^Unless otherwise specified, refrigerate sample until
+QTE^37081X^2^transport.
+QTE^37081X^3^Ship refrigerated
+QTE^37088X^1^Room temperature
+QTE^37091X^1^Frozen
+QTE^37092X^1^Refrigerated
+QTE^37093X^1^Unless otherwise specified, refrigerate sample until
+QTE^37093X^2^transport.
+QTE^37093X^3^Ship refrigerated
+QTE^37094X^1^Room temperature
+QTE^37094X^2^Shipping refrigerated wii remain acceptable.
+QTE^37097X^1^Room Temperature
+QTE^37098X^1^Refrigerated
+QTE^37101X^1^Frozen do not thaw
+QTE^37102X^1^Refrigerated
+QTE^37103X^1^Room temperature
+QTE^37104X^1^Unless otherwise specified, refrigerate sample until
+QTE^37104X^2^transport.
+QTE^37104X^3^Ship refrigerated
+QTE^37111X^1^Ship Room Temperature.
+QTE^37111X^2^Shipping refrigerated will remain acceptable.
+QTE^37119X^1^Room temperature
+QTE^37119X^2^Shipping refrigerated is acceptable
+QTE^37124X^1^Refrigerated
+QTE^37126X^1^Ship Room Temperature.
+QTE^37126X^2^Shipping refrigerated will remain acceptable.
+QTE^37132X^1^Refrigerated
+QTE^37192E^1^Unless otherwise specified, refrigerate sample until
+QTE^37192E^2^transport.
+QTE^37207X^1^Unless otherwise specified, refrigerate sample until
+QTE^37207X^2^transport
+QTE^37233X^1^Ship refrigerated
+QTE^37266X^1^Refrigerated (cold packs)
+QTE^37273X^1^Frozen
+QTE^372A^1^Unless otherwise specified, refrigerate sample until
+QTE^372A^2^transport.
+QTE^372X^1^FROZEN
+QTE^37310X^1^Room temperature
+QTE^37311X^1^Room temperature
+QTE^37312X^1^Room temperature
+QTE^37312X^2^Shipping refrigerated is acceptable
+QTE^37314X^1^Refrigerated
+QTE^37325R^1^Refrigerated
+QTE^37343X^1^Room Temperature
+QTE^37343X^2^Shipping refrigerated is acceptable
+QTE^37345X^1^Refrigerated
+QTE^37346X^1^Ship Room Temperature.
+QTE^37346X^2^Shipping refrigerated will remain acceptable.
+QTE^37355X^1^Refrigerated
+QTE^37356X^1^Frozen / Okay to thaw
+QTE^37386F^1^FROZEN
+QTE^373X^1^Refrigerated
+QTE^37400X^1^Room temperature
+QTE^37438X^1^Refrigerated
+QTE^37439X^1^Refrigerated
+QTE^37448X^1^Refrigerated
+QTE^37451X^1^Refrigerated
+QTE^37454X^1^Room Temperature
+QTE^37454X^2^Shipping refrigerated is acceptable
+QTE^37456X^1^Room temperature.
+QTE^37456X^2^Shipping refrigerated will remain acceptable.
+QTE^37476X^1^Room temperature
+QTE^37476X^2^Shipping refrigerated is acceptable
+QTE^37477X^1^Room temperature
+QTE^37477X^2^Shipping refrigerated is acceptable
+QTE^37503X^1^Room Temperature
+QTE^37503X^2^Shipping refrigerated is also acceptable.
+QTE^37507X^1^Room Temperature
+QTE^37507X^2^Refrigerated is also acceptable
+QTE^37520X^1^Room temperature
+QTE^37520X^2^Shipping Refrigerated will remain acceptable.
+QTE^37523X^1^Room Temperature
+QTE^37531E^1^Unless otherwise specified, refrigerate sample until
+QTE^37531E^2^transport.
+QTE^37547X^1^Refrigerated
+QTE^37554X^1^Refrigerated
+QTE^37558X^1^Frozen
+QTE^37562X^1^Frozen
+QTE^37566X^1^Room Temperature
+QTE^37566X^2^Refrigerated is also acceptable.
+QTE^37579X^1^Room temperture
+QTE^37579X^2^Shipping refrigerated is acceptable
+QTE^37580X^1^Refrigerated
+QTE^37602X^1^Refigerated
+QTE^37604X^1^Refrigerated
+QTE^37671X^1^Ship refrigerated
+QTE^37674X^1^Ship Frozen
+QTE^37699X^1^Room temperature
+QTE^37699X^2^Shipping refrigerated will remain acceptable.
+QTE^376X^1^Room Temperature
+QTE^37700X^1^Frozen
+QTE^37710X^1^Refrigerated
+QTE^37721E^1^Refrigerated
+QTE^37742Z^1^Ambient - Ship room temperature
+QTE^37801X^1^Frozen
+QTE^37811X^1^Frozen
+QTE^37811X^2^Refrigerated
+QTE^37852X^1^Refrigerated
+QTE^37863X^1^Refrigerated
+QTE^37916X^1^Room temperature; refrigerated and frozen acceptable.
+QTE^37917X^1^Room Temperature
+QTE^37917X^2^Shipping refrigerated is acceptable
+QTE^37918X^1^Room Temperature
+QTE^37918X^2^Shipping refrigerated remains acceptable.
+QTE^37919X^1^Room Temperature
+QTE^37919X^2^Shipping refrigerated remains acceptable.
+QTE^37959X^1^Room Temperature
+QTE^37959X^2^Refrigerated is also acceptable.
+QTE^37965X^1^Refrigerated
+QTE^37966X^1^Room temperature
+QTE^38007X^1^Refrigerated
+QTE^38008X^1^FROZEN
+QTE^38015X^1^Refrigerated
+QTE^38100X^1^Ship refrigerated
+QTE^38101X^1^Room temperature
+QTE^38101X^2^Shipping refrigerated is acceptable
+QTE^38103X^1^Room temperature
+QTE^38103X^2^Shipping refrigerated is acceptable
+QTE^38107X^1^Room temperature
+QTE^38107X^2^Shipping refrigerated is acceptable
+QTE^38108X^1^Ship refrigerated
+QTE^38109X^1^Room temperature
+QTE^38109X^2^Shipping refrigerated is also acceptable.
+QTE^38110X^1^Room temperature
+QTE^38110X^2^Shipping refrigerated is acceptable
+QTE^38114X^1^Room Temperature
+QTE^38114X^2^Shipping refrigerated is acceptable
+QTE^38116X^1^Room Temperature
+QTE^38116X^2^Shipping refrigerated is acceptable
+QTE^38117X^1^Refrigerated
+QTE^38118X^1^Room temperature
+QTE^38118X^2^Shipping refrigerated is acceptable
+QTE^38120X^1^Room temperature
+QTE^38120X^2^Shipping refrigerated is acceptable
+QTE^38122X^1^Room temperature
+QTE^38122X^2^Shipping refrigerated is acceptable
+QTE^38123X^1^Room temperature
+QTE^38123X^2^Shipping refrigerated is acceptable
+QTE^38124X^1^Room temperature
+QTE^38124X^2^Shipping refrigerated is acceptable
+QTE^38125X^1^Room Temperature
+QTE^38125X^2^Shipping Refrigerated remains acceptable.
+QTE^38126X^1^Refrigerated
+QTE^38127X^1^Room temperature
+QTE^38127X^2^Shipping refrigerated is acceptable
+QTE^38128X^1^Room Temperature
+QTE^38128X^2^Shipping refrigerated is acceptable
+QTE^38130X^1^Ship refrigerated
+QTE^38131X^1^Ship refrigerated
+QTE^38135X^1^Refrigerated
+QTE^38136X^1^Room temperature
+QTE^38136X^2^Shipping refrigerated is acceptable
+QTE^38137X^1^Refrigerated
+QTE^38139X^1^Ship refrigerated
+QTE^38139X^2^Shipping ambient is also acceptable
+QTE^38140X^1^Refrigerated
+QTE^38143X^1^Room Temperature
+QTE^38143X^2^Shipping Refrigerated remains acceptable.
+QTE^38144X^1^Room temperature
+QTE^38144X^2^Shipping refrigerated is acceptable
+QTE^38149X^1^Refrigerated
+QTE^38197X^1^Room Temperature
+QTE^38197X^2^Refrigerated is also acceptable.
+QTE^38197X^3^Frozen is Unacceptable.
+QTE^38226X^1^Refrigerated
+QTE^38243Z^1^Refrigerated
+QTE^38247X^1^Refrigerated
+QTE^38248X^1^Refrigerated
+QTE^38254Z^1^Room temperature
+QTE^38254Z^2^Shipping refrigerated is acceptable
+QTE^38259X^1^Refrigerated
+QTE^38267X^1^Room temperature
+QTE^38268X^1^Refrigerated
+QTE^38301X^1^FROZEN
+QTE^38363X^1^Frozen
+QTE^383X^1^Room Temperature
+QTE^38408X^1^Refrigerated
+QTE^38409Z^1^Refrigerated
+QTE^38475X^1^Room Temperature
+QTE^38481X^1^Ship Room Temperature.
+QTE^38481X^2^Shipping refrigerated will remain acceptable.
+QTE^38482X^1^Room Temperature
+QTE^38482X^2^Refrigerated is acceptable.
+QTE^38490X^1^Room Temperature
+QTE^38490X^2^Shipping refrigerated is acceptable
+QTE^38555X^1^Refrigerated
+QTE^3855F^1^Unless otherwise specified, refrigerate sample until
+QTE^3855F^2^transport.
+QTE^38560X^1^Room temperature
+QTE^38560X^2^Shipping refrigerated is acceptable
+QTE^38561X^1^Refrigerated
+QTE^38563X^1^Room Temperature
+QTE^38563X^2^Shipping refrigerated is acceptable
+QTE^38568X^1^Refrigerated is preferred, Ambient is acceptable.
+QTE^38569X^1^Refrigerated is preferred. Ambient is acceptable.
+QTE^38583X^1^Ship refrigerated
+QTE^38597X^1^Room Temperature
+QTE^38597X^2^Shipping refrigerated is acceptable
+QTE^3871N^1^Refrigerated
+QTE^38729W^1^Unless otherwise specified, refrigerate sample until
+QTE^38729W^2^transport.
+QTE^38751X^1^Room Temperature
+QTE^38751X^2^Refrigerated is acceptable.
+QTE^38766X^1^Room Temperature
+QTE^38766X^2^Shipping refrigerated is acceptable
+QTE^38830X^1^FROZEN
+QTE^38836X^1^Refrigerated
+QTE^38916X^1^Refrigerated
+QTE^38928P^1^Refrigerated
+QTE^38929X^1^Refrigerated
+QTE^38940X^1^Refrigerated
+QTE^38945X^1^Frozen
+QTE^38953X^1^Unless otherwise specified, refrigerate sample until
+QTE^38953X^2^transport.
+QTE^38953X^3^Ship refrigerated.
+QTE^38953X^4^Room temperature is NOT acceptable; Frozen is not acceptable
+QTE^38964X^1^Refrigerated
+QTE^38994X^1^Refrigerated
+QTE^38995X^1^Room Temperature
+QTE^38995X^2^Refrigerated is also acceptable.
+QTE^38995X^3^Frozen is unacceptable.
+QTE^38996X^1^Room Temperature
+QTE^38996X^2^Refrigerated is also acceptable.
+QTE^38996X^3^Frozen is Unacceptable.
+QTE^3913N^1^Frozen / Okay to thaw
+QTE^391Z^1^Ship Frozen
+QTE^39248W^1^Unless otherwise specified, refrigerate sample until
+QTE^39248W^2^transport.
+QTE^3939T^1^Unless otherwise specified, refrigerate sample until
+QTE^3939T^2^transport.
+QTE^39461X^1^Ship Refrigerated
+QTE^39475X^1^Refrigerated
+QTE^39479X^1^Room temperature
+QTE^39479X^2^Refrigerated is acceptable.
+QTE^39484X^1^Room temperature
+QTE^39484X^2^Shipping refrigerated is acceptable
+QTE^39487W^1^Unless otherwise specified, refrigerate sample until
+QTE^39487W^2^transport.
+QTE^39494X^1^Refrigerated
+QTE^39498X^1^Room Temperature
+QTE^39498X^2^Refrigerated is also acceptable
+QTE^39500X^1^Refrigerated
+QTE^39502X^1^Room Temperature
+QTE^39502X^2^Refrigerated is also acceptable.
+QTE^39502X^3^Frozen is Unacceptable.
+QTE^39515X^1^Room Temp
+QTE^39521X^1^Refrigerated.
+QTE^39545X^1^Ship refrigerated
+QTE^39584X^1^Room Temperature
+QTE^39584X^2^Refrigerated is also acceptable.
+QTE^39584X^3^Frozen is Unacceptable.
+QTE^39614X^1^Room Temperature
+QTE^39614X^2^Refrigerated is also acceptable.
+QTE^39614X^3^Frozen is Unacceptable.
+QTE^39615X^1^Room Temperature
+QTE^39615X^2^Refrigerated is also acceptable.
+QTE^39615X^3^Frozen is Unacceptable.
+QTE^39627X^1^Room temperature
+QTE^39685R^1^Unless otherwise specified, store refrigerated until
+QTE^39685R^2^transport.
+QTE^40000X^1^Room Temperature
+QTE^40000X^2^Shipping refrigerated will remain acceptable
+QTE^40015X^1^Room temperature
+QTE^40016X^1^Room Temperature
+QTE^40016X^2^Refrigerated is also acceptable.
+QTE^40016X^3^Frozen is Unacceptable.
+QTE^40017X^1^Room Temperature
+QTE^40017X^2^Refrigerated is also acceptable.
+QTE^40017X^3^Frozen is Unacceptable.
+QTE^40018X^1^Room temperature
+QTE^40018X^2^Shipping refrigerated is acceptable
+QTE^40019X^1^Room Temperature
+QTE^40019X^2^Refrigerated is also acceptable.
+QTE^40019X^3^Frozen is Unacceptable.
+QTE^40020X^1^Room Temperature
+QTE^40021X^1^Room Temperature
+QTE^40021X^2^Refrigerated is also acceptable.
+QTE^40021X^3^Frozen is Unacceptable.
+QTE^40023X^1^Room Temperature
+QTE^40023X^2^Shipping refrigerated will remain acceptable
+QTE^40024X^1^Room Temperature
+QTE^40024X^2^Shipping refrigerated will remain acceptable
+QTE^40034X^1^Refrigerated
+QTE^40036X^1^Room Temperature
+QTE^40036X^2^Refrigerated is also acceptable.
+QTE^40036X^3^Frozen is Unacceptable.
+QTE^40037X^1^Room Temperature
+QTE^40037X^2^Refrigerated is also acceptable.
+QTE^40037X^3^Frozen is Unacceptable.
+QTE^40038X^1^Room Temperature
+QTE^40039X^1^Room Temperature
+QTE^40039X^2^Shipping refrigerated is acceptable
+QTE^40040X^1^Room Temperature
+QTE^40040X^2^Shipping refrigerated will remain acceptable
+QTE^40041X^1^Room Temperature
+QTE^40041X^2^Shipping refrigerated will remain acceptable
+QTE^40047X^1^Ship room temperature
+QTE^40049X^1^Transport at Room Temperature
+QTE^40050X^1^Ship Room Temperature
+QTE^40050X^2^Shipping refrigerated is acceptable
+QTE^40052X^1^Room Temperature
+QTE^40056X^1^Ship room temperature
+QTE^40061X^1^Room Temperature
+QTE^40064X^1^Refrigerated
+QTE^40065X^1^Refrigerated
+QTE^40066X^1^Frozen
+QTE^40069X^1^Refrigerated
+QTE^40081X^1^Refrigerated.
+QTE^40082X^1^Refrigerated.
+QTE^40083X^1^Frozen
+QTE^40085X^1^Frozen
+QTE^40085X^2^Refigerated
+QTE^400X^1^Refrigerated
+QTE^401X^1^Frozen Do Not Thaw
+QTE^40246R^1^Unless otherwise specified, refrigerate sample until
+QTE^40246R^2^transport. Transport refrigerated.
+QTE^40287W^1^Unless otherwise specified, refrigerate sample until
+QTE^40287W^2^transport.
+QTE^40493E^1^Unless otherwise specified, refrigerate sample until
+QTE^40493E^2^transport.
+QTE^40576R^1^Room Temperature
+QTE^40584R^1^Room Temperature
+QTE^40592E^1^Room Temperature
+QTE^4069T^1^Room temperature
+QTE^4069T^2^Shipping refrigerated remains acceptable
+QTE^40865R^1^Unless otherwise specified, refrigerate sample until
+QTE^40865R^2^transport.
+QTE^40915R^1^Unless otherwise specified refrigerate until transport
+QTE^40923E^1^Unless otherwise specified, refrigerate sample until
+QTE^40923E^2^transport.
+QTE^4093N^1^Ship Room Temperature.
+QTE^4093N^2^Shipping refrigerated will remain acceptable.
+QTE^41111A^1^Room Temp
+QTE^4127N^1^Ship refrigerated
+QTE^41350N^1^Refrigerated
+QTE^41400A^1^Refrigerated
+QTE^41434F^1^Room Temperature or Refrigerated
+QTE^41491N^1^Room Temp
+QTE^414X^1^Frozen
+QTE^416X^1^Ship refrigerated
+QTE^416X^2^room temperature is acceptable
+QTE^417X^1^Refrigerated
+QTE^42085F^1^Unless otherwise specified, refrigerate sample until
+QTE^42085F^2^transport.
+QTE^42093A^1^Unless otherwise specified, refrigerate sample until
+QTE^42093A^2^transport.
+QTE^4212X^1^Refrigerated or Room Temperature
+QTE^4213X^1^Refrigerated or Room Temperature
+QTE^42218N^1^Refrigerated
+QTE^42374N^1^Refrigerated
+QTE^42465N^1^Ship refrigerated
+QTE^42481A^1^Unless otherwise specified, refrigerate sample until
+QTE^42481A^2^transport.
+QTE^42655F^1^Room Temp
+QTE^42A^1^Avoid exposure to extreme hot or cold temperatures. Must
+QTE^42A^2^be received within 48h of collection.
+QTE^42A^3^Room Temperature. Shipping refrigerated is also acceptable
+QTE^43026F^1^Room Temp
+QTE^43034N^1^Unless otherwise specified, refrigerate sample until
+QTE^43034N^2^transport.
+QTE^43034N^3^Ship refrigerated
+QTE^43075F^1^Room Temp
+QTE^43075F^2^Avoid extremes of heat and cold
+QTE^43083A^1^Room tempature
+QTE^430A^1^Unless otherwise specified, refrigerate sample until
+QTE^430A^2^transport.
+QTE^43125N^1^Ship refrigerated
+QTE^4325F^1^Ambient
+QTE^43349T^1^Room Temp.
+QTE^43422A^1^Room temperature; avoid extremes of heat and cold
+QTE^43489T^1^Unless otherwise specified, refrigerate sample until
+QTE^43489T^2^transport. Avoid exposure to extreme hot or cold
+QTE^43489T^3^temperatures.
+QTE^43539N^1^Room temperature
+QTE^43562A^1^Unless otherwise specified, refrigerate sample until
+QTE^43562A^2^transport.  Specimens can be transported at ambient
+QTE^43562A^3^temperature.
+QTE^43646F^1^Room temperature
+QTE^43653A^1^Refrigerated
+QTE^4374F^1^Ambient
+QTE^43794F^1^Room Temp.
+QTE^43885F^1^Room temperature
+QTE^43976F^1^Unless otherwise specified, refrigerate sample until
+QTE^43976F^2^transport.
+QTE^43984N^1^Ship refrigerated
+QTE^4403X^1^Refrigerated
+QTE^4404X^1^Frozen
+QTE^44073A^1^Room Temperature
+QTE^4410X^1^Refrigerated
+QTE^4411X^1^Room temperature
+QTE^4413X^1^Room temperature
+QTE^4415X^1^Refrigerated
+QTE^4416X^1^Frozen
+QTE^44222A^1^Unless othewise specified, refrigerate sample until
+QTE^44222A^2^transport.
+QTE^4423X^1^FROZEN
+QTE^44289T^1^Unless otherwise specified, refrigerate sample until
+QTE^44289T^2^transport.
+QTE^442Z^1^Room Temperature
+QTE^442Z^2^Refrigerated is acceptable.
+QTE^4440X^1^Room temperature
+QTE^4440X^2^Shipping refrigerated will remain acceptable.
+QTE^44446N^1^Ship refrigerated
+QTE^4448X^1^Ship refrigerated
+QTE^4449X^1^Ship room temperature
+QTE^4451X^1^Frozen Only
+QTE^4458X^1^Frozen
+QTE^4460X^1^2-8 degrees centigrade
+QTE^44636R^1^Room Temp
+QTE^4475F^1^Room Temp
+QTE^44842P^1^Ship refrigerated
+QTE^44859W^1^Room Temperature
+QTE^44859W^2^Refrigerated is also acceptable.
+QTE^44982E^1^Room Temperature
+QTE^44982E^2^Refrigerated is also acceptable.
+QTE^45088P^1^Refrigerated
+QTE^45328W^1^Frozen
+QTE^45377W^1^Refrigerated or room temperature
+QTE^453X^1^Refrigerated
+QTE^45427W^1^Refrigerate
+QTE^45443E^1^Avoid exposure to extreme hot or cold temperatures. Unless
+QTE^45443E^2^otherwise specified, refrigerate sample until transport.
+QTE^45484R^1^Ambient or Refrigerated
+QTE^454X^1^Refrigerated
+QTE^4555X^1^Transport at room temperature.
+QTE^455X^1^Frozen
+QTE^456X^1^Refrigerated
+QTE^4598T^1^Room Temp
+QTE^462N^1^Ship Frozen
+QTE^46334R^1^Refrigerated
+QTE^46342A^1^Refrigerated
+QTE^4639X^1^Refrigerated
+QTE^46441E^1^Unless otherwise specified, refrigerate sample until
+QTE^46441E^2^transport.
+QTE^464X^1^Ship refrigerated
+QTE^4661X^1^Refrigerated
+QTE^46797W^1^Unless otherwise specified, refrigerate sample until
+QTE^46797W^2^transport.
+QTE^468X^1^FROZEN
+QTE^4696X^1^Refrigerated.
+QTE^469X^1^Ship refrigerated.
+QTE^4705F^1^Unless otherwise specified, refrigerate sample until
+QTE^4705F^2^transport.
+QTE^4728X^1^Refrigerated
+QTE^4732X^1^Ship room temperature
+QTE^4741X^1^Room temperature
+QTE^4744X^1^Refrigerated
+QTE^4789X^1^Frozen
+QTE^478X^1^Frozen
+QTE^4791X^1^Frozen
+QTE^479X^1^Refrigerated
+QTE^4812A^1^Room temperature
+QTE^48215R^1^Room Temp
+QTE^4861A^1^Room temperature. Do not Freeze.
+QTE^4865X^1^Refrigerated
+QTE^4919X^1^Frozen
+QTE^4927X^1^Refrigerated
+QTE^4928X^1^Frozen
+QTE^4934X^1^Refrigerated
+QTE^4943N^1^Frozen
+QTE^4946X^1^Unless otherwise specified, refrigerate sample until
+QTE^4946X^2^transport.
+QTE^4946X^3^Ship refrigerated.
+QTE^4946X^4^If preservative is not used specimen MUST be FROZEN
+QTE^4947X^1^Frozen
+QTE^4948X^1^FROZEN
+QTE^4948X^2^Do not thaw.
+QTE^4950X^1^Room temperature
+QTE^4950X^2^Shipping refrigerated will remain acceptable.
+QTE^4953N^1^Frozen
+QTE^4990X^1^Ship Room Temperature.
+QTE^4990X^2^Shipping refrigerated will remain acceptable.
+QTE^49940P^1^Ship refrigerated
+QTE^5009T^1^Unless otherwise specified, refrigerate sample until
+QTE^5009T^2^transport. Ship refrigerated and protected from light. Ship
+QTE^5009T^3^frozen if not light-protected.
+QTE^5017T^1^ Room Temp
+QTE^5022X^1^Frozen
+QTE^5025F^1^Room Temperature
+QTE^5032X^1^Ship refrigerated
+QTE^5033A^1^Room Temperature.
+QTE^50369W^1^Room Temp
+QTE^504X^1^Frozen
+QTE^5058T^1^Room Temperature.
+QTE^50922P^1^Refrigerated
+QTE^511X^1^Unless otherwise specified, refrigerate sample until
+QTE^511X^2^transport.
+QTE^51243E^1^Unless otherwise specified, refrigerate sample until
+QTE^51243E^2^transport.
+QTE^51268W^1^Unless otherwise specified, refrigerate sample until
+QTE^51268W^2^transport.
+QTE^51300E^1^Unless otherwise specified, refrigerate sample until
+QTE^51300E^2^transport.
+QTE^5136X^1^Refrigerated
+QTE^513X^1^Unless otherwise specified, refrigerate sample until
+QTE^513X^2^transport.
+QTE^514X^1^Refrigerated or Frozen
+QTE^51565R^1^Unless otherwise specified, refrigerate sample until
+QTE^51565R^2^transport.
+QTE^51573E^1^Unless otherwise specified, refrigerate sample until
+QTE^51573E^2^transport.
+QTE^5158X^1^FROZEN
+QTE^5158X^2^Do not thaw.
+QTE^51599W^1^Unless otherwise specified, refrigerate sample until
+QTE^51599W^2^transport.
+QTE^5165X^1^FROZEN
+QTE^5165X^2^Do not thaw.
+QTE^5173A^1^Refrigerated
+QTE^51763E^1^Unless otherwise specified, refrigerate sample until
+QTE^51763E^2^transport.
+QTE^51813E^1^Unless otherwise specified, refrigerate sample until
+QTE^51813E^2^transport.
+QTE^51839W^1^Unless otherwise specified, refrigerate sample until
+QTE^51839W^2^transport.
+QTE^51854R^1^Room Temperature
+QTE^51870E^1^Room Temperature
+QTE^51896R^1^Unless otherwise specified, refrigerate sample until
+QTE^51896R^2^transport.
+QTE^51912E^1^Unless otherwise specified, refrigerate sample until
+QTE^51912E^2^transport.
+QTE^51938W^1^Refrigerated
+QTE^519X^1^Frozen
+QTE^52142E^1^Unless otherwise specified, refrigerate sample until
+QTE^52142E^2^transport.
+QTE^5215X^1^Refrigerated
+QTE^5216X^1^Unless otherwise specified, refrigerate sample until
+QTE^5216X^2^transport.
+QTE^5216X^3^Ship refrigerated
+QTE^521X^1^Room Temperature or Refrigerated
+QTE^52340P^1^Shipping Room Temperature is preferred,
+QTE^52340P^2^Shipping refrigerated will remain acceptable.
+QTE^52449W^1^Unless otherwise specified, refrigerate sample until
+QTE^52449W^2^transport.
+QTE^5244X^1^Urine with preservative:  Room temperature or refrigerated
+QTE^5244X^2^Urine without preservative:  Frozen
+QTE^5248X^1^Refrigerated
+QTE^52563E^1^Unless otherwise specified, refrigerate sample until
+QTE^52563E^2^transport.
+QTE^52605P^1^Unless otherwise specified, refrigerate sample until
+QTE^52605P^2^transport.
+QTE^52605P^3^Ship refrigerated
+QTE^526X^1^Room Temperature
+QTE^526X^2^Shipping refrigerated will remain acceptable.
+QTE^52738W^1^Refrigerated
+QTE^52746R^1^Refrigerated
+QTE^52902E^1^Unless otherwise specified, refrigerate sample until
+QTE^52902E^2^transport.
+QTE^5295X^1^Room temperature
+QTE^5295X^2^Shipping refrigerated is acceptable.
+QTE^5297X^1^Room temperature
+QTE^5297X^2^Shipping refrigerated is acceptable.
+QTE^53017W^1^Unless otherwise specified, refrigerate sample until
+QTE^53017W^2^transport. Room Temperature
+QTE^5301X^1^Refrigerated
+QTE^5309X^1^Unless otherwise specified, refrigerate sample until
+QTE^5309X^2^transport.
+QTE^5309X^3^Ship refrigerated
+QTE^530X^1^Refrigerated
+QTE^53348W^1^Unless otherwise specified, refrigerate sample until
+QTE^53348W^2^transport.
+QTE^53355R^1^Room Temperature (18-25 degrees Celsius)
+QTE^53488W^1^Shipping room temperature or refrigerated is acceptable.
+QTE^53561E^1^Unless otherwise specified, refrigerate sample until
+QTE^53561E^2^transport. Room Temperature
+QTE^5367X^1^Refrigerated
+QTE^53702E^1^Unless otherwise specified, refrigerate sample until
+QTE^53702E^2^transport.
+QTE^5373X^1^Refrigerated
+QTE^5374X^1^Refrigerated
+QTE^5376X^1^Refrigerated
+QTE^5383X^1^Refrigerated
+QTE^5384X^1^Frozen
+QTE^5385X^1^Refrigerated
+QTE^5386X^1^Refrigerated
+QTE^53884R^1^Unless otherwise specified, refrigerate sample until
+QTE^53884R^2^transport
+QTE^53934R^1^Refrigerated
+QTE^53934R^2^Avoid extremes of heat and cold.
+QTE^54031E^1^Room Temperature
+QTE^54049P^1^Room temperature
+QTE^540X^1^2-8 degrees centigrade
+QTE^541X^1^Refrigerated
+QTE^5428X^1^Refrigerated
+QTE^54577N^1^Room Temperature
+QTE^54619N^1^Unless otherwise specified, refrigerate sample until
+QTE^54619N^2^transport.
+QTE^54619N^3^Ship refrigerated
+QTE^5496R^1^Room Temp
+QTE^5499X^1^Refrigerated
+QTE^5500X^1^FROZEN
+QTE^5500X^2^Shipping refrigerated is also acceptable.
+QTE^5504R^1^Room temperature; avoid extremes of heat and cold
+QTE^55053A^1^Room Temp
+QTE^5507X^1^Refrigerated
+QTE^55152A^1^Unless otherwise specified, refrigerate sample until
+QTE^55152A^2^transport.
+QTE^5519X^1^Ship Frozen
+QTE^5530Z^1^Urine Transport refrigerated
+QTE^5530Z^2^Plasma and Whole Blood transport frozen
+QTE^5530Z^3^Serum, Fluids,
+QTE^5530Z^4^Meconium and Fresh Fluids transport refrigerated.
+QTE^55343A^1^Room Temperature
+QTE^5538T^1^Room temperature
+QTE^554F^1^Unless otherwise specified, refrigerate sample until
+QTE^554F^2^transport.
+QTE^55681E^1^Unless otherwise specified, refrigerate sample until
+QTE^55681E^2^transport.
+QTE^55699W^1^Unless otherwise specified, refrigerate sample until
+QTE^55699W^2^transport.
+QTE^557X^1^Ship room temperature
+QTE^5617X^1^Room Temp
+QTE^563X^1^Refrigerated
+QTE^56408W^1^Unless otherwise specified, refrigerate sample until
+QTE^56408W^2^transport.
+QTE^56440E^1^Room Temp
+QTE^5645F^1^Room Temp
+QTE^56499W^1^Refrigerated
+QTE^564X^1^Unless otherwise specified, refrigerate sample until
+QTE^564X^2^transport.
+QTE^564X^3^Ship refrigerated
+QTE^56713E^1^Unless otherwise specified, refrigerate sample until
+QTE^56713E^2^transport.
+QTE^568X^1^Ship room temperature
+QTE^568X^2^Shipping refrigerated will remain acceptable.
+QTE^57125F^1^Refrigerated or Room Temperature
+QTE^5738X^1^Refrigerated
+QTE^57430P^1^Unless otherwise specified, refrigerate sample until
+QTE^57430P^2^transport.
+QTE^57430P^3^Ship refrigerated
+QTE^5777W^1^Room Temp
+QTE^57810E^1^Unless otherwise specified, refrigerate sample until
+QTE^57810E^2^transport.
+QTE^57851E^1^Unless otherwise specified, refrigerate sample until
+QTE^57851E^2^transport.
+QTE^5785R^1^Room Temp
+QTE^5789X^1^Refrigerated
+QTE^5801E^1^Room Temp
+QTE^5819N^1^Refrigerated
+QTE^5827W^1^Room Temp
+QTE^5827W^2^Avoid extremes of heat and cold
+QTE^58315X^1^Room temperature
+QTE^58768W^1^Refrigerated (Cold Packs)
+QTE^58768W^2^NOTE: Specimens in sterile containers may be shipped
+QTE^58768W^3^refrigerated. If transport is delayed or the specimen has
+QTE^58768W^4^also been submitted for culture, it must be frozen if
+QTE^58768W^5^transport will take longer than 48 hours.
+QTE^58800E^1^Frozen or refrigerated if received within 2 days
+QTE^590X^1^Unless otherwise specified, refrigerate sample until
+QTE^590X^2^transport.
+QTE^590X^3^Ship refrigerated
+QTE^592X^1^Frozen
+QTE^5934R^1^Room Temp
+QTE^59915P^1^Ship frozen
+QTE^5991A^1^Refrigerated
+QTE^59T^1^Room temperature
+QTE^6004X^1^FROZEN
+QTE^6007W^1^Room Temp. Do not refrigerate.
+QTE^6007X^1^Refrigerated
+QTE^60137P^1^Frozen
+QTE^60145P^1^Frozen
+QTE^6015R^1^Room Temp
+QTE^60178T^1^Room Temperature
+QTE^6017X^1^Room temperature
+QTE^6017X^2^Shipping refrigerated is acceptable
+QTE^60194F^1^Room Temperature
+QTE^601X^1^Refrigerated
+QTE^60202A^1^Room Temperature
+QTE^60210A^1^Room Temperature
+QTE^6021Z^1^Room Temperature
+QTE^6021Z^2^Refrigerated is acceptable.
+QTE^6024X^1^Room Temperature
+QTE^60251A^1^Room Temperature
+QTE^6028X^1^Refrigerated
+QTE^60293A^1^Room Temperature
+QTE^60301A^1^Room Temperature
+QTE^60335F^1^Room Temperature
+QTE^60343A^1^Room Temperature
+QTE^60350A^1^Room Temperature
+QTE^60368T^1^Room Temperature
+QTE^60384F^1^Room Temperature
+QTE^60392A^1^Room Temperature
+QTE^60418T^1^Room Temperature
+QTE^60434F^1^Room Temperature
+QTE^60459T^1^Room Temperature
+QTE^60483A^1^Room Temperature
+QTE^604F^1^Unless otherwise specified, refrigerate sample until
+QTE^604F^2^transport.
+QTE^60509T^1^Room Temperature
+QTE^60517N^1^Ship refrigerated
+QTE^60525F^1^Room Temperature
+QTE^60541A^1^Room Temperature
+QTE^6054X^1^Refrigerated
+QTE^6055X^1^Room temperature
+QTE^6057X^1^Refrigerated
+QTE^60590A^1^Room Temperature
+QTE^605X^1^Room temperature
+QTE^605X^2^shipping refrigerated remains acceptable
+QTE^6060X^1^Unless otherwise specified, refrigerate sample until
+QTE^6060X^2^transport.
+QTE^6060X^3^Ship refrigerated
+QTE^60616F^1^Room Temperature
+QTE^60624F^1^Room Temperature
+QTE^60657T^1^Room Temperature
+QTE^60673A^1^Room Temperature
+QTE^60673N^1^Refrigerated
+QTE^60681A^1^Room Temperature
+QTE^6069X^1^Refrigerated
+QTE^60707T^1^Room Temperature
+QTE^60715F^1^Room Temperature
+QTE^6071X^1^Room Temperature
+QTE^6071X^2^Shipping refrigerated is acceptable
+QTE^6072A^1^Unless otherwise specified, refrigerate sample until
+QTE^6072A^2^transport.
+QTE^60731A^1^Room Temperature
+QTE^60749N^1^Unless otherwise specified, refrigerate sample until
+QTE^60749N^2^transport.
+QTE^60749N^3^Ship refrigerated
+QTE^60756F^1^Room Temperature
+QTE^60764F^1^Room Temperature
+QTE^60772A^1^Room Temperature
+QTE^60780A^1^Room Temperature
+QTE^6080E^1^Room temp.
+QTE^60814F^1^Room Temperature
+QTE^6081X^1^Refrigerated
+QTE^60822A^1^Room Temperature
+QTE^60830A^1^Room Temperature
+QTE^60855F^1^Room Temperature
+QTE^6085X^1^Refrigerated
+QTE^60871A^1^Room Temperature
+QTE^6088X^1^Room temperature
+QTE^60897T^1^Room Temperature
+QTE^60905F^1^Room Temperature
+QTE^60913A^1^Room Temperature
+QTE^60921A^1^Room Temperature
+QTE^60954F^1^Room Temperature
+QTE^6095X^1^Refrigerated
+QTE^60962A^1^Room Temperature
+QTE^60970A^1^Room Temperature
+QTE^60988T^1^Room Temperature
+QTE^6098W^1^Room temperature; avoid extremes of heat and cold.
+QTE^61002A^1^Room Temperature
+QTE^6100X^1^Room temperature
+QTE^61069T^1^Room Temperature
+QTE^61077T^1^Room Temperature
+QTE^6108X^1^Refrigerated
+QTE^61093A^1^Room Temperature
+QTE^61101A^1^Room Temperature
+QTE^61119T^1^Room Temperature
+QTE^61150A^1^Room Temperature
+QTE^6116X^1^Ship Frozen
+QTE^61176F^1^Room Temperature
+QTE^61218T^1^Room Temperature
+QTE^61226F^1^Room Temperature
+QTE^6122E^1^Room Temp
+QTE^6122E^2^Avoid extremes of heat and cold
+QTE^61242A^1^Room Temperature
+QTE^61259T^1^Room Temperature
+QTE^6125X^1^Refrigerated
+QTE^61267T^1^Room Temperature
+QTE^61283A^1^Room Temperature
+QTE^61291A^1^Room Temperature
+QTE^61317T^1^Room Temperature
+QTE^61341A^1^Room Temperature
+QTE^61358T^1^Room Temperature
+QTE^61366F^1^Room Temperature
+QTE^61374F^1^Room Temperature
+QTE^61382A^1^Room Temperature
+QTE^61390A^1^Room Temperature
+QTE^61432A^1^Room Temperature
+QTE^6144X^1^Refrigerated
+QTE^61473N^1^Refrigerated
+QTE^61499N^1^Refrigerated
+QTE^61523A^1^Room Temperature
+QTE^61531A^1^Room Temperature
+QTE^61549T^1^Room Temperature
+QTE^61556F^1^Room Temperature
+QTE^61564F^1^Room Temperature
+QTE^61598T^1^Room Temperature
+QTE^61606F^1^Room Temperature
+QTE^61614F^1^Room Temperature
+QTE^61648T^1^Room Temperature
+QTE^61655F^1^Room Temperature
+QTE^61663A^1^Room Temperature
+QTE^61671A^1^Room Temperature
+QTE^61697T^1^Room Temperature
+QTE^61747T^1^Room Temperature
+QTE^61754N^1^Ship refrigerated.
+QTE^61770A^1^Room Temperature
+QTE^61788T^1^Room Temperature
+QTE^61796F^1^Room Temperature
+QTE^61804F^1^Room Temperature
+QTE^61812A^1^Room Temperature
+QTE^61820A^1^Room Temperature
+QTE^61838T^1^Room Temperature
+QTE^6183X^1^Room temperature
+QTE^61853A^1^Room Temperature
+QTE^61903A^1^Room Temperature
+QTE^61929T^1^Room Temperature
+QTE^61937T^1^Room Temperature
+QTE^61945F^1^Room Temperature
+QTE^61952A^1^Room Temperature
+QTE^61986F^1^Room Temperature
+QTE^619X^1^Frozen
+QTE^62034F^1^Room Temperature
+QTE^62042A^1^Room Temperature
+QTE^62059T^1^Room Temperature
+QTE^62067T^1^Room Temperature
+QTE^62075F^1^Room Temperature
+QTE^6207X^1^Room temperature
+QTE^6207X^2^Shipping refrigerated is acceptable
+QTE^62083A^1^Room Temperature
+QTE^62091A^1^Room Temperature
+QTE^6209X^1^Refrigerated
+QTE^62109T^1^Room Temperature
+QTE^62125F^1^Room Temperature
+QTE^62141N^1^Refrigerated
+QTE^62158T^1^Room Temperature
+QTE^6215X^1^Refrigerated
+QTE^62166F^1^Room Temperature
+QTE^62174F^1^Room Temperature
+QTE^62182A^1^Room Temperature
+QTE^62190A^1^Room Temperature
+QTE^62208T^1^Room Temperature
+QTE^62232A^1^Room Temperature
+QTE^62240A^1^Room Temperature
+QTE^62257T^1^Room Temperature
+QTE^6225X^1^Room temperature
+QTE^6225X^2^Shipping refrigerated will remain acceptable.
+QTE^62265F^1^Room Temperature
+QTE^62281A^1^Room Temperature
+QTE^62299T^1^Room Temperature
+QTE^62307T^1^Room Temperature
+QTE^62323A^1^Room Temperature
+QTE^62349T^1^Room Temperature
+QTE^62364F^1^Room Temperature
+QTE^62372A^1^Room Temperature
+QTE^623X^1^Ship refrigerated.
+QTE^6240X^1^Frozen
+QTE^62422A^1^Room Temperature
+QTE^6242X^1^Refrigerated
+QTE^62448T^1^Room Temperature
+QTE^62455N^1^Refrigerated
+QTE^62463A^1^Room Temperature
+QTE^62489T^1^Room Temperature
+QTE^6251X^1^Room temperature
+QTE^6251X^2^Shipping refrigerated will remain acceptable.
+QTE^62521N^1^Refrigerated
+QTE^6255X^1^Frozen
+QTE^62570A^1^Room Temperature
+QTE^62588T^1^Room Temperature
+QTE^62612A^1^Room Temperature
+QTE^6262E^1^Room Temp
+QTE^6262E^2^Avoid extremes of heat and cold
+QTE^62638T^1^Room Temperature
+QTE^62646F^1^Room Temperature
+QTE^62653A^1^Room Temperature
+QTE^62661A^1^Room Temperature
+QTE^62687T^1^Room Temperature
+QTE^626X^1^Refrigerated
+QTE^62703A^1^Room Temperature
+QTE^6270E^1^Room Temp
+QTE^6270X^1^Refrigerated
+QTE^62711A^1^Room Temperature
+QTE^62737T^1^Room Temperature
+QTE^62745F^1^Room Temperature
+QTE^62752A^1^Room Temperature
+QTE^62760A^1^Room Temperature
+QTE^6276X^1^Refrigerated
+QTE^62786F^1^Room Temperature
+QTE^6278X^1^Unless otherwise specified, refrigerate sample until
+QTE^6278X^2^transport.
+QTE^6278X^3^Ship refrigerated
+QTE^62794F^1^Room Temperature
+QTE^62802A^1^Room Temperature
+QTE^62828T^1^Room Temperature
+QTE^62836N^1^Ship refrigerated
+QTE^62851A^1^Room Temperature
+QTE^62869T^1^Room Temperature
+QTE^62877T^1^Room Temperature
+QTE^62885F^1^Room Temperature
+QTE^6288T^1^Refrigerated
+QTE^6288X^1^Refrigerated
+QTE^6290X^1^Refrigerated
+QTE^6296Z^1^Room temperature
+QTE^6301X^1^Refrigerated; Room temp is NOT acceptable.
+QTE^63040A^1^Room Temperature
+QTE^6304R^1^Vacutainer Brand Urine C&S Transport kits stable at room
+QTE^6304R^2^temperature or refrigerated for 48 hours.
+QTE^6304R^3^Low volume specimens stable in sterile urine container for
+QTE^6304R^4^24 hours when refrigerated.
+QTE^6313X^1^Refrigerated
+QTE^6314X^1^Refrigerated
+QTE^6328X^1^Refrigated
+QTE^6329X^1^Frozen
+QTE^6333X^1^Refrigerated
+QTE^6346R^1^Room Temp
+QTE^63495R^1^Refrigerated (Cold packs)
+QTE^6354X^1^Room Temperature
+QTE^63552E^1^Refrigerated (cold packs) or room temperature
+QTE^636X^1^Refrigerated
+QTE^63719W^1^Room Temp
+QTE^6379W^1^Room Temp
+QTE^637X^1^Refrigerated
+QTE^638T^1^Room Temp
+QTE^64121E^1^Preserved: Room temperature
+QTE^64121E^2^Cary-Blair: Refrigerated
+QTE^64121E^3^Fresh: Frozen
+QTE^6419X^1^Room Temperature
+QTE^6419X^2^Shipping refrigerated is also acceptable.
+QTE^641X^1^Room temperature
+QTE^64477P^1^Ship refrigerated
+QTE^64592E^1^Room Temperature
+QTE^645X^1^Refrigerated
+QTE^64766R^1^Unless otherwise specified, refrigerate sample until
+QTE^64766R^2^transport.
+QTE^648X^1^Frozen
+QTE^65375F^1^Room temperature.Do not freeze.
+QTE^653A^1^Unless otherwise specified, refrigerate sample until
+QTE^653A^2^transport.
+QTE^653X^1^Refrigerated
+QTE^6547X^1^Shipping Room Temperature is preferred,
+QTE^6547X^2^Shipping refrigerated will remain acceptable.
+QTE^65847W^1^REFRIGERATED (COLD PACKS)
+QTE^659X^1^Refrigerated
+QTE^661X^1^Frozen
+QTE^6631X^1^Refrigerated
+QTE^6635N^1^Refrigerated
+QTE^663X^1^Ship Room Temperature
+QTE^663X^2^Shipping refrigerated will remain acceptable.
+QTE^6643E^1^Room Temp
+QTE^6643E^2^Avoid extremes of heat and cold
+QTE^66464F^1^Room temperature
+QTE^6651X^1^Refrigerate
+QTE^6676R^1^Room Temp
+QTE^6688X^1^Refrigerated or Frozen
+QTE^6689X^1^Refrigerated or Frozen
+QTE^66902E^1^Unless otherwise specified, refrigerate sample until
+QTE^66902E^2^transport.
+QTE^6690X^1^Refrigerated or Frozen
+QTE^6691X^1^Refrigerated or Frozen
+QTE^6693X^1^Refrigerated or Frozen
+QTE^6694X^1^Refrigerated or Frozen
+QTE^6695X^1^Refrigerated or Frozen
+QTE^6697X^1^Refrigerated or Frozen
+QTE^669X^1^Frozen
+QTE^67124N^1^REFRIGERATED
+QTE^67181A^1^Room Temperature
+QTE^67199T^1^Room Temperature
+QTE^671Z^1^FROZEN
+QTE^6720X^1^Frozen
+QTE^67249T^1^Room Temperature
+QTE^672X^1^Room temperature
+QTE^6734X^1^Refrigerated or Room Temperature
+QTE^6735X^1^Refrigerated or Room Temperature
+QTE^6736X^1^Refrigerated or Room Temperature
+QTE^67405F^1^Room Temperature
+QTE^6740X^1^Ambient
+QTE^67421E^1^Unless otherwise specified, refrigerate sample until
+QTE^67421E^2^transport.
+QTE^674X^1^Unless otherwise specified, refrigerate sample until
+QTE^674X^2^transport.
+QTE^674X^3^Ship refrigerated
+QTE^6759W^1^Room Temp;  Refrigerate sample if it is not to be sent the
+QTE^6759W^2^same day of preparation.
+QTE^6767W^1^Refrigerated
+QTE^67686R^1^Room temperature/Refrigerated
+QTE^67710E^1^Unless otherwise specified, refrigerate sample until
+QTE^67710E^2^transport.
+QTE^67777W^1^Unless otherwise specified, store refrigerated until
+QTE^67777W^2^transport.
+QTE^67934R^1^Room temperature
+QTE^67T^1^Unless otherwise specified, refrigerate sample until
+QTE^67T^2^transport.
+QTE^6817W^1^Room temperature
+QTE^68254R^1^Unless otherwise specified, refrigerate sample until
+QTE^68254R^2^transport
+QTE^68296N^1^Refrigerated
+QTE^682X^1^Room temperature
+QTE^682X^2^Shipping refrigerated is acceptable
+QTE^68304F^1^Room Temperature
+QTE^68312A^1^Room Temperature
+QTE^68338T^1^Room Temperature
+QTE^68353A^1^Room Temperature
+QTE^68379T^1^Room Temperature
+QTE^68387N^1^Refrigerated
+QTE^68403N^1^Refrigerated
+QTE^68411A^1^Room Temperature
+QTE^68429T^1^Room Temperature
+QTE^68445F^1^Room Temperature
+QTE^68486F^1^Room Temperature
+QTE^68494F^1^Room Temperature
+QTE^68510A^1^Room Temperature
+QTE^68528N^1^Refrigerated
+QTE^68536F^1^Room Temperature
+QTE^68544N^1^Unless otherwise specified, refrigerate sample until
+QTE^68544N^2^transport.
+QTE^68551A^1^Room Temperature
+QTE^68569T^1^Room Temperature
+QTE^68577N^1^Refrigerated
+QTE^68585F^1^Room Temperature
+QTE^68593A^1^Room Temperature
+QTE^68601N^1^Refrigerated
+QTE^68643E^1^Refrigerate
+QTE^686X^1^Room temperature
+QTE^686X^2^Shipping refrigerated will remain acceptable.
+QTE^68759W^1^Room Temperature
+QTE^687X^1^Room temperature
+QTE^687X^2^Shipping refrigerated will remain acceptable.
+QTE^69096R^1^Unless otherwise specified, refrigerate sample until
+QTE^69096R^2^transport.
+QTE^6916R^1^Room temperature; avoid extremes of heat and cold.
+QTE^6916R^2^DO NOT REFRIGERATE.
+QTE^691X^1^Frozen
+QTE^69211E^1^Room temperature
+QTE^69211E^2^Shipping refrigerated is also acceptable.
+QTE^6921X^1^Room Temperature or Refrigerated
+QTE^69484R^1^Refrigerated
+QTE^6965R^1^Room temperature; avoid extremes of heat and cold.
+QTE^6965R^2^DO NOT REFRIGERATE.
+QTE^69682E^1^Room Temperature
+QTE^69682E^2^Shipping refrigerated is acceptable
+QTE^69690E^1^Room Temperature
+QTE^69690E^2^Shipping refrigerated is acceptable
+QTE^69732P^1^Room temperature
+QTE^70007X^1^Room Temperature
+QTE^7002X^1^Room Temperature
+QTE^70042X^1^Room Temperature
+QTE^70042X^2^Refrigerated is also acceptable.
+QTE^70042X^3^Frozen is Unacceptable.
+QTE^70048X^1^Room temperature
+QTE^70049X^1^Room temperature
+QTE^70050X^1^Frozen. * Do not thaw *
+QTE^70051X^1^Room temperature
+QTE^70068X^1^Frozen
+QTE^70070X^1^Refrigerated
+QTE^70073X^1^Refrigerated
+QTE^70075X^1^Refrigerated
+QTE^70107X^1^Frozen
+QTE^70132X^1^Frozen
+QTE^70133X^1^Room Temperature
+QTE^70133X^2^Refrigerated is OK.
+QTE^70134X^1^Room Temperature
+QTE^70134X^2^Refrigerated is OK.
+QTE^7013E^1^Room Temp
+QTE^70143X^1^Refrigerated
+QTE^70145X^1^Refrigerated
+QTE^70146X^1^Refrigerated
+QTE^70147X^1^Refrigerated
+QTE^70159X^1^Room Temperature
+QTE^70159X^2^Shipping refrigerated is acceptable
+QTE^70171X^1^Room temperature
+QTE^70172X^1^Refrigerated
+QTE^70176X^1^Room Temperature
+QTE^70176X^2^Refrigerated is also acceptable.
+QTE^70178X^1^Room Temperature
+QTE^70178X^2^Refrigerated is also acceptable.
+QTE^70183X^1^Room Temperature
+QTE^70186X^1^Refrigerated
+QTE^70188X^1^Room temperature
+QTE^70189X^1^Refrigerated:  CSF, Plasma, Serum  and Swabs
+QTE^70189X^2^Frozen:  Stool
+QTE^70196X^1^Room Temperature
+QTE^70196X^2^Shipping refrigerated will remain acceptable
+QTE^70197X^1^Room temperature
+QTE^70197X^2^Shipping refrigerated will remain acceptable
+QTE^70204X^1^Room Temperature
+QTE^70204X^2^Shipping refrigerated is acceptable
+QTE^70205X^1^Room Temperature
+QTE^70205X^2^Refrigerated is also acceptable.
+QTE^70206X^1^Room Temperature
+QTE^70207X^1^Room Temperature
+QTE^70207X^2^Refrigerated is also acceptable.
+QTE^70208X^1^Room Temperature
+QTE^70208X^2^Refrigerated is also acceptable.
+QTE^70209X^1^Room Temperature
+QTE^70230X^1^Room Temperature
+QTE^70231X^1^Room Temperature
+QTE^70231X^2^Refrigerated is also acceptable.
+QTE^70233X^1^Room Temperature
+QTE^70233X^2^Refrigerated is also acceptable.
+QTE^70234X^1^Room Temperature
+QTE^70234X^2^Refrigerated is also acceptable.
+QTE^70237X^1^Room Temperature
+QTE^70237X^2^Shipping refrigerated is acceptable.
+QTE^70238X^1^Room Temperature
+QTE^70238X^2^Shipping refrigerated is acceptable.
+QTE^70239X^1^Room Temperature
+QTE^70239X^2^Refrigerated is also acceptable.
+QTE^70242X^1^Refrigerated (preferred and may help improve isolate
+QTE^70242X^2^viability)
+QTE^70245X^1^Room Temperature
+QTE^70245X^2^Shiping refrigerated is acceptable
+QTE^70246X^1^Room Temperature
+QTE^70247X^1^Room Temperature
+QTE^70248X^1^Room Temperature
+QTE^70249X^1^Room Temperature
+QTE^7037X^1^Room temperature
+QTE^7039W^1^Unless otherwise specified, refrigerate sample until
+QTE^7039W^2^transport.
+QTE^703A^1^Unless otherwise specified, refrigerate sample until
+QTE^703A^2^transport.
+QTE^7047W^1^Unless otherwise specified, refrigerate sample until
+QTE^7047W^2^transport.
+QTE^7062N^1^Ship refrigerated   /   Okay to thaw
+QTE^70656N^1^Ship refrigerated
+QTE^70797N^1^Ship refrigerated
+QTE^7079T^1^Frozen
+QTE^70912A^1^Room Temperature
+QTE^70946N^1^Refrigerated
+QTE^70995F^1^Room Temperature
+QTE^709X^1^Refrigerated
+QTE^7104N^1^Unless otherwise specified, refrigerate sample until
+QTE^7104N^2^transport.
+QTE^7104N^3^Ship refrigerated
+QTE^7112E^1^Unless otherwise specified, refrigerate sample until
+QTE^7112E^2^transport.
+QTE^71183A^1^Room Temperature
+QTE^71290A^1^Room Temperature
+QTE^7131X^1^Room temperature
+QTE^7131X^2^Shipping refrigerated is acceptable
+QTE^71357N^1^Ship refrigerated.
+QTE^71464N^1^Refrigerated
+QTE^71514F^1^Room Temperature
+QTE^71522A^1^Room Temperature
+QTE^71555F^1^Room Temperature
+QTE^71696F^1^Room Temperature
+QTE^7177X^1^Refrigerated.
+QTE^717X^1^Refrigerated
+QTE^7180Z^1^Refrigerated
+QTE^7187W^1^Room Temperature. Shipping refrigerated is also acceptable
+QTE^72090N^1^Ship room temperature
+QTE^72124N^1^Refrigerated
+QTE^72140N^1^Ship refrigerated
+QTE^72157N^1^Ship refrigerated
+QTE^722X^1^Refrigerated
+QTE^7250X^1^Ship room temperature.
+QTE^7250X^2^Shipping refrigerated will remain acceptable.
+QTE^725X^1^Refrigerated
+QTE^726X^1^Refrigerated
+QTE^72751N^1^Refrigerated
+QTE^72918N^1^Refrigerated
+QTE^72967T^1^Room Temperature
+QTE^729X^1^Ship refrigerated / Okay to thaw
+QTE^7303X^1^Refrigerated or Room Temperature
+QTE^73262N^1^Refrigerated
+QTE^73353A^1^Room Temperature
+QTE^73403N^1^Room temperature
+QTE^7377X^1^Refrigerated
+QTE^7385F^1^Unless otherwise specified, refrigerate sample until
+QTE^7385F^2^transport.
+QTE^74047N^1^Refrigerated
+QTE^74070N^1^REfrigerated
+QTE^7419N^1^Ship Room Temperature.
+QTE^7419N^2^Shipping refrigerated will remain acceptable.
+QTE^74203N^1^Refrigerated
+QTE^74252A^1^Room Temperature
+QTE^743X^1^Refrigerated
+QTE^74450A^1^Room Temperature
+QTE^74583A^1^Room Temperature
+QTE^74625N^1^Refrigerated
+QTE^7462X^1^Room Temperature or Refrigerated
+QTE^7463X^1^Room Temperature or Refrigerated
+QTE^7464X^1^Room Temperature or Refrigerated
+QTE^7465X^1^Room Temperature or Refrigerated
+QTE^7466X^1^Room Temperature or Refrigerated
+QTE^7467X^1^Room Temperature or Refrigerated
+QTE^7468X^1^Room Temperature or Refrigerated
+QTE^7469X^1^Room Temperature or Refrigerated
+QTE^7470X^1^Room Temperature or Refrigerated
+QTE^74849N^1^Refrigerated
+QTE^7492A^1^Unless otherwise specified, refrigerate sample until
+QTE^7492A^2^transport.
+QTE^749X^1^Refrigerated
+QTE^7507X^1^Refrigerated
+QTE^7507X^2^Shipping room temperature is unacceptable
+QTE^7507X^3^Shipping frozen is acceptable
+QTE^75127T^1^Room Temperature
+QTE^75523A^1^Room Temperature
+QTE^7553X^1^Refrigerated
+QTE^75580A^1^Room Temperature
+QTE^755X^1^REFRIGERATED
+QTE^755X^2^--OR--
+QTE^755X^3^FROZEN
+QTE^75630A^1^Room Temperature
+QTE^75739T^1^Room Temperature
+QTE^75911A^1^Room Temperature
+QTE^76042A^1^Refrigerated
+QTE^760X^1^Ship Frozen
+QTE^76133A^1^Room Temperature
+QTE^76208N^1^Refrigerated
+QTE^76232A^1^Room Temperature
+QTE^76273A^1^Room Temperature
+QTE^762X^1^Refrigerated or Room Temperature
+QTE^76323N^1^Refrigerated
+QTE^7649X^1^Room temperature
+QTE^7649X^2^Shipping refrigerated is acceptable
+QTE^7655X^1^Unless otherwise specified, refrigerate sample until
+QTE^7655X^2^transport.
+QTE^7655X^3^Ship refrigerated
+QTE^7656X^1^Ship room temperature.
+QTE^7656X^2^Shipping refrigerated will remain acceptable.
+QTE^765Z^1^Transport refrigerated
+QTE^76612N^1^Ship refrigerated/ okay to thaw
+QTE^76653N^1^Ship refrigerated
+QTE^766X^1^Room Temperature
+QTE^766X^2^Shipping Refrigerated will remain acceptable.
+QTE^76703A^1^Room Temperature
+QTE^76745F^1^Room Temperature
+QTE^767X^1^FROZEN ONLY
+QTE^7691X^1^Room Temperature
+QTE^7691X^2^Shipping Refrigerated will still remain acceptable.
+QTE^77149N^1^Ship Room Temperature
+QTE^77180N^1^Ship refrigerated
+QTE^77230N^1^Refrigerated
+QTE^77289T^1^Room Temperature
+QTE^77370N^1^Refrigerated
+QTE^77560A^1^Room Temperature
+QTE^77578N^1^Refrigerated
+QTE^77602A^1^Room Temperature
+QTE^77685N^1^Refrigerated
+QTE^77701A^1^Room Temperature
+QTE^7773E^1^Room Temperature. Shipping refrigerated is also acceptable
+QTE^7773E^2^(Avoid extreme hot or cold temperatures)
+QTE^77743A^1^Room Temperature
+QTE^77750N^1^Refrigerated
+QTE^77875N^1^Refrigerated
+QTE^778T^1^Unless otherwise specified, refrigerate sample until
+QTE^778T^2^transport.
+QTE^7809N^1^Refrigerated
+QTE^7906F^1^Refrigerate sample until transport.
+QTE^7906F^2^Ship refrigerated and protected from light.
+QTE^7906F^3^Ship frozen if not protected from light.
+QTE^7933Z^1^Room temperature
+QTE^7961X^1^Refrigerated
+QTE^7971A^1^Unless otherwise specified, refrigerate sample until
+QTE^7971A^2^transport.
+QTE^7989T^1^Refrigerated
+QTE^801X^1^Refrigerated
+QTE^80648N^1^Frozen. Do not thaw.
+QTE^80713P^1^Unless otherwise specified, refrigerate sample until
+QTE^80713P^2^transport.
+QTE^80713P^3^Ship refrigerated
+QTE^80895P^1^Frozen and/or Refrigerated, unless orderd with test
+QTE^80895P^2^140129P-Platelet AB (G),Direct or 86264F-Platelet AB Prof,
+QTE^80895P^3^then send ROOM TEMPERATURE.
+QTE^80986R^1^Unless otherwise specified, refrigerate sample until
+QTE^80986R^2^transport.
+QTE^80994R^1^Room Temperature
+QTE^80994R^2^Shipping refrigerated remains acceptable.
+QTE^81737W^1^Room Temp
+QTE^8181X^1^Ambient, DO NOT FREEZE
+QTE^820X^1^Room Temperature
+QTE^820X^2^Shipping refrigerated is acceptable.
+QTE^82206R^1^Room Temp
+QTE^8267X^1^FROZEN
+QTE^8267X^2^Do Not Thaw
+QTE^826X^1^Room temperature
+QTE^826X^2^Shipping refrigerated remains acceptable
+QTE^8280X^1^Transport at room temperature.
+QTE^82891N^1^Refrigerated
+QTE^8301X^1^Refrigerated
+QTE^8304X^1^Refrigerated
+QTE^8331X^1^Refrigerated
+QTE^8331X^2^Shipping room temperature is also acceptable.
+QTE^8332X^1^Refrigerated
+QTE^8352X^1^Unless otherwise specified, refrigerate sample until
+QTE^8352X^2^transport.
+QTE^8352X^3^Ship refrigerated
+QTE^8355X^1^VCM or equivalent or sterile container:
+QTE^8355X^2^Refrigerated Preferred
+QTE^8355X^3^Frozen -70C acceptable
+QTE^8355X^4^Slides Refrigerated
+QTE^83576F^1^Room Temp
+QTE^8357X^1^Refrigerated
+QTE^83626F^1^Unless otherwise specified, refrigerate sample until
+QTE^83626F^2^transport
+QTE^8369T^1^Refrigerated
+QTE^8369T^2^Frozen
+QTE^8383A^1^Room Temp (20-25C)
+QTE^8389X^1^Refrigerated
+QTE^83972A^1^Room Temp.
+QTE^83A^1^Unless otherwise specified, refrigerate sample until
+QTE^83A^2^transport.
+QTE^8401X^1^Room temperature
+QTE^8401X^2^Shipping refrigerated will remain acceptable
+QTE^8417N^1^Refrigerated
+QTE^8418Z^1^Room temperature
+QTE^8418Z^2^Shipping refrigerated is acceptable
+QTE^8419X^1^Room Temperature
+QTE^8419X^2^Refrigerated is also acceptable.
+QTE^84376N^1^Room Temp
+QTE^84376N^2^Shipping refrigerated acceptable
+QTE^84541N^1^Room temperature
+QTE^845X^1^Room Temperature
+QTE^8464X^1^Refrigerated
+QTE^8472X^1^Room temperature.
+QTE^8472X^2^Shipping refrigerated is acceptable.
+QTE^8482N^1^Refrigerated
+QTE^84863N^1^Ship refrigerated
+QTE^84897N^1^Ship refrigerated
+QTE^848Z^1^Refrigerated
+QTE^8511X^1^Refrigerated
+QTE^85332N^1^Ship Room temperature
+QTE^8538Z^1^Room temperature
+QTE^8538Z^2^Shipping refrigerated is also acceptable.
+QTE^853X^1^Refrigerated
+QTE^8542X^1^Room temperature
+QTE^8542X^2^Shipping refrigerated is acceptable.
+QTE^8578X^1^Unless otherwise specified, refrigerate sample until
+QTE^8578X^2^transport.
+QTE^8583X^1^Room temperature
+QTE^8583X^2^Shipping refrigerated will remain acceptable
+QTE^8584X^1^Room temperature
+QTE^8584X^2^Shipping refrigerated will remain acceptable
+QTE^858X^1^Refrigerated
+QTE^8592X^1^FROZEN
+QTE^86058T^1^Room Temp
+QTE^86140A^1^Cary Blair transport Vial or clean, leak proof container
+QTE^86140A^2^for frozen, raw specimens. Isolates on slants and swabs
+QTE^86140A^3^in Amies medium.
+QTE^86207T^1^Room Temperature. Shipping refrigerated is also acceptable
+QTE^86363A^1^Room Temp.
+QTE^8639X^1^Ship refrigerated
+QTE^8640X^1^Ship Refrigerated
+QTE^8641X^1^Refrigerated
+QTE^8642X^1^Ship refrigerated.
+QTE^8658X^1^Ship Room Temperature
+QTE^8658X^2^Shipping refrigerated will remain acceptable.
+QTE^86603A^1^Avoid exposure to extreme hot or cold temperatures.
+QTE^8665X^1^Frozen
+QTE^86702A^1^Unless otherwise specified, refrigerate sample until
+QTE^86702A^2^transport.
+QTE^86728T^1^Refrigerated
+QTE^86918T^1^Room temperature
+QTE^87007T^1^Room temperature
+QTE^870X^1^Refrigerated
+QTE^87122A^1^Room temperature
+QTE^871X^1^Frozen -70 degrees C on dry ice.
+QTE^8754X^1^Frozen
+QTE^8754X^2^Do Not Thaw
+QTE^87981N^1^Room Temperature
+QTE^87981N^2^Shipping refrigerated acceptable
+QTE^879X^1^Refrigerated
+QTE^88195F^1^Room Temp
+QTE^8828X^1^Room Temperature
+QTE^882Z^1^Refrigerated
+QTE^8831X^1^Frozen
+QTE^8832X^1^Frozen do not thaw
+QTE^8833X^1^Frozen
+QTE^8838X^1^FROZEN
+QTE^8838X^2^Do Not Thaw
+QTE^8839W^1^Unless otherwise specified, refrigerate sample until
+QTE^8839W^2^transport.
+QTE^883X^1^Frozen
+QTE^88666N^1^Room Temperature
+QTE^88666N^2^Shipping refrigerated acceptable
+QTE^8871Z^1^Refrigerated
+QTE^8887X^1^Refrigerated
+QTE^8922A^1^FROZEN
+QTE^8930N^1^Refrigerated
+QTE^894X^1^Refrigerated
+QTE^895X^1^Refrigerated
+QTE^8979W^1^Unless otherwise specified, refrigerate specimen until
+QTE^8979W^2^transport.
+QTE^89953A^1^Room temperature
+QTE^90057X^1^Room Temperature
+QTE^90071X^1^Room temperature
+QTE^90071X^2^Shipping refrigerated is acceptable
+QTE^90072X^1^Room temperature
+QTE^90072X^2^Shipping refrigerated is acceptable
+QTE^90073X^1^Room temperature
+QTE^90073X^2^Shipping refrigerated is acceptable
+QTE^90074X^1^Room temperature
+QTE^90074X^2^Shipping refrigerated is acceptable
+QTE^90077X^1^Room temperature
+QTE^90077X^2^Shipping refrigerated is acceptable
+QTE^90078X^1^Room Temperature
+QTE^90078X^2^Refrigerated is also acceptable.
+QTE^90079X^1^Room Temperature
+QTE^90079X^2^Refrigerated is also acceptable.
+QTE^90081X^1^Room Temperature
+QTE^90081X^2^Refrigerated is also acceptable.
+QTE^90082X^1^Room Temperature
+QTE^90083X^1^Room Temperature
+QTE^90083X^2^Shipping refrigerated is acceptable.
+QTE^90107X^1^Room temperature
+QTE^90107X^2^Shipping refrigerated is acceptable.
+QTE^90117X^1^Refrigerated
+QTE^90119X^1^Room Temperature
+QTE^90121X^1^Refrigerated
+QTE^90122X^1^Refrigerated
+QTE^90122X^2^Okay to thaw
+QTE^90123X^1^Room temperature
+QTE^90123X^2^Shipping refrigerated and frozen remain acceptable.
+QTE^90124X^1^Refriterated
+QTE^90128X^1^Refrigerated
+QTE^90128X^2^Okay to thaw
+QTE^90129X^1^Refrigerated
+QTE^90131X^1^Refrigerated
+QTE^90133X^1^Refrigerated
+QTE^90136X^1^Refrigerated
+QTE^90137X^1^Refrigerated
+QTE^90138X^1^Room Temperature
+QTE^90139X^1^Room temperature
+QTE^90139X^2^Shipping refrigerated and frozen remain acceptable.
+QTE^90144X^1^Room Temperature
+QTE^90151X^1^Room Temperature
+QTE^90153X^1^Room Temperature
+QTE^90157X^1^Room Temperature
+QTE^90158X^1^Room Temperature
+QTE^90158X^2^Refrigerated is acceptable
+QTE^90163X^1^Room Temperature
+QTE^90164X^1^Room Temperature
+QTE^90168X^1^Room Temperature
+QTE^90169X^1^Room Temperature
+QTE^90169X^2^Refrigerated is acceptable
+QTE^90177X^1^Room Temperature
+QTE^90178X^1^Room Temperature
+QTE^90181X^1^Room Temperature
+QTE^90181X^2^Refrigerated is acceptable
+QTE^90186X^1^Room Temperature
+QTE^90189X^1^Room Temperature
+QTE^90194X^1^Room Temperature
+QTE^90201X^1^Room Temperature
+QTE^90203X^1^Room Temperature
+QTE^90207X^1^Room Temperature
+QTE^90208X^1^Room Temperature
+QTE^90208X^2^Refrigerated is acceptable
+QTE^90209T^1^Refrigerated
+QTE^90213X^1^Room Temperature
+QTE^90214X^1^Room Temperature
+QTE^90218X^1^Room Temperature
+QTE^90219X^1^Room Temperature
+QTE^90219X^2^Refrigerated is acceptable
+QTE^90227X^1^Room Temperature
+QTE^90228X^1^Room Temperature
+QTE^90231X^1^Room Temperature
+QTE^90231X^2^Refrigerated is acceptable
+QTE^90236X^1^Room Temperature
+QTE^90239X^1^Room Temperature
+QTE^90243X^1^Room Temperature
+QTE^90243X^2^Refrigerated is also acceptable.
+QTE^90244X^1^Room Temperature
+QTE^90244X^2^Refrigerated is also acceptable.
+QTE^90246X^1^Room Temperature
+QTE^90246X^2^Refrigerated is also acceptable.
+QTE^90247X^1^Room Temperature
+QTE^90247X^2^Refrigerated is also acceptable.
+QTE^90251X^1^Room Temperature
+QTE^90251X^2^Shipping refrigerated is acceptable for whole blood
+QTE^90252X^1^Room temperature
+QTE^90252X^2^Shipping refrigerated is acceptable
+QTE^90257X^1^Room Temperature
+QTE^90257X^2^Refrigerated is also acceptable.
+QTE^90276X^1^Transport at 2-28C.
+QTE^90276X^2^Refrigerated is perferred and may help improve isolate
+QTE^90276X^3^viability.
+QTE^90278X^1^Transport at 2-28C
+QTE^90278X^2^Refrigerated is preferred and may help improve isolate
+QTE^90278X^3^viability.
+QTE^90279X^1^Transport at 2-28C.
+QTE^90279X^2^Refrigerated is perferred and may help improve isolate
+QTE^90279X^3^viability.
+QTE^902X^1^Frozen / Okay to thaw
+QTE^90318X^1^Room Temperature
+QTE^90318X^2^Refrigerated is also acceptable.
+QTE^90321X^1^Room temperature
+QTE^90321X^2^Refrigerated is also acceptable.
+QTE^90322X^1^Room Temperature
+QTE^90322X^2^Refrigerated is also acceptable.
+QTE^90333X^1^Room Temperature
+QTE^90333X^2^Refrigerated is also acceptable.
+QTE^90334X^1^Room Temperature
+QTE^90342X^1^Room temperature
+QTE^90343X^1^Room Temperature
+QTE^90343X^2^Shipping Refrigerated is acceptable.
+QTE^90347X^1^Room Temperature
+QTE^90347X^2^Refrigerated is also acceptable.
+QTE^90348X^1^Room Temperature
+QTE^90348X^2^Refrigerated is also acceptable.
+QTE^90349X^1^Refrigerated
+QTE^90349X^2^Room Temperature is acceptable.
+QTE^90353X^1^Frozen do not thaw
+QTE^90356X^1^Room temperature
+QTE^90356X^2^Shipping refrigerated is acceptable.
+QTE^90358X^1^Room temperature
+QTE^90359X^1^Unless otherwise specified, refrigerate sample until
+QTE^90359X^2^transport.
+QTE^90362X^1^Whole blood or bone marrow -ship refrigerated or room
+QTE^90362X^2^temperature
+QTE^90362X^3^Paraffin blocks-room temperature
+QTE^90362X^4^Tissue samples-FROZEN
+QTE^90362X^5^Tissues in formalin fixative or RPMI-room temperature or
+QTE^90362X^6^refrigerated
+QTE^90363X^1^Whole blood or bone marrow -ship refrigerated or room
+QTE^90363X^2^temperature
+QTE^90363X^3^Paraffin blocks-room temperature
+QTE^90363X^4^Tissue samples-FROZEN
+QTE^90363X^5^Tissues in formalin fixative or RPMI-room temperature or
+QTE^90363X^6^refrigerated
+QTE^90367X^1^Refrigerated
+QTE^90376X^1^Strict Frozen
+QTE^90377X^1^Refrigerated
+QTE^90382X^1^Refrigerated
+QTE^90388X^1^Room Temperature
+QTE^90388X^2^Shipping refrigerated is acceptable.
+QTE^90392X^1^Frozen
+QTE^90393X^1^Room Temperature
+QTE^90393X^2^Shipping refrigerated remains acceptable.
+QTE^90393X^3^Shipping frozen is acceptable.
+QTE^90396X^1^Room Temperature
+QTE^90397X^1^Frozen
+QTE^90398X^1^Frozen
+QTE^90402X^1^Room Temperature
+QTE^90402X^2^Refrigerated is also acceptable.
+QTE^90403X^1^Room Temperature
+QTE^90403X^2^Refrigerated is also acceptable.
+QTE^90416X^1^Room Temperature
+QTE^90417X^1^Room Temperature
+QTE^90418X^1^Room Temperature
+QTE^90418X^2^Shipping refrigerated remains acceptable
+QTE^90424X^1^Frozen
+QTE^90426X^1^Frozen
+QTE^90433X^1^Frozen
+QTE^90469X^1^Room temperature
+QTE^90471X^1^Refrigerated
+QTE^90479X^1^Room temperature
+QTE^90487X^1^Ship frozen
+QTE^90487X^2^Okay to thaw
+QTE^90488X^1^Room Temperature
+QTE^90489X^1^Room Temperature
+QTE^90509X^1^Whole blood or bone marrow -ship refrigerated or room
+QTE^90509X^2^temperature
+QTE^90509X^3^Paraffin blocks-room temperature
+QTE^90509X^4^Tissue samples-FROZEN
+QTE^90509X^5^Tissues in formalin fixative or RPMI-room temperature or
+QTE^90509X^6^refrigerated
+QTE^90510X^1^Room temperature
+QTE^90511X^1^Room Temperature
+QTE^90512X^1^Room Temperature
+QTE^90513X^1^Room temperature
+QTE^90517X^1^Room temperature
+QTE^90520X^1^Room temperature
+QTE^90520X^2^Shipping refrigerated is acceptable
+QTE^90521X^1^Room Temperature
+QTE^90521X^2^Refrigerated is acceptable.
+QTE^90553X^1^Refrigerated
+QTE^90557X^1^Refigerated
+QTE^90559X^1^Refrigerated
+QTE^90562X^1^Refrigerated
+QTE^90567X^1^Room Temperature
+QTE^90567X^2^Shipping refrigerated is acceptable
+QTE^90569X^1^Room Temperature, refrigerated is also acceptable.
+QTE^90570X^1^Room temperature
+QTE^90570X^2^Shipping refrigerated remains acceptable
+QTE^90578X^1^Room temperature
+QTE^90582X^1^Refrigerated
+QTE^90637X^1^Refrigerated
+QTE^90637X^2^Shipping room temperature is acceptable.
+QTE^90642X^1^Refrigerated
+QTE^90645X^1^Refrigerated
+QTE^90646X^1^Refrigerated
+QTE^90648X^1^Refrigerated
+QTE^90649X^1^Refrigerated
+QTE^90655X^1^Refrigerated
+QTE^90660X^1^Room Temperature
+QTE^90660X^2^Shipping refrigerated is also acceptable.
+QTE^90666X^1^Frozen
+QTE^90668X^1^Refrigerated
+QTE^906X^1^Room Temperature
+QTE^906X^2^Shipping refrigerated will remain acceptable.
+QTE^90799X^1^Room Temperature
+QTE^90801X^1^Room Temperature
+QTE^90810X^1^Room Temperature
+QTE^90810X^2^Refrigerated is also acceptable
+QTE^90812X^1^Room Temperature
+QTE^90814X^1^Room temperature
+QTE^90814X^2^Shipping refrigerated is acceptable
+QTE^90827X^1^Room Temperature
+QTE^90828X^1^Ship room temperature
+QTE^90828X^2^Do not thaw
+QTE^90849X^1^Room temperature
+QTE^90849X^2^Shipping refrigerated remains acceptable
+QTE^90851X^1^Room temperature
+QTE^90851X^2^Shipping refrigerated is acceptable.
+QTE^90854X^1^Frozen
+QTE^90855X^1^Frozen
+QTE^90870X^1^Room Temperature
+QTE^90870X^2^Shipping refrgierated is acceptable (cold packs)
+QTE^90879X^1^Frozen (Do not thaw)
+QTE^90887X^1^Room temperature
+QTE^90887X^2^Shipping refrigerated is acceptable
+QTE^90896X^1^Unless otherwise specified, refrigerate sample until
+QTE^90896X^2^transport.
+QTE^90896X^3^Specimens can be transported at ambient temperature.
+QTE^908X^1^Room Temperature
+QTE^908X^2^Shipping refrigerated will remain acceptable.
+QTE^90923X^1^Frozen
+QTE^90924X^1^Refrigerated
+QTE^90926X^1^Ship frozen
+QTE^90927X^1^Room Temperature
+QTE^90929X^1^Room Temperature
+QTE^90932X^1^Room Temperature
+QTE^90934X^1^Room Temperature
+QTE^90942X^1^Room temperature
+QTE^90942X^2^Shipping refrigerated is acceptable
+QTE^90948X^1^Refrigerated
+QTE^90949X^1^Room Temperature
+QTE^90949X^2^Shipping refrigerated is acceptable
+QTE^90955X^1^Frozen
+QTE^90956X^1^Room temperature
+QTE^90956X^2^Shipping refrigerated is acceptable
+QTE^90961X^1^Room Temperature
+QTE^90961X^2^Refrigerated is also acceptable.
+QTE^90963X^1^Room Temperature
+QTE^90963X^2^Refrigerated is also acceptable.
+QTE^90973X^1^Refrigerted
+QTE^90973X^2^Ok to thaw
+QTE^90981X^1^FROZEN
+QTE^90982X^1^Refrigerated
+QTE^90983X^1^Refrigerated
+QTE^90986X^1^Frozen
+QTE^90986X^2^Do Not Thaw
+QTE^90987X^1^Frozen
+QTE^90987X^2^Do Not Thaw
+QTE^90990X^1^Room Temperature
+QTE^90994X^1^Room Temperature
+QTE^91001X^1^Room Temperature
+QTE^91001X^2^Shipping Refrigerated and frozen are acceptable.
+QTE^91027X^1^Room Temperature
+QTE^91027X^2^Shipping refrigerated is acceptable
+QTE^91028X^1^Room temperature
+QTE^91028X^2^Shipping refrigerated is acceptable
+QTE^91029X^1^FROZEN
+QTE^91030X^1^Refrigerated
+QTE^91031X^1^Refrigerated
+QTE^91032X^1^Refrigerated
+QTE^91032X^2^Okay to thaw
+QTE^91046X^1^Room Temperature
+QTE^91053X^1^Frozen (Do not thaw)
+QTE^91065X^1^Room temperature
+QTE^91065X^2^Refrigerated is acceptable
+QTE^91068X^1^Room Temperature
+QTE^91068X^2^Refrigerated is also acceptable.
+QTE^91083X^1^FROZEN
+QTE^91111X^1^Room temperature.
+QTE^91111X^2^Shipping refrigerated is acceptable
+QTE^91114X^1^Room Temperature
+QTE^91115X^1^Frozen
+QTE^91123X^1^Refrigerated
+QTE^91126X^1^Refrigerated
+QTE^91127X^1^Room Temperature
+QTE^91128X^1^Room Temperature
+QTE^91136X^1^Room Temperature
+QTE^91136X^2^Shipping refrigerated remains acceptable
+QTE^91137X^1^Refrigerated
+QTE^91137X^2^Shipping room temperature is acceptable.
+QTE^91155X^1^Refrigerated
+QTE^91162X^1^Refrigerated
+QTE^91162X^2^Ok to thaw
+QTE^91206X^1^Refrigerated
+QTE^91206X^2^Shipping room temperature is acceptable
+QTE^91212X^1^Room Temperature
+QTE^91216X^1^Room temperature
+QTE^91216X^2^Shipping refrigerated is acceptable
+QTE^91226X^1^Room temperature
+QTE^91228X^1^Refrigerated
+QTE^91230X^1^Room temperature
+QTE^91245X^1^Refrigerated
+QTE^91246X^1^Refrigerated
+QTE^91247X^1^Unless otherwise specified, refrigerate sample until
+QTE^91247X^2^transport.
+QTE^91251X^1^Refrigerated
+QTE^91258X^1^Refrigerated
+QTE^91278X^1^Room Temperature
+QTE^91278X^2^Refrigerated is also acceptable.
+QTE^91283X^1^Room Temperature
+QTE^91284X^1^Room Temperature
+QTE^91284X^2^Refrigerated is also acceptable.
+QTE^91299X^1^Room temperature
+QTE^91307X^1^Room temperature
+QTE^91307X^2^Shipping refrigerated is acceptable
+QTE^91312X^1^Room Temperature
+QTE^91312X^2^Shipping refrigerated is acceptable
+QTE^91313X^1^Room Temperature
+QTE^91313X^2^Shipping refrigerated is acceptable
+QTE^91315X^1^Room Temperature
+QTE^91315X^2^Shipping refrigerated is acceptable
+QTE^91316X^1^Room Temperature
+QTE^91316X^2^Shipping refrigerated is acceptable
+QTE^91317X^1^Room Temperature
+QTE^91317X^2^Shipping refrigerated is acceptable
+QTE^91318X^1^Room Temperature
+QTE^91318X^2^Shipping refrigerated is acceptable
+QTE^91319X^1^Room Temperature
+QTE^91319X^2^Shipping refrigerated is acceptable
+QTE^91320X^1^Room Temperature
+QTE^91320X^2^Shipping refrigerated is acceptable
+QTE^91321X^1^Room Temperature
+QTE^91321X^2^Shipping refrigerated is acceptable
+QTE^91323X^1^Room Temperature
+QTE^91323X^2^Shipping refrigerated is acceptable
+QTE^91327X^1^Room Temperature
+QTE^91327X^2^Shipping refrigerated is acceptable
+QTE^91328X^1^Room Temperature
+QTE^91328X^2^Shipping refrigerated is acceptable
+QTE^91332X^1^Room Temperature
+QTE^91332X^2^Shipping refrigerated is acceptable
+QTE^91333X^1^Room Temperature
+QTE^91333X^2^Shipping refrigerated is acceptable
+QTE^91334X^1^Room temperature
+QTE^91335X^1^Refrigerated
+QTE^91351X^1^Room temperature
+QTE^91351X^2^Shipping refrigerated is also acceptable.
+QTE^91352X^1^Room temperature
+QTE^91352X^2^Shipping refrigerated is also acceptable.
+QTE^91353X^1^Room temperature
+QTE^91353X^2^Shipping refrigerated is also acceptable.
+QTE^91354X^1^Room temperature
+QTE^91354X^2^Shipping refrigerated is also acceptable.
+QTE^91356X^1^Room temperature
+QTE^91356X^2^Shipping refrigerated is also acceptable.
+QTE^91357X^1^Room temperature
+QTE^91357X^2^Shipping refrigerated is also acceptable.
+QTE^91359X^1^Room temperature
+QTE^91359X^2^Shipping refrigerated acceptable
+QTE^91360X^1^Room Temperature
+QTE^91360X^2^Refrigerated is also acceptable.
+QTE^91387X^1^Room Temperature
+QTE^91387X^2^Shipping refrigerated is acceptable.
+QTE^91388X^1^Room Temperature
+QTE^91388X^2^Shipping refrigerated is acceptable.
+QTE^91391X^1^Room Temperature
+QTE^91391X^2^Shipping refrigerated is acceptable.
+QTE^91392X^1^Room temperature
+QTE^91393X^1^Room temperature
+QTE^91394X^1^Room Temperature
+QTE^91396X^1^Room Temperature
+QTE^91398X^1^Frozen
+QTE^91399X^1^Room Temperature
+QTE^91399X^2^Shipping refrigerated acceptable.
+QTE^91401X^1^Room Temperature
+QTE^91408X^1^Refrigerated (cold packs)
+QTE^91416X^1^Room temperature
+QTE^91416X^2^Shipping refrigerated remains acceptable.
+QTE^91424X^1^Refrigerated
+QTE^91426X^1^Room Temperature
+QTE^91426X^2^Shipping refrigerated acceptable
+QTE^91427X^1^Room temperature
+QTE^91427X^2^Shipping refrigerated acceptable
+QTE^91431X^1^Room Temperature
+QTE^91431X^2^Shipping refrigerated is also acceptable.
+QTE^91432X^1^Room temperature
+QTE^91432X^2^Shipping refrigerated is also acceptable.
+QTE^91436X^1^Room Temperature
+QTE^91436X^2^Shipping refrigerated acceptable
+QTE^91437X^1^Room Temperature
+QTE^91437X^2^Shipping refrigerated acceptable
+QTE^91438X^1^Room temperature.
+QTE^91438X^2^Shipping refrigerated is acceptable.
+QTE^91445X^1^Whole blood or bone marrow -ship refrigerated or room
+QTE^91445X^2^temperature
+QTE^91445X^3^Paraffin blocks-room temperature
+QTE^91445X^4^Tissue samples-FROZEN
+QTE^91445X^5^Tissues in formalin fixative or RPMI-room temperature or
+QTE^91445X^6^refrigerated
+QTE^91446X^1^Whole blood or bone marrow -ship refrigerated or room
+QTE^91446X^2^temperature
+QTE^91446X^3^Paraffin blocks-room temperature
+QTE^91446X^4^Tissue samples-FROZEN
+QTE^91446X^5^Tissues in formalin fixative or RPMI-room temperature or
+QTE^91446X^6^refrigerated
+QTE^91449X^1^Room Temperature
+QTE^91451X^1^Room Temperature
+QTE^91455X^1^Refrigerated
+QTE^91457X^1^Room temperature
+QTE^91458X^1^Room temperature
+QTE^91459X^1^Room temperature
+QTE^91460X^1^Room temperature
+QTE^91461X^1^Room temperature
+QTE^91463X^1^Room temperature
+QTE^91471X^1^Room temperature
+QTE^91474X^1^Room temperature
+QTE^91474X^2^Shipping refrigerated is acceptable
+QTE^91475X^1^Room temperature
+QTE^91475X^2^Shipping refrigerated is acceptable
+QTE^91476X^1^Room temperature
+QTE^91476X^2^Shipping refrigerated is acceptable
+QTE^91478X^1^Room Temperature
+QTE^91479X^1^Room Temperature
+QTE^91481X^1^Room temperature
+QTE^91482X^1^Room temperature
+QTE^91483X^1^Room temperature
+QTE^91484X^1^Room temperature
+QTE^91485X^1^Room temperature
+QTE^91486X^1^Room temperature
+QTE^91487X^1^Room temperature
+QTE^91489X^1^Room temperature
+QTE^91490X^1^Room temperature
+QTE^91491X^1^Room temperature
+QTE^91492X^1^Room temperature
+QTE^91493X^1^Room temperature
+QTE^91494X^1^Room temperature
+QTE^91495X^1^Room temperature
+QTE^91497X^1^Room temperature
+QTE^91498X^1^Room temperature
+QTE^91499X^1^Room temperature
+QTE^91501X^1^Room temperature
+QTE^91502X^1^Room temperature
+QTE^91503X^1^Room temperature
+QTE^91505X^1^Room temperature
+QTE^91506X^1^Room temperature
+QTE^91507X^1^Room temperature
+QTE^91508X^1^Room temperature
+QTE^91509X^1^Room temperature
+QTE^91510X^1^Room temperature
+QTE^91511X^1^Room temperature
+QTE^91513X^1^Room temperature
+QTE^91514X^1^Room temperature
+QTE^91515X^1^Room temperature
+QTE^91516X^1^Room temperature
+QTE^91517X^1^Room temperature
+QTE^91518X^1^Room temperature
+QTE^91521X^1^Room temperature
+QTE^91522X^1^Room temperature
+QTE^91523X^1^Room temperature
+QTE^91524X^1^Room temperature
+QTE^91526X^1^Room temperature
+QTE^91527X^1^Room temperature
+QTE^91528X^1^Room temperature
+QTE^91529X^1^Room temperature
+QTE^91530X^1^Room temperature
+QTE^91531X^1^Room temperature
+QTE^91532X^1^Room temperature
+QTE^91533X^1^Room temperature
+QTE^91534X^1^Room temperature
+QTE^91535X^1^Room temperature
+QTE^91536X^1^Room temperature
+QTE^91539X^1^Room temperature
+QTE^91540X^1^Room temperature
+QTE^91541X^1^Room temperature
+QTE^91542X^1^Room temperature
+QTE^91543X^1^Room temperature
+QTE^91545X^1^Room temperature
+QTE^91547X^1^Room temperature
+QTE^91548X^1^Room temperature
+QTE^91549X^1^Room temperature
+QTE^91551X^1^Room temperature
+QTE^91552X^1^Room temperature
+QTE^91554X^1^Room temperature
+QTE^91555X^1^Room temperature
+QTE^91556X^1^Room temperature
+QTE^91557X^1^Room temperature
+QTE^91558X^1^Room temperature
+QTE^91562X^1^Room temperature
+QTE^91563X^1^Room temperature
+QTE^91566X^1^Refrigerated
+QTE^91584X^1^Room temperature
+QTE^91594X^1^Refrigerated (Cold Packs)
+QTE^91597X^1^Room Temperature
+QTE^91602X^1^Room temperature
+QTE^91604X^1^Refrigerated
+QTE^91606X^1^Room temperature
+QTE^91615X^1^Room Temperature
+QTE^91615X^2^Shipping refrigerated acceptable.
+QTE^91617X^1^Room Temperature
+QTE^91618X^1^Room temperature
+QTE^91626X^1^Room Temperture
+QTE^91626X^2^Shipping refrigerated acceptable; Shipping frozen
+QTE^91626X^3^unacceptable
+QTE^91633X^1^Room temperature
+QTE^91633X^2^Shippign refrigerated is acceptable
+QTE^91634X^1^Whole blood or bone marrow -ship refrigerated or room
+QTE^91634X^2^temperature
+QTE^91634X^3^Paraffin blocks-room temperature
+QTE^91634X^4^Tissue samples-FROZEN
+QTE^91634X^5^Tissues in formalin fixative or RPMI-room temperature or
+QTE^91634X^6^refrigerated
+QTE^91635X^1^Whole blood or bone marrow -ship refrigerated or room
+QTE^91635X^2^temperature
+QTE^91635X^3^Paraffin blocks-room temperature
+QTE^91635X^4^Tissue samples-FROZEN
+QTE^91635X^5^Tissues in formalin fixative or RPMI-room temperature or
+QTE^91635X^6^refrigerated
+QTE^91659X^1^Refrigerated
+QTE^91659X^2^Shipping room temp unacceptable; Shipping frozen acceptable
+QTE^91662X^1^Refrigerated
+QTE^91664X^1^Refrigerated (cold packs) or Frozen
+QTE^91665X^1^Room temperature
+QTE^91669X^1^Room temperature
+QTE^91680X^1^Room temperature
+QTE^91681X^1^Room temperature
+QTE^91681X^2^Shipping refrigerated is acceptable.
+QTE^91687X^1^Room temperature
+QTE^91688X^1^Room temperature
+QTE^91689X^1^Room temperature
+QTE^91691X^1^Frozen
+QTE^91692X^1^Frozen
+QTE^91709X^1^Room temperature
+QTE^91711X^1^Room temperature
+QTE^91714X^1^Refrigerated
+QTE^91715X^1^Refrigerated
+QTE^91716X^1^Refrigerated
+QTE^91717X^1^Refrigerated
+QTE^91718X^1^Refrigerated
+QTE^91719X^1^Refrigerated
+QTE^91723X^1^Refrigerated
+QTE^91724X^1^Refrigerated
+QTE^91726X^1^Refrigerated
+QTE^91727X^1^Refrigerated
+QTE^91729X^1^Refrigerated
+QTE^91731X^1^Refrigerated
+QTE^91732X^1^Refrigerated
+QTE^91733X^1^Refrigerated
+QTE^91734X^1^Refrigerated
+QTE^91735X^1^Refrigerated
+QTE^91737X^1^Refrigerated
+QTE^91738X^1^Refrigerated
+QTE^91739X^1^Refrigerated
+QTE^91740X^1^Room temperature
+QTE^91743X^1^Refrigerated
+QTE^91745X^1^Refrigerated
+QTE^91746X^1^Room Temperature
+QTE^91746X^2^Shipping refrigerated is acceptable
+QTE^91747X^1^Room Temperature
+QTE^91747X^2^Refrigerated is also acceptable.
+QTE^91752X^1^Refrigerated
+QTE^91753X^1^Refrigerated
+QTE^91754X^1^Refrigerated
+QTE^91755X^1^Refrigerated
+QTE^91756X^1^Refrigerated
+QTE^91757X^1^Refrigerated
+QTE^91758X^1^Refrigerated
+QTE^91759X^1^Refrigerated
+QTE^91760X^1^Refrigerated
+QTE^91761X^1^Refrigerated
+QTE^91762X^1^Refrigerated
+QTE^91763X^1^Refrigerated
+QTE^91764X^1^Refrigerated
+QTE^91768X^1^Room temperature
+QTE^91768X^2^Shipping refrigerated is acceptable
+QTE^91768X^3^LIM broth tube: Ship refrigerated.  Shipping room
+QTE^91768X^4^temperature is unacceptable.
+QTE^91770X^1^Amies transport medium:    Room Temperature
+QTE^91770X^2^LIM broth tube:            Refrigerated
+QTE^91771X^1^Room Temperature
+QTE^91771X^2^Shipping refrigerated is acceptable
+QTE^91772X^1^Room Temperature
+QTE^91773X^1^Room temperature. Refrigerated is also acceptable
+QTE^91778X^1^Room Temperature, refrigerated is also acceptable.
+QTE^91805X^1^Room temperature
+QTE^91805X^2^Shipping refrigerated is acceptable
+QTE^91806X^1^Room Temperature
+QTE^91823X^1^Refrigerated
+QTE^91826X^1^Room temperature
+QTE^91829X^1^Room temperature
+QTE^91829X^2^Shipping refrigerated is acceptable
+QTE^91830X^1^Room temperature
+QTE^91830X^2^Shipping refrigerated is acceptable
+QTE^91831X^1^Room temperature
+QTE^91831X^2^Shipping refrigerated is acceptable
+QTE^91836X^1^Room temperature
+QTE^91845X^1^Room Temperature
+QTE^91845X^2^Refrigerated is also acceptable.
+QTE^91864X^1^Ship room temperature
+QTE^91864X^2^Shipping refrigerated acceptable
+QTE^91865X^1^Ship room temperature
+QTE^91865X^2^Shipping refrigerated acceptable
+QTE^91895X^1^Refrigerated
+QTE^91897X^1^Refrigerated
+QTE^91916X^1^Room temperature
+QTE^91921X^1^Refrigerated
+QTE^91923X^1^Room temperature. Shipping refrigerated is also acceptable.
+QTE^91924X^1^Room temperature
+QTE^91924X^2^Shipping refrigerated is acceptable for short periods.
+QTE^91927X^1^Room temperature
+QTE^91932X^1^Room Temperature
+QTE^91932X^2^Shipping refrigerated is also acceptable
+QTE^91933X^1^Room temperature
+QTE^91935X^1^Room temperature. Shipping refrigerated is also acceptable.
+QTE^91947X^1^Refrigerated
+QTE^91969X^1^Room Temperature
+QTE^91970X^1^Refrigerated
+QTE^91971X^1^Refrigerated
+QTE^91980X^1^Room temperature
+QTE^91981X^1^Room temperature
+QTE^91982X^1^Room temperature
+QTE^91986X^1^Refrigerated
+QTE^91989X^1^Refrigerated
+QTE^91994X^1^Room Temperature, refrigerated is also acceptable.
+QTE^91995X^1^Room temperature.  Shipping refrigerated in also acceptable.
+QTE^91998X^1^Room Temperature
+QTE^91998X^2^Shipping refrigerated is also acceptable.
+QTE^91A^1^Unless othewise specified, refrigerate sample until
+QTE^91A^2^transport.
+QTE^92014X^1^Frozen
+QTE^92021X^1^Refrigerated
+QTE^92044X^1^Room temperature
+QTE^92068X^1^Room Temperature,refrigerated is also acceptable.
+QTE^92074X^1^Room Temperature
+QTE^92082X^1^Room temperature
+QTE^92083X^1^Room Temperature
+QTE^92084X^1^Room temperature.
+QTE^92084X^2^Shipping refrigerated is acceptable
+QTE^92085X^1^Room Temperature
+QTE^92087X^1^Room temperature
+QTE^920X^1^Refrigerated
+QTE^92102X^1^Room temperature.
+QTE^92102X^2^Shipping refrigerated is acceptable
+QTE^92131X^1^Room temperature
+QTE^92131X^2^Shipping refrigerated is also acceptable.
+QTE^92135X^1^Refrigerated
+QTE^92139X^1^Room temperature
+QTE^92139X^2^Shipping refrigerated is also acceptable.
+QTE^92141X^1^Room Temperature
+QTE^92141X^2^Shipping refrigerated remains acceptable
+QTE^92154X^1^Room temperature.
+QTE^92154X^2^Shipping refrigerated acceptable, shipping frozen is
+QTE^92154X^3^acceptable.
+QTE^92157X^1^Room temperature
+QTE^92158X^1^Room temperature
+QTE^92159X^1^Room temperature
+QTE^92160X^1^Room Temperature
+QTE^92161X^1^Room temperature
+QTE^92203X^1^Room temperature
+QTE^92208X^1^Ship refrigerated
+QTE^92210X^1^Room temperature
+QTE^92210X^2^Shipping refrigerated acceptable
+QTE^92211X^1^Room temperature
+QTE^92236X^1^Room temperature
+QTE^92237X^1^Room temperature
+QTE^92389X^1^Refrigerated (cold packs)
+QTE^92392X^1^Room temperature
+QTE^92480X^1^Room temperature
+QTE^92530X^1^Room temperature
+QTE^92535X^1^Room Temperature
+QTE^92542X^1^Frozen
+QTE^92545X^1^Room temperature
+QTE^92550X^1^Refrigerated
+QTE^92558X^1^Room temperature.
+QTE^92558X^2^Shipping refrigerated is acceptable.
+QTE^92745X^1^Room temperature
+QTE^92745X^2^Shipping refrigerated acceptable
+QTE^92746X^1^Room temperature
+QTE^92746X^2^Shipping refrigerated acceptable
+QTE^92748X^1^Room temperature
+QTE^92748X^2^Shipping refrigerated acceptable
+QTE^928X^1^Frozen
+QTE^929X^1^Frozen
+QTE^932X^1^Room temperature
+QTE^932X^2^Shipping refrigerated will remain acceptable
+QTE^93310E^1^Refrigerated
+QTE^934X^1^Refrigerated
+QTE^936X^1^Refrigerated
+QTE^938X^1^Room Temperature
+QTE^938X^2^Shipping refrigerated will remain acceptable.
+QTE^939X^1^Room Temperature
+QTE^939X^2^Shipping refrigerated will remain acceptable
+QTE^941X^1^Ship room temperature
+QTE^94284R^1^Room Temp
+QTE^946X^1^Refrigerated
+QTE^9506F^1^Room Temp
+QTE^95088X^1^Refrigerated
+QTE^95089X^1^Room Temperature
+QTE^95089X^2^Shipping refrigerated is acceptable.
+QTE^951X^1^Ship Refrigerated
+QTE^95241X^1^Refrigerated
+QTE^9530A^1^Unless otherwise specified, refrigerate sample until
+QTE^9530A^2^transport.
+QTE^959X^1^SHIP FROZEN
+QTE^9621A^1^Room Temp
+QTE^9662A^1^Unless otherwise specified, refrigerate sample until
+QTE^9662A^2^Specimens can be transported at room temperature
+QTE^9662A^3^Or regrigerated
+QTE^9688T^1^Unless otherwise specified, refrigerate sample until
+QTE^9688T^2^transport.
+QTE^968T^1^Unless otherwise specified, refrigerate sample until
+QTE^968T^2^transport.
+QTE^968X^1^Frozen
+QTE^97261E^1^Refrigerated
+QTE^97279W^1^Room Temp
+QTE^97386P^1^Room temperature
+QTE^97386P^2^Shipping refrigerated is acceptable
+QTE^9738T^1^Unless otherwise specified, refrigerate sample until
+QTE^9738T^2^transport.
+QTE^97410E^1^Room temperature
+QTE^97410E^2^Shipping refrigerated is also acceptable.
+QTE^9753E^1^Room Temp
+QTE^97816R^1^Room Temp
+QTE^97873E^1^Room Temp
+QTE^98186R^1^Unless otherwise specified, refrigerate sample until
+QTE^98186R^2^transport.
+QTE^98194R^1^Unless othewise specified, refrigerate sample until
+QTE^98194R^2^transport.
+QTE^981X^1^Ship refrigerated
+QTE^98202E^1^Unless otherwise specified, refrigerate sample until
+QTE^98202E^2^transport.
+QTE^98228W^1^Room Temp
+QTE^98251E^1^Room Temp
+QTE^98285F^1^Room Temperature
+QTE^982X^1^Room Temperature
+QTE^982X^2^Refrigerated is also acceptable
+QTE^984F^1^Unless otherwise specified, refrigerate sample until
+QTE^984F^2^transport.
+QTE^988X^1^2-8 degrees C
+QTE^9936F^1^2-8 degrees centigrade (Refrigerated)
+QTE^9936F^2^transport.
+QTE^AD405^1^Room temperature
+QTE^AD405^2^Shipping refrigerated is accpetable
+QTE^AD717^1^Room temperature
+QTE^AD717^2^Shipping refrigerated is acceptable
+QTE^K1013^1^Room Temp
+QTE^K110231^1^Refrigerated
+QTE^K11177^1^Refrigerated
+QTE^K122434^1^Room Temperature
+QTE^K124620^1^Room Temperature or Refrigerated
+QTE^K128852^1^Room Temperature/Refrigerated
+QTE^K14839^1^Room Temperature
+QTE^K17306^1^Transport refrigerated or at room temperature.
+QTE^K1999^1^Unless otherwise specified, refrigerate sample until
+QTE^K1999^2^transport.
+QTE^K206260^1^Room Temp
+QTE^K206421^1^Transport skin snips at room temperature.
+QTE^K21113^1^Unless otherwise specified, refrigerate sample until
+QTE^K21113^2^transport.
+QTE^K21709^1^Unless otherwise specified, refrigerate sample until
+QTE^K21709^2^transport.
+QTE^K24621^1^Room Temperature or Refrigerated
+QTE^K24984^1^Unless otherwise specified, refrigerate sample until
+QTE^K24984^2^transport.
+QTE^K265^1^Refrigerate
+QTE^K2650^1^Refrigerated
+QTE^K27318^1^STRICT frozen serum
+QTE^K2883^1^Unless otherwise specified, refrigerate sample until
+QTE^K2883^2^transport.
+QTE^K30223^1^Unless otherwise specified, refrigerate sample until
+QTE^K30223^2^transport.
+QTE^K30263^1^Refrigerated
+QTE^K30472^1^Unless otherwise specified, refrigerate sample until
+QTE^K30472^2^transport.
+QTE^K329^1^Room Temp.
+QTE^K33301^1^Unless otherwise specified, refrigerate sample until
+QTE^K33301^2^transport.
+QTE^K35001^1^Avoid exposure to extreme hot or cold temperatures. Must
+QTE^K35001^2^be received within 24h of collection.
+QTE^K35055^1^Ambient
+QTE^K35068^1^Unless otherwise specified, refrigerate sample until
+QTE^K35068^2^transport.
+QTE^K35166^1^Room temperature
+QTE^K35600^1^Unless otherwise specified, refrigerate sample until
+QTE^K35600^2^transport.
+QTE^K37015^1^Refrigerated
+QTE^K40085^1^Frozen
+QTE^K40288^1^Frozen or Refrigerated (less than 24 hours old)
+QTE^K40990^1^2-8 degrees centigrade
+QTE^K43091^1^Room Temperature
+QTE^K43976^1^Unless otherwise specified, refrigerate sample until
+QTE^K43976^2^transport.
+QTE^K45121^1^Unless otherwise specified, refrigerate sample until
+QTE^K45121^2^transport.
+QTE^K451249^1^Refrigerated or Room Temperature
+QTE^K45291^1^FROZEN
+QTE^K45291^2^Refrigerated
+QTE^K45304^1^Unless otherwise specified, refrigerate sample until
+QTE^K45304^2^transport.
+QTE^K45443^1^Avoid exposure to extreme hot or cold temperatures. Unless
+QTE^K45443^2^otherwise specified, refrigerate sample until transport.
+QTE^K45484^1^Ambient or Refrigerated
+QTE^K49100^1^Unless otherwise specified, refrigerate sample until
+QTE^K49100^2^transport. Or Room Temperature.
+QTE^K49201^1^Unless otherwise specified, refrigerate sample until
+QTE^K49201^2^transport. Or Room Temperature.
+QTE^K50900^1^Refrigerated
+QTE^K52143^1^Room Temperature
+QTE^K52738^1^Refrigerated
+QTE^K53011^1^Room Temp
+QTE^K53976^1^Room Temp
+QTE^K53984^1^Room Temp
+QTE^K54031^1^Room Temperature
+QTE^K56713^1^Unless otherwise specified, refrigerate sample until
+QTE^K56713^2^transport.
+QTE^K5827^1^Room Temp
+QTE^K5827^2^Avoid extremes of heat and cold
+QTE^K593^1^Room temperature
+QTE^K6291^1^Refrigerated (Cold packs)
+QTE^K66902^1^Unless otherwise specified, refrigerate sample until
+QTE^K66902^2^transport.
+QTE^K67012^1^ROOM TEMPERATURE
+QTE^K67018^1^ROOM TEMPERATURE
+QTE^K67029^1^Room Temperature
+QTE^K67076^1^Room Temperature
+QTE^K6738^1^Refrigerated or Room Temperature
+QTE^K67496^1^Transport at 2 - 8 C
+QTE^K67498^1^Transport at 2 - 8 C
+QTE^K67777^1^Unless otherwise specified, store refrigerated until
+QTE^K67777^2^transport.
+QTE^K6921^1^Room Temperature or Refrigerated
+QTE^K7091^1^Refrigerated
+QTE^K76801^1^Preferred: Refrigerated
+QTE^K76801^2^Acceptable: Frozen
+QTE^K77777^1^Room Temperature
+QTE^K778^1^Unless otherwise specified, refrigerate sample until
+QTE^K778^2^transport.
+QTE^K80335^1^Ship room temperature.
+QTE^K80335^2^Shipping refrigerated is acceptable
+QTE^K80336^1^Ship room temperature
+QTE^K80336^2^Shipping refrigerated is acceptable
+QTE^K80421^1^Refrigerated
+QTE^K80797^1^Refrigerated
+QTE^K80905^1^Refrigerated
+QTE^K80988^1^Refrigerated
+QTE^K81302^1^Ship room temperature.
+QTE^K81302^2^Shipping refrigerated is acceptable
+QTE^K82204^1^Room temperature
+QTE^K82288^1^Frozen
+QTE^K82452^1^Ship refrigerated   /   Okay to thaw
+QTE^K828^1^Unless otherwise specified, refrigerate sample until
+QTE^K828^2^transport.
+QTE^K8472^1^Refrigerated
+QTE^K85125^1^Room temp
+QTE^K85135^1^2-8 degrees Centigrade
+QTE^K85135^2^SEE SPECIAL HANDLING ABOVE FOR EXCEPTIONS.
+QTE^K85515^1^Room temperature
+QTE^K85515^2^Shipping refrigerated is also acceptable.
+QTE^K86055^1^Room Temperature
+QTE^K86155^1^2-8 degrees centigrade
+QTE^K86218^1^Room Temperature
+QTE^K86218^2^Shipping refrigerated is acceptable.
+QTE^K86219^1^Room temperature
+QTE^K86241^1^FROZEN
+QTE^K86252^1^2-8 degrees Centigrade
+QTE^K86319^1^Room temperature
+QTE^K86319^2^Shipping refrigerated is acceptable.
+QTE^K86335^1^Room Temperature
+QTE^K86369^1^Frozen at <-70 degrees C
+QTE^K86372^1^Room temperature
+QTE^K86372^2^Shipping refrigerated is also acceptable.
+QTE^K86376^1^Room temperature
+QTE^K86376^2^Shipping refrigerted is also acceptable.
+QTE^K86469^1^Room temperature
+QTE^K86469^2^Shipping refrigerated is also acceptable.
+QTE^K86484^1^Room Temperature
+QTE^K86605^1^Refrigerated
+QTE^K86720^1^Room Temperature
+QTE^K86720^2^Shipping refrigerated is acceptable.
+QTE^K88549^1^Refrigerated
+QTE^K88555^1^Refrigerated
+QTE^K88556^1^Refrigerated
+QTE^K88574^1^Refrigerated
+QTE^K88577^1^Refrigerated
+QTE^K88701^1^Refrigerated
+QTE^K88717^1^Refrigerated
+QTE^K89463^1^Refrigerated
+QTE^K89566^1^Refrigerated
+QTE^K89846^1^Room Temperature
+QTE^K89846^2^Shipping refrigerated is also acceptable.
+QTE^K89848^1^Room Temperature
+QTE^K89848^2^Shipping refrigerated is acceptable.
+QTE^K89852^1^Refrigerated
+QTE^K90294^1^Refrigerated
+QTE^K90295^1^Refrigerated
+QTE^K90297^1^Refrigerated
+QTE^K90304^1^Room temperature
+QTE^K90319^1^Refrigerated
+QTE^K90321^1^Refrigerated
+QTE^K90346^1^Sputum (preserved): Room Temperature
+QTE^K90346^2^Urine and Sputum  (unpreserved): Refrigerated
+QTE^K90354^1^Refrigerated
+QTE^K90734^1^Ship room temperature, ship same day
+QTE^K90734^2^Unless otherwise specified, refrigerate sample until
+QTE^K90734^3^transport.
+QTE^K90739^1^Do not freeze whole blood, refrigerate.
+QTE^K90739^2^Muscle must be frozen immediately and stored at -70 degrees
+QTE^K90739^3^Celsius or lower. Ship blood at room temperature, avoid
+QTE^K90739^4^freezing. Ship muscle frozen on 10 lbs. of dry ice.
+QTE^K90922^1^Room Temperature
+QTE^K90959^1^Room temperature
+QTE^K90975^1^Room temperature
+QTE^K90975^2^Shipping refrigerated is acceptable
+QTE^K90976^1^Room temperature
+QTE^K90976^2^Shipping refrigerated is acceptable
+QTE^K90995^1^Refrigerated
+QTE^K9103523^1^Room Temp.  DO NOT REFRIGERATE
+QTE^K91123^1^Refrigerated
+QTE^K91125^1^Room Temperature
+QTE^K91212^1^Refrigerated
+QTE^K91260^1^Refrigerated
+QTE^K91765^1^Room temperature
+QTE^K91766^1^Frozen
+QTE^K92677^1^Frozen
+QTE^K92698^1^Transport frozen.  Refrigerated is acceptable.
+QTE^K92698^2^Ambient is not acceptable.
+QTE^K92974^1^Room Temperature
+QTE^K93233^1^Room temperature
+QTE^K93233^2^Shipping refrigerated is acceptable
+QTE^K93234^1^Refrigerated
+QTE^K93235^1^Refrigerated
+QTE^K93636^1^Unless otherwise specified, refrigerate sample until
+QTE^K93636^2^transport.
+QTE^K9430^1^Unless otherwise specified, refrigerate sample until
+QTE^K9430^2^transport.
+QTE^K94784^1^Transport frozen
+QTE^K94787^1^Frozen
+QTE^K94793^1^Room temperature
+QTE^K94794^1^Room temperature
+QTE^K94824^1^FROZEN
+QTE^K94825^1^FROZEN
+QTE^K94837^1^Refrigerated
+QTE^K94838^1^Refrigerated
+QTE^K94840^1^Refrigerated
+QTE^K94874^1^Room Temperature
+QTE^K94874^2^Shipping refrigerated is acceptable.
+QTE^K94875^1^Room Temperature
+QTE^K94875^2^Shipping refrigerated is acceptable
+QTE^K94876^1^Room Temperature
+QTE^K94876^2^Shipping refrigerated is acceptable.
+QTE^K94877^1^Room Temperature
+QTE^K94877^2^Shipping refrigerated is acceptable
+QTE^K94878^1^Room Temperature
+QTE^K94878^2^Shipping refrigerated is acceptable.
+QTE^K94909^1^Frozen
+QTE^K94919^1^Frozen
+QTE^K94922^1^Ambient
+QTE^K94951^1^Frozen
+QTE^K94966^1^Refrigerated
+QTE^K94966^2^Shipping room temperature is acceptable.
+QTE^K94974^1^Room Temperature
+QTE^K94974^2^Isolates should remain at ambient (room temperature) prior
+QTE^K94974^3^to and during shipping.
+QTE^K94975^1^Room Temperature
+QTE^K94975^2^Isolates should remain at ambient (room temperature) prior
+QTE^K94975^3^to and during shipping.
+QTE^K953050^1^Room Temperature
+QTE^K953051^1^Room Temperature
+QTE^K953052^1^Room Temperature
+QTE^K953053^1^Room Temperature
+QTE^K953054^1^Room Temperature
+QTE^K953055^1^Room Temperature
+QTE^K953056^1^Room Temperature
+QTE^K953057^1^Room Temperature
+QTE^K953059^1^Room Temperature
+QTE^K953060^1^Room Temperature
+QTE^K953061^1^Room Temperature
+QTE^K953062^1^Room Temperature
+QTE^K953063^1^Room Temperature
+QTE^K953064^1^Room Temperature
+QTE^K953065^1^Room Temperature
+QTE^K953067^1^Room Temperature
+QTE^K953068^1^Room Temperature
+QTE^K953069^1^Room Temperature
+QTE^K953070^1^Room Temperature
+QTE^K953071^1^Room Temperature
+QTE^K953072^1^Room Temperature
+QTE^K953073^1^Room Temperature
+QTE^K953348^1^Unless otherwise specified, refrigerate sample until
+QTE^K953348^2^transport.
+QTE^K97002^1^Ship room temperature, ship same day.
+QTE^K97002^2^Unless otherwise specified, refrigerate sample until
+QTE^K97002^3^transport.
+QTE^K97053^1^Refrigerated
+QTE^K97053^2^stable up to 3 days refrigerated.
+QTE^K97080^1^Room temperature
+QTE^K97110^1^Room temperature
+QTE^K97114^1^Room temperature
+QTE^K97114^2^Shipping refrigerated is acceptable for short periods.
+QTE^K97115^1^Room temperature
+QTE^K97115^2^Shipping refrigerated is acceptable for short periods.
+QTE^K97123^1^Refrigerated
+QTE^K97194^1^Room temperature
+QTE^K97195^1^Room temperature
+QTE^K97219^1^Room temperature
+QTE^K97219^2^Shipping refrigerated is acceptable
+QTE^K97230^1^Room Temperature, refrigerated is also acceptable.
+QTE^K97239^1^Room temperature
+QTE^K97240^1^Room temperature, ship same day.  Must arrive Monday-Friday.
+QTE^K97241^1^Room temperature, ship same day.  Must arrive Monday-Friday.
+QTE^K97242^1^Room temperature
+QTE^K97243^1^Room temperature
+QTE^K97244^1^Room temperature
+QTE^K97245^1^Room temperature
+QTE^K97245^2^Ship overnight
+QTE^K97247^1^Room temperature
+QTE^K97247^2^Ship the same day.
+QTE^K97248^1^Room temperature
+QTE^K97248^2^Ship same day
+QTE^K97249^1^Room temperature
+QTE^K97249^2^Ship same day
+QTE^K972500^1^Room temperature
+QTE^K972500^2^Ship same day
+QTE^K97251^1^Room temperature
+QTE^K97251^2^Ship same day
+QTE^K97252^1^Room temperature
+QTE^K97252^2^Ship same day
+QTE^K97254^1^Room temperature
+QTE^K97254^2^Ship same day
+QTE^K97255^1^Room temperature
+QTE^K97255^2^Ship same day
+QTE^K97256^1^Room temperature
+QTE^K97256^2^Ship same day
+QTE^K97257^1^Room temperature
+QTE^K97257^2^Ship same day
+QTE^K97258^1^Room temperature
+QTE^K97258^2^Ship same day
+QTE^K97259^1^Room temperature
+QTE^K97259^2^Ship same day
+QTE^K97304^1^Room temperature
+QTE^K97304^2^Avoid Freezing. Ship Monday - Thursday only.
+QTE^K97309^1^Ship room temperature, ship same day.
+QTE^K97309^2^Unless otherwise specified, refrigerate sample until
+QTE^K97309^3^transport.
+QTE^K97310^1^Ship room temperature, ship same day.
+QTE^K97310^2^Unless otherwise specified, refrigerate sample until
+QTE^K97310^3^transport.
+QTE^K97312^1^Ship room temperature, ship same day.
+QTE^K97312^2^Unless otherwise specified, refrigerate sample until
+QTE^K97312^3^transport.
+QTE^K97313^1^Ship room temperature, ship same day.
+QTE^K97313^2^Unless otherwise specified, refrigerate sample until
+QTE^K97313^3^transport.
+QTE^K98056^1^Refrigerated
+QTE^K98143^1^Refrigerated
+QTE^K98743^1^Refrigerated
+QTE^K98748^1^Refrigerated
+QTE^K98763^1^Refrigerated
+QTE^K98766^1^Refrigerated
+QTE^K98773^1^Refrigerated
+QTE^K98807^1^Refrigerated
+QTE^K98808^1^Room temperature
+QTE^K98815^1^Refrigerated
+QTE^K98828^1^Refrigerated
+QTE^K98829^1^Refrigerated
+QTE^K98835^1^Refrigerated
+QTE^K98836^1^Refrigerated
+QTE^K98852^1^Refrigerated
+QTE^K98853^1^Refrigerated
+QTE^K98854^1^Refrigerated
+QTE^K98867^1^Refrigerated
+QTE^K98875^1^Refrigerated
+QTE^K99133^1^Refrigerated
+QTE^K99165^1^Refrigerated
+QTE^K99166^1^Refrigerated
+QTE^K99183^1^Refrigerated
+QTE^K99213^1^Frozen
+QTE^K99214^1^Refrigerated
+QTE^K99215^1^Refrigerated
+QTE^K99217^1^Refrigerated
+QTE^K99997^1^Room Temperature
+QTE^KK86190^1^Refrigerated
+QTE^LI2TB60^1^Room Temperature
+QTE^LI2TB60^2^Refrigerated is acceptable.
+QTE^P10220^1^Refrigerated
+QTE^P17002^1^Refrigerated
+QTE^P20003^1^Unless otherwise specified, refrigerate sample until
+QTE^P20003^2^transport.
+QTE^P22221^1^Refrigerated or Room Temperature
+QTE^P440^1^Room Temperature
+QTE^P440^2^Refrigerated is also acceptable
+QTE^P4928^1^Unless othewise specified, refrigerate sample until
+QTE^P4928^2^transport.
+QTE^T90721^1^Room Temperature, avoid freezing. Ship same day.
+QTE^T90721^2^Shipping refrigerated is acceptable
+QTE^XN3110SP^1^Refrigerated

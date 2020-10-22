@@ -1757,5 +1757,96 @@ $GLOBALS_METADATA = array(
       xl('Rx Bottom Margin (px)')
     ),
   ),    
+
+  // Lab Interface Tab
+  'Labs' => array(
+	// WMT - 2014-12-01 - Switches used with WMT LabLink
+	'wmt_lab_enable' => array(
+		xl('Enable WMT LabLink Interfaces'),
+		'bool',
+		'0',
+		xl('Enable Williams Medical Technologies LabLink Interfaces.')
+	),
+	'wmt_lab_psc' => array(
+		xl('Default WMT LabLink to PSC Orders'),
+		'bool',
+		'0',
+		xl('Default WMT LabLink Orders to Patient Service Center (PSC HOLD).')
+	),
+	'wmt_lab_icd10' => array(
+		xl('Enable WMT LabLink ICD10 Support'),
+		'bool',
+		'1',
+		xl('Default WMT LabLink Orders to ICD10 Diagnosis Encoding.')
+	),
+/*
+  		'lab_quest_enable' => array(
+		xl('Quest Interface Enable'),
+		'bool',                           // data type
+		'0',
+		xl('Enable OpenEMR Quest Diagnostic Service Interface.')
+	),
+		
+	'lab_quest_psc' => array(
+		xl('Quest Specimen Draws Enable'),
+		'bool',                           // data type
+		'0',
+		xl('Enable Support for Quest Clinic Specimen Draws (non-PSC HOLD).')
+	),
+		
+  	'wmt_lab_icd10' => array(
+  		xl('Enable Lab ICD-10 Support'),
+  		'bool',                           // data type
+  		'0',
+  		xl('Enable Support for ICD-10 Diagnosis Codes.')
+  	),
+  		
+  	'lab_quest_status' => array(
+		xl('Quest Lab Interface'),
+		array(
+			'T' => xl('Training'),
+			'P' => xl('Production'),
+			'D' => xl('Development'),
+		),
+		'0',                              // default
+		xl('Interface Control for OpenEMR Quest Diagnostic Service.')
+	),
+		
+	'lab_quest_hubname' => array(
+		xl('Quest Lab Hub Name'),
+		'text',                           // data type
+		'SLHUB',
+		xl('Hub Name for OpenEMR Quest Diagnostic Service.')
+	),
+		
+	'lab_quest_facilityid' => array(
+		xl('Quest Lab Facility ID'),
+		'text',                           // data type
+		'STL',
+		xl('Facility ID for OpenEMR Quest Diagnostic Service.')
+	),
+		
+	'lab_quest_catid' => array(
+		xl('Quest Document Category ID'),
+		'text',                           // data type
+		'',
+		xl('Document Category ID for OpenEMR Quest Diagnostic Service.')
+	),
+		
+	'lab_quest_username' => array(
+		xl('Quest Service Username'),
+		'text',                           // data type
+		'',
+		xl('Username for OpenEMR Quest Diagnostic Service.')
+	),
+		
+	'lab_quest_password' => array(
+		xl('Quest Service Password'),
+		'text',                           // data type
+		'',
+		xl('Password for OpenEMR Quest Diagnostic Service.')
+	),
+*/
+     )
 );
 ?>

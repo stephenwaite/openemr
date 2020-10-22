@@ -28,10 +28,13 @@ require_once("$srcdir/formatting.inc.php");
 require_once("../../orders/qoe.inc.php");
 require_once("../../orders/gen_hl7_order.inc.php");
 require_once("../../../custom/code_types.inc.php");
+require_once("../../orders/labCustom.inc.php");
 
 // Defaults for new orders.
+$encRow = sqlQuery("select * from form_encounter where encounter = $encounter");
+
 $row = array(
-  'provider_id' => $_SESSION['authUserID'],
+  'provider_id' => $encRow['provider_id'],
   'date_ordered' => date('Y-m-d'),
   'date_collected' => date('Y-m-d H:i'),
 );
@@ -63,6 +66,23 @@ function QuotedOrNull($fld) {
 
 $formid = formData('id', 'G') + 0;
 
+// Get the list of labs supporting patient's insurance
+// id1=name1?id2=name2
+$labsAr = array();
+if ($_POST['elig_labs']) {
+    $eligLabStr = $_POST['elig_labs'];
+    parse_str($eligLabStr, $labsAr);
+} else {
+    $labsAr = getEligLabs($_SESSION['pid']);
+    $eligLabStr = '';
+    $amp = '';
+    foreach ($labsAr as $labId=>$labName) {
+if ($labName == 'Quest Diagnostics') continue;
+        $eligLabStr .= $amp . $labId . '=' . $labName;
+        $amp = '&';
+    }
+}
+
 // If Save or Transmit was clicked, save the info.
 //
 if ($_POST['bn_save'] || $_POST['bn_xmit']) {
@@ -75,7 +95,6 @@ if ($_POST['bn_save'] || $_POST['bn_xmit']) {
     "date_collected = " . QuotedOrNull(formData('form_date_collected')) . ", " .
     "order_priority = '" . formData('form_order_priority')              . "', " .
     "order_status = '" . formData('form_order_status')                  . "', " .
-    "clinical_hx = '" . formData('form_clinical_hx')                    . "', " .
     "patient_instructions = '" . formData('form_patient_instructions')  . "', " .
     "patient_id = '" . $pid                                             . "', " .
     "encounter_id = '" . $encounter                                     . "'";
@@ -253,7 +272,7 @@ function set_proc_type(typeid, typename) {
  var ptdescname = 'form_proc_type_desc[' + gbl_formseq + ']';
  f[ptvarname].value = typeid;
  f[ptdescname].value = typename;
-}
+ }
 
 // This is also for callback by the find-procedure-type popup.
 // Sets the contents of the table containing the form fields for questions.
@@ -374,7 +393,7 @@ function validate(f) {
   <td width='1%' valign='top' nowrap><b><?php xl('Ordering Provider','e'); ?>:</b></td>
   <td valign='top'>
 <?php
-generate_form_field(array('data_type'=>10,'field_id'=>'provider_id'),
+generate_form_field(array('data_type'=>10,'field_id'=>'provider_id','empty_title'=>"SKIP"),
   $row['provider_id']);
 ?>
   </td>
@@ -385,15 +404,15 @@ generate_form_field(array('data_type'=>10,'field_id'=>'provider_id'),
   <td valign='top'>
    <select name='form_lab_id' onchange='lab_id_changed()'>
  <?php
-  $ppres = sqlStatement("SELECT ppid, name FROM procedure_providers " .
-    "ORDER BY name, ppid");
-  while ($pprow = sqlFetchArray($ppres)) {
-    echo "<option value='" . attr($pprow['ppid']) . "'";
-    if ($pprow['ppid'] == $row['lab_id']) echo " selected";
-    echo ">" . text($pprow['name']) . "</option>";
+  foreach ($labsAr as $labId=>$labName) {
+if ($labName == 'Quest Diagnostics') continue;
+    echo "<option value='" . attr($labId) . "'";
+    if ($labId == $row['lab_id']) echo " selected";
+    echo ">" . text($labName) . "</option>";
   }
 ?>
    </select>
+   <input type='hidden' name='elig_labs' value='<?php echo $eligLabStr ?>' />
   </td>
  </tr>
 
@@ -450,15 +469,6 @@ generate_form_field(array('data_type'=>1,'field_id'=>'order_status',
  </tr>
 
  <tr>
-  <td width='1%' valign='top' nowrap><b><?php xl('Clinical History','e'); ?>:</b></td>
-  <td valign='top'>
-   <input type='text' maxlength='255' name='form_clinical_hx' style='width:100%'
-    class='inputtext' value='<?php echo attr($row['clinical_hx']); ?>' />
-  </td>
- </tr>
-
- <!-- Will enable this later, nothing uses it yet. -->
- <tr style='display:none'>
   <td width='1%' valign='top' nowrap><b><?php xl('Patient Instructions','e'); ?>:</b></td>
   <td valign='top'>
    <textarea rows='3' cols='40' name='form_patient_instructions' style='width:100%'
@@ -548,7 +558,7 @@ if ($qoe_init_javascript)
 &nbsp;
 <input type='submit' name='bn_save' value='<?php echo xla('Save'); ?>' onclick='transmitting = false;' />
 &nbsp;
-<input type='submit' name='bn_xmit' value='<?php echo xla('Save and Transmit'); ?>' onclick='transmitting = true;' />
+<input type='submit' name='bn_xmit' value='<?php echo xla('Save and Transmit'); ?>' onclick='transmitting = true;'  disabled/>
 &nbsp;
 <input type='button' value='<?php echo xla('Cancel'); ?>' onclick="top.restoreSession();location='<?php echo $GLOBALS['form_exit_url']; ?>'" />
 </p>

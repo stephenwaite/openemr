@@ -135,7 +135,31 @@ if (isset($_GET['formseq'])) echo '&formseq=' . $_GET['formseq'];
 
 </table>
 
-<?php if ($_REQUEST['bn_search']) { ?>
+<?php 
+ if ($_REQUEST['bn_search']) { 
+    $search_term = '%' . $_REQUEST['search_term'] . '%';
+    $query = "SELECT procedure_type_id, procedure_code, name " .
+        "FROM procedure_type WHERE " .
+        "lab_id = ? AND " .
+        "procedure_type LIKE 'ord' AND " .
+        "activity = 1 AND " .
+        "(procedure_code LIKE ? OR name LIKE ?) " .
+        "ORDER BY seq, procedure_code";
+    $res = sqlStatement($query, array($labid, $search_term, $search_term));
+  }
+  else {
+    $query = "select t.procedure_type_id, t.procedure_code, t.name, count(*) as cc from procedure_type t " .
+        "left join procedure_order_code AS c ON (c.procedure_code=t.procedure_code) " . 
+        "left join procedure_order AS o ON o.procedure_order_id=c.procedure_order_id " .
+        "where o.lab_id=? and t.lab_id = ? " .
+        "  and datediff(NOW(), o.date_collected) <= 730 " .
+        "group by 1,2,3 " .
+        "having count(*) > 15 " .
+        "order by 3 " .
+        "limit 50";
+    $res = sqlStatement($query, array($labid, $labid));
+  }
+?>
 
 <table border='0'>
  <tr>
@@ -143,19 +167,6 @@ if (isset($_GET['formseq'])) echo '&formseq=' . $_GET['formseq'];
   <td><b><?php echo xlt('Description'); ?></b></td>
  </tr>
 <?php
-  $search_term = '%' . $_REQUEST['search_term'] . '%';
-
-  $query = "SELECT procedure_type_id, procedure_code, name " .
-    "FROM procedure_type WHERE " .
-    "lab_id = ? AND " .
-    "procedure_type LIKE 'ord' AND " .
-    "activity = 1 AND " .
-    "(procedure_code LIKE ? OR name LIKE ?) " .
-    "ORDER BY seq, procedure_code";
-
-  // echo "<!-- $query $labid $search_term -->\n"; // debugging
-
-  $res = sqlStatement($query, array($labid, $search_term, $search_term));
 
   while ($row = sqlFetchArray($res)) {
     $itertypeid = $row['procedure_type_id'];
@@ -170,8 +181,6 @@ if (isset($_GET['formseq'])) echo '&formseq=' . $_GET['formseq'];
   }
 ?>
 </table>
-
-<?php } ?>
 
 </center>
 </form>

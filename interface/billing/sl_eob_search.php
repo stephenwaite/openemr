@@ -180,6 +180,7 @@ if ($INTEGRATED_AR) {
         fwrite($fhprint, create_statement($stmt));
         $stmt['cid'] = $row['pid'];
         $stmt['pid'] = $row['pid'];
+        $stmt['encounter'] = $row['encounter'];
         $stmt['patient'] = $row['fname'] . ' ' . $row['lname'];
         $stmt['to'] = array($row['fname'] . ' ' . $row['lname']);
         if ($row['street']) $stmt['to'][] = $row['street'];
@@ -336,6 +337,7 @@ else {
         fwrite($fhprint, create_statement($stmt));
         $stmt['cid'] = $row['customer_id'];
         $stmt['pid'] = $pid;
+        $stmt['encounter'] = $encounter;
 
         if ($got_address_table) {
           $stmt['patient'] = $row['fname'] . ' ' . $row['lname'];

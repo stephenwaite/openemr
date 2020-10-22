@@ -1,0 +1,625 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="bb556515-1677-41c7-947f-67976314b457" name="Default Changelist" comment="ng">
+      <change beforePath="$PROJECT_DIR$/interface/code_systems/standard_tables_manage.php" beforeDir="false" afterPath="$PROJECT_DIR$/interface/code_systems/standard_tables_manage.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library/standard_tables_capture.inc" beforeDir="false" afterPath="$PROJECT_DIR$/library/standard_tables_capture.inc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Services/InsuranceCompanyService.php" beforeDir="false" afterPath="$PROJECT_DIR$/src/Services/InsuranceCompanyService.php" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ComposerSettings" doNotAsk="true" synchronizationState="DONT_SYNCHRONIZE">
+    <pharConfigPath>$PROJECT_DIR$/composer.json</pharConfigPath>
+    <execution />
+  </component>
+  <component name="DatabaseView">
+    <option name="SHOW_INTERMEDIATE" value="true" />
+    <option name="GROUP_DATA_SOURCES" value="true" />
+    <option name="GROUP_SCHEMA" value="true" />
+    <option name="GROUP_CONTENTS" value="false" />
+    <option name="SORT_POSITIONED" value="false" />
+    <option name="SHOW_EMPTY_GROUPS" value="false" />
+    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
+    <option name="HIDDEN_KINDS">
+      <set />
+    </option>
+    <expand />
+    <select />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="JavaScript File" />
+        <option value="HTML File" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="JsFlowSettings">
+    <service-enabled>true</service-enabled>
+    <exe-path />
+    <other-services-enabled>true</other-services-enabled>
+    <auto-save>true</auto-save>
+  </component>
+  <component name="NamedScopeManager">
+    <scope name="no_language" pattern="!file[openemr]:contrib/util/language_translations//*&amp;&amp;!file:contrib/util/language_translations/current_spreadsheet.tsv&amp;&amp;!file:contrib/util/language_translations/currentConstants.txt" />
+  </component>
+  <component name="PackageJsonUpdateNotifier">
+    <dismissed value="$PROJECT_DIR$/package.json" />
+  </component>
+  <component name="PhpDebugGeneral" ignore_connections_through_unregistered_servers="true" listening_started="true" notify_if_session_was_finished_without_being_paused="false" xdebug_force_break_when_no_path_mapping="false" xdebug_force_break_when_outside_project="false" />
+  <component name="PhpServers">
+    <servers>
+      <server host="localhost" id="1ce3675a-9110-4b5a-968c-d51e2063452c" name="localhost" port="8300" use_path_mappings="true">
+        <path_mappings>
+          <mapping local-root="$PROJECT_DIR$" remote-root="/var/www/localhost/htdocs/openemr" />
+        </path_mappings>
+      </server>
+    </servers>
+  </component>
+  <component name="PhpWebServerValidation" deployment_server_id="10af90b7-ae89-46be-9023-c0edb6c97570" path_to_validation_script="$PROJECT_DIR$" selected_validation_type="REMOTE" web_path_to_validation_script="http://localhost:8083" />
+  <component name="PhpWorkspaceProjectConfiguration" interpreter_name="openemr/openemr:flex">
+    <include_path>
+      <path value="/usr/share/php7" />
+    </include_path>
+  </component>
+  <component name="ProjectId" id="1aocsiwrqctLxsnwGolKLEFsGEX" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="Constants" value="false" />
+    <property name="DefaultHtmlFileTemplate" value="HTML File" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="com.intellij.ide.scratch.LRUPopupBuilder$1/New Scratch File" value="PHP&#10;GenericSQL" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/library/standard_tables_capture.inc" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
+    <property name="settings.editor.selected.configurable" value="reference.webide.settings.project.settings.php.debug" />
+    <property name="two.files.diff.last.used.file" value="$PROJECT_DIR$/library/standard_tables_capture.inc" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/sql" />
+      <recent name="$USER_HOME$/Documents/cms" />
+      <recent name="$USER_HOME$/Downloads" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="PhpLocalRunConfigurationType" factoryName="PHP Console" path="$PROJECT_DIR$/interface/billing/search_payments.php">
+      <CommandLine>
+        <PhpTestInterpreterSettings>
+          <option name="interpreterName" value="openemr/openemr:flex" />
+        </PhpTestInterpreterSettings>
+      </CommandLine>
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
+      <deployment type="docker-compose.yml">
+        <settings>
+          <option name="services">
+            <list>
+              <option value="openemr" />
+            </list>
+          </option>
+          <option name="sourceFilePath" value="docker-compose.yml" />
+        </settings>
+      </deployment>
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="docker-deploy" factoryName="docker-image" server-name="Docker">
+      <deployment type="docker-image">
+        <settings>
+          <option name="imageTag" value="" />
+          <option name="command" value="" />
+          <option name="containerName" value="" />
+          <option name="entrypoint" value="" />
+          <option name="publishAllPorts" value="true" />
+          <option name="commandLineOptions" value="" />
+        </settings>
+      </deployment>
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="docker-deploy" factoryName="dockerfile" server-name="Docker">
+      <deployment type="dockerfile">
+        <settings>
+          <option name="imageTag" value="" />
+          <option name="buildCliOptions" value="" />
+          <option name="buildOnly" value="true" />
+          <option name="command" value="" />
+          <option name="containerName" value="" />
+          <option name="entrypoint" value="" />
+          <option name="commandLineOptions" value="" />
+          <option name="sourceFilePath" value="docker-compose.yml" />
+        </settings>
+      </deployment>
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="js.build_tools.gulp">
+      <node-interpreter>project</node-interpreter>
+      <node-options />
+      <gulpfile />
+      <tasks />
+      <arguments />
+      <envs />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="bb556515-1677-41c7-947f-67976314b457" name="Default Changelist" comment="" />
+      <created>1544651040190</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1544651040190</updated>
+      <workItem from="1544651041610" duration="252000" />
+      <workItem from="1544651324154" duration="7709000" />
+      <workItem from="1549399666607" duration="2388000" />
+      <workItem from="1549644767951" duration="1308000" />
+      <workItem from="1550328551571" duration="33000" />
+      <workItem from="1550328610951" duration="599000" />
+      <workItem from="1550595736501" duration="23597000" />
+      <workItem from="1551099724470" duration="13556000" />
+      <workItem from="1551213597492" duration="17395000" />
+      <workItem from="1551636535364" duration="18313000" />
+      <workItem from="1551740547650" duration="56704000" />
+      <workItem from="1552072986504" duration="49584000" />
+      <workItem from="1552511659973" duration="7426000" />
+      <workItem from="1552570461691" duration="32073000" />
+      <workItem from="1553016057159" duration="56576000" />
+      <workItem from="1554819874190" duration="7634000" />
+      <workItem from="1555680907033" duration="6076000" />
+      <workItem from="1556118459282" duration="25150000" />
+      <workItem from="1556652298742" duration="25776000" />
+      <workItem from="1557858101505" duration="20000" />
+      <workItem from="1557858123030" duration="13367000" />
+      <workItem from="1558361056744" duration="10237000" />
+      <workItem from="1558627080656" duration="5441000" />
+      <workItem from="1559309462269" duration="3967000" />
+      <workItem from="1559395504111" duration="6720000" />
+      <workItem from="1559425430557" duration="11613000" />
+      <workItem from="1559583014372" duration="8423000" />
+      <workItem from="1559680304017" duration="8172000" />
+      <workItem from="1560175821452" duration="40520000" />
+      <workItem from="1560364450657" duration="45830000" />
+      <workItem from="1561127738699" duration="15961000" />
+      <workItem from="1561477319027" duration="32900000" />
+      <workItem from="1562076675886" duration="36995000" />
+      <workItem from="1563366202679" duration="24651000" />
+      <workItem from="1564148074798" duration="26332000" />
+      <workItem from="1565018374096" duration="30065000" />
+      <workItem from="1566237319919" duration="41098000" />
+      <workItem from="1566820516979" duration="22199000" />
+      <workItem from="1568384477279" duration="12609000" />
+      <workItem from="1568653331953" duration="76347000" />
+      <workItem from="1570028682264" duration="10186000" />
+      <workItem from="1570131950653" duration="12302000" />
+      <workItem from="1570477504734" duration="23000" />
+      <workItem from="1570477534684" duration="41025000" />
+      <workItem from="1571237442771" duration="31133000" />
+      <workItem from="1571678533499" duration="47448000" />
+      <workItem from="1572386315406" duration="5252000" />
+      <workItem from="1572643924616" duration="7757000" />
+      <workItem from="1572903250437" duration="27256000" />
+      <workItem from="1574085850001" duration="53548000" />
+      <workItem from="1574720159859" duration="9736000" />
+      <workItem from="1575583476439" duration="2713000" />
+      <workItem from="1575908537611" duration="8873000" />
+      <workItem from="1576068125794" duration="3087000" />
+      <workItem from="1576164712094" duration="41062000" />
+      <workItem from="1577196391954" duration="3202000" />
+      <workItem from="1577802788231" duration="5796000" />
+      <workItem from="1578322822630" duration="10606000" />
+      <workItem from="1578502087038" duration="11256000" />
+      <workItem from="1578930893378" duration="334000" />
+      <workItem from="1578931248406" duration="71603000" />
+      <workItem from="1579788987210" duration="14837000" />
+      <workItem from="1580136066426" duration="3284000" />
+      <workItem from="1580412123663" duration="601000" />
+      <workItem from="1580738096677" duration="15625000" />
+      <workItem from="1581005700533" duration="14430000" />
+      <workItem from="1581350840033" duration="14744000" />
+      <workItem from="1581527232792" duration="4874000" />
+      <workItem from="1581607562002" duration="28849000" />
+      <workItem from="1581801228613" duration="2753000" />
+      <workItem from="1581944362880" duration="12235000" />
+      <workItem from="1582145964833" duration="15002000" />
+      <workItem from="1582642405428" duration="8205000" />
+      <workItem from="1582745479155" duration="25168000" />
+      <workItem from="1583153385777" duration="1351000" />
+      <workItem from="1583186859930" duration="4834000" />
+      <workItem from="1583245488289" duration="92371000" />
+      <workItem from="1584023543620" duration="38690000" />
+      <workItem from="1584455629569" duration="2008000" />
+      <workItem from="1584553262524" duration="29646000" />
+      <workItem from="1584966967989" duration="6644000" />
+      <workItem from="1585085611719" duration="3440000" />
+      <workItem from="1585102114191" duration="35720000" />
+      <workItem from="1585580359090" duration="7148000" />
+      <workItem from="1585657683598" duration="2819000" />
+      <workItem from="1585878259255" duration="6511000" />
+      <workItem from="1586033446712" duration="11636000" />
+      <workItem from="1586201066349" duration="1619000" />
+      <workItem from="1586309183297" duration="891000" />
+      <workItem from="1586369140426" duration="20730000" />
+      <workItem from="1586783052207" duration="8122000" />
+      <workItem from="1586813261159" duration="20183000" />
+      <workItem from="1587328755231" duration="218000" />
+      <workItem from="1587346805659" duration="744000" />
+      <workItem from="1587348492175" duration="153000" />
+      <workItem from="1587348647266" duration="8790000" />
+      <workItem from="1587405260324" duration="318000" />
+      <workItem from="1587405596569" duration="21521000" />
+      <workItem from="1587743382150" duration="16000" />
+      <workItem from="1587751634732" duration="93906000" />
+      <workItem from="1588864565475" duration="1843000" />
+      <workItem from="1588941346942" duration="79117000" />
+      <workItem from="1590350449949" duration="2658000" />
+      <workItem from="1590422386917" duration="3998000" />
+      <workItem from="1590523593674" duration="4983000" />
+      <workItem from="1590631448213" duration="10333000" />
+      <workItem from="1590876602296" duration="5057000" />
+      <workItem from="1591017317898" duration="38952000" />
+      <workItem from="1591738728592" duration="7000" />
+      <workItem from="1591738772311" duration="9228000" />
+      <workItem from="1591792898292" duration="1166000" />
+      <workItem from="1591794101518" duration="4545000" />
+      <workItem from="1591806275114" duration="79000" />
+      <workItem from="1591806809967" duration="291000" />
+      <workItem from="1591808492922" duration="568000" />
+      <workItem from="1591809070051" duration="7000" />
+      <workItem from="1591809093000" duration="3288000" />
+      <workItem from="1591813502675" duration="415000" />
+      <workItem from="1591814202079" duration="45000" />
+      <workItem from="1591814949417" duration="588000" />
+      <workItem from="1591815576985" duration="40000" />
+      <workItem from="1591815636306" duration="3000" />
+      <workItem from="1591816020878" duration="2737000" />
+      <workItem from="1591818770352" duration="739000" />
+      <workItem from="1591819519383" duration="6256000" />
+      <workItem from="1591826095658" duration="912000" />
+      <workItem from="1591827018819" duration="1010000" />
+      <workItem from="1591828041623" duration="132000" />
+      <workItem from="1591828282219" duration="1413000" />
+      <workItem from="1591829698056" duration="226000" />
+      <workItem from="1591829933972" duration="2000" />
+      <workItem from="1591829939296" duration="1226000" />
+      <workItem from="1591831176059" duration="7418000" />
+      <workItem from="1591885919599" duration="3001000" />
+      <workItem from="1591891153055" duration="4397000" />
+      <workItem from="1591909990037" duration="31926000" />
+      <workItem from="1592677619852" duration="25261000" />
+      <workItem from="1593022914389" duration="522000" />
+      <workItem from="1593023447239" duration="19000" />
+      <workItem from="1593026132575" duration="7063000" />
+      <workItem from="1593101275626" duration="51736000" />
+      <workItem from="1594067583539" duration="6836000" />
+      <workItem from="1594392042765" duration="3167000" />
+      <workItem from="1594825664395" duration="4113000" />
+      <workItem from="1594860951745" duration="26229000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="2" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.sh" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="266" y="34" width="1272" height="1046" key="#CLI_Interpreters" timestamp="1591890930363">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="266" y="34" width="1272" height="1046" key="#CLI_Interpreters/0.34.1920.1046@0.34.1920.1046" timestamp="1591890930363" />
+    <state x="427" y="88" width="1000" height="846" key="#Deployment" timestamp="1591886216155">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="427" y="88" width="1000" height="846" key="#Deployment/0.34.1920.1046@0.34.1920.1046" timestamp="1591886216155" />
+    <state x="427" y="89" width="1000" height="846" key="#Docker" timestamp="1591886303119">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="427" y="89" width="1000" height="846" key="#Docker/0.34.1920.1046@0.34.1920.1046" timestamp="1591886303119" />
+    <state x="770" y="264" width="503" height="409" key="#Docker2" timestamp="1591886306853">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="770" y="264" width="503" height="409" key="#Docker2/0.34.1920.1046@0.34.1920.1046" timestamp="1591886306853" />
+    <state x="533" y="150" width="798" height="716" key="#Docker_Image" timestamp="1591809099432">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="533" y="150" width="798" height="716" key="#Docker_Image/0.34.1920.1046@0.34.1920.1046" timestamp="1591809099432" />
+    <state x="485" y="214" width="800" height="736" key="#Intentions" timestamp="1592964058614">
+      <screen x="0" y="27" width="1920" height="1053" />
+    </state>
+    <state x="485" y="214" width="800" height="736" key="#Intentions/0.27.1920.1053@0.27.1920.1053" timestamp="1592964058614" />
+    <state x="676" y="291" width="513" height="434" key="#New_Docker_Connection" timestamp="1591791813835">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="676" y="291" width="513" height="434" key="#New_Docker_Connection/0.34.1920.1046@0.34.1920.1046" timestamp="1591791813835" />
+    <state x="831" y="444" width="312" height="322" key="#Notifications" timestamp="1591820513314">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="831" y="444" width="312" height="322" key="#Notifications/0.34.1920.1046@0.34.1920.1046" timestamp="1591820513314" />
+    <state x="605" y="158" width="836" height="916" key="#PHP" timestamp="1591886131329">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="605" y="158" width="836" height="916" key="#PHP/0.34.1920.1046@0.34.1920.1046" timestamp="1591886131329" />
+    <state x="417" y="80" width="1030" height="855" key="#Servers" timestamp="1591890188809">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="417" y="80" width="1030" height="855" key="#Servers/0.34.1920.1046@0.34.1920.1046" timestamp="1591890188809" />
+    <state x="533" y="146" width="798" height="724" key="#Unnamed" timestamp="1591791742757">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="533" y="146" width="798" height="724" key="#Unnamed/0.34.1920.1046@0.34.1920.1046" timestamp="1591791742757" />
+    <state x="360" y="134" width="1201" height="702" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1592086494532">
+      <screen x="0" y="27" width="1920" height="1053" />
+    </state>
+    <state x="360" y="134" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.27.1920.1053@0.27.1920.1053" timestamp="1592086494532" />
+    <state x="360" y="140" width="1201" height="702" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.34.1920.1046@0.34.1920.1046" timestamp="1591891007511" />
+    <state x="2398" y="245" width="667" height="403" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1594987804681">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state x="2398" y="245" width="667" height="403" key="#com.intellij.fileTypes.FileTypeChooser/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1594987804681" />
+    <state x="698" y="271" width="374" height="569" key="#com.intellij.ide.util.MemberChooser" timestamp="1592964196146">
+      <screen x="0" y="27" width="1920" height="1053" />
+    </state>
+    <state x="698" y="271" width="374" height="569" key="#com.intellij.ide.util.MemberChooser/0.27.1920.1053@0.27.1920.1053" timestamp="1592964196146" />
+    <state x="743" y="284" width="656" height="517" key="#com.intellij.ide.util.TreeClassChooserDialog" timestamp="1591823460834">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="743" y="284" width="656" height="517" key="#com.intellij.ide.util.TreeClassChooserDialog/0.34.1920.1046@0.34.1920.1046" timestamp="1591823460834" />
+    <state x="0" y="34" width="1689" height="1046" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog" timestamp="1587930323244">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="0" y="34" width="1689" height="1046" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog/0.34.1920.1046@0.34.1920.1046" timestamp="1587930323244" />
+    <state x="681" y="34" width="693" height="1046" key="#com.jetbrains.php.debug.validation.PhpWebServerValidationDialog#" timestamp="1591886239407">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="681" y="34" width="693" height="1046" key="#com.jetbrains.php.debug.validation.PhpWebServerValidationDialog#/0.34.1920.1046@0.34.1920.1046" timestamp="1591886239407" />
+    <state x="427" y="157" width="798" height="724" key="#docker-compose.yml.openemr:_Compose_Deployment" timestamp="1591829437459">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="427" y="157" width="798" height="724" key="#docker-compose.yml.openemr:_Compose_Deployment/0.34.1920.1046@0.34.1920.1046" timestamp="1591829437459" />
+    <state x="629" y="198" width="798" height="794" key="#login.php" timestamp="1591740473152">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="629" y="198" width="798" height="794" key="#login.php/0.34.1920.1046@0.34.1920.1046" timestamp="1591740473152" />
+    <state x="476" y="159" width="798" height="794" key="#messages.php" timestamp="1591830031898">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="476" y="159" width="798" height="794" key="#messages.php/0.34.1920.1046@0.34.1920.1046" timestamp="1591830031898" />
+    <state x="476" y="159" width="798" height="794" key="#new_payment.php" timestamp="1591830645194">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="476" y="159" width="798" height="794" key="#new_payment.php/0.34.1920.1046@0.34.1920.1046" timestamp="1591830645194" />
+    <state x="439" y="135" width="798" height="794" key="#search_payments.php" timestamp="1591889069479">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="439" y="135" width="798" height="794" key="#search_payments.php/0.34.1920.1046@0.34.1920.1046" timestamp="1591889069479" />
+    <state x="805" y="290" width="183" height="535" key="#xdebugger.XInspectDialog" timestamp="1593396056947">
+      <screen x="0" y="27" width="1920" height="1053" />
+    </state>
+    <state x="805" y="290" width="183" height="535" key="#xdebugger.XInspectDialog/0.27.1920.1053@0.27.1920.1053" timestamp="1593396056947" />
+    <state x="667" y="408" width="629" height="394" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1" timestamp="1587928553069">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="667" y="408" width="629" height="394" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/0.34.1920.1046@0.34.1920.1046" timestamp="1587928553069" />
+    <state x="434" y="34" width="1096" height="1029" key="CommitChangelistDialog2" timestamp="1588800522661">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="434" y="34" width="1096" height="1029" key="CommitChangelistDialog2/0.34.1920.1046@0.34.1920.1046" timestamp="1588800522661" />
+    <state x="800" y="415" width="542" height="255" key="ComposerInitDialogKey" timestamp="1591824271172">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="800" y="415" width="542" height="255" key="ComposerInitDialogKey/0.34.1920.1046@0.34.1920.1046" timestamp="1591824271172" />
+    <state x="2077" y="140" width="1320" height="607" key="DiffContextDialog" timestamp="1594864807637">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state x="2077" y="140" width="1320" height="607" key="DiffContextDialog/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1594864807637" />
+    <state x="897" y="458" width="319" height="279" key="DockerComposeFileDialog" timestamp="1591827477567">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="897" y="458" width="319" height="279" key="DockerComposeFileDialog/0.34.1920.1046@0.34.1920.1046" timestamp="1591827477567" />
+    <state x="853" y="179" width="380" height="589" key="EnvironmentVariablesDialog" timestamp="1591826436572">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="853" y="179" width="380" height="589" key="EnvironmentVariablesDialog/0.34.1920.1046@0.34.1920.1046" timestamp="1591826436572" />
+    <state x="2514" y="281" width="374" height="420" key="FileChooserDialogImpl" timestamp="1594864477646">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state x="2514" y="281" width="374" height="420" key="FileChooserDialogImpl/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1594864477646" />
+    <state x="713" y="356" width="424" height="491" key="FileChooserDialogImpl/0.27.1920.1053@0.27.1920.1053" timestamp="1592762917699" />
+    <state x="713" y="361" width="606" height="605" key="FileChooserDialogImpl/0.34.1920.1046@0.34.1920.1046" timestamp="1591890762531" />
+    <state width="1442" height="202" key="GridCell.Tab.0.bottom" timestamp="1595239667247">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state width="1442" height="202" key="GridCell.Tab.0.bottom/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595239667247" />
+    <state width="1474" height="216" key="GridCell.Tab.0.bottom/0.27.1920.1053@0.27.1920.1053" timestamp="1593548474096" />
+    <state width="1419" height="226" key="GridCell.Tab.0.bottom/0.34.1920.1046@0.34.1920.1046" timestamp="1591896311097" />
+    <state width="1442" height="202" key="GridCell.Tab.0.center" timestamp="1595239667247">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state width="1442" height="202" key="GridCell.Tab.0.center/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595239667247" />
+    <state width="1474" height="216" key="GridCell.Tab.0.center/0.27.1920.1053@0.27.1920.1053" timestamp="1593548474095" />
+    <state width="1419" height="226" key="GridCell.Tab.0.center/0.34.1920.1046@0.34.1920.1046" timestamp="1591896311097" />
+    <state width="1442" height="202" key="GridCell.Tab.0.left" timestamp="1595239667247">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state width="1442" height="202" key="GridCell.Tab.0.left/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595239667247" />
+    <state width="1474" height="216" key="GridCell.Tab.0.left/0.27.1920.1053@0.27.1920.1053" timestamp="1593548474095" />
+    <state width="1419" height="226" key="GridCell.Tab.0.left/0.34.1920.1046@0.34.1920.1046" timestamp="1591896311097" />
+    <state width="1442" height="202" key="GridCell.Tab.0.right" timestamp="1595239667247">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state width="1442" height="202" key="GridCell.Tab.0.right/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595239667247" />
+    <state width="1474" height="216" key="GridCell.Tab.0.right/0.27.1920.1053@0.27.1920.1053" timestamp="1593548474096" />
+    <state width="1419" height="226" key="GridCell.Tab.0.right/0.34.1920.1046@0.34.1920.1046" timestamp="1591896311097" />
+    <state width="1442" height="202" key="GridCell.Tab.1.bottom" timestamp="1595239667247">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state width="1442" height="202" key="GridCell.Tab.1.bottom/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595239667247" />
+    <state width="1474" height="216" key="GridCell.Tab.1.bottom/0.27.1920.1053@0.27.1920.1053" timestamp="1593548474100" />
+    <state width="1419" height="226" key="GridCell.Tab.1.bottom/0.34.1920.1046@0.34.1920.1046" timestamp="1591896311098" />
+    <state width="1442" height="202" key="GridCell.Tab.1.center" timestamp="1595239667247">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state width="1442" height="202" key="GridCell.Tab.1.center/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595239667247" />
+    <state width="1474" height="216" key="GridCell.Tab.1.center/0.27.1920.1053@0.27.1920.1053" timestamp="1593548474099" />
+    <state width="1419" height="226" key="GridCell.Tab.1.center/0.34.1920.1046@0.34.1920.1046" timestamp="1591896311098" />
+    <state width="1442" height="202" key="GridCell.Tab.1.left" timestamp="1595239667247">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state width="1442" height="202" key="GridCell.Tab.1.left/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595239667247" />
+    <state width="1474" height="216" key="GridCell.Tab.1.left/0.27.1920.1053@0.27.1920.1053" timestamp="1593548474099" />
+    <state width="1419" height="226" key="GridCell.Tab.1.left/0.34.1920.1046@0.34.1920.1046" timestamp="1591896311098" />
+    <state width="1442" height="202" key="GridCell.Tab.1.right" timestamp="1595239667247">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state width="1442" height="202" key="GridCell.Tab.1.right/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595239667247" />
+    <state width="1474" height="216" key="GridCell.Tab.1.right/0.27.1920.1053@0.27.1920.1053" timestamp="1593548474100" />
+    <state width="1419" height="226" key="GridCell.Tab.1.right/0.34.1920.1046@0.34.1920.1046" timestamp="1591896311098" />
+    <state width="1442" height="202" key="GridCell.Tab.2.bottom" timestamp="1595239667248">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state width="1442" height="202" key="GridCell.Tab.2.bottom/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595239667248" />
+    <state width="1474" height="216" key="GridCell.Tab.2.bottom/0.27.1920.1053@0.27.1920.1053" timestamp="1593548474100" />
+    <state width="1419" height="226" key="GridCell.Tab.2.bottom/0.34.1920.1046@0.34.1920.1046" timestamp="1591896311098" />
+    <state width="1442" height="202" key="GridCell.Tab.2.center" timestamp="1595239667247">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state width="1442" height="202" key="GridCell.Tab.2.center/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595239667247" />
+    <state width="1474" height="216" key="GridCell.Tab.2.center/0.27.1920.1053@0.27.1920.1053" timestamp="1593548474100" />
+    <state width="1419" height="226" key="GridCell.Tab.2.center/0.34.1920.1046@0.34.1920.1046" timestamp="1591896311098" />
+    <state width="1442" height="202" key="GridCell.Tab.2.left" timestamp="1595239667247">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state width="1442" height="202" key="GridCell.Tab.2.left/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595239667247" />
+    <state width="1474" height="216" key="GridCell.Tab.2.left/0.27.1920.1053@0.27.1920.1053" timestamp="1593548474100" />
+    <state width="1419" height="226" key="GridCell.Tab.2.left/0.34.1920.1046@0.34.1920.1046" timestamp="1591896311098" />
+    <state width="1442" height="202" key="GridCell.Tab.2.right" timestamp="1595239667248">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state width="1442" height="202" key="GridCell.Tab.2.right/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595239667248" />
+    <state width="1474" height="216" key="GridCell.Tab.2.right/0.27.1920.1053@0.27.1920.1053" timestamp="1593548474100" />
+    <state width="1419" height="226" key="GridCell.Tab.2.right/0.34.1920.1046@0.34.1920.1046" timestamp="1591896311098" />
+    <state x="753" y="448" width="399" height="156" key="NewPhpFileDialog" timestamp="1593028625176">
+      <screen x="0" y="27" width="1920" height="1053" />
+    </state>
+    <state x="753" y="448" width="399" height="156" key="NewPhpFileDialog/0.27.1920.1053@0.27.1920.1053" timestamp="1593028625176" />
+    <state x="753" y="452" width="458" height="185" key="NewPhpFileDialog/0.34.1920.1046@0.34.1920.1046" timestamp="1591889245996" />
+    <state x="420" y="232" width="878" height="568" key="PhpMappingAdvancedResolveDialog" timestamp="1591890308879">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="420" y="232" width="878" height="568" key="PhpMappingAdvancedResolveDialog/0.34.1920.1046@0.34.1920.1046" timestamp="1591890308879" />
+    <state x="438" y="138" width="1341" height="926" key="SettingsEditor" timestamp="1591890990062">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="438" y="138" width="1341" height="926" key="SettingsEditor/0.34.1920.1046@0.34.1920.1046" timestamp="1591890990062" />
+    <state width="631" height="498" key="SwitcherDM" timestamp="1588448109720">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state width="631" height="498" key="SwitcherDM/0.34.1920.1046@0.34.1920.1046" timestamp="1588448109720" />
+    <state x="751" y="400" width="575" height="243" key="WebDeployment.AddServerDialog.v.1" timestamp="1591824966461">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="751" y="400" width="575" height="243" key="WebDeployment.AddServerDialog.v.1/0.34.1920.1046@0.34.1920.1046" timestamp="1591824966461" />
+    <state x="406" y="266" width="1152" height="668" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2" timestamp="1592236673740">
+      <screen x="0" y="27" width="1920" height="1053" />
+    </state>
+    <state x="406" y="266" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2/0.27.1920.1053@0.27.1920.1053" timestamp="1592236673740" />
+    <state x="406" y="271" width="1152" height="668" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2/0.34.1920.1046@0.34.1920.1046" timestamp="1591891455239" />
+    <state x="0" y="34" width="1910" height="1046" key="com.jetbrains.php.config.phpInfo.PhpInfo.PhpInfoDialog" timestamp="1591890820539">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="0" y="34" width="1910" height="1046" key="com.jetbrains.php.config.phpInfo.PhpInfo.PhpInfoDialog/0.34.1920.1046@0.34.1920.1046" timestamp="1591890820539" />
+    <state x="794" y="377" width="555" height="331" key="com.jetbrains.plugins.remotesdk.ui.RemoteMappingsConfiguration" timestamp="1591890711496">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="794" y="377" width="555" height="331" key="com.jetbrains.plugins.remotesdk.ui.RemoteMappingsConfiguration/0.34.1920.1046@0.34.1920.1046" timestamp="1591890711496" />
+    <state x="2177" y="117" width="1243" height="783" key="find.popup" timestamp="1595419170388">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state x="2177" y="117" width="1243" height="783" key="find.popup/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1595419170388" />
+    <state x="308" y="356" width="1491" height="711" key="find.popup/0.27.1920.1053@0.27.1920.1053" timestamp="1594407077328" />
+    <state x="289" y="277" width="1491" height="706" key="find.popup/0.34.1920.1046@0.34.1920.1046" timestamp="1591893042859" />
+    <state x="411" y="229" width="840" height="1034" key="run.anything.popup" timestamp="1591829740011">
+      <screen x="0" y="34" width="1920" height="1046" />
+    </state>
+    <state x="411" y="229" width="840" height="1034" key="run.anything.popup/0.34.1920.1046@0.34.1920.1046" timestamp="1591829740011" />
+    <state x="2533" y="393" width="491" height="173" key="vcs.readOnlyHandler.ReadOnlyStatusDialog" timestamp="1594912530871">
+      <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state x="2533" y="393" width="491" height="173" key="vcs.readOnlyHandler.ReadOnlyStatusDialog/0.27.1920.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1594912530871" />
+    <state x="736" y="487" width="540" height="179" key="vcs.readOnlyHandler.ReadOnlyStatusDialog/0.27.1920.1053@0.27.1920.1053" timestamp="1593618323808" />
+    <state x="736" y="491" width="594" height="209" key="vcs.readOnlyHandler.ReadOnlyStatusDialog/0.34.1920.1046@0.34.1920.1046" timestamp="1591886075154" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint type="php">
+          <url>file://$PROJECT_DIR$/interface/billing/search_payments.php</url>
+          <line>32</line>
+          <option name="timeStamp" value="21" />
+        </line-breakpoint>
+        <line-breakpoint type="php">
+          <url>file://$PROJECT_DIR$/interface/billing/search_payments.php</url>
+          <line>57</line>
+          <option name="timeStamp" value="23" />
+        </line-breakpoint>
+        <line-breakpoint type="php">
+          <url>file://$PROJECT_DIR$/interface/billing/edit_payment.php</url>
+          <line>83</line>
+          <option name="timeStamp" value="30" />
+        </line-breakpoint>
+        <line-breakpoint type="php">
+          <url>file://$PROJECT_DIR$/interface/billing/edit_payment.php</url>
+          <line>56</line>
+          <option name="timeStamp" value="31" />
+        </line-breakpoint>
+        <line-breakpoint type="php">
+          <url>file://$PROJECT_DIR$/interface/billing/search_payments.php</url>
+          <line>102</line>
+          <option name="timeStamp" value="32" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+    <watches-manager>
+      <configuration name="superbill_custom_full.php">
+        <watch expression="$fstart" />
+      </configuration>
+    </watches-manager>
+  </component>
+  <component name="masterDetails">
+    <states>
+      <state key="ScopeChooserConfigurable.UI">
+        <settings>
+          <last-edited>no_language</last-edited>
+          <splitter-proportions>
+            <option name="proportions">
+              <list>
+                <option value="0.2" />
+              </list>
+            </option>
+          </splitter-proportions>
+          <order>
+            <scope name="no_language" />
+          </order>
+        </settings>
+      </state>
+    </states>
+  </component>
+</project>

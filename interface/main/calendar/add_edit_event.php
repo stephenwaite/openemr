@@ -1,21 +1,10 @@
 <?php
-/**
- * Add or edit an event in the calendar.
- *
- * Can be displayed as a popup window, or as an iframe via
- * fancybox.
- *
- * Copyright (C) 2005-2013 Rod Roark <rod@sunsetsystems.com>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * @package OpenEMR
- * @author  Rod Roark <rod@sunsetsystems.com>
- * @link    http://www.open-emr.org
- */
+ // Copyright (C) 2005-2011 Rod Roark <rod@sunsetsystems.com>
+ //
+ // This program is free software; you can redistribute it and/or
+ // modify it under the terms of the GNU General Public License
+ // as published by the Free Software Foundation; either version 2
+ // of the License, or (at your option) any later version.
 
  // The event editor looks something like this:
 
@@ -34,20 +23,25 @@
  $fake_register_globals=false;
  $sanitize_all_escapes=true;
 
-require_once('../../globals.php');
-require_once($GLOBALS['srcdir'].'/patient.inc');
-require_once($GLOBALS['srcdir'].'/forms.inc');
-require_once($GLOBALS['srcdir'].'/calendar.inc');
-require_once($GLOBALS['srcdir'].'/formdata.inc.php');
-require_once($GLOBALS['srcdir'].'/options.inc.php');
-require_once($GLOBALS['srcdir'].'/encounter_events.inc.php');
-require_once($GLOBALS['srcdir'].'/acl.inc');
+ require_once("../../globals.php");
+ require_once("$srcdir/patient.inc");
+ require_once("$srcdir/forms.inc");
+ require_once("$srcdir/calendar.inc");
+ require_once("$srcdir/formdata.inc.php");
+ require_once("$srcdir/options.inc.php");
+ require_once("$srcdir/encounter_events.inc.php");
+ require_once("$srcdir/acl.inc");
+ require_once($GLOBALS['webserver_root'].'/interface/main/calendar/includes/billNotes.php');
 
- //Check access control
- if (!acl_check('patients','appt','',array('write','wsome') ))
+ $my_permission = acl_check('patients', 'appt');
+// Add these restrictions back using new acl return value parameter when
+//  that mechanism is added to codebase.
+// if ($my_permission !== 'write' && $my_permission !== 'wsome')
+ if (!$my_permission)
    die(xl('Access not allowed'));
 
-/* Things that might be passed by our opener. */
+ // Things that might be passed by our opener.
+ //
  $eid           = $_GET['eid'];         // only for existing events
  $date          = $_GET['date'];        // this and below only for new events
  $userid        = $_GET['userid'];
@@ -213,33 +207,6 @@ if ($_POST['form_action'] == "duplicate" || $_POST['form_action'] == "save")
     }
     $endtime = "$tmph:$tmpm:00";
 
-    // Set up working variables related to repeated events.
-    $my_recurrtype = 0;
-    $my_repeat_freq = 0 + $_POST['form_repeat_freq'];
-    $my_repeat_type = 0 + $_POST['form_repeat_type'];
-    $my_repeat_on_num  = 1;
-    $my_repeat_on_day  = 0;
-    $my_repeat_on_freq = 0;
-    if (!empty($_POST['form_repeat'])) {
-      $my_recurrtype = 1;
-      if ($my_repeat_type > 4) {
-        $my_recurrtype = 2;
-        $time = strtotime($event_date);
-        $my_repeat_on_day = 0 + date('w', $time);
-        $my_repeat_on_freq = $my_repeat_freq;
-        if ($my_repeat_type == 5) {
-          $my_repeat_on_num = intval((date('j', $time) - 1) / 7) + 1;
-        }
-        else {
-          // Last occurence of this weekday on the month
-          $my_repeat_on_num = 5;
-        }
-        // Maybe not needed, but for consistency with postcalendar:
-        $my_repeat_freq = 0;
-        $my_repeat_type = 0;
-      }
-    }
-
     // Useless garbage that we must save.
     $locationspecs = array("event_location" => "",
                             "event_street1" => "",
@@ -251,11 +218,11 @@ if ($_POST['form_action'] == "duplicate" || $_POST['form_action'] == "save")
     $locationspec = serialize($locationspecs);
 
     // capture the recurring specifications
-    $recurrspec = array("event_repeat_freq" => "$my_repeat_freq",
-                        "event_repeat_freq_type" => "$my_repeat_type",
-                        "event_repeat_on_num" => "$my_repeat_on_num",
-                        "event_repeat_on_day" => "$my_repeat_on_day",
-                        "event_repeat_on_freq" => "$my_repeat_on_freq",
+    $recurrspec = array("event_repeat_freq" => $_POST['form_repeat_freq'],
+                        "event_repeat_freq_type" => $_POST['form_repeat_type'],
+                        "event_repeat_on_num" => "1",
+                        "event_repeat_on_day" => "0",
+                        "event_repeat_on_freq" => "0",
                         "exdate" => $_POST['form_repeat_exdate']
                     );
 
@@ -433,7 +400,7 @@ if ($_POST['form_action'] == "save") {
                         "pc_eventDate = '" . add_escape_custom($event_date) . "', " .
                         "pc_endDate = '" . add_escape_custom(fixDate($_POST['form_enddate'])) . "', " .
                         "pc_duration = '" . add_escape_custom(($duration * 60)) . "', " .
-                        "pc_recurrtype = '" . add_escape_custom($my_recurrtype) . "', " .
+                        "pc_recurrtype = '" . add_escape_custom(($_POST['form_repeat'] ? '1' : '0')) . "', " .
                         "pc_recurrspec = '" . add_escape_custom(serialize($recurrspec)) . "', " .
                         "pc_startTime = '" . add_escape_custom($starttime) . "', " .
                         "pc_endTime = '" . add_escape_custom($endtime) . "', " .
@@ -442,9 +409,10 @@ if ($_POST['form_action'] == "save") {
                         "pc_prefcatid = '" . add_escape_custom($_POST['form_prefcat']) . "' ,"  .
                         "pc_facility = '" . add_escape_custom((int)$_POST['facility']) ."' ,"  . // FF stuff
                         "pc_billing_location = '" . add_escape_custom((int)$_POST['billing_facility']) ."' "  . 
-                        "WHERE pc_aid = '" . add_escape_custom($provider) . "' AND pc_multiple = '" . add_escape_custom($row['pc_multiple'])  . "'");
+			"WHERE pc_aid = '" . add_escape_custom($provider) . "' AND pc_multiple = '" . add_escape_custom($row['pc_multiple'])  . "'");
                 } // foreach
             }
+
 
         // ====================================
         // single provider
@@ -524,7 +492,7 @@ if ($_POST['form_action'] == "save") {
                     "pc_eventDate = '" . add_escape_custom($event_date) . "', " .
                     "pc_endDate = '" . add_escape_custom(fixDate($_POST['form_enddate'])) . "', " .
                     "pc_duration = '" . add_escape_custom(($duration * 60)) . "', " .
-                    "pc_recurrtype = '" . add_escape_custom($my_recurrtype) . "', " .
+                    "pc_recurrtype = '" . add_escape_custom(($_POST['form_repeat'] ? '1' : '0')) . "', " .
                     "pc_recurrspec = '" . add_escape_custom(serialize($recurrspec)) . "', " .
                     "pc_startTime = '" . add_escape_custom($starttime) . "', " .
                     "pc_endTime = '" . add_escape_custom($endtime) . "', " .
@@ -533,7 +501,7 @@ if ($_POST['form_action'] == "save") {
                     "pc_prefcatid = '" . add_escape_custom($_POST['form_prefcat']) . "' ,"  .
                     "pc_facility = '" . add_escape_custom((int)$_POST['facility']) ."' ,"  . // FF stuff
                     "pc_billing_location = '" . add_escape_custom((int)$_POST['billing_facility']) ."' "  . 
-                    "WHERE pc_eid = '" . add_escape_custom($eid) . "'");
+		    "WHERE pc_eid = '" . add_escape_custom($eid) . "'");
             }
         }
 
@@ -720,17 +688,6 @@ if ($_POST['form_action'] == "save") {
   $repeatfreq = $rspecs['event_repeat_freq'];
   $repeatexdate = $rspecs['exdate']; // repeating date exceptions
 
-  // Adjustments for repeat type 2, a particular weekday of the month.
-  if ($repeats == 2) {
-    $repeatfreq = $rspecs['event_repeat_on_freq'];
-    if ($rspecs['event_repeat_on_num'] < 5) {
-      $repeattype = 5;
-    }
-    else {
-      $repeattype = 6;
-    }
-  }
-
   $hometext = $row['pc_hometext'];
   if (substr($hometext, 0, 6) == ':text:') $hometext = substr($hometext, 6);
  }
@@ -826,9 +783,8 @@ td { font-size:0.8em; }
  if($_GET['prov']==true){
   $cattype=1;
  }
- $cres = sqlStatement("SELECT pc_catid, pc_cattype, pc_catname, " .
-  "pc_recurrtype, pc_duration, pc_end_all_day " .
-  "FROM openemr_postcalendar_categories ORDER BY pc_catname");
+ $cres = sqlStatement("SELECT pc_catid, pc_catname, pc_recurrtype, pc_duration, pc_end_all_day " .
+  "FROM openemr_postcalendar_categories WHERE pc_cattype=? ORDER BY pc_catname", array($cattype) );
  $catoptions = "";
  $prefcat_options = "    <option value='0'>-- " . xlt("None") . " --</option>\n";
  $thisduration = 0;
@@ -838,18 +794,6 @@ td { font-size:0.8em; }
  while ($crow = sqlFetchArray($cres)) {
   $duration = round($crow['pc_duration'] / 60);
   if ($crow['pc_end_all_day']) $duration = 1440;
-
-  // This section is to build the list of preferred categories:
-  if ($duration) {
-   $prefcat_options .= "    <option value='" . attr($crow['pc_catid']) . "'";
-   if ($eid) {
-    if ($crow['pc_catid'] == $row['pc_prefcatid']) $prefcat_options .= " selected";
-   }
-   $prefcat_options .= ">" . text(xl_appt_category($crow['pc_catname'])) . "</option>\n";
-  }
-
-  if ($crow['pc_cattype'] != $cattype) continue;
-
   echo " durations[" . attr($crow['pc_catid']) . "] = " . attr($duration) . "\n";
   // echo " rectypes[" . $crow['pc_catid'] . "] = " . $crow['pc_recurrtype'] . "\n";
   $catoptions .= "    <option value='" . attr($crow['pc_catid']) . "'";
@@ -862,6 +806,16 @@ td { font-size:0.8em; }
    }
   }
   $catoptions .= ">" . text(xl_appt_category($crow['pc_catname'])) . "</option>\n";
+
+  // This section is to build the list of preferred categories:
+  if ($duration) {
+   $prefcat_options .= "    <option value='" . attr($crow['pc_catid']) . "'";
+   if ($eid) {
+    if ($crow['pc_catid'] == $row['pc_prefcatid']) $prefcat_options .= " selected";
+   }
+   $prefcat_options .= ">" . text(xl_appt_category($crow['pc_catname'])) . "</option>\n";
+  }
+
  }
 ?>
 
@@ -961,40 +915,6 @@ td { font-size:0.8em; }
   document.getElementById('img_enddate').style.visibility = myvisibility;
  }
 
- // Constants used by dateChanged() function.
- var occurNames = new Array(
-  '<?php echo xls("1st"); ?>',
-  '<?php echo xls("2nd"); ?>',
-  '<?php echo xls("3rd"); ?>',
-  '<?php echo xls("4th"); ?>'
- );
-
- // Monitor start date changes to adjust repeat type options.
- function dateChanged() {
-  var f = document.forms[0];
-  if (!f.form_date.value) return;
-  var d = new Date(f.form_date.value);
-  var downame = Calendar._DN[d.getUTCDay()];
-  var nthtext = '';
-  var occur = Math.floor((d.getUTCDate() - 1) / 7);
-  if (occur < 4) { // 5th is not allowed
-   nthtext = occurNames[occur] + ' ' + downame;
-  }
-  var lasttext = '';
-  var tmp = new Date(d.getUTCFullYear(), d.getUTCMonth() + 1, 0);
-  if (tmp.getUTCDate() - d.getUTCDate() < 7) {
-   // This is a last occurrence of the specified weekday in the month,
-   // so permit that as an option.
-   lasttext = '<?php echo xls("Last"); ?> ' + downame;
-  }
-  var si = f.form_repeat_type.selectedIndex;
-  var opts = f.form_repeat_type.options;
-  opts.length = 5; // remove any nth and Last entries
-  if (nthtext ) opts[opts.length] = new Option(nthtext , '5');
-  if (lasttext) opts[opts.length] = new Option(lasttext, '6');
-  if (si < opts.length) f.form_repeat_type.selectedIndex = si;
- }
-
  // This is for callback by the find-available popup.
  function setappt(year,mon,mday,hours,minutes) {
   var f = document.forms[0];
@@ -1031,6 +951,7 @@ td { font-size:0.8em; }
                 '&eid=<?php echo 0 + $eid; ?>' +
                 extra,
                 '_blank', 500, 400);
+        //END (CHEMED) modifications
     }
 
 </script>
@@ -1127,7 +1048,7 @@ $classpati='';
    <input type='text' size='10' name='form_date' id='form_date'
     value='<?php echo attr($date) ?>'
     title='<?php echo xla('yyyy-mm-dd event date or starting date'); ?>'
-    onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' onchange='dateChanged()' />
+    onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' />
    <img src='../../pic/show_calendar.gif' align='absbottom' width='24' height='22'
     id='img_date' border='0' alt='[?]' style='cursor:pointer;cursor:hand'
     title='<?php echo xla('Click here to choose a date'); ?>'>
@@ -1228,7 +1149,8 @@ $classpati='';
    <b><?php echo xlt('Patient'); ?>:</b>
   </td>
   <td nowrap>
-   <input type='text' size='10' name='form_patient' style='width:100%;cursor:pointer;cursor:hand' value='<?php echo attr($patientname); ?>' onclick='sel_patient()' title='<?php echo xla('Click to select patient'); ?>' readonly />
+   <input type='text' size='10' name='form_patient' style='width:100%;cursor:pointer;cursor:hand' value='<?php echo attr($patientname); ?>' onclick='sel_patient()' 
+          title='<?php $_tip = 'Click to select patient'; if ($patientid) $_tip .= "\n".billNotes($patientid); echo htmlspecialchars($_tip);?>' readonly />
    <input type='hidden' name='form_pid' value='<?php echo attr($patientid) ?>' />
   </td>
   <td colspan='3' nowrap style='font-size:8pt'>
@@ -1380,10 +1302,9 @@ if  ($GLOBALS['select_multi_providers']) {
 
    <select name='form_repeat_type'>
 <?php
- // See common.api.php for these. Options 5 and 6 will be dynamically filled in
- // when the start date is set.
- foreach (array(0 => xl('day') , 4 => xl('workday'), 1 => xl('week'), 2 => xl('month'), 3 => xl('year'),
-   5 => '?', 6 => '?') as $key => $value)
+ // See common.api.php for these:
+ foreach (array(0 => xl('day') , 4 => xl('workday'), 1 => xl('week'), 2 => xl('month'), 3 => xl('year'))
+  as $key => $value)
  {
   echo "    <option value='" . attr($key) . "'";
   if ($key == $repeattype) echo " selected";
@@ -1485,8 +1406,7 @@ if ($repeatexdate != "") {
 &nbsp;
 <input type='button' name='form_duplicate' id='form_duplicate' value='<?php echo xla('Create Duplicate');?>' />
 </p></td></tr></table>
-<?php if ($informant) echo "<p class='text'>" . xlt('Last update by') . " " .
-  text($informant) . " " . xlt('on') . " " . text($row['pc_time']) . "</p>\n"; ?>
+<?php if ($informant) echo "<p class='text'>" . xlt('Last update by') . " text($informant) " . xlt('on') . " " . text($row['pc_time']) . "</p>\n"; ?>
 </center>
 </form>
 
@@ -1530,9 +1450,6 @@ $(document).ready(function(){
     $("#future_events").click(function() { $("#recurr_affect").val("future"); EnableForm(); SubmitForm(); });
     $("#current_event").click(function() { $("#recurr_affect").val("current"); EnableForm(); SubmitForm(); });
     $("#recurr_cancel").click(function() { $("#recurr_affect").val(""); EnableForm(); HideRecurrPopup(); });
-
-    // Initialize repeat options.
-    dateChanged();
 });
 
 // Check for errors when the form is submitted.

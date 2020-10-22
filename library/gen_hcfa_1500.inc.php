@@ -328,7 +328,7 @@ function gen_hcfa_1500_page($pid, $encounter, &$log, &$claim) {
   put_hcfa(32, 5, 2, substr($tmp,6,2));
   put_hcfa(32, 8, 4, substr($tmp,0,4));
   
-  if(hcfa_1500_version_02_12())
+  if(hcfa_1500_version_02_12() AND $claim->onsetDateValid())
   {
     put_hcfa(32, 16, 3, $claim->box14qualifier());
       

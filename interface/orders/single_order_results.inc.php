@@ -29,7 +29,7 @@ function getListItem($listid, $value) {
     "WHERE list_id = ? AND option_id = ?",
     array($listid, $value));
   $tmp = xl_list_label($lrow['title']);
-  if (empty($tmp)) $tmp = (($value === '') ? '' : "($value)");
+  if (empty($tmp)) $tmp = "($report_status)";
   return $tmp;
 }
 
@@ -52,14 +52,14 @@ function storeNote($s) {
 
 function generate_order_report($orderid, $input_form=false) {
   global $aNotes;
-
-  // Check authorization.
+  
+    // Check authorization.
   $thisauth = acl_check('patients', 'med');
   if (!$thisauth) return xl('Not authorized');
 
   $orow = sqlQuery("SELECT " .
-    "po.procedure_order_id, po.date_ordered, " .
-    "po.order_status, po.specimen_type, " .
+    "po.procedure_order_id, po.date_collected, " .
+    "po.order_status, po.specimen_type, po.control_id, " . 
     "pd.pubpid, pd.lname, pd.fname, pd.mname, " .
     "fe.date, " .
     "pp.name AS labname, " .
@@ -124,19 +124,27 @@ function showpnotes(orderid) {
 <div class='labres'>
 
 <table width='100%' cellpadding='2' cellspacing='0'>
+<?php if (!($input_form)) { ?>
+ <tr>
+    <td class='bold'><a <?php echo "href='" . $GLOBALS['web_root'] . "/interface/forms/procedure_order/print.php?orderid=" . text($orderid) ."'>Print Order</a></td>";?>
+    <td colspan="3"></td>
+<?php } // end if not input form ?>
  <tr bgcolor='#cccccc'>
   <td width='5%' nowrap><?php echo xlt('Patient ID'); ?></td>
   <td width='45%'><?php echo myCellText($orow['pubpid']); ?></td>
-  <td width='5%' nowrap><?php echo xlt('Order ID'); ?></td>
+  <td width='5%' nowrap><?php echo xlt('Order ID') ; ?></td>
 
   <td width='45%'>
 <?php
   echo "   <a href='" . $GLOBALS['webroot'];
-  echo "/interface/orders/order_manifest.php?orderid=";
-  echo attr($orow['procedure_order_id']);
-  echo "' target='_blank' onclick='top.restoreSession()'>";
+  echo "/interface/forms/procedure_order/print.php?orderid=";
+  echo text($orderid);
+  echo "'>";
   echo myCellText($orow['procedure_order_id']);
-  echo "</a>\n";
+  echo "</a>";
+  if (!empty($orow['control_id'])) 
+          echo " / " . myCellText($orow['control_id']);
+  echo "\n";
 ?>
   </td>
  </tr>
@@ -148,7 +156,7 @@ function showpnotes(orderid) {
  </tr>
  <tr bgcolor='#cccccc'>
   <td nowrap><?php echo xlt('Order Date'); ?></td>
-  <td><?php echo myCellText(oeFormatShortDate($orow['date_ordered'])); ?></td>
+  <td><?php echo myCellText($orow['date_collected']); ?></td>
   <td nowrap><?php echo xlt('Print Date'); ?></td>
   <td><?php echo oeFormatShortDate(date('Y-m-d')); ?></td>
  </tr>

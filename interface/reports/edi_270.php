@@ -102,7 +102,8 @@
 								   f.federal_ein,
 								   f.facility_npi,
 								   f.name as facility_name,
-								   c.name as payer_name
+								   c.name as payer_name,
+								   c.cms_id as payer_id
 							FROM openemr_postcalendar_events AS e
 							LEFT JOIN users AS d on (e.pc_aid is not null and e.pc_aid = d.id)
 							LEFT JOIN facility AS f on (f.id = e.pc_facility)
@@ -133,11 +134,11 @@
 		
 	if (isset($_POST['form_savefile']) && !empty($_POST['form_savefile']) && $res) {
 		header('Content-Type: text/plain');
-		header(sprintf('Content-Disposition: attachment; filename="elig-270..%s.%s.txt"',
+		header(sprintf('Content-Disposition: attachment; filename="elig-270.%s.%s.txt"',
 			$from_date,
 			$to_date
 		));
-		print_elig($res,$X12info,$segTer,$compEleSep);
+		echo print_elig($res,$X12info,$compEleSep,$segTer);
 		exit; 
 	}
 ?>

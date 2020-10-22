@@ -832,6 +832,11 @@ class Claim {
     return $this->payers[$ins]['object']->get_freeb_claim_type();
   }
 
+  function claimTypeRaw($ins=0) {
+    if (empty($this->payers[$ins]['object'])) return 0;
+    return $this->payers[$ins]['object']->get_freeb_type();
+  }
+
   function insuredLastName($ins=0) {
     return x12clean(trim($this->payers[$ins]['data']['subscriber_lname']));
   }
@@ -1174,7 +1179,7 @@ class Claim {
             }
             else
             {
-                $diag=$code_data[1];
+                $diag=$code_data[0];
             }
           }
           $da[$diag] = $diag;

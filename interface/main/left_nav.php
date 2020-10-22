@@ -1,11 +1,10 @@
 <?php
-/* Copyright (C) 2006-2012 Rod Roark <rod@sunsetsystems.com>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- */
+ // Copyright (C) 2006-2012 Rod Roark <rod@sunsetsystems.com>
+ //
+ // This program is free software; you can redistribute it and/or
+ // modify it under the terms of the GNU General Public License
+ // as published by the Free Software Foundation; either version 2
+ // of the License, or (at your option) any later version.
 
  // This provides the left navigation frame when $GLOBALS['concurrent_layout']
  // is true.  Following are notes as to what else was changed for this feature:
@@ -133,6 +132,7 @@
   'doc' => array(xl('Documents') , 1, '../controller.php?document&list&patient_id={PID}'),
   'orp' => array(xl('Proc Pending Rev'), 1, 'orders/orders_results.php?review=1'),
   'orr' => array(xl('Proc Res')  , 1, 'orders/orders_results.php'),
+  'lda' => array(xl('Lab overview')  , 1, 'patient_file/summary/labdata.php'),
   'prp' => array(xl('Pt Report') , 1, 'patient_file/report/patient_report.php'),
   'prq' => array(xl('Pt Rec Request') , 1, 'patient_file/transaction/record_request.php'),
   'pno' => array(xl('Pt Notes')  , 1, 'patient_file/summary/pnotes.php'),
@@ -157,7 +157,7 @@
   acl_check('admin', 'database') || acl_check('admin', 'forms') ||
   acl_check('admin', 'practice') || acl_check('admin', 'users') ||
   acl_check('admin', 'acl')      || acl_check('admin', 'super') ||
-  acl_check('admin', 'superbill') || acl_check('admin', 'drugs'));
+  acl_check('admin', 'superbill'));
 
  $disallowed['bil'] = !(acl_check('acct', 'rep') || acl_check('acct', 'eob') ||
   acl_check('acct', 'bill'));
@@ -212,9 +212,12 @@
  }
  function genPopLink($title, $url, $linkid='') {
   echo "<li><a href='' ";
-  if ($linkid) echo "id='$linkid' ";
-  echo "onclick=\"return repPopup('$url')\"" .
-       ">" . $title . "</a></li>";
+	// WMT - modified to support patient/encounter
+	if ($linkid)
+		echo "id='$linkid' onclick=\"return repPopup('$url','$linkid')\">" . $title . "</a></li>";
+	else
+		echo "onclick=\"return repPopup('$url')\">" . $title . "</a></li>";
+	// WMT - end mod
  }
  function genDualLink($topname, $botname, $title) {
   global $primary_docs, $disallowed;
@@ -759,7 +762,9 @@ function clearactive() {
 
 function loadCurrentPatientFromTitle() {
     top.restoreSession();
-    top.frames['RTop'].location='../patient_file/summary/demographics.php';
+	// WMT - modified following for popup forms
+	// top.frames['RTop'].location='../interface/patient_file/summary/demographics.php';
+    top.frames['RTop'].location='<?php echo $web_root ?>/interface/patient_file/summary/demographics.php';
 }
 
 function getEncounterTargetFrame( name ) {
@@ -804,7 +809,6 @@ function getEncounterTargetFrame( name ) {
  }
 
  function loadCurrentEncounterFromTitle() {
-      top.restoreSession();
       top.frames[ parent.left_nav.getEncounterTargetFrame('enc') ].location='../patient_file/encounter/encounter_top.php';
  }
 
@@ -872,7 +876,22 @@ function removeOptionSelected(EncounterId)
  }
 
  // Pop up a report.
- function repPopup(aurl) {
+ // WMT - added to require patient/encounter
+ //function repPopup(aurl) {
+ function repPopup(aurl,fname) {
+     if (typeof fname == 'undefined') var fname = '';
+ 	 if (fname != '') {
+	  var usage = fname.substring(3);
+	  if (active_pid == 0 && usage > '0') {
+	   alert('<?php xl('You must first select or add a patient.','e') ?>');
+	   return false;
+	  }
+	  if (active_encounter == 0 && usage > '1') {
+	   alert('<?php xl('You must first select or create an encounter.','e') ?>');
+	   return false;
+	  }
+	 }
+ // WMT - end require patient/encounter
   top.restoreSession();
   window.open('<?php echo "$web_root/interface/reports/" ?>' + aurl, '_blank', 'width=750,height=550,resizable=1,scrollbars=1');
   return false;
@@ -929,6 +948,7 @@ $(document).ready(function(){
     $("#navigation-slide > li  > a#admimg").prepend('<img src="../../images/admin.png" class="nav-menu-img" />');
     $("#navigation-slide > li  > a#misimg").prepend('<img src="../../images/misc.png" class="nav-menu-img" />');
     $("#navigation-slide > li  > a#proimg").prepend('<img src="../../images/procedures.png" class="nav-menu-img" />');
+        $("#navigation-slide > li  > a#labimg").prepend('<img src="../../images/laboratory.png" class="nav-menu-img" />');
     $("#navigation-slide > li").each(function(index) {
       if($(" > ul > li", this).size() == 0){
         $(" > a", this).addClass("collapsed");
@@ -1192,12 +1212,6 @@ if (!empty($reg)) {
 ?>
         </ul>
       </li>
-      <li class="collapsed" ><a class="collapsed_lv2"><span><?php echo xlt('Import') ?></span></a>
-        <ul>
-          <?php genMiscLink('RTop','ccr','0',xlt('Upload'),'patient_file/ccr_import.php'); ?>
-          <?php genMiscLink('RTop','apr','0',xlt('Pending Approval'),'patient_file/ccr_pending_approval.php'); ?>
-        </ul>
-      </li>
 <?php } // end if gbl_nav_visit_forms ?>
 
     </ul>
@@ -1224,16 +1238,39 @@ if (!empty($reg)) {
       <?php genPopLink(xl('Destroyed'),'destroyed_drugs_report.php'); ?>
     </ul>
   </li>
-<?php } ?>
+<?php } 
+// WMT - add laboratory menu items
+if ($GLOBALS['wmt_lab_enable']) { // WMT LabLink enabled ?>
+  <li><a class="collapsed" id="labimg"><span><?php xl('Laboratory','e') ?></span></a>
+	<ul>
+		  <?php genMiscLink('RTop','orl','0',xl('Processors'),'laboratory/laboratory_list.php'); ?>
+		  <?php genMiscLink('RTop','ort','0',xl('Compendium'),'laboratory/types.php'); ?>
+	      <?php genMiscLink('RTop','orc','0',xl('Load Compendium'),'laboratory/load_compendium.php'); ?>
+	      <?php genMiscLink('RTop','ort','0',xl('Run Batch Process'),'laboratory/batch_process.php'); ?>
+    </ul></li>
+<?php 
+} ?>
   <li><a class="collapsed" id="proimg" ><span><?php xl('Procedures','e') ?></span></a>
     <ul>
       <?php genTreeLink('RTop','orl',xl('Providers')); ?>
       <?php genTreeLink('RTop','ort',xl('Configuration')); ?>
       <?php genTreeLink('RTop','orc',xl('Load Compendium')); ?>
-      <?php genTreeLink('RTop','orp',xl('Pending Review')); ?>
-      <?php genTreeLink('RTop','orr',xl('Patient Results')); ?>
-      <?php genTreeLink('RTop','orb',xl('Batch Results')); ?>
+      <?php if (!$GLOBALS['MI10_elab']) genTreeLink('RTop','orp',xl('Pending Review')); ?>
+      <?php if (!$GLOBALS['MI10_elab']) genTreeLink('RTop','orr',xl('Patient Results')); ?>
+      <?php if (!$GLOBALS['MI10_elab']) genTreeLink('RTop','orb',xl('Batch Results')); ?>
       <?php genTreeLink('RTop','ore',xl('Electronic Reports')); ?>
+
+ 
+<?php
+/* QUEST START    ---------- OLD ------------
+ if ($GLOBALS['lab_quest_enable']) { ?>
+          <?php genMiscLink('RTop','lab','0',xl('Quest Lab Report'),'reports/myreports/lab_forms.php'); ?>
+          <?php genMiscLink('RTop','lab','0',xl('Orphan Lab Results'),'reports/myreports/lab_results.php'); ?>
+          <?php if (acl_check('admin', 'users'   )) genMiscLink('RTop','lab','0',xl('Quest Batch Process'),'reports/myreports/lab_batch.php'); ?>
+          <?php if (acl_check('admin', 'users'   )) genMiscLink('RTop','lab','0',xl('Quest CDC Update'),'reports/myreports/lab_update.php'); ?>
+<?php } 
+// QUEST END */?>
+
     </ul>
   </li>
   <?php
@@ -1350,6 +1387,17 @@ if (!empty($reg)) {
           <?php genMiscLink('RTop','rep','0',xl('Activity'),'reports/inventory_activity.php'); ?>
           <?php genMiscLink('RTop','rep','0',xl('Transactions'),'reports/inventory_transactions.php'); ?>
         </ul>
+      </li>
+<?php } ?>
+<?php if ($GLOBALS['wmt_lab_enable']) { // WMT laboratory interface ?>
+	  <li><a class="collapsed_lv2"><span><?php xl('Laboratory','e') ?></span></a>
+										<ul>
+          <?php genPopLink(xl('Pending Orders'),'laboratory/lab_pending.php?popup=1',0); ?>
+		  <?php genPopLink(xl('Orders Report'),'laboratory/lab_orders.php?popup=1',0); ?>
+		  <?php genPopLink(xl('Results Report'),'laboratory/lab_results.php?popup=1',0); ?>
+		  <?php genPopLink(xl('Orphan Results'),'laboratory/lab_orphans.php?popup=1',0); ?>
+		  <?php genPopLink(xl('Results Analysis'),'laboratory/lab_analysis.php?popup=1','ral1'); ?>
+		  </ul>
       </li>
 <?php } ?>
       <li><a class="collapsed_lv2"><span><?php xl('Procedures','e') ?></span></a>

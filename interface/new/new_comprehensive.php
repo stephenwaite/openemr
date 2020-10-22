@@ -13,7 +13,8 @@ require_once("$srcdir/patient.inc");
 require_once("$srcdir/erx_javascript.inc.php");
 
 // Check authorization.
-if (!acl_check('patients','demo','',array('write','addonly') ))
+$thisauth = acl_check('patients', 'demo');
+if ($thisauth != 'write' && $thisauth != 'addonly')
   die("Adding demographics is not authorized.");
 
 $CPR = 4; // cells per row
@@ -98,8 +99,12 @@ div.section {
 if((top.window.parent) && (parent.window)){
         var wname = top.window.parent.left_nav;
         fname = (parent.window.name)?parent.window.name:window.name;
-        wname.syncRadios();
-        wname.setRadio(fname, "new");
+// CRISWELL - fix error associated with popup windows
+        if (wname) {
+	        wname.syncRadios();
+    	    wname.setRadio(fname, "new");
+        }
+// CRISWELL - END
 }//Visolve - sync the radio buttons - End
 
 var mypcc = '<?php echo $GLOBALS['phone_country_code'] ?>';
@@ -250,8 +255,7 @@ function trimlen(s) {
 }
 
 function validate(f) {
-  var errMsgs = new Array();
-  <?php generate_layout_validation('DEM'); ?>
+<?php generate_layout_validation('DEM'); ?>
   <?php if($GLOBALS['erx_enable']){ ?>
   alertMsg='';
   for(i=0;i<f.length;i++){
@@ -279,17 +283,6 @@ function validate(f) {
     return false;
   }
   <?php } ?>
-  var msg = "";
-  msg += "<?php echo htmlspecialchars(xl('The following fields are required'),ENT_QUOTES); ?>:\n\n";
-  for ( var i = 0; i < errMsgs.length; i++ ) {
-         msg += errMsgs[i] + "\n";
-  }
-  msg += "\n<?php echo htmlspecialchars(xl('Please fill them in before continuing.'),ENT_QUOTES); ?>";
- 
-  if ( errMsgs.length > 0 ) {
-         alert(msg);
-         return false;
-  }
  return true;
 }
 
@@ -359,8 +352,9 @@ while ($lrow = sqlFetchArray($lres)) {
   }
 }
 ?>
-
- dlgopen(url, '_blank', 700, 500);
+//CRISWELL - Use consistant window
+// dlgopen(url, '_blank', 700, 500);
+ dlgopen(url, 'search', 700, 500);
 }
 
 //-->

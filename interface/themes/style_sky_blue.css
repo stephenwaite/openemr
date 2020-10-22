@@ -1,3 +1,20 @@
+/* COLOR STYLES FOR WMT SOFTWARE */
+.wmtColorMain		{ background-color: #FFFFFF; }
+.wmtColorBar 		{ background-color: rgb(170, 255, 255); }
+.wmtColorBox 		{ background-color: #FFFFFF; border-color: #99ccff; }
+.wmtColorHeader 	{ background-color: #99ccff; color: #4c2222; }
+.wmtColorMenu 		{ background-color: #ebf6fb; border-color: #F8F1B9; }
+.wmtLabMenu 
+	.ui-state-default	{ background-color: #66aaee; border-color: #CC6633; }
+.wmtLabMenu 
+	.ui-state-active	{ background-color: #FFFFFF; border-color: #CC6633; }
+.wmtLabMenu
+	.ui-tabs-vertical .ui-tabs-nav li { background-color: #61a0ff; }
+#fancybox-content,
+.wmtColorBase		{ background-color: #ebf6fb; }
+/* END WMT COLOR STYLES */
+
+
 body {
     margin: 0px 0px 0px 2px;
     /* set the base font and size for all DOM children */

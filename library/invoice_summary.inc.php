@@ -204,7 +204,12 @@ function ar_get_invoice_summary($patient_id, $encounter_id, $with_detail = false
     "ORDER BY s.check_date, a.sequence_no", array($patient_id,$encounter_id) );
   while ($row = sqlFetchArray($res)) {
     $code = $row['code'];
-    if (! $code) $code = "Unknown";
+    if (! $code) {
+          if ($row['account_code'] == 'PCP') 
+              $code = 'Co-Pay';
+          else
+              $code = "Unknown";
+      }
     if ($row['modifier']) $code .= ':' . $row['modifier'];
     $ins_id = 0 + $row['payer_id'];
     $codes[$code]['bal'] -= $row['pay_amount'];
