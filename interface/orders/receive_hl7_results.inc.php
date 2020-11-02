@@ -475,7 +475,8 @@ function match_provider($arr)
 
         $oprow = sqlQuery(
             "SELECT id, username FROM users WHERE " .
-            "username IS NOT NULL AND username != '' AND $where " .
+            //"username IS NOT NULL AND username != '' AND $where " .
+            $where . 
             "ORDER BY active DESC, authorized DESC, username, id LIMIT 1",
             $qarr
         );
@@ -511,7 +512,7 @@ function create_skeleton_patient($patient_data)
  * @param  string  &$hl7      The input HL7 text
  * @param  string  &$matchreq Array of shared patient matching requests
  * @param  int     $lab_id    Lab ID
- * @param  char    $direction B=Bidirectional, R=Results-only
+ * @param  string  $direction B=Bidirectional, R=Results-only
  * @param  bool    $dryrun    True = do not update anything, just report errors
  * @param  array   $matchresp Array of responses to match requests; key is relative segment number,
  *                            value is an existing pid or 0 to specify creating a patient
@@ -731,10 +732,13 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
                     $tmp = explode($d2, $a[19]);
                     $in_encounter = intval($tmp[0]);
                 }
-            } elseif ('MDM' == $msgtype) {
+            }
+            if ('MDM' == $msgtype || $direction != 'B' ) {
                 // For documents we want the ordering provider.
                 // Try Referring Provider first.
-                $oprow = match_provider(explode($d2, $a[8]));
+                error_log("looking for ref prov " . explode($d2, $a[7])[0]);
+                $oprow = match_provider(explode($d2, $a[7]));
+                error_log("op row id is " . $oprow['id']);
                 // If no match, try Other Provider.
                 if (empty($oprow)) {
                     $oprow = match_provider(explode($d2, $a[52]));
@@ -849,7 +853,7 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
 
                     if (!$provider_id) {
                               // Attempt ordering provider matching by name or NPI.
-                              $oprow = match_provider(explode($d2, $a[16]));
+                              //$oprow = match_provider(explode($d2, $a[16]));
                         if (!empty($oprow)) {
                             $provider_id = intval($oprow['id']);
                         }

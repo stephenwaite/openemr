@@ -652,7 +652,7 @@
       {
         "label": "Electronic Reports",
         "menu_id": "ore0",
-        "target": "pat",
+        "target": "lab",
         "url": "/interface/orders/list_reports.php",
         "children": [],
         "requirement": 0,
