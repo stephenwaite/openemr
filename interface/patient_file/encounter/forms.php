@@ -740,6 +740,7 @@ if ($attendant_type == 'pid' && is_numeric($pid)) {
     $result = sqlQuery("SELECT sensitivity FROM form_encounter WHERE " .
                         "pid = ? AND encounter = ? LIMIT 1", array($pid, $encounter));
     if (($result['sensitivity'] && !AclMain::aclCheckCore('sensitivities', $result['sensitivity'])) || !$authPostCalendarCategory) {
+        error_lo
         $pass_sens_squad = false;
     }
     // for therapy group

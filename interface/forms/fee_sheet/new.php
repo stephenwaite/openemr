@@ -849,36 +849,35 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                                 xlt("This encounter has been billed. To make changes, re-open it or select Add More Items.") .
                              "</p>\n";
                     } else { // the encounter is not yet billed
-                        ?>
-                        <fieldset>
-                        <legend><?php echo xlt('Set Price Level'); ?></legend>
-                            <div class='form-group mx-5 text-center'>
-                                <?php
-                                // Allow the patient price level to be fixed here.
-                                $plres = sqlStatement("SELECT option_id, title FROM list_options " .
-                                "WHERE list_id = 'pricelevel' AND activity = 1 ORDER BY seq, title");
-                                if (true) {
-                                    $pricelevel = $fs->getPriceLevel();
-                                    //echo "   <span class='billcell'><b>" . xlt('Default Price Level') . ":</b></span>\n";
-                                    echo "   <select name='pricelevel' class='form-control' ";
-                                    if ($isBilled) {
-                                        echo " disabled";
-                                    }
-                                    echo ">\n";
-                                    while ($plrow = sqlFetchArray($plres)) {
-                                        $key = $plrow['option_id'];
-                                        $val = $plrow['title'];
-                                        echo "    <option value='" . attr($key) . "'";
-                                        if ($key == $pricelevel) {
-                                            echo ' selected';
+                        if ($price_levels_are_used) {
+                            echo "<fieldset>" .
+                                "<legend>" . xlt('Set Price Level') . "</legend>" .
+                                "<div class='form-group mx-5 text-center'>";
+                                    // Allow the patient price level to be fixed here.
+                                    $plres = sqlStatement("SELECT option_id, title FROM list_options " .
+                                    "WHERE list_id = 'pricelevel' AND activity = 1 ORDER BY seq, title");
+                                    if (true) {
+                                        $pricelevel = $fs->getPriceLevel();
+                                        //echo "   <span class='billcell'><b>" . xlt('Default Price Level') . ":</b></span>\n";
+                                        echo "   <select name='pricelevel' class='form-control' ";
+                                        if ($isBilled) {
+                                            echo " disabled";
                                         }
-                                        echo ">" . text(xl_list_label($val)) . "</option>\n";
-                                    }
-                                    echo "   </select>\n";
-                                }
-                                ?>
-                            </div>
-                        </fieldset>
+                                        echo ">\n";
+                                        while ($plrow = sqlFetchArray($plres)) {
+                                            $key = $plrow['option_id'];
+                                            $val = $plrow['title'];
+                                            echo "    <option value='" . attr($key) . "'";
+                                            if ($key == $pricelevel) {
+                                                echo ' selected';
+                                            }
+                                            echo ">" . text(xl_list_label($val)) . "</option>\n";
+                                        }
+                                        echo "   </select>\n";
+                                    }                                                                        
+                                echo "</div>" .
+                                    "</fieldset>";
+                        } ?>    
 
                     <fieldset>
                     <legend><?php echo xlt("Select Code")?></legend>

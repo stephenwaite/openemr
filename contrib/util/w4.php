@@ -3,7 +3,8 @@ require_once(dirname(__FILE__) . "/../../interface/globals.php");
 require_once(dirname(__FILE__) . "/../../library/patient.inc");
 require_once(dirname(__FILE__) . "/../../library/forms.inc");
 
-//sqlStatement("TRUNCATE insurance_data");
+sqlStatement("TRUNCATE prices");
+sqlStatement("TRUNCATE codes");
 
 $ignoreAuth = true;
 
@@ -13,7 +14,7 @@ while (($lin = fgets($handle)) !== false) {
     $codes = explode(',', $lin);
     // process the line read.
 
-    //var_dump($codes);
+    var_dump($codes);
     $cdm = $codes[0];
     $cpt = $codes[1];
     $mod = $codes[2];
@@ -23,9 +24,11 @@ while (($lin = fgets($handle)) !== false) {
 
     if ($fee != 0) {
         //echo $fee;
-        sqlStatement("INSERT INTO codes set code = ?, code_type = ?, code_text = ?,
-          modifier = ?, fee = ?", array($cpt, "1", $des, $mod, $fee));
+        $codes_id = sqlInsert("INSERT INTO codes set code = ?, code_type = ?, code_text = ?,
+          code_text_short = ?, modifier = ?, fee = ?", array($cpt, "1", $des, $des, $mod, $fee));
+        
+        sqlStatement("INSERT INTO prices set pr_id = ?, pr_level = ?, pr_price = ?",
+          array($codes_id, 'standard', $fee));
     }
 
-    
 }
