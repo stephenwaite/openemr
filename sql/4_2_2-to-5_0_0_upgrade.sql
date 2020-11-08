@@ -118,7 +118,7 @@ DROP TABLE procedure_order_code_20190504;
 DROP TABLE form_quest_order_20190504;
 #EndIf
 
-#IfTable form_quest_order_20190504
+#IfTable form_quest_order_item_20190504
 DROP TABLE form_quest_order_item_20190504
 #EndIf
 
