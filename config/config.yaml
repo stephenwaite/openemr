@@ -170,3 +170,6 @@ assets:
         script: userDebug.js
         autoload: true
         allowNoLoad: true
+    wmt:
+        basePath: %assets_static_relative%/wmt/
+        link: wmt.default.css        

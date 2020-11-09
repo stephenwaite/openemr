@@ -33,6 +33,8 @@ require_once("{$GLOBALS['srcdir']}/lists.inc");
 require_once("{$GLOBALS['srcdir']}/wmt/wmt.class.php");
 require_once("{$GLOBALS['srcdir']}/wmt/wmt.include.php");
 
+use OpenEMR\Core\Header;
+
 // grab inportant stuff
 $id = '';
 $generated = false;
@@ -255,57 +257,16 @@ $qba = false;
 if ($lab_data['recv_fac_id'] == 'QBA') $qba = true;
 
 ?>
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html>
 <head>
-		<?php html_header_show();?>
 		<title><?php echo $form_title; ?></title>
+		<?php Header::setupHeader(['common', 'datetime-picker', 'jquery-ui', 'wmt']); ?>
 
-<link rel="stylesheet" href="<?php echo $css_header;?>" type="text/css">
-<link rel="stylesheet" type="text/css"
-	href="<?php echo $GLOBALS['webroot'] ?>/library/js/fancybox-1.3.4/jquery.fancybox-1.3.4.css"
-	media="screen" />
-<link rel="stylesheet" type="text/css"
-	href="<?php echo $GLOBALS['webroot'] ?>/library/wmt/wmt.default.css"
-	media="screen" />
-<!-- link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css" media="screen" / -->
-
-<script><?php include_once("{$GLOBALS['srcdir']}/restoreSession.php"); ?></script>
-<script type="text/javascript"
-	src="<?php echo $GLOBALS['webroot'] ?>/library/js/jquery-1.7.2.min.js"></script>
-<script type="text/javascript"
-	src="<?php echo $GLOBALS['webroot'] ?>/library/js/jquery-ui-1.10.0.custom.min.js"></script>
-<script type="text/javascript"
-	src="<?php echo $GLOBALS['webroot'] ?>/library/js/common.js"></script>
-<script type="text/javascript"
-	src="<?php echo $GLOBALS['webroot'] ?>/library/js/fancybox-1.3.4/jquery.fancybox-1.3.4_patch.js"></script>
-<script type="text/javascript"
-	src="<?php echo $GLOBALS['webroot'] ?>/library/dialog.js"></script>
-<script type="text/javascript"
-	src="<?php echo $GLOBALS['webroot'] ?>/library/overlib_mini.js"></script>
-<script type="text/javascript"
-	src="<?php echo $GLOBALS['webroot'] ?>/library/textformat.js"></script>
 <script type="text/javascript"
 	src="<?php echo $GLOBALS['webroot'] ?>/library/wmt/wmtstandard.js"></script>
 
-<!-- pop up calendar -->
-<style type="text/css">
-@import url(<?php echo $GLOBALS['webroot']?>/library/dynarch_calendar.css);
-</style>
-<script type="text/javascript"
-	src="<?php echo $GLOBALS['webroot'] ?>/library/dynarch_calendar.js"></script>
-		<?php include_once("{$GLOBALS['srcdir']}/dynarch_calendar_en.inc.php"); ?>
-		<script type="text/javascript"
-	src="<?php echo $GLOBALS['webroot'] ?>/library/dynarch_calendar_setup.js"></script>
-
 <style>
-.calendar tbody .day {
-	border: 1px solid inherit;
-}
-
-.calendar {
-	z-index: 2000
-}
 
 .wmtMainContainer {
 	min-width: 880px
@@ -364,7 +325,6 @@ if ($lab_data['recv_fac_id'] == 'QBA') $qba = true;
 </style>
 
 <script>
-			var mypcc = '<?php echo $GLOBALS['phone_country_code'] ?>';
 
 			// validate data and submit form
 			function saveClicked() {
@@ -1530,16 +1490,12 @@ else {
 <?php } ?>
 										<td style='min-width: 95px'><label class="wmtLabel">Collection Date:
 										</label></td>
-										<td style="white-space: nowrap"><input class="wmtInput"
+										<td style="white-space: nowrap"><input class="datepicker"
 											type='text' style='width: 80px' name='date_collected'
 											id='date_collected'
 											value='<?php echo $viewmode ? (!goodDate($order_data->date_collected))? '' : date('Y-m-d',strtotime($order_data->date_collected)) : date('Y-m-d'); ?>'
-											title='<?php xl('yyyy-mm-dd Date sample taken','e'); ?>'
-											onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' />
-											<img src='../../pic/show_calendar.gif' align='absbottom'
-											width='24' height='22' id='img_date_collected' border='0'
-											alt='[?]' style='cursor: pointer; cursor: hand;'
-											title='<?php xl('Click here to choose a date','e'); ?>'></td>
+											title='<?php xl('yyyy-mm-dd Date sample taken','e'); ?>' />
+										</td>
 										<td
 											style='text-align: right; min-width: 45px; white-space: nowrap'>
 											<label class="wmtLabel">Time: </label>
@@ -1755,14 +1711,11 @@ else { // create empty row
 								<tr>
 									<td class="wmtLabel" nowrap style="text-align: right">Order
 										Date:</td>
-									<td nowrap><input class="wmtInput" type='text' size='10'
+									<td nowrap><input class="datepicker" type='text' size='10'
 										name='date_ordered' id='date_ordered'
 										value='<?php echo $viewmode ? (!goodDate($order_data->date_ordered))? '' : date('Y-m-d',strtotime($order_data->date_ordered)) : date('Y-m-d'); ?>'
-										title='<?php xl('yyyy-mm-dd Date of order','e'); ?>'
-										onkeyup='datekeyup(this,mypcc)' onblur='dateblur(this,mypcc)' />
-										<img src='../../pic/show_calendar.gif' align='absbottom' width='24' height='22'
-												id='img_date_ordered' border='0' alt='[?]' style='cursor:pointer;cursor:hand;<?php if ($status != 'i') echo "display:none" ?>'
-												title='<?php xl('Click here to choose a date','e'); ?>'></td>
+										title='<?php xl('yyyy-mm-dd Date of order','e'); ?>'/>
+									</td>
 
 									<td class="wmtLabel" nowrap style="text-align: right">Physician:
 									</td>
@@ -2472,13 +2425,5 @@ if ($GLOBALS['wmt::lab_ins_pick']) { // special processing for sfa ?>
 	</form>
 
 </body>
-
-<script>
-		/* required for popup calendar */
-		Calendar.setup({inputField:"date_pending", ifFormat:"%Y-%m-%d", button:"img_date_pending"});
-		Calendar.setup({inputField:"date_collected", ifFormat:"%Y-%m-%d", button:"img_date_collected"});
-		Calendar.setup({inputField:"date_ordered", ifFormat:"%Y-%m-%d", button:"img_date_ordered"});
-//		Calendar.setup({inputField:"work_date", ifFormat:"%Y-%m-%d", button:"img_work_date"});
-	</script>
 
 </html>

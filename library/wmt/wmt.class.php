@@ -366,7 +366,7 @@ class wmtInsurance {
 	public function __construct($id = false) {
 		if(!$id) return false;
 
-		$query = "SELECT a.*, i.*, c.freeb_type AS plan_type, c.name AS company_name, c.id AS company_id, c.cms_id FROM insurance_data i ";
+		$query = "SELECT a.*, i.*, c.ins_type_code AS plan_type, c.name AS company_name, c.id AS company_id, c.cms_id FROM insurance_data i ";
 		$query .= "LEFT JOIN insurance_companies c ON i.provider = c.id ";
 		$query .= "LEFT JOIN addresses a ON a.foreign_id = c.id ";
 		$query .= "WHERE i.id = ? LIMIT 1 ";
@@ -483,7 +483,7 @@ class wmtInsurance {
 			$record['name'] = "Self Insured";
 		}
 		else {
-			$query = "SELECT ia.*, ip.*, ic.id AS company_id, ic.name AS company_name, ic.freeb_type AS plan_type FROM insurance_companies ic ";
+			$query = "SELECT ia.*, ip.*, ic.id AS company_id, ic.name AS company_name, ic.ins_type_code AS plan_type FROM insurance_companies ic ";
 			$query .= "LEFT JOIN addresses ia ON ia.foreign_id = ic.id ";
 			$query .= "LEFT JOIN phone_numbers ip ON ip.foreign_id = ic.id ";
 			$query .= "WHERE ic.id = ? LIMIT 1 ";
