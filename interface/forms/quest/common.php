@@ -261,10 +261,7 @@ if ($lab_data['recv_fac_id'] == 'QBA') $qba = true;
 <html>
 <head>
 		<title><?php echo $form_title; ?></title>
-		<?php Header::setupHeader(['common', 'datetime-picker', 'jquery-ui', 'wmt']); ?>
-
-<script type="text/javascript"
-	src="<?php echo $GLOBALS['webroot'] ?>/library/wmt/wmtstandard.js"></script>
+		<?php Header::setupHeader(['common', 'datetime-picker', 'dialog', 'wmt']); ?>
 
 <style>
 
@@ -334,7 +331,7 @@ if ($lab_data['recv_fac_id'] == 'QBA') $qba = true;
 				resp = confirm("Your order will be saved but will NOT be submitted.\n\nClick 'OK' to save and exit.");
 <?php } ?>
 				if (resp) {
-					restoreSession();
+					top.restoreSession();
 					f.submit();
 				}
  			}
@@ -388,7 +385,7 @@ if ($lab_data['recv_fac_id'] == 'QBA') $qba = true;
 				var prnwin = window.open('','print','width=735px,height=575px,status=no,scrollbars=yes');
 				prnwin.focus();
 				$('#<?php echo $form_name ?>').attr('target','print');
-				restoreSession();
+				top.restoreSession();
 				f.submit();
  			}
 

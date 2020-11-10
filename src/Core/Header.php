@@ -105,7 +105,7 @@ class Header
         /* adding custom assets in addition */
         if (is_file("{$GLOBALS['fileroot']}/custom/assets/custom.yaml")) {
             $customMap = self::readConfigFile("{$GLOBALS['fileroot']}/custom/assets/custom.yaml");
-            self::parseConfigFile($customMap);
+            self::parseConfigFile($customMap, $assets);
         }
 
         $linksStr = implode("", self::$links);
@@ -178,13 +178,23 @@ class Header
         $links = [];
 
         if ($script) {
-            $script = self::parsePlaceholders($script);
-            if ($alreadyBuilt) {
-                $path = $script;
-            } else {
-                $path = self::createFullPath($basePath, $script);
+            if (!is_string($script) && !is_array($script)) {
+                throw new \InvalidArgumentException("Script must be of type string or array");
             }
-            $scripts[] = self::createElement($path, 'script', $alreadyBuilt);
+
+            if (is_string($script)) {
+                $script = [$script];
+            }
+
+            foreach ($script as $k) {
+                $k = self::parsePlaceholders($k);
+                if ($alreadyBuilt) {
+                    $path = $k;
+                } else {
+                    $path = self::createFullPath($basePath, $k);
+                }
+                $scripts[] = self::createElement($path, 'script', $alreadyBuilt);
+            }
         }
 
         if ($link) {
