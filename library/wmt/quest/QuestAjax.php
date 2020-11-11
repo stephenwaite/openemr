@@ -28,6 +28,7 @@
  * 
  *************************************************************************** */
 
+//use Tecnickcom\tcpdf;
 // SANITIZE ALL ESCAPES
 $sanitize_all_escapes = true;
 
@@ -37,6 +38,7 @@ $fake_register_globals = false;
 require_once("../../../interface/globals.php");
 require_once("{$GLOBALS['srcdir']}/wmt/wmt.include.php");
 require_once("{$GLOBALS['srcdir']}/classes/Document.class.php");
+require_once("../../../vendor/tecnickcom/tcpdf/tcpdf.php");
 
 // Get request type
 $type = $_REQUEST['type'];
@@ -244,10 +246,10 @@ if ($type == 'label') {
 	if ($_REQUEST['count']) $count = $_REQUEST['count'];
 	
 //	require_once("{$GLOBALS['srcdir']}/tcpdf/config/lang/eng.php");
-	require_once("{$GLOBALS['srcdir']}/tcpdf/tcpdf.php");
+//	require_once("{$GLOBALS['srcdir']}/tcpdf/tcpdf.php");
 	
 	// create new PDF document
-	$pdf = new TCPDF('L', 'pt', array(54,144), true, 'UTF-8', false);
+	$pdf = new tcpdf('L', 'pt', array(54,144), true, 'UTF-8', false);
 	
 	// remove default header/footer
 	$pdf->setPrintHeader(false);
