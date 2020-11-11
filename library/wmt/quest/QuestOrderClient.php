@@ -78,7 +78,6 @@ if (!class_exists("QuestOrderClient")) {
 		 * @access public
 		 */
 		public function __construct($lab_id) {
-			error_log("lab id is $lab_id in quest order client");
 			$this->lab_id = $lab_id;
 			$this->REPOSITORY = $GLOBALS['oer_config']['documents']['repository'];
 				
