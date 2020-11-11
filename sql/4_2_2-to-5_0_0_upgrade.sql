@@ -88,41 +88,68 @@
 
 -- To ensure proper compatibility with MySQL/MariaDB and InnoDB, changing all *TEXT fields to
 -- correctly use NULL as default.
-#IfTextNullFixNeeded
-#EndIf
-
---
--- The following 4 tables were using AUTO_INCREMENT field in the end of primary key, which needed to be
--- modified to support InnoDB,
---
-
--- 1. ar_activity
---
-#IfTableEngine ar_activity MyISAM
-ALTER TABLE `ar_activity` MODIFY `sequence_no` int UNSIGNED NOT NULL COMMENT 'Sequence_no, incremented in code';
-ALTER TABLE `ar_activity` ENGINE="InnoDB";
-#EndIf
-
--- 2. claims
---
-#IfTableEngine claims MyISAM
-ALTER TABLE `claims` MODIFY `version` int(10) UNSIGNED NOT NULL COMMENT 'Version, incremented in code';
-ALTER TABLE `claims` ENGINE="InnoDB";
-#EndIf
-
-#IfTable procedure_order_code_20190504
-DROP TABLE procedure_order_code_20190504;
-#EndIf
 
 #IfTable form_quest_order_20190504
-DROP TABLE form_quest_order_20190504;
+DROP TABLE `form_quest_order_20190504`;
 #EndIf
 
 #IfTable form_quest_order_item_20190504
-DROP TABLE form_quest_order_item_20190504
+DROP TABLE `form_quest_order_item_20190504`;
 #EndIf
 
-#IfTableEngine `form_quest_order` MyISAM
+#IfTable forms_20190504
+DROP TABLE `forms_20190504`;
+#EndIf
+
+#IfTable form_quest_batch_20190504
+DROP TABLE `form_quest_batch_20190504`;
+#EndIf
+
+#IfTable form_quest_result_20190504
+DROP TABLE `form_quest_result_20190504`;
+#EndIf
+
+#IfTable form_quest_result_item_20190504
+DROP TABLE `form_quest_result_item_20190504`;
+#EndIf
+
+#IfTable list_options_20190504
+DROP TABLE `list_options_20190504`;
+#EndIf
+
+#IfTable procedure_order_20190504
+DROP TABLE `procedure_order_code_20190504`;
+#EndIf
+
+#IfTable procedure_order_code_20190504
+DROP TABLE `procedure_order_code_20190504`;
+#EndIf
+
+#IfTable procedure_providers_20190504
+DROP TABLE `procedure_providers_20190504`;
+#EndIf
+
+#IfTable procedure_questions_20190507
+DROP TABLE `procedure_questions_20190507`;
+#EndIf
+
+#IfTable procedure_report_20190504
+DROP TABLE `procedure_report_20190504`;
+#EndIf
+
+#IfTable procedure_result_20190504
+DROP TABLE `procedure_result_20190504`;
+#EndIf
+
+#IfTable procedure_type_20190504
+DROP TABLE `procedure_type_20190504`;
+#EndIf
+
+#IfTable procedure_type_20190507
+DROP TABLE `procedure_type_20190507`;
+#EndIf
+
+#IfTableEngine form_quest_order MyISAM
 -- Modify the table for InnoDB
 alter table `form_quest_order` modify `user` text;
 alter table `form_quest_order` modify `groupname` text; 
@@ -199,7 +226,7 @@ alter table `form_quest_order` modify `order0_req_id` text;
 alter table `form_quest_order` modify `order0_abn_id` text;       
 alter table `form_quest_order` modify `request_provider` text;    
 alter table `form_quest_order` modify `request_facility` text;    
-alter table `form_quest_order` modify `request_handling` text;   
+alter table `form_quest_order` modify `request_handling` text;
 ALTER TABLE `form_quest_order` ENGINE="InnoDB";
 #EndIf
 
@@ -271,6 +298,31 @@ alter table `form_quest_order_item` modify `aoe19_code` text;
 alter table `form_quest_order_item` modify `aoe19_label` text;
 alter table `form_quest_order_item` modify `aoe19_text` text;
 ALTER TABLE `form_quest_order_item` ENGINE="InnoDB";
+#EndIf
+
+#IfTextNullFixNeeded
+#EndIf
+
+--
+-- The following 4 tables were using AUTO_INCREMENT field in the end of primary key, which needed to be
+-- modified to support InnoDB,
+--
+
+-- 1. ar_activity
+--
+#IfTableEngine ar_activity MyISAM
+ALTER TABLE `ar_activity` MODIFY `sequence_no` int UNSIGNED NOT NULL COMMENT 'Sequence_no, incremented in code';
+ALTER TABLE `ar_activity` ENGINE="InnoDB";
+#EndIf
+
+-- 2. claims
+--
+#IfTableEngine claims MyISAM
+ALTER TABLE `claims` MODIFY `version` int(10) UNSIGNED NOT NULL COMMENT 'Version, incremented in code';
+ALTER TABLE `claims` ENGINE="InnoDB";
+#EndIf
+
+
 -- 3. procedure_answers
 --
 #IfTableEngine procedure_answers MyISAM

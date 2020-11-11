@@ -862,7 +862,9 @@ function upgradeFromSqlFile($filename)
                         $res = sqlStatement("ALTER TABLE `" . add_escape_custom($item['table_name']) . "` MODIFY `" . add_escape_custom($item['column_name']) . "` " . add_escape_custom($item['data_type'])  . " COMMENT '" . add_escape_custom($item['column_comment']) . "'");
                     } else {
                         var_dump($item);
-                        $res = sqlStatement("ALTER TABLE `" . add_escape_custom($item['TABLE_NAME']) . "` MODIFY `" . add_escape_custom($item['COLUMN_NAME']) . "` " . add_escape_custom($item['DATA_TYPE']));
+                        if(!empty($item['TABLE_NAME'])) {
+                            $res = sqlStatement("ALTER TABLE `" . add_escape_custom($item['TABLE_NAME']) . "` MODIFY `" . add_escape_custom($item['COLUMN_NAME']) . "` " . add_escape_custom($item['DATA_TYPE']));
+                        }
                     }
 
                     // If above query didn't work, then error will be outputted via the sqlStatement function.
