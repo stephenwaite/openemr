@@ -35,7 +35,7 @@ if (!class_exists("QuestOrderClient")) {
 	/**
 	 * The class QuestOrderClient submits lab order (HL7 messages) to the MedPlus Hub
 	 * platform.  Encapsulates the sending of an HL7 order to a Quest Lab
-	 * via the Hub’s SOAP Web service.
+	 * via the Hubï¿½s SOAP Web service.
 	 *	
 	 */
 	class QuestOrderClient {
@@ -78,6 +78,7 @@ if (!class_exists("QuestOrderClient")) {
 		 * @access public
 		 */
 		public function __construct($lab_id) {
+			error_log("lab id is $lab_id in quest order client");
 			$this->lab_id = $lab_id;
 			$this->REPOSITORY = $GLOBALS['oer_config']['documents']['repository'];
 				
@@ -119,7 +120,7 @@ if (!class_exists("QuestOrderClient")) {
 					!$this->ENDPOINT ||
 					!$this->STATUS ||
 					!$this->REPOSITORY )
-				throw new Exception ("Quest Interface Not Properly Configured!!\n\n<pre>".var_dump($this)."</pre>\n\n");
+				throw new Exception ("Quest Interface Not Properly Configured\n\n<pre>" . var_dump($this) . "</pre>\n\n");
 			
 			return;
 		}

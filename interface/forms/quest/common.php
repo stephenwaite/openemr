@@ -35,20 +35,25 @@ require_once("{$GLOBALS['srcdir']}/wmt/wmt.include.php");
 
 use OpenEMR\Core\Header;
 
-// grab inportant stuff
+// grab important stuff
 $id = '';
 $generated = false;
 $print = $_REQUEST['print'];
+
 if ($viewmode) $id = $_REQUEST['id'];
+
 $popup = ($popup)? $popup : $_REQUEST['pop'];
+
 if (! $pid) $pid = $_SESSION['pid'];
+
 if (! $lab_id) {
 	$lab = sqlQuery("SELECT ppid FROM procedure_providers WHERE npi = 'QUEST' LIMIT 1");
 	$lab_id = $lab['ppid'];
+	error_log("lab id is $lab_id");
 }
 
 $client_id = false;
-$params = sqlQuery("SELECT setting_value FROM user_settings WHERE setting_label = ?",array("wmt::client_id"));
+$params = sqlQuery("SELECT setting_value FROM user_settings WHERE setting_label = ?", array("wmt::client_id"));
 if ($params['setting_value']) $client_id = $params['setting_value'];
 
 $form_name = 'quest';
@@ -81,11 +86,19 @@ function goodDate($date) {
 try {
 	$order_date = date('Y-m-d');
 	$order_data = new wmtOrder($form_name, $id);
-	if ($order_data->id && goodDate($order_data->order_datetime)) $order_date = date('Y-m-d',strtotime($order_data->order_datetime));
+
+	if ($order_data->id && goodDate($order_data->order_datetime)) {
+		$order_date = date('Y-m-d',strtotime($order_data->order_datetime));
+	}	
+
 	if ($order_data->user == 'system') $generated = true;
+
 	if ($order_data->patient_id) $pid = $order_data->patient_id;
+
 	if (! $pid) die ("Missing patient identifier!!");
+
 	if (! $encounter && $order_data->encounter_id) $encounter = $order_data->encounter_id;
+
 	if (! $encounter) die ("Missing current encounter identifier!!");
 	 
 	$pat_data = wmtPatient::getPidPatient($pid);
@@ -957,14 +970,12 @@ if ($lab_data['recv_fac_id'] == 'QBA') $qba = true;
 
 	<form method='post' action="<?php echo $save_url ?>"
 		id='<?php echo $form_name; ?>' name='<?php echo $form_name; ?>'>
-		<input type='hidden' name='process' id='process' value='' /> <input
-			type='hidden' name='print' id='print' value='' /> <input
-			type='hidden' name='lab_quest_siteid' id='lab_quest_siteid'
-			value='<?php echo $siteid ?>' /> <input type='hidden' name='pop'
-			id='pop' value='<?php if ($popup) echo '1' ?>' /> <input
-			type='hidden' name='patient_id' id='patient_id'
-			value='<?php echo $pid ?>' /> <input type='hidden' name='facility_id'
-			id='facility_id' value='<?php echo $enc_data->facility_id ?>' />
+		<input type='hidden' name='process' id='process' value='' /> 
+		<input type='hidden' name='print' id='print' value='' />
+		<input type='hidden' name='lab_quest_siteid' id='lab_quest_siteid' value='<?php echo $siteid ?>' />
+		<input type='hidden' name='pop'	id='pop' value='<?php if ($popup) echo '1' ?>' /> 
+		<input type='hidden' name='patient_id' id='patient_id' value='<?php echo $pid ?>' /> 
+		<input type='hidden' name='facility_id' id='facility_id' value='<?php echo $enc_data->facility_id ?>' />
 		<div class="wmtTitle">
 <?php if ($viewmode) { ?>
 				<input type=hidden name='mode' value='update' /> <input type=hidden

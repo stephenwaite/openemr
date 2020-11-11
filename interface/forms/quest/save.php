@@ -74,6 +74,7 @@ $aoe_list = array();
 $order_data = new wmtOrder($form_name,$id);
 
 // get provider information
+$lab_id = $_POST['lab_id'];
 $lab_data = sqlQuery("SELECT * FROM procedure_providers WHERE ppid = ?",array($_POST['lab_id']));
 if ($lab_data['name']) $form_title = $lab_data['name'];
 
