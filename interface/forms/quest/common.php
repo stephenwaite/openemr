@@ -274,7 +274,7 @@ if ($lab_data['recv_fac_id'] == 'QBA') $qba = true;
 <html>
 <head>
 		<title><?php echo $form_title; ?></title>
-		<?php Header::setupHeader(['common', 'datetime-picker', 'dialog', 'wmt']); ?>
+		<?php Header::setupHeader(['jquery', 'common', 'datetime-picker', 'dialog', 'wmt']); ?>
 
 <style>
 

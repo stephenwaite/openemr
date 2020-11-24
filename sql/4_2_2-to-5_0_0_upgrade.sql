@@ -336,6 +336,7 @@ ALTER TABLE `procedure_answers` ENGINE="InnoDB";
 -- Modify the table for InnoDB
 -- remove NOT NULL DEFAULT "" declaration from TEXT field.
 -- remove AUTO_INCREMENT field declaration
+ALTER TABLE `procedure_order` MODIFY `control_id` varchar(255) DEFAULT '';
 ALTER TABLE `procedure_order_code` MODIFY `procedure_order_seq` int(11) NOT NULL COMMENT 'Supports multiple tests per order. Procedure_order_seq incremented in code';
 ALTER TABLE `procedure_order_code` ENGINE="InnoDB";
 #EndIf

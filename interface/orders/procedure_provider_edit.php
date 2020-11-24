@@ -302,6 +302,7 @@ function invalue($name)
                                           'DL'   => xl('Download'),
                                           'SFTP' => xl('SFTP'),
                                           'FS'   => xl('Local Filesystem'),
+                                          'PRINT' => xl('Print Only'),
                                           ) as $key => $value) {
                                             echo "    <option value='" . attr($key) . "'";
                                             if ($key == $row['protocol']) {
