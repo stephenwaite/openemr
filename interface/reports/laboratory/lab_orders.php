@@ -27,13 +27,15 @@
  *  @author Ron Criswell <ron.criswell@MDTechSvcs.com>
  * 
  *************************************************************************** */
+
+use OpenEMR\Billing\BillingUtilities;
+
 $fake_register_globals = false;
 $sanitize_all_escapes = true;
 
 // load libraries
 require_once ("../../globals.php");
 require_once ("$srcdir/forms.inc");
-require_once ("$srcdir/billing.inc");
 require_once ("$srcdir/patient.inc");
 require_once ("$srcdir/formatting.inc.php");
 require_once ("$srcdir/options.inc.php");

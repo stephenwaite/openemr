@@ -507,6 +507,76 @@
     "global_req": "enable_fees_in_left_menu"
   },
   {
+    "label": "Laboratory",
+    "menu_id": "wmt",
+    "children": [
+      {
+        "label": "Pending Orders",
+        "menu_id": "wmt",
+        "target": "pop",
+        "url": "/interface/reports/laboratory/lab_pending.php?popup=1",
+        "children": [],
+        "requirement": 1,
+        "acl_req": [
+          [
+            "patients",
+            "lab"
+          ]          
+        ]
+      },
+      {
+        "label": "Orders Report",
+        "menu_id": "wmt",
+        "target": "pop",
+        "url": "/interface/reports/laboratory/lab_orders.php?popup=1",
+        "children": [],
+        "requirement": 1,
+        "acl_req": [
+          "patients",
+          "lab"
+        ]
+      },
+      {
+        "label": "Results Report",
+        "menu_id": "wmt",
+        "target": "pop",
+        "url": "/interface/reports/laboratory/lab_results.php?popup=1",
+        "children": [],
+        "requirement": 1,
+        "acl_req": [
+          "patients",
+          "lab"
+        ]
+      },
+      {
+        "label": "Orphan Results",
+        "menu_id": "wmt",
+        "target": "pop",
+        "url": "/interface/reports/laboratory/lab_orphans.php?popup=1",
+        "children": [],
+        "requirement": 1,
+        "acl_req": [
+          "patients",
+          "lab"
+        ]
+      },
+      {
+        "label": "Results Analysis",
+        "menu_id": "wmt",
+        "target": "pop",
+        "url": "/interface/reports/laboratory/lab_analysis.php?popup=1",
+        "children": [],
+        "requirement": 1,
+        "acl_req": [
+          [
+            "patients",
+            "lab"
+          ]
+        ]
+      }
+    ]
+  },
+  {
     "label": "Modules",
     "menu_id": "modimg",
     "children": [
@@ -527,7 +597,7 @@
     "acl_req": [
     "menus",
     "modle"
-  ]
+    ]
   },
   {
     "label": "Inventory",

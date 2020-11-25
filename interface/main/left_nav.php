@@ -1416,6 +1416,17 @@ if ($GLOBALS['gbl_portal_cms_enable'] && acl_check('patientportal', 'portal')) {
     </ul>
   </li>
     <?php } ?>
+    <?php if ($GLOBALS['wmt_lab_enable']) { // WMT laboratory interface ?>
+	  <li><a class="collapsed_lv2"><span><?php xl('Laboratory','e') ?></span></a>
+										<ul>
+          <?php genPopLink(xl('Pending Orders'),'laboratory/lab_pending.php?popup=1',0); ?>
+		  <?php genPopLink(xl('Orders Report'),'laboratory/lab_orders.php?popup=1',0); ?>
+		  <?php genPopLink(xl('Results Report'),'laboratory/lab_results.php?popup=1',0); ?>
+		  <?php genPopLink(xl('Orphan Results'),'laboratory/lab_orphans.php?popup=1',0); ?>
+		  <?php genPopLink(xl('Results Analysis'),'laboratory/lab_analysis.php?popup=1','ral1'); ?>
+		  </ul>
+      </li>
+<?php } ?>
 
     <?php  if (acl_check('menus', 'modle')) {?>
    <li><a class="collapsed" id="modimg" ><span><?php echo xlt('Modules') ?></span></a>
