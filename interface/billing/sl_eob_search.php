@@ -667,6 +667,11 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
             });
         });
 
+        // check for invoices, if none it will disable the statement generation
+        $(function () {
+            checkFCI();
+        })
+
     </script>
     <style>
         @media only screen and (max-width: 768px) {
@@ -989,15 +994,17 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
                             $num_invoices = 0;
                             // was previously disallowed but should allow biller to proceed with era posting
                             // even with alerts
-                            $t_res = sqlStatement($query);
-                            $num_invoices = sqlNumRows($t_res);
+                            if (!$alertmsg) {
+                                $t_res = sqlStatement($query);
+                                $num_invoices = sqlNumRows($t_res);
+                            }
 
                             if ($eracount && $num_invoices != $eracount) {
                                 $alertmsg .= "Of $eracount remittances, there are $num_invoices " .
                                     "matching encounters in OpenEMR. ";
                             }
                             ?>
-                        <table class="table table-striped table-sm">
+                            <table class="table table-striped table-sm">
                             <thead>
                             <tr>
                                 <th class="id dehead"><?php echo xlt('id'); ?></th>
@@ -1103,8 +1110,11 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
                                     <td class="detail text-center"><?php echo $duncount ? text($duncount) : "&nbsp;" ?></td>
                                     <?php if (!$eracount) { ?>
                                         <td class="detail text-left">
+                                            <div class="cbDiv">
                                             <input type='checkbox'
-                                                   name='form_cb[<?php echo attr($row['id']) ?>]'<?php echo text($isduept); ?> />
+                                                   name='form_cb[<?php echo attr($row['id']) ?>]'
+                                                   onclick='checkFCI()'<?php echo text($isduept); ?> />
+                                            </div>
                                             <?php
                                             if ($in_collections) {
                                                 echo "<span class='font-weight-bold text-danger'>IC</span>";
@@ -1151,8 +1161,8 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
                                     <button type="submit" class="btn btn-secondary btn-print" name='form_print' value="<?php echo xla('Print Selected Statements'); ?>"><?php echo xlt('Print Selected'); ?></button>
                                     <button type="submit" class="btn btn-secondary btn-download" name='form_download' value="<?php echo xla('Download Selected Statements'); ?>"><?php echo xlt('Download Selected'); ?></button>
                                 <?php } ?>
-                                <button type="submit" class="btn btn-secondary btn-download" name='form_pdf' value="<?php echo xla('PDF Download Selected Statements'); ?>"><?php echo xlt('PDF Download Selected'); ?></button>
-                                <button type="submit" class="btn btn-secondary btn-mail" name='form_download' value="<?php echo xla('Email Selected Statements'); ?>"><?php echo xlt('Email Selected'); ?></button>
+                                <button type="submit" id="btn_pdf" class="btn btn-secondary btn-download" name='form_pdf' value="<?php echo xla('PDF Download Selected Statements'); ?>"><?php echo xlt('PDF Download Selected'); ?></button>
+                                <button type="submit" id="btn_eml" class="btn btn-secondary btn-mail" name='form_download' value="<?php echo xla('Email Selected Statements'); ?>"><?php echo xlt('Email Selected'); ?></button>
                                 <?php
                                 if ($is_portal) { ?>
                                     <button type="submit" class="btn btn-secondary btn-save" name='form_portalnotify' value="<?php echo xla('Notify via Patient Portal'); ?>"><?php echo xlt('Notify Patients Portal'); ?></button>
@@ -1182,6 +1192,24 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
         return false;
     }
 
+    // deactivate PDF Download/Email of statement
+    // check for checked invoices
+    function checkFCI() {
+        let f = document.forms[0];
+        for (let i = 0; i < f.elements.length; ++i) {
+            let ename = f.elements[i].name;
+            if (ename.indexOf('form_cb[') === 0)
+                if (f.elements[i].checked) {
+                    document.getElementById('btn_pdf').disabled = false;
+                    document.getElementById('btn_eml').disabled = false;
+                    return true;
+                };
+        }
+        document.getElementById('btn_pdf').disabled = true;
+        document.getElementById('btn_eml').disabled = true;
+        return true;
+    }
+
     $(function () {
 //https://www.abeautifulsite.net/whipping-file-inputs-into-shape-with-bootstrap-3
 // We can attach the `fileselect` event to all file inputs on the page
@@ -1193,22 +1221,18 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
         });
 
 // We can watch for our custom `fileselect` event like this
-        $(function () {
-            $(':file').on('fileselect', function (event, numFiles, label) {
-                var input = $(this).parents('.input-group').find(':text'),
-                    log = numFiles > 1 ? numFiles + ' files selected' : label;
+        $(':file').on('fileselect', function (event, numFiles, label) {
+            var input = $(this).parents('.input-group').find(':text'),
+                log = numFiles > 1 ? numFiles + ' files selected' : label;
 
-                if (input.length) {
-                    input.val(log);
-                }
-                else {
-                    if (log) alert(log);
-                }
-            });
+            if (input.length) {
+                input.val(log);
+            }
+            else {
+                if (log) alert(log);
+            }
         });
-    });
     //to dynamically show /hide relevant divs and change Fieldset legends
-    $(function () {
         $("input[name=radio-search]").on("change", function () {
             let flip = $(this).val();
             $(".oe-show-hide").hide();
@@ -1242,11 +1266,18 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
         <?php if (empty($_REQUEST['form_search'])) { ?>
         $("#invoice_search").click();
         <?php } ?>
+
     });
+
     <?php
-    if ($alertmsg) {
-        echo "alert('" . addslashes($alertmsg) . "');\n";
-    }
+    if ($alertmsg) { ?>
+    let message = <?php echo xlj($alertmsg); ?>;
+    (async (message, time) => {
+        await asyncAlertMsg(message, time, 'danger', 'lg');
+    })(message, 3000)
+        .then(res => { });
+        //echo "alert('" . addslashes($alertmsg) . "');\n";
+    <?php }
     ?>
     $(function () {
         $('#select-method-tooltip').attr({"title": <?php echo xlj('Click on either the Invoice Search button on the far right, for manual entry or ERA Upload button for uploading an entire electronic remittance advice ERA file'); ?>, "data-toggle":"tooltip", "data-placement":"bottom"}).tooltip();
