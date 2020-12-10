@@ -147,7 +147,7 @@ DROP TABLE `procedure_type_20190504`;
 
 #IfTable procedure_type_20190507
 DROP TABLE `procedure_type_20190507`;
-INSERT INTO `users` (`organization`, `abook_type`) VALUES (`QUEST`, `ord_lab`);
+INSERT INTO `users` (`organization`, `abook_type`) VALUES ('QUEST', 'ord_lab');
 #EndIf
 
 #IfTableEngine form_quest_order MyISAM
