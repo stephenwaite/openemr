@@ -2852,7 +2852,7 @@ $GLOBALS_METADATA = array(
         'audit_events_query' => array(
             xl('Audit Logging SELECT Query'),
             'bool',                           // data type
-            '1',                              // default
+            '0',                              // default
             xl('Enable logging of all SQL SELECT queries.') . ' (' . xl('Note that Audit Logging needs to be enabled above') . ')'
         ),
 
@@ -2940,7 +2940,7 @@ $GLOBALS_METADATA = array(
                 '1' => xl('Hide print feature'),
                 '2' => xl('Log entire document'),
             ),
-            '2',                               // default
+            '0',                               // default
             xl('Individual pages can override 2nd and 3rd options by implementing a log message.')
         ),
 
