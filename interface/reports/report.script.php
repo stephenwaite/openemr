@@ -308,6 +308,7 @@
         if (!ValidateDateCriteria('final_this_page_criteria')) {
             return false;
         }
+
         var selObj = document.getElementById('final_this_page_criteria');
         var elSel = document.getElementById('final_this_page_criteria_text');
         var i;
@@ -342,8 +343,11 @@
     }
 
     function ValidateDateCriteria(selStr) {//From date should not be greater than To date.
+        let search_all_enc = false;
         var selObj = document.getElementById(selStr);
-        for (var i = 0; i < selObj.options.length; i++) {
+        let options_length = selObj.options.length;
+        console.log("options length is " + options_length);
+        for (var i = 0; i < options_length; i++) {
             if (selObj.options[i].value.indexOf('between') != -1) {
                 DateArray = selObj.options[i].value.split("'");
                 if (DateArray[1] > DateArray[3]) {
@@ -355,7 +359,17 @@
                     return false;
                 }
             }
+
+            if (selObj.options[i].value.indexOf('from_encounter.date')) {
+                    search_all_enc = true;
+            }
         }
+
+        if (search_all_enc && (options_length == 1)) {
+            alert(<?php echo xlj('Service Date values Cannot be Blank.'); ?>);
+            return false;
+        }
+
         return true;
     }
 
