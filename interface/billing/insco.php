@@ -54,6 +54,7 @@ if ($handle) {
 
 
         }
+        
         if (trim($ins_addr) != "" || ($ins_code == "018" || $ins_code == "091")) {
             $query = "INSERT INTO insurance_companies SET id = ?, name = ?, cms_id = ?, ins_type_code = ?, x12_default_partner_id = ?";
             $res = sqlStatement($query, array($ins_code, $ins_name, $ins_neic, "17", "46"));
@@ -67,7 +68,7 @@ if ($handle) {
         }
 
 
-        if (in_array($ins_code, array("002", "006", "268"))) {
+        if (in_array($ins_code, array("002", "006", "074", "268"))) {
             echo "ins_code is $ins_code";
             $q = "UPDATE insurance_companies SET cms_id = 'BCBSVT', ins_type_code = '6', x12_default_partner_id = '45' where id = $ins_code";
             $r = sqlStatement($q);

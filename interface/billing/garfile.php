@@ -236,8 +236,8 @@ if ($handle) {
                 VALUES ('$type', '$cms_ins', '$cms_pol', '$cms_grp',
                   '$gar_prname_lname', '$gar_prname_mname', '$gar_prname_fname', '$sub_rel',
                   '$gar_dob', '$emr_street', '$gar_zip',
-                  '$gar_city', '$gar_state', 'US',
-                  '$gar_phone', '$gar_copay', '' , '$pid', '$sub_sex', 'TRUE')";
+                  '$gar_city', '$gar_state', 'USA',
+                  '$gar_phone', '$gar_copay', '0000-00-00' , '$pid', '$sub_sex', 'TRUE')";
                 } else {
                     break;
                 }
