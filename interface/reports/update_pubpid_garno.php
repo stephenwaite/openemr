@@ -1,11 +1,9 @@
 <?php
 
 $ignoreAuth = true;
-
 $_GET['site'] = $argv[1];
 
-$dirname = "/var/www/html/lkuperman.com/openemr/interface/";
-require_once($dirname . "/globals.php");
+require_once(dirname(__FILE__) . "/../../interface/globals.php");
 //require_once("$srcdir/forms.inc");
 //require_once("$srcdir/patient.inc");
 //require_once "$srcdir/options.inc.php";
@@ -14,7 +12,7 @@ require_once($dirname . "/globals.php");
 //use OpenEMR\Billing\BillingUtilities;
 //use OpenEMR\Core\Header;
 
-$handle = fopen($dirname . "reports/d1out", "r");
+$handle = fopen($dirname . "/tmp/d1out", "r");
 
 if ($handle) {
     while (($line = fgets($handle)) !== false) {
@@ -30,8 +28,8 @@ if ($handle) {
         echo "The string '$findme' was found in the string '$mystring'";
         echo " and exists at position $pos";
         $garno = str_replace("'", "\'", $garno);
-   } 
-   
+   }
+
 
       $statement1 = "SELECT p.fname, p.lname, p.pid, p.pubpid, p.DOB, p.sex " .
         "FROM patient_data AS p WHERE pubpid = '" . $pubpid . "'";
@@ -56,7 +54,7 @@ if ($handle) {
 
     //echo $res['fname'];
 
-    
+
   }
 }
 
