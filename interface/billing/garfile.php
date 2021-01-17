@@ -37,6 +37,7 @@ while (($lin = fgets($han)) !== false) {
 
 }
 
+
 if ($handle) {
     while (($line = fgets($handle)) !== false) {
         // process the line read.
@@ -45,14 +46,14 @@ if ($handle) {
         $row = sqlQuery("select pid from patient_data where pubpid = ?", $garno);
 
         if (!$row['pid']) {
-            echo "<i>No match for $garno!</i></br>";
-        } else if (!getEncounters($row['pid'])){
-            echo "there aren't any encounters for $garno </br>";
+            //echo "<i>No match for $garno!</i></br>";
+        //} else if (!getEncounters($row['pid'])){
+            //echo "there aren't any encounters for $garno </br>";
         } else {
             // who is it
             $pid = $row['pid'];
-            echo "pid is $pid </br>";
-            echo "garno is $garno </br>";
+            //echo "pid is $pid </br>";
+            //echo "garno is $garno </br>";
             // $gar_name = trim(substr($line, 8, 24));
             // move gar street to emr street
             $gar_addr = trim(substr($line, 32, 22));
@@ -91,7 +92,7 @@ if ($handle) {
 
             $gar_pr_relate = substr($line, 191, 1);
             if ($gar_relate !== $gar_pr_relate) {
-                $emr_p_dob = "1973-02-26";
+                $emr_p_dob = "";
                 if ($gar_pr_relate == "2") {
                     $emr_p_subscr_sex = "Male";
                     if ($gar_sex == "F") {
@@ -124,33 +125,41 @@ if ($handle) {
             }
             $gar_se_mplr = substr($line, 192, 4);
             $gar_seins = substr($line, 196, 3);
+
             if ($gar_seins == '062') {
                 if ($gar_pr_group) {
-                    $gar_seins = ltrim($gar_pr_group, '0');
-                    $test = getInsuranceProvider($gar_seins);
+                    $gap_key = substr($gar_pr_group, 0, 7);
+                    $gap_ins = ltrim($gar_pr_group, '0');                    
+                    $gap_ins = trim($gap_ins);
+                    
+                    if (strlen($gap_ins) <= 3) {
+                        $gap_ins = str_pad($gap_ins, 3, "0", STR_PAD_LEFT);
+                        $gap_ins = "88" . $gap_ins;
+                    }
+
+                    $test = getInsuranceProvider($gap_ins);
                     if (!$test) {
-                        $gar_pr_group = trim($gar_pr_group);
-                        $gap_name = $gap[$gar_pr_group]['name'];
-                        $gap_street = $gap[$gar_pr_group]['street'];
-                        $gap_city = $gap[$gar_pr_group]['city'];;
-                        $gap_state = $gap[$gar_pr_group]['state'];;
-                        $gap_zip = $gap[$gar_pr_group]['zip'];;
-                        $gap_plus_four = $gap[$gar_pr_group]['plus_four'];;
-                        $query = "INSERT INTO insurance_companies SET id = ?, name = ?, cms_id = ?, ins_type_code = ?,
+                        $gap_name = $gap[$gap_key]['name'];
+                        $gap_street = $gap[$gap_key]['street'];
+                        $gap_city = $gap[$gap_key]['city'];;
+                        $gap_state = $gap[$gap_key]['state'];;
+                        $gap_zip = $gap[$gap_key]['zip'];;
+                        $gap_plus_four = $gap[$gap_key]['plus_four'];;
+                        $query = "INSERT INTO insurance_companies SET id = ?, `name` = ?, cms_id = ?, ins_type_code = ?,
                                       x12_default_partner_id = ?";
-                        $res = sqlStatement($query, array($gar_seins, $gap_name, '', "17", "46"));
+                        $res = sqlStatement($query, array($gap_ins, $gap_name, '', "17", "46"));
                         $id = sqlQuery("SELECT MAX(id)+1 AS id FROM addresses");
                         $query = "INSERT INTO `addresses` SET `id` = ?, `line1` = ?, `city` = ?, `state` = ?, `zip` = ?, `plus_four` = ?, `foreign_id` = ?";
                         $res = sqlStatement($query, array($id['id'], $gap_street, $gap_city, $gap_state, $gap_zip, $gap_plus_four, $gar_seins));
+                        $gar_seins = $gap_ins;
                     } else {
-                        echo "should have grabbed an ins maybe </br>";
-                        var_dump($test);
+                        //$gar_seins = '001';
+                        //echo "should have grabbed an ins for $garno? </br>";
+                        //var_dump($test);
                     }
                 }
-            } else {
-                //$test = getInsuranceProvider($gar_seins);
-                //var_dump($test);
-            }
+            } 
+
             $gar_se_assign = substr($line, 199, 1);
             $gar_trinsind = substr($line, 200, 1);
             $gar_trins = substr($line, 201, 3);
@@ -164,18 +173,39 @@ if ($handle) {
             $gar_se_name_mname = $gar_se_name_parts[2];
 
             $gar_se_relate = substr($line, 254, 1);
-            $emr_s_relate = "self";
-            $emr_s_subscr_sex = "Male";
-            if ($gar_pr_relate == "2") {
-                if ($gar_sex == "F") {
-                    $emr_s_relate = "spouse";
+            if ($gar_relate !== $gar_se_relate) {
+                $emr_s_dob = "";
+                if ($gar_se_relate == "2") {
+                    $emr_s_subscr_sex = "Male";
+                    if ($gar_sex == "F") {
+                        if ($gar_relate == "K") {
+                            $emr_s_relate = "spouse";
+                        } else if ($gar_relate == "M" || $gar_relate == "4") {
+                            $emr_s_relate = "child";
+                        }
+                    }
+                } else if ($gar_se_relate == "K") {
+                    if ($gar_sex == "M") {
+                        $emr_s_relate = "spouse";
+                        $emr_s_subscr_sex = "Female";
+                    }
+                } else {
+                    $emr_s_relate = "other";
+                    $emr_s_subscr_sex = "Male";
+                    if ($gar_se_relate == "Q") {
+                        $emr_s_subscr_sex = "Female";
+                    }
                 }
-            } else if ($gar_pr_relate == "K") {
-                if ($gar_sex == "M") {
-                    $emr_s_relate = "spouse";
+            } else {
+                $emr_s_dob = $gar_dob;
+                $emr_s_relate = "self";
+                $emr_s_subscr_sex = "Male";
+                if ($gar_sex == "F") {
                     $emr_s_subscr_sex = "Female";
                 }
+
             }
+            
             $gar_copay = substr($line, 255, 7);
             if ($gar_copay == 0) {
                 $gar_copay = NULL;
@@ -194,7 +224,7 @@ if ($handle) {
             //$pri_ins = $ins->doesInsuranceTypeHaveEntry($pid, "primary");
             //var_dump($pri_ins);
             // echo "we're going to insert insurance";
-            echo "<br><br>";
+            //echo "<br><br>";
             for ($i = 1; $i <= 3; $i++) {
                 switch($i) {
                     case 1:
@@ -241,7 +271,7 @@ if ($handle) {
                 } else {
                     break;
                 }
-                echo $q . "</br></br>";
+                //echo $q . "</br></br>";
                 sqlQuery($q);
             }
         }        

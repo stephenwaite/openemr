@@ -64,8 +64,8 @@ function getInsuranceProvider($ins_id)
 {
 
     $sql = "select name from insurance_companies where id=?";
-    $row = sqlQuery($sql, array($ins_id));
-    return $row['name'];
+    //$row = sqlQuery($sql, array($ins_id));
+    return sqlQuery($sql, array($ins_id));
 }
 
 function getInsuranceProviders()
@@ -1610,13 +1610,13 @@ function getEffectiveInsurances($patient_id, $encdate)
 function getAllinsurances($pid)
 {
     $insarr = array();
-    $sql = "SELECT a.type, a.provider, a.plan_name, a.policy_number, a.group_number, 
-           a.subscriber_lname, a.subscriber_fname, a.subscriber_relationship, a.subscriber_employer, 
-		   b.name, c.line1, c.line2, c.city, c.state, c.zip 
+    $sql = "SELECT a.type, a.provider, a.plan_name, a.policy_number, a.group_number,
+           a.subscriber_lname, a.subscriber_fname, a.subscriber_relationship, a.subscriber_employer,
+		   b.name, c.line1, c.line2, c.city, c.state, c.zip
            FROM `insurance_data` AS a
            RIGHT JOIN insurance_companies AS b
            ON a.provider = b.id
-           RIGHT JOIN addresses AS c 
+           RIGHT JOIN addresses AS c
            ON a.provider = c.foreign_id
            WHERE a.pid = ? ";
     $inco = sqlStatement($sql, array($pid));
