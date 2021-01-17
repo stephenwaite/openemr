@@ -360,7 +360,8 @@
                 }
             }
 
-            if (selObj.options[i].value.indexOf('from_encounter.date')) {
+            if (selObj.options[i].value.indexOf('from_encounter.date') != -1) {
+                console.log(selObj.options[i].value.indexOf('from_encounter.date'));
                     search_all_enc = true;
             }
         }

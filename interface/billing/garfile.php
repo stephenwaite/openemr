@@ -8,6 +8,9 @@
  * Time: 3:37 PM
  */
 
+$ignoreAuth = true;
+$_GET['site'] = $argv[1];
+
 require_once(dirname(__FILE__) . "/../../interface/globals.php");
 require_once(dirname(__FILE__) . "/../../library/patient.inc");
 require_once(dirname(__FILE__) . "/../../library/forms.inc");
@@ -19,8 +22,9 @@ sqlStatement("TRUNCATE insurance_data");
 $handle = fopen("/tmp/w1", "r");
 // w2 is unload of gapfile
 // load up an array keyed by the medigap crossover code
-$han    = fopen("/tmp/w2", "r");
+$han = fopen("/tmp/w2", "r");
 $gap = array();
+
 while (($lin = fgets($han)) !== false) {
     // process the line read.
     $idx = substr($lin, 0, 7);
@@ -39,6 +43,7 @@ if ($handle) {
         $garno = substr($line, 0, 8);
 
         $row = sqlQuery("select pid from patient_data where pubpid = ?", $garno);
+
         if (!$row['pid']) {
             echo "<i>No match for $garno!</i></br>";
         } else if (!getEncounters($row['pid'])){
@@ -183,12 +188,9 @@ if ($handle) {
             $gar_filler = substr($line, 274, 3);
 
             //$pat->update($pid, $patient);
-            /*echo "<br><br>";
-            echo "replace patient info with this";
-            echo "<br><br>";
-            var_dump($patient);
-            echo "<br><br>";*/
-
+            //echo "replace patient info with this";
+            //var_dump($patient);
+            
             //$pri_ins = $ins->doesInsuranceTypeHaveEntry($pid, "primary");
             //var_dump($pri_ins);
             // echo "we're going to insert insurance";
@@ -235,64 +237,18 @@ if ($handle) {
                   '$gar_prname_lname', '$gar_prname_mname', '$gar_prname_fname', '$sub_rel',
                   '$gar_dob', '$emr_street', '$gar_zip',
                   '$gar_city', '$gar_state', 'US',
-                  '$gar_phone', '$gar_copay', '20200101', '$pid', '$sub_sex', 'TRUE')";
+                  '$gar_phone', '$gar_copay', '' , '$pid', '$sub_sex', 'TRUE')";
                 } else {
                     break;
                 }
                 echo $q . "</br></br>";
                 sqlQuery($q);
             }
-        }
-
-        /*        FD  GARFILE
-                *    BLOCK CONTAINS 3 RECORDS
-                   DATA RECORD IS G-MASTER.
-                01  G-MASTER.
-                02 G-GARNO PIC X(8).
-                02 G-GARNAME PIC X(24).
-                02 G-BILLADD PIC X(22).
-                02 G-STREET PIC X(22).
-                02 G-CITY PIC X(18).
-                02 G-STATE PIC X(2).
-                02 G-ZIP PIC X(9).
-                02 G-COLLT PIC X.
-                02 G-PHONE PIC X(10).
-                02 G-SEX PIC X.
-                02 G-RELATE PIC X.
-                02 G-MSTAT PIC X.
-                02 G-DOB PIC X(8).
-                02 G-DUNNING PIC X.
-                02 G-ACCTSTAT PIC X.
-                02 G-PR-MPLR PIC X(4).
-                02 G-PRINS PIC XXX.
-                02 G-PR-ASSIGN PIC X.
-                02 G-PR-OFFICE PIC X(4).
-                02 G-PR-GROUP PIC X(10).
-                02 G-PRIPOL PIC X(16).
-                02 G-PRNAME PIC X(24).
-                02 G-PR-RELATE PIC X.
-                02 G-SE-MPLR PIC X(4).
-                02 G-SEINS PIC XXX.
-                02 G-SE-ASSIGN PIC X.
-                02 G-TRINSIND PIC X.
-                02 G-TRINS PIC XXX.
-                02 G-SE-GROUP PIC X(10).
-                02 G-SECPOL PIC X(16).
-                02 G-SENAME PIC X(24).
-                02 G-SE-RELATE PIC X.
-                02 G-COPAY PIC S9(5)V99.
-                02 G-LASTBILL PIC X(8).
-                02 G-ASSIGNM PIC X.
-                02 G-PRIVATE PIC X.
-                02 G-BILLCYCLE PIC X.
-                02 G-DELETE PIC X.
-                02 G-FILLER PIC XXX.*/
-
+        }        
 
     }
 
     fclose($handle);
 } else {
-// error opening the file.
     echo "couldn't open unload of garfile";
 }

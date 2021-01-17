@@ -35,7 +35,7 @@ class BillingReport
                     $billstring .= ' AND ' . $criteria_value;
                 } elseif (strpos($criteria_value, "billing.billed = '0'") !== false) {
                     //3 is an error condition
-                    $billstring .= ' AND ' . "(billing.billed is null or billing.billed = '0' or (billing.billed = '1' and billing.bill_process = '3'))";
+                    $billstring .= ' AND ' . "( billing.billed = '0' or (billing.billed = '1' and billing.bill_process = '3'))";
                 } elseif (strpos($criteria_value, "billing.billed = '7'") !== false) {
                     $billstring .= ' AND ' . "billing.bill_process = '7'";
                 } elseif (strpos($criteria_value, "billing.id = 'null'") !== false) {
@@ -92,9 +92,13 @@ class BillingReport
             "WHERE 1=1 $query_part  " . " $auth " . " $billstring " .
             "ORDER BY form_encounter.provider_id, form_encounter.encounter, form_encounter.pid, billing.code_type, billing.code ASC";
         //echo $sql;
+        error_log("$sql");
         $res = sqlStatement($sql, array($code_type));
         $all = false;
         for ($iter = 0; $row = sqlFetchArray($res); $iter++) {
+            if (empty($row['billing.billed'])) {
+                error_log("billing.billed is empty");
+            }
             $all[$iter] = $row;
         }
 
@@ -242,7 +246,7 @@ class BillingReport
     //The criteria  "Insurance Company" is coded here.The ajax one
     public static function InsuranceCompanyDisplay()
     {
-        
+
         // TPS = This Page Search
         global $TPSCriteriaDisplay, $TPSCriteriaKey, $TPSCriteriaIndex, $web_root;
 

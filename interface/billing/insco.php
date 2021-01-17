@@ -1,4 +1,8 @@
 <?php
+
+$ignoreAuth = true;
+$_GET['site'] = $argv[1];
+
 require_once(dirname(__FILE__) . "/../../interface/globals.php");
 
 // wsteve is unload of insfile
