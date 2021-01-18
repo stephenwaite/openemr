@@ -19,4 +19,7 @@ php7.3 /var/www/html/openemr/interface/reports/update_pubpid_garno.php default
 5. run `garfile.php` which needs `w1` from unload of garfile and `w2` from unload of medigaps,
 which relies on `getInsuranceProvider()` in `library/patient.inc`
 
+```
+php7.3 /var/www/html/openemr/interface/billing/garfile.php default
+```
 
