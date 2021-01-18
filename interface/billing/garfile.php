@@ -129,9 +129,9 @@ if ($handle) {
             if ($gar_seins == '062') {
                 if ($gar_pr_group) {
                     $gap_key = substr($gar_pr_group, 0, 7);
-                    $gap_ins = ltrim($gar_pr_group, '0');                    
+                    $gap_ins = ltrim($gar_pr_group, '0');
                     $gap_ins = trim($gap_ins);
-                    
+
                     if (strlen($gap_ins) <= 3) {
                         $gap_ins = str_pad($gap_ins, 3, "0", STR_PAD_LEFT);
                         $gap_ins = "88" . $gap_ins;
@@ -144,21 +144,19 @@ if ($handle) {
                         $gap_city = $gap[$gap_key]['city'];;
                         $gap_state = $gap[$gap_key]['state'];;
                         $gap_zip = $gap[$gap_key]['zip'];;
-                        $gap_plus_four = $gap[$gap_key]['plus_four'];;
+                        $gap_plus_four = $gap[$gap_key]['plus_four'];
                         $query = "INSERT INTO insurance_companies SET id = ?, `name` = ?, cms_id = ?, ins_type_code = ?,
                                       x12_default_partner_id = ?";
-                        $res = sqlStatement($query, array($gap_ins, $gap_name, '', "17", "46"));
+                        $res = sqlStatement($query, array($gap_ins, $gap_name, '99999', "17", "46"));
                         $id = sqlQuery("SELECT MAX(id)+1 AS id FROM addresses");
                         $query = "INSERT INTO `addresses` SET `id` = ?, `line1` = ?, `city` = ?, `state` = ?, `zip` = ?, `plus_four` = ?, `foreign_id` = ?";
-                        $res = sqlStatement($query, array($id['id'], $gap_street, $gap_city, $gap_state, $gap_zip, $gap_plus_four, $gar_seins));
+                        $res = sqlStatement($query, array($id['id'], $gap_street, $gap_city, $gap_state, $gap_zip, $gap_plus_four, $gap_ins));
                         $gar_seins = $gap_ins;
                     } else {
-                        //$gar_seins = '001';
-                        //echo "should have grabbed an ins for $garno? </br>";
-                        //var_dump($test);
+                        $gar_seins = $gap_ins;
                     }
                 }
-            } 
+            }
 
             $gar_se_assign = substr($line, 199, 1);
             $gar_trinsind = substr($line, 200, 1);
@@ -205,11 +203,9 @@ if ($handle) {
                 }
 
             }
-            
-            $gar_copay = substr($line, 255, 7);
-            if ($gar_copay == 0) {
-                $gar_copay = NULL;
-            }
+
+            $gar_copay = NULL;
+
             $gar_lastbill = substr($line, 262, 8);
             $gar_assignm = substr($line, 270, 1);
             $gar_private = substr($line, 271, 1);
@@ -220,7 +216,7 @@ if ($handle) {
             //$pat->update($pid, $patient);
             //echo "replace patient info with this";
             //var_dump($patient);
-            
+
             //$pri_ins = $ins->doesInsuranceTypeHaveEntry($pid, "primary");
             //var_dump($pri_ins);
             // echo "we're going to insert insurance";
@@ -274,7 +270,7 @@ if ($handle) {
                 //echo $q . "</br></br>";
                 sqlQuery($q);
             }
-        }        
+        }
 
     }
 

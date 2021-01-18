@@ -13,7 +13,7 @@ sqlStatement("TRUNCATE x12_partners");
 
 
 $handle = fopen("/tmp/wsteve", "r");
-$run_flag = 0;
+$run_flag = 1;
 
 if ($handle) {
     while (($line = fgets($handle)) !== false) {
@@ -54,7 +54,7 @@ if ($handle) {
 
 
         }
-        
+
         if (trim($ins_addr) != "" ) {
             $query = "INSERT INTO insurance_companies SET id = ?, name = ?, cms_id = ?, ins_type_code = ?, x12_default_partner_id = ?";
             $res = sqlStatement($query, array($ins_code, $ins_name, $ins_neic, "17", "46"));
@@ -68,7 +68,8 @@ if ($handle) {
         }
 
 
-        if (in_array($ins_code, array("002", "006", "074", "268"))) {
+        // each acct has it's own parm36
+        if (in_array($ins_code, array("002", "006", "074", "230"))) {
             //echo "ins_code is $ins_code";
             $q = "UPDATE insurance_companies SET cms_id = 'BCBSVT', ins_type_code = '6', x12_default_partner_id = '45' where id = $ins_code";
             $r = sqlStatement($q);
