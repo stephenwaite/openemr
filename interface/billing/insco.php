@@ -9,7 +9,6 @@ require_once(dirname(__FILE__) . "/../../interface/globals.php");
 
 sqlStatement("TRUNCATE insurance_companies");
 sqlStatement("TRUNCATE addresses");
-sqlStatement("TRUNCATE x12_partners");
 
 
 $handle = fopen("/tmp/wsteve", "r");
@@ -45,12 +44,14 @@ if ($handle) {
 
         // should fix x12_default_partner_id to change and then manually set up medicare, medicaid and bcbsvt
         if ($run_flag < 1) {
+            sqlStatement("TRUNCATE x12_partners");
             $q = "INSERT INTO x12_partners SET id = ?, name = ?, id_number = ?, x12_sender_id = ?, x12_receiver_id = ?, processing_format = ?, x12_isa01 = ?, x12_isa02  = ?, x12_isa03 = ?, x12_isa04  = ?, x12_isa05 = ?, x12_isa07 = ?, x12_isa14 = ?, x12_isa15 = ?, x12_gs02  = ?, x12_per06 = ?, x12_gs03  = ?, x12_dtp03 = ?";
             $r = sqlStatement($q, array("6", "Cortex EDI", "14512", "N532", "14512", "standard", "00", '', "00", '', "ZZ", "ZZ", "0", "P", "N532", '', "14512", "A"));
             $r = sqlStatement($q, array("11", "DXC Technology", "822287119", "701100357", "14512", "standard", "00", '', "00", '', "ZZ", "ZZ", "0", "P", "701100357", '', "822287119", "A"));
             $r = sqlStatement($q, array("45", "BCBSVT", "BCBSVT", "7111", "BCBSVT", "standard", "00", '', "00", '', "ZZ", "ZZ", "0", "P", "7111", '', "BCBSVT", "A"));
             $r = sqlStatement($q, array("46", "Change Healthcare", "133052274", "030353360", "133052274", "standard", "00", '', "00", '', "ZZ", "ZZ", "0", "P", "030353360", '', "133052274", "A"));
             $r = sqlStatement($q, array("47", "Palmetto GBA", "00882", "RR6355", "00882", "standard", "00", '', "00", '', "ZZ", "ZZ", "0", "P", "RR6355", '', "00882", "A"));
+            //INSERT INTO `x12_partners` VALUES (6,'Cortex EDI','14512','N532','14512','standard','00','          ','00','          ','ZZ','ZZ','0','P','N532','','14512','A'),(11,'DXC Technology','822287119','701100357','14512','standard','00','          ','00','          ','ZZ','ZZ','0','P','701100357','','822287119','A'),(45,'BCBSVT','BCBSVT','7111','BCBSVT','standard','00','          ','00','          ','ZZ','ZZ','0','P','7111','','BCBSVT','A'),(46,'Change Healthcare','133052274','030353360','133052274','standard','00','          ','00','          ','ZZ','ZZ','0','P','030353360','','133052274','A'),(47,'Palmetto GBA','00882','RR6355','00882','standard','00','          ','00','          ','ZZ','ZZ','0','P','RR6355','','00882','A');
 
 
         }
