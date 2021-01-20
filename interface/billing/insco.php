@@ -5,13 +5,14 @@ $_GET['site'] = $argv[1];
 
 require_once(dirname(__FILE__) . "/../../interface/globals.php");
 
-// wsteve is unload of insfile
 
 sqlStatement("TRUNCATE insurance_companies");
 sqlStatement("TRUNCATE addresses");
 
-
+// wsteve is unload of insfile
 $handle = fopen("/tmp/wsteve", "r");
+
+// set run_flag to 0 to truncate and reload
 $run_flag = 1;
 
 if ($handle) {
@@ -83,7 +84,9 @@ if ($handle) {
         } else if ($ins_code == "028") {
             $q = "UPDATE insurance_companies SET cms_id = '00882', ins_type_code = '2', x12_default_partner_id = '47' where id = $ins_code";
             $r = sqlStatement($q);
-        }
+        } else {
+            $q = "UPDATE insurance_companies SET cms_id = '99999', ins_type_code = '17', x12_default_partner_id = '' where id = $ins_code";
+            $r = sqlStatement($q);
 
         $run_flag++;
 
