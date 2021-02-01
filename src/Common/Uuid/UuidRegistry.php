@@ -70,20 +70,7 @@ class UuidRegistry
      */
     public function createUuid()
     {
-        $isUnique = false;
-        $i = 0;
-        while (!$isUnique) {
-            $i++;
-            if ($i > 1) {
-                // There was a uuid creation collision, so need to try again.
-                error_log("OpenEMR Warning: There was a collision when creating a unique UUID. This is try number " . $i . ". Will try again.");
-            }
-            if ($i > self::MAX_TRIES) {
-                // This error should never happen. If so, then the random generation of the
-                //  OS is compromised and no use continuing to run OpenEMR.
-                error_log("OpenEMR Error: Unable to create a unique UUID");
-                exit;
-            }
+
 
             // Create uuid using the Timestamp-first COMB Codec, so can use for primary keys
             //  (since first part is timestamp, it is naturally ordered; the rest is from uuid4, so is random)
@@ -99,37 +86,7 @@ class UuidRegistry
             $timestampFirstComb = $factory->uuid4();
             $uuid = $timestampFirstComb->getBytes();
 
-            /** temp debug stuff
-            error_log(bin2hex($uuid)); // log hex uuid
-            error_log(bin2hex($timestampFirstComb->getBytes())); // log hex uuid
-            error_log($timestampFirstComb->toString()); // log string uuid
-            $test_uuid = (\Ramsey\Uuid\Uuid::fromBytes($uuid))->toString(); // convert byte uuid to string and log below
-            error_log($test_uuid);
-            error_log(bin2hex((\Ramsey\Uuid\Uuid::fromString($test_uuid))->getBytes())); // convert string uuid to byte and log hex
-             */
 
-            // Check to ensure uuid is unique in uuid_registry (unless $this->disable_tracker is set to true)
-            if (!$this->disable_tracker) {
-                $checkUniqueRegistry = sqlQueryNoLog("SELECT * FROM `uuid_registry` WHERE `uuid` = ?", [$uuid]);
-            }
-            if (empty($checkUniqueRegistry)) {
-                if (!empty($this->table_name)) {
-                    // If using $this->table_name, then ensure uuid is unique in that table
-                    $checkUniqueTable = sqlQueryNoLog("SELECT * FROM `" . $this->table_name . "` WHERE `uuid` = ?", [$uuid]);
-                    if (empty($checkUniqueTable)) {
-                        $isUnique = true;
-                    }
-                } elseif ($this->document_drive === 1) {
-                    // If using for document labeling on drive, then ensure drive_uuid is unique in documents table
-                    $checkUniqueTable = sqlQueryNoLog("SELECT * FROM `documents` WHERE `drive_uuid` = ?", [$uuid]);
-                    if (empty($checkUniqueTable)) {
-                        $isUnique = true;
-                    }
-                } else {
-                    $isUnique = true;
-                }
-            }
-        }
 
         // Insert the uuid into uuid_registry (unless $this->disable_tracker is set to true)
         if (!$this->disable_tracker) {
