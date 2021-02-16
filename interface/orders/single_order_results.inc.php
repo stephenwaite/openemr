@@ -483,6 +483,11 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
     <div class='labres'>
 
         <table width='100%' cellpadding='2' cellspacing='0'>
+            <?php if (!($input_form)) { ?>
+            <tr>
+                <td class='bold'><a <?php echo "href='" . $GLOBALS['web_root'] . "/interface/forms/procedure_order/print.php?orderid=" . text($orderid) ."'>Print Order</a></td>";?>
+                <td colspan="3"></td>
+                <?php } // end if not input form ?>
             <tr>
                 <td class="td-label" width='5%' nowrap><?php echo xlt('Patient ID'); ?></td>
                 <td width='45%'><?php echo myCellText($orow['pubpid']); ?></td>

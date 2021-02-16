@@ -147,11 +147,15 @@ DROP TABLE `procedure_type_20190504`;
 
 #IfTable procedure_type_20190507
 DROP TABLE `procedure_type_20190507`;
-INSERT INTO `users` (organization, abook_type) VALUES ('QUEST', 'ord_lab');
 #EndIf
 
 #IfTableEngine form_quest_order MyISAM
 -- Modify the table for InnoDB
+INSERT INTO `users` (organization, abook_type) VALUES ('QUEST', 'ord_lab');
+INSERT INTO `users` (organization, abook_type) VALUES ('QUEST', 'ord_lab');
+
+
+
 alter table `form_quest_order` modify `user` text;
 alter table `form_quest_order` modify `groupname` text;
 alter table `form_quest_order` modify `status` text;
