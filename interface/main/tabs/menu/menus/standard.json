@@ -492,7 +492,7 @@
         {
             "label": "Codes",
             "menu_id": "sup0",
-            "target": "adm",
+            "target": "bil",
             "url": "/interface/patient_file/encounter/superbill_custom_full.php",
             "children": [],
             "requirement": 0,
