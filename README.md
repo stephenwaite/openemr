@@ -1,3 +1,6 @@
+## zero thing
+edit sqlconf.php, don't forget change 0 to 1 after mysql import
+
 ## first thing
 update procedure providers by saving them
 
@@ -5,6 +8,6 @@ update procedure providers by saving them
 make labs subdir in sites/default
 
 ### for pdftk to print non quest labs
-$ sudo add-apt-repository ppa:malteworld/ppa
+$ sudo snap install pdftk
 
 

@@ -489,6 +489,18 @@
           "write"
         ]
       },
+        {
+            "label": "Codes",
+            "menu_id": "sup0",
+            "target": "adm",
+            "url": "/interface/patient_file/encounter/superbill_custom_full.php",
+            "children": [],
+            "requirement": 0,
+            "acl_req": [
+                "acct",
+                "superbill"
+            ]
+        },
       {
         "label": "EDI History",
         "menu_id": "edi0",
@@ -521,7 +533,7 @@
           [
             "patients",
             "lab"
-          ]          
+          ]
         ]
       },
       {
