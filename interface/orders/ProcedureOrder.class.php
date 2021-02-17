@@ -26,7 +26,7 @@ Class ProcedureOrder extends Claim {
         $this->procOrder = sqlQuery($sql);
         $pid = $this->procOrder['patient_id'];
         $encounterId = $this->procOrder['encounter_id'];
-        $claim = new Claim($pid, $encounterId);
+        parent::__construct($pid, $encounterId);
 
         $labId = $this->procOrder['lab_id'];
         $sql = "select * from procedure_providers where ppid = $labId";

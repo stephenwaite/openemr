@@ -34,10 +34,10 @@ trailer
     fputs($fileOut, $fdf);
     fclose($fileOut);
 
-    $pdfForm = $GLOBALS['webserver_root'] . "/templates/transForms/requisition.pdf";
+    $pdfForm = $GLOBALS['webserver_root'] . "/templates/transforms/requisition.pdf";
     $pdfOut = $GLOBALS['temporary_files_dir'] . "/po2-" . date("Y-m-d-Hi", time()) . ".pdf";
     exec('/usr/bin/pdftk ' . $pdfForm . ' fill_form ' . $fdfOut . ' output ' . $pdfOut . ' flatten');
-//        error_log("temp file dir is " . $GLOBALS['temporary_files_dir']);
+   //     error_log("temp file dir is " . $GLOBALS['temporary_files_dir']);
 
     return file_get_contents($pdfOut);
 }
