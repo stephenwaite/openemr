@@ -352,9 +352,9 @@ if ($_POST['form_csvexport']) {
         // open dialog to edit an invoice w/o opening encounter.
         function editInvoice(e, id) {
             e.stopPropagation();
+            e.preventDefault();
             let url = './../billing/sl_eob_invoice.php?id=' + encodeURIComponent(id);
             dlgopen(url,'','modal-lg',750,false,'', {
-                onClosed: 'reSubmit'
             });
         }
 

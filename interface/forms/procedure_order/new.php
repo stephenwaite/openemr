@@ -27,16 +27,17 @@ use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
 use OpenEMR\OeUI\OemrUI;
 
-// Defaults for new orders.
-$row = array(
-    'provider_id' => $_SESSION['authUserID'],
-    'date_ordered' => date('Y-m-d'),
-    'date_collected' => date('Y-m-d H:i'),
-);
-
 if (!$encounter) { // comes from globals.php
     die("Internal error: we do not seem to be in an encounter!");
 }
+
+// Defaults for new orders.
+$provider_id = getProviderIdOfEncounter($encounter);
+$row = array(
+    'provider_id' => $provider_id,
+    'date_ordered' => date('Y-m-d'),
+    'date_collected' => date('Y-m-d H:i'),
+);
 
 function cbvalue($cbname)
 {

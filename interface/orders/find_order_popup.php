@@ -143,6 +143,31 @@ if (isset($_GET['typeid'])) {
             </div>
         </div>
         <?php if ($_REQUEST['bn_search'] || $_REQUEST['bn_grpsearch']) { ?>
+            <?php 
+ if ($_REQUEST['bn_search']) { 
+    $search_term = '%' . $_REQUEST['search_term'] . '%';
+    $query = "SELECT procedure_type_id, procedure_code, name " .
+        "FROM procedure_type WHERE " .
+        "lab_id = ? AND " .
+        "procedure_type LIKE 'ord' AND " .
+        "activity = 1 AND " .
+        "(procedure_code LIKE ? OR name LIKE ?) " .
+        "ORDER BY seq, procedure_code";
+    $res = sqlStatement($query, array($labid, $search_term, $search_term));
+  }
+  else {
+    $query = "select t.procedure_type_id, t.procedure_code, t.name, count(*) as cc from procedure_type t " .
+        "left join procedure_order_code AS c ON (c.procedure_code=t.procedure_code) " . 
+        "left join procedure_order AS o ON o.procedure_order_id=c.procedure_order_id " .
+        "where o.lab_id=? and t.lab_id = ? " .
+        "  and datediff(NOW(), o.date_collected) <= 730 " .
+        "group by 1,2,3 " .
+        "having count(*) > 15 " .
+        "order by 3 " .
+        "limit 50";
+    $res = sqlStatement($query, array($labid, $labid));
+  }
+?>
             <div class="table-responsive">
                 <table class="table table-striped table-condensed">
                     <thead>
@@ -150,17 +175,7 @@ if (isset($_GET['typeid'])) {
                     <th><?php echo xlt('Description'); ?></th>
                     </thead>
                     <?php
-                    $ord = isset($_REQUEST['bn_search']) ? 'ord' : 'fgp';
-                    $search_term = '%' . $_REQUEST['search_term'] . '%';
-                    $query = "SELECT procedure_type_id, procedure_code, name " .
-                        "FROM procedure_type WHERE " .
-                        "lab_id = ? AND " .
-                        "procedure_type LIKE ? AND " .
-                        "activity = 1 AND " .
-                        "(procedure_code LIKE ? OR name LIKE ?) " .
-                        "ORDER BY seq, procedure_code";
-                    $res = sqlStatement($query, array($labid, $ord, $search_term, $search_term));
-
+                   
                     while ($row = sqlFetchArray($res)) {
                         $itertypeid = $row['procedure_type_id'];
                         $itercode = $row['procedure_code'];
