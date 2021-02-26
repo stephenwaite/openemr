@@ -145,6 +145,7 @@ if (isset($_GET['typeid'])) {
         <?php if ($_REQUEST['bn_search'] || $_REQUEST['bn_grpsearch']) { ?>
             <?php 
  if ($_REQUEST['bn_search']) { 
+    $ord = isset($_REQUEST['bn_search']) ? 'ord' : 'fgp';     
     $search_term = '%' . $_REQUEST['search_term'] . '%';
     $query = "SELECT procedure_type_id, procedure_code, name " .
         "FROM procedure_type WHERE " .
@@ -162,7 +163,7 @@ if (isset($_GET['typeid'])) {
         "where o.lab_id=? and t.lab_id = ? " .
         "  and datediff(NOW(), o.date_collected) <= 730 " .
         "group by 1,2,3 " .
-        "having count(*) > 15 " .
+        "having cc > 15 " .
         "order by 3 " .
         "limit 50";
     $res = sqlStatement($query, array($labid, $labid));
