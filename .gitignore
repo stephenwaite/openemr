@@ -12,10 +12,11 @@ node_modules
 !/public/assets/manual-added-packages
 !/public/assets/modified
 /.docs/.out/*
-
+/sites/default/documents/*
 # ccda service build
 ccdaservice/node_modules
 
 # dev editor configs
 /.idea/*
 /nbproject/*
+/.vscode/*
