@@ -78,12 +78,12 @@ if ($_POST['form_refresh'] || $_POST['form_export'] || $_POST['form_csvexport'])
         $form_cb_err      = $_POST['form_cb_err']      ? true : false;
     }
 } else {
-    $form_cb_ssn      = true;
+    $form_cb_ssn      = false;
     $form_cb_dob      = false;
     $form_cb_pubpid   = false;
     $form_cb_adate    = false;
     $form_cb_policy   = false;
-    $form_cb_phone    = true;
+    $form_cb_phone    = false;
     $form_cb_city     = false;
     $form_cb_ins1     = false;
     $form_cb_referrer = false;
@@ -102,7 +102,7 @@ if ($form_age_cols > 0 && $form_age_cols < 50) {
     $form_age_inc  = 0;
 }
 
-$initial_colspan = 1;
+$initial_colspan = 0;
 if ($is_due_ins) {
     ++$initial_colspan;
 }
@@ -380,6 +380,33 @@ if ($_POST['form_csvexport']) {
                     f.elements[i].checked = checked;
             }
         }
+
+        function setDivContent(id, content) {
+    $("#"+id).html(content);
+}
+
+ // Called when clicking on a billing note.
+function editNote(feid) {
+/*  top.restoreSession(); */ // this is probably not needed
+   var c = $("#"+feid).attr('data-'+feid) + "\n";
+    c += "<iframe src='<?php echo "$rootdir/patient_file/history/edit_billnote.php?feid="; ?>" + feid +
+    "' style='width:100%;height:88pt;'></iframe>";
+  setDivContent(feid, c);
+}
+
+ // Called when the billing note editor closes.
+ function closeNote(feid, fenote) {
+    var txt = $("#"+feid).attr('data-'+feid);
+    var data = "data-" + feid + "='" + txt + "'";
+    var c = "<div id='" + feid +"' " + data + " title='" + fenote +"' class='detail name_note'>";
+        c += txt;
+        c += "</div>";
+    setDivContent('note_' + feid, c);
+    $("#"+feid).click(function(evt) { evt.stopPropagation(); editNote(this.id); });
+}
+
+
+
     </script>
 
 </head>
@@ -699,7 +726,7 @@ if ($_POST['form_refresh'] || $_POST['form_export'] || $_POST['form_csvexport'])
 
     # added provider from encounter to the query (TLH)
     $query = "SELECT f.id, f.date, f.pid, CONCAT(w.lname, ', ', w.fname) AS provider_id, f.encounter, f.last_level_billed, " .
-      "f.last_level_closed, f.last_stmt_date, f.stmt_count, f.invoice_refno, " .
+      "f.last_level_closed, f.last_stmt_date, f.stmt_count, f.invoice_refno, f.billing_note as ar_notes, " .
       "p.fname, p.mname, p.lname, p.street, p.city, p.state, " .
       "p.postal_code, p.phone_home, p.ss, p.billing_note, " .
       "p.pubpid, p.DOB, CONCAT(u.lname, ', ', u.fname) AS referrer, " .
@@ -816,7 +843,7 @@ if ($_POST['form_refresh'] || $_POST['form_export'] || $_POST['form_csvexport'])
         $row['provider']  = $erow['provider_id'];
         $row['irnumber']  = $erow['invoice_refno'];
         $row['billdate']  = $erow['billdate'];  // use this for ins_due claim age date
-
+        $row['ar_notes']  = $erow['ar_notes'];
       // Also get the primary insurance company name whenever there is one.
         $row['ins1'] = '';
         if ($insposition == 1) {
@@ -1120,12 +1147,27 @@ if ($_POST['form_refresh'] || $_POST['form_export'] || $_POST['form_csvexport'])
             ?>
        <tr bgcolor='<?php echo attr($bgcolor) ?>'>
             <?php
-            if ($ptrow['count'] == 1) {
-                if ($is_due_ins) {
-                    echo "  <td class='detail'>&nbsp;" . text($insname) ."</td>\n";
-                }
+            if (($ptrow['count'] == 1) && ($is_due_ins)) {                
+                echo "  <td class='detail'>" . text($insname) ."</td>\n";
+            } elseif ($is_due_pt) {                
+                //echo "  <td class='detail'>" . text($insname) ."</td>\n";
+            } else {
+                echo "  <td class='detail' colspan='1'>";
+                echo "&nbsp;</td>\n";
+            }    
 
-                echo "  <td class='detail'>&nbsp;" . text($ptname) ."</td>\n";
+            $note = nl2br(htmlspecialchars( $row['ar_notes'], ENT_QUOTES));
+            $feid = $row['id'];
+            echo "  <td>";
+            echo "<div id='note_$feid' >";
+            echo "<div class='detail name_note' id='$feid'" . " data-$feid='$ptname' title='$note'>";
+            echo "&nbsp;$ptname";
+            echo "</div>";
+            echo "</div>";
+            echo "</td>";
+      
+            if ($ptrow['count'] == 1) {
+
                 if ($form_cb_ssn) {
                     echo "  <td class='detail'>&nbsp;" . text($row['ss']) . "</td>\n";
                 }
@@ -1161,10 +1203,7 @@ if ($_POST['form_refresh'] || $_POST['form_export'] || $_POST['form_csvexport'])
                 if ($form_cb_referrer) {
                     echo "  <td class='detail'>&nbsp;" . text($row['referrer']) . "</td>\n";
                 }
-            } else {
-                echo "  <td class='detail' colspan='" . attr($initial_colspan) . "'>";
-                echo "&nbsp;</td>\n";
-            }
+            } 
             ?>
   <td class="detail">
      &nbsp;<a href="#" onclick="editInvoice(event,<?php echo attr_js($row['id']) ?>)">
@@ -1385,6 +1424,7 @@ if (!$_POST['form_csvexport']) {
         echo "alert(" . js_escape($alertmsg) . ");\n";
     }
     ?>
+    $(".name_note").click(function(evt) { evt.stopPropagation(); editNote(this.id); });
 </script>
 </body>
 </html>
