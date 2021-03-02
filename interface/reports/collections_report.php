@@ -221,11 +221,13 @@ function endPatient($ptrow)
             "'>&nbsp;" . xlt('Total Patient Balance') . ":</td>\n";
             /**************************************************************/
             if ($form_age_cols) {
+                echo "  <td class='detotal' align='left'>&nbsp;" . "&nbsp;</td>\n";
                 for ($c = 0; $c < $form_age_cols; ++$c) {
                     echo "  <td class='detotal' align='left'>&nbsp;" .
                     text(oeFormatMoney($ptrow['agedbal'][$c])) . "&nbsp;</td>\n";
                 }
             } else {
+                echo "  <td class='detotal' align='left'>&nbsp;" . "&nbsp;</td>\n";
                 echo "  <td class='detotal' align='left'>&nbsp;" .
                 text(oeFormatMoney($pt_balance)) . "&nbsp;</td>\n";
             }
@@ -1344,7 +1346,7 @@ if ($_POST['form_refresh'] || $_POST['form_export'] || $_POST['form_csvexport'])
         } else {
             echo "  <td class='detail' colspan='" . attr($initial_colspan) . "'>\n";
             echo "   &nbsp;</td>\n";
-            echo "  <td class='dehead' colspan='" . attr($final_colspan - 3) .
+            echo "  <td class='dehead' colspan='" . attr($final_colspan - 2) .
             "'>&nbsp;" . xlt('Report Totals') . ":</td>\n";
         }
 
