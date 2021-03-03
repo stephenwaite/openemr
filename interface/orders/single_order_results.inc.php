@@ -325,7 +325,7 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
     $orow = sqlQuery(
         "SELECT " .
         "po.procedure_order_id, po.date_ordered, po.control_id, " .
-        "po.order_status, po.specimen_type, po.patient_id, po.order_diagnosis, " .
+        "po.order_status, po.specimen_type, po.patient_id, po.order_diagnosis, po.clinical_hx, " .
         "pd.pubpid, pd.lname, pd.fname, pd.mname, pd.cmsportal_login, pd.language, " .
         "fe.date, " .
         "pp.name AS labname, pp.recv_fac_id AS rcvfacid, " .
@@ -536,6 +536,10 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
                 <td class="td-label" nowrap><?php echo xlt('Receiving Fac.'); ?></td>
                 <td><?php echo myCellText($orow['rcvfacid']); ?></td>
                 <!-- replaced specimen with receiving facility -->
+            </tr>
+            <tr>
+                <td class="td-label" nowrap><?php echo xlt('Clinical History'); ?></td>
+                <td><?php echo myCellText($orow['clinical_hx']); ?></td>
             </tr>
         </table>
         <br/>

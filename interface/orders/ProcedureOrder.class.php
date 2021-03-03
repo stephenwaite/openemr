@@ -129,7 +129,7 @@ Class ProcedureOrder extends Claim {
     }
 
     function comments() {
-        return $this->procOrder['patient_instructions'];
+        return $this->procOrder['clinical_hx'];
     }
 
     function getCodes() {
