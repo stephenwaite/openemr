@@ -100,6 +100,7 @@ function populateOrder($order) {
      */
     $map['Collection Time'] = date("m/d/Y H:i",$order->collected());
     $map['Comments'] = $order->comments();
+    $map['Clinical_Hx'] = $order->clinical_Hx();
 
     $cr = '';
     foreach($order->getCodes() as $c => $t) {

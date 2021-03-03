@@ -49,7 +49,6 @@ if (! $pid) $pid = $_SESSION['pid'];
 if (! $lab_id) {
 	$lab = sqlQuery("SELECT ppid FROM procedure_providers WHERE npi = 'QUEST' LIMIT 1");
 	$lab_id = $lab['ppid'];
-	error_log("lab id is $lab_id");
 }
 
 $client_id = false;

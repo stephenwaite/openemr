@@ -600,7 +600,7 @@ $pdrow = sqlQuery("select billing_note from patient_data where pid = ? limit 1",
                     <div class="col-xs-4">
                         <label class="control-label" for="billing_note"><?php echo xlt('Billing Note'); ?>:</label>
                         <input type='text' name="form_bill_note" id='form_bill_note' class="form-control"
-                               value ='<?php error_log('hey'); echo attr($pdrow['billing_note']); ?>' disabled/>
+                               value ='<?php echo attr($pdrow['billing_note']); ?>' disabled/>
                     </div>
                 </div>    
                             

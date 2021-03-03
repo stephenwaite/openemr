@@ -129,6 +129,10 @@ Class ProcedureOrder extends Claim {
     }
 
     function comments() {
+        return $this->procOrder['patient_instructions'];
+    }
+
+    function clinicalHx() {
         return $this->procOrder['clinical_hx'];
     }
 
