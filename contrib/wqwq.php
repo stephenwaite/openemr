@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: stee
- * Date: 9/23/19
- * Time: 9:13 AM
- */
 
 ini_set('max_execution_time', '0');
 $ignoreAuth = true;
@@ -12,27 +6,31 @@ $_GET['site'] = 'default';
 $argv = $_GET['argv'];
 require_once(dirname(__FILE__) . "/../interface/globals.php");
 
-//echo "/tmp/" . $argv[1] . ".png \n";
-// exit();
-
 $pdf = new Cezpdf('LETTER');
-//$pdf->ezSetMargins(trim($_POST['top_margin']) + 0, 0, trim($_POST['left_margin']) + 0, 0);
 $pdf->ezSetMargins(170, 0, 10, 0);
 $pdf->selectFont('Courier');
 $page_count = 0;
 $continued = false;
 $is_continued = false;
 $was_continued = false;
+$slew = false;
+$body_count = 0;
 
 $content = file_get_contents('wqwq');
-$pages = explode("\014", $content); // form feeds may separate pages
+$pages = explode("\014", $content); // form feeds separate pages
 foreach ($pages as $page) {
+    $last_body_count = $body_count;
+    $body_count = 0;
     $body_start = strpos($page, chr(032)) +2;
-    $footer_start = strpos($page, chr(034));
-    $body_length = $footer_start - $body_start;
-    $footer_length = $length - $footer_start;
 
-    $page_lines = count(explode("\012", $page));
+    if ($footer_start = strpos($page, chr(034))) {
+        $slew = true;
+        $body_length = $footer_start - $body_start;
+        $footer_length = $length - $footer_start;
+    };
+    
+    $page_lines = explode("\012", $page);
+    $page_lines_count = count($page_lines);
 
     $was_continued = $is_continued;
 
@@ -42,218 +40,68 @@ foreach ($pages as $page) {
         $is_continued = true;
     }
 
+    $header = '';
+    for ($i = 0; $i < 5; $i++) {
+        $header .= $page_lines[$i];
+    }
+
+    $body = '';
+    for ($i = 5; $i < ($page_lines_count - 4); $i++) {        
+        $body .= $page_lines[$i];
+        $body_count++;
+    }
+
+    $footer = '';
+    for ($i = ($page_lines_count - 3); $i < $page_lines_count; $i++) {
+        if ($page_lines[$i] == '') {
+            $footer .= $page_lines[$i] . "\r";
+        }
+        $footer .= $page_lines[$i];
+    }    
+
     if (!$is_continued && !$was_continued) {
-        printOnePage($page);
+        printHeader($header, $pdf);
+        printBody($body, $pdf);
+        printFooter($footer, $pdf);
     }
 
     if ($is_continued && !$was_continued) {
-        buildPage($page);
+        $old_body .= $body;
     }
 
     if (!$is_continued && $was_continued) {
-        printMultiPage($page);
+        $old_body .= $body;
+        printHeader($header, $pdf);
+        printBody($old_body, $pdf);
+        printFooter($footer, $pdf);
+        $old_body = '';
     }
-    //$buffer = '';
-    //error_log("string length is " . strlen($page));
-
-    $body_start = strpos($page, chr(032)) +2;
-    $footer_start = strpos($page, chr(034));
-    $body_length = $footer_start - $body_start;
-    $footer_length = $length - $footer_start;
-
-    if ($footer_start && !$is_continued) {
-        $header = substr($page, 0, $body_start);
-        $body = substr($page, $body_start, $body_length);
-        $footer = substr($page, $footer_start, $footer_length);
-
-        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-        $pdf->addPngFromFile("image.png", 0, 0, 612, 792);
-        $pdf->ezText($header, 12, array(
-            'justification' => 'left',
-            'leading' => 12
-        ));
-//        error_log("page height is " . $pdf->ez['pageHeight']);
-//        error_log("footer is " . $footer);
-
-        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
-        $pdf->ezText($body, 12, array(
-            'justification' => 'left',
-            'leading' => 12
-        ));
-
-        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
-        $pdf->ezText($footer, 12, array(
-            'justification' => 'left',
-            'leading' => 12
-        ));
-        
-
-    } else {
-        $header = substr($page, 0, $body_start);
-        $body = substr($page, $body_start, $length);
-        if (!strpos($body, "CONTINUED")) {
-            $blines = explode("\012", $body); // form feeds may separate pages
-            $bline_count = 0;
-            $bline_count = count($blines);
-            $i = 0;
-            $altered_body = '';
-            do {
-                $altered_body .= $blines[$i];
-                //error_log($i . " " . $blines[$i] . "<br>");
-                $i++;
-            } while ($i < ($bline_count - 3));
-
-
-            $altered_footer = "\012" . $blines[$bline_count - 3] . "\012";
-            $altered_footer .= $blines[$bline_count - 2] . "\012";
-            $altered_footer .= $blines[$bline_count - 1] . "\012";
-
-            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-            $pdf->addPngFromFile("image.png", 0, 0, 612, 792);
-            $pdf->ezText($header, 12, array(
-                'justification' => 'left',
-                'leading' => 12
-            ));
-//        error_log("page height is " . $pdf->ez['pageHeight']);
-//        error_log("footer is " . $footer);
-
-            if (!$continued) {
-                $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 140);
-                $pdf->ezText($altered_body, 12, array(
-                    'justification' => 'left',
-                    'leading' => 12
-                ));
-
-                $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
-                $pdf->ezText($altered_footer, 12, array(
-                    'justification' => 'left',
-                    'leading' => 12
-                ));
-            } else {
-                $combined_body = $altered_held_body . $altered_body;
-                $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 140);
-                $pdf->ezText($combined_body, 12, array(
-                    'justification' => 'left',
-                    'leading' => 12
-                ));
-
-                $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
-                $pdf->ezText($altered_footer, 12, array(
-                    'justification' => 'left',
-                    'leading' => 12
-                ));
-                $was_continued = true;
-            }
-            $continued = 0;
-        } else {
-            $altered_body = '';
-            if ($continued == 0) {
-                $altered_held_body = '';
-            }
-            $continued++;
-            $blines = explode("\012", $body); // form feeds may separate pages
-            $bline_count = 0;
-            $bline_count = count($blines);
-            //error_log("blines count is $bline_count");
-            $i = 0;
-            do {
-                $altered_body .= $blines[$i];
-                //error_log($i . " " . $blines[$i] . "<br>");
-                $i++;
-            } while ($i < ($bline_count - 4));
-            
-            $altered_held_body .= $altered_body;
-        }
-    }
-    
 }
 
-function printOnePage($page) {
-    global $pdf;
-    global $body_start;
-    global $body_length;
-    global $footer_length;
-    $pdf->ezNewPage();
-    $header = substr($page, 0, $body_start);
-    $body = substr($page, $body_start, $body_length);
-    $footer = substr($page, $footer_start, $footer_length);
-
+function printHeader($header, $pdf) {
+    $pdf->ezNewPage();        
     $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
     $pdf->addPngFromFile("image.png", 0, 0, 612, 792);
     $pdf->ezText($header, 12, array(
         'justification' => 'left',
         'leading' => 12
     ));
-//        error_log("page height is " . $pdf->ez['pageHeight']);
-//        error_log("footer is " . $footer);
-
-    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
-    $pdf->ezText($body, 12, array(
-        'justification' => 'left',
-        'leading' => 12
-    ));
-
-    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
-    $pdf->ezText($footer, 12, array(
-        'justification' => 'left',
-        'leading' => 12
-    ));        
 }
 
-function buildPage($page) {
-    $pdf->ezNewPage();
-    $header = substr($page, 0, $body_start);
-    $body = substr($page, $body_start, $body_length);
-    $footer = substr($page, $footer_start, $footer_length);
-
-    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-    $pdf->addPngFromFile("image.png", 0, 0, 612, 792);
-    $pdf->ezText($header, 12, array(
-        'justification' => 'left',
-        'leading' => 12
-    ));
-//        error_log("page height is " . $pdf->ez['pageHeight']);
-//        error_log("footer is " . $footer);
-
+function printBody($content, $pdf) {
     $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
-    $pdf->ezText($body, 12, array(
+    $pdf->ezText($content, 12, array(
         'justification' => 'left',
         'leading' => 12
     ));
-
-    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
-    $pdf->ezText($footer, 12, array(
-        'justification' => 'left',
-        'leading' => 12
-    ));        
 }
 
-function printMultipage($page) {
-    $pdf->ezNewPage();
-    $header = substr($page, 0, $body_start);
-    $body = substr($page, $body_start, $body_length);
-    $footer = substr($page, $footer_start, $footer_length);
-
-    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-    $pdf->addPngFromFile("image.png", 0, 0, 612, 792);
-    $pdf->ezText($header, 12, array(
-        'justification' => 'left',
-        'leading' => 12
-    ));
-//        error_log("page height is " . $pdf->ez['pageHeight']);
-//        error_log("footer is " . $footer);
-
-    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
-    $pdf->ezText($body, 12, array(
-        'justification' => 'left',
-        'leading' => 12
-    ));
-
-    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
+function printFooter($footer, $pdf) { 
+    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 570);
     $pdf->ezText($footer, 12, array(
         'justification' => 'left',
         'leading' => 12
-    ));        
+    ));
 }
 
 $fname = tempnam($GLOBALS['temporary_files_dir'], 'PDF');
