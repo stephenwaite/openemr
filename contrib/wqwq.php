@@ -13,21 +13,12 @@ $page_count = 0;
 $continued = false;
 $is_continued = false;
 $was_continued = false;
-$slew = false;
 $body_count = 0;
 
 $content = file_get_contents('wqwq');
 $pages = explode("\014", $content); // form feeds separate pages
 foreach ($pages as $page) {
-    $last_body_count = $body_count;
-    $body_count = 0;
-    $body_start = strpos($page, chr(032)) +2;
-
-    if ($footer_start = strpos($page, chr(034))) {
-        $slew = true;
-        $body_length = $footer_start - $body_start;
-        $footer_length = $length - $footer_start;
-    };
+    $body_count = 0;    
     
     $page_lines = explode("\012", $page);
     $page_lines_count = count($page_lines);
@@ -63,18 +54,48 @@ foreach ($pages as $page) {
         printHeader($header, $pdf);
         printBody($body, $pdf);
         printFooter($footer, $pdf);
+        $total_body_count = 0;
     }
 
     if ($is_continued && !$was_continued) {
         $old_body .= $body;
+        $total_body_count += $body_count;
+
     }
 
     if (!$is_continued && $was_continued) {
-        $old_body .= $body;
-        printHeader($header, $pdf);
-        printBody($old_body, $pdf);
-        printFooter($footer, $pdf);
-        $old_body = '';
+        $total_body_count += $body_count;
+        if ($total_body_count < 35) {
+            $old_body .= $body;
+            printHeader($header, $pdf);
+            printBody($old_body, $pdf);
+            printFooter($footer, $pdf);
+            $old_body = '';
+            $total_body_count = 0;
+        } else {
+            printHeader($header, $pdf);
+            printBody($old_body, $pdf);
+            printFooter($footer, $pdf);
+            printHeader($header, $pdf);
+            $body = "\r" . $body ;
+            printBody($body, $pdf);
+            printFooter($footer, $pdf);
+            $old_body = '';
+            $total_body_count = 0;
+        }    
+    }
+
+    if ($is_continued && $was_continued) {
+        $total_body_count += $body_count;
+        if ($total_body_count < 41) {
+            $old_body .= $body;
+        } else {
+            printHeader($header, $pdf);
+            printBody($old_body, $pdf);
+            printFooter($footer, $pdf);
+            $old_body = "\r" . $body ;
+            $total_body_count = $body_count;
+        }
     }
 }
 
