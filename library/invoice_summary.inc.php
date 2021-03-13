@@ -134,7 +134,11 @@ function ar_get_invoice_summary($patient_id, $encounter_id, $with_detail = false
     while ($row = sqlFetchArray($res)) {
         $code = $row['code'];
         if (! $code) {
-            $code = "Unknown";
+            if($row['account_code'] == "PCP") {
+                $code = "Copay";
+            } else {
+                $code = "Unknown";
+            }
         }
 
         if ($row['modifier']) {
