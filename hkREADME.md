@@ -10,11 +10,32 @@
 
 4. do the ubuntu upgrades, might make sense to upgrade to ubuntu 20 later
 
-5. docker pull phpmyadmin/phpmyadmin
+5. build your own docker phpmyadmin image with the let's encrypt keys from the openemr docker
+```
+docker cp d62e382d3794:/etc/letsencrypt/archive/cmsvt.dev/cert1.pem certs/cert.pem
+docker cp d62e382d3794:/etc/letsencrypt/archive/cmsvt.dev/privkey1.pem certs/privkey.pem
+docker cp d62e382d3794:/etc/letsencrypt/archive/cmsvt.dev/chain1.pem certs/fullchain.pem
+```
 
-6. `docker run --name myadmin -d -e PMA_HOST='crazy-host-name-us-west-1.rds.amazonaws.com' -e UPLOAD_LIMIT=16G -p 8080:80 phpmyadmin`
 
-7. log in to phpmyadmin at port 8080 of your public ip
+```
+FROM phpmyadmin/phpmyadmin
+
+RUN a2enmod ssl
+
+RUN sed -ri -e 's,80,443,' /etc/apache2/sites-available/000-default.conf
+RUN sed -i -e '/^<\/VirtualHost>/i SSLEngine on' /etc/apache2/sites-available/000-default.conf
+RUN sed -i -e '/^<\/VirtualHost>/i SSLCertificateFile /cert/cert.pem' /etc/apache2/sites-available/000-default.conf
+RUN sed -i -e '/^<\/VirtualHost>/i SSLCertificateKeyFile /cert/privkey.pem' /etc/apache2/sites-available/000-default.conf
+RUN sed -i -e '/^<\/VirtualHost>/i SSLCertificateChainFile /cert/fullchain.pem' /etc/apache2/sites-available/000-default.conf
+
+EXPOSE 443
+```
+
+6. 
+`docker run -d -p 8080:443 -e PMA_HOST='crazy_host_name_rds.amazonaws.com' -e UPLOAD_LIMIT=16G -v /home/stee/certs:/cert:ro my_pma_ssl_image`
+
+7. log in to phpmyadmin at port 8080 of your public ip with openemr and the aws password created from the standard template
 
 8. drop database openemr; create database openemr; with utf8_general_ci collation
 
