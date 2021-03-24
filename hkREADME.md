@@ -33,6 +33,8 @@ EXPOSE 443
 ```
 
 6. 
+`docker build --file ./Dockerfile -t my_pma_ssl_image .`
+
 `docker run -d -p 8080:443 -e PMA_HOST='crazy_host_name_rds.amazonaws.com' -e UPLOAD_LIMIT=16G -v /home/stee/certs:/cert:ro my_pma_ssl_image`
 
 7. log in to phpmyadmin at port 8080 of your public ip with openemr and the aws password created from the standard template
