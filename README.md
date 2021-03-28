@@ -8,6 +8,7 @@ update procedure providers by saving them
 make labs subdir in sites/default
 
 ### for pdftk to print non quest labs
-$ sudo snap install pdftk
+sudo snap install pdftk
+sudo ln -fs /snap/pdftk/current/usr/bin/pdftk /usr/bin/pdftk
 
 

@@ -18,7 +18,7 @@ function GenerateTheQueryPart()
                 $billstring .= ' AND '.$criteria_value;
             } elseif (strpos($criteria_value, "billing.billed = '0'")!== false) {
                 //3 is an error condition
-                $billstring .= ' AND '."(billing.billed is null or billing.billed = '0' or (billing.billed = '1' and billing.bill_process = '3'))";
+                $billstring .= ' AND '."(billing.billed = '0' or (billing.billed = '1' and billing.bill_process = '3'))";
             } elseif (strpos($criteria_value, "billing.billed = '7'")!== false) {
                 $billstring .= ' AND '."billing.bill_process = '7'";
             } elseif (strpos($criteria_value, "billing.id = 'null'")!== false) {
@@ -43,6 +43,9 @@ function GenerateTheQueryPart()
                 $query_part .= ' AND '."insurance_data.provider > '0' and insurance_data.date <= form_encounter.date";
             } elseif (strpos($criteria_value, "insurance_data.provider = '0'")!== false) {
                 $query_part .= ' AND '."(insurance_data.provider = '0' or insurance_data.date > form_encounter.date)";
+            } elseif (strpos($criteria_value, "form_encounter.date|between|") !== false) {
+                $elements = explode('|', $criteria_value); 
+                $query_part .= ' AND ' . "(form_encounter.date between '" . add_escape_custom($elements[2]) . "' and '" . add_escape_custom($elements[3]) . "')"; 
             } else {
                 $query_part .= ' AND '.$criteria_value;
             }

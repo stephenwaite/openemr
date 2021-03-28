@@ -99,7 +99,7 @@ function populateOrder($order) {
     FieldName: Sec Subscriber DOB
      */
     $map['Collection Time'] = date("m/d/Y H:i",$order->collected());
-    $map['Comments'] = $order->clinical_Hx();
+    $map['Comments'] = $order->clinicalHx();
     //$map['Clinical_Hx'] = $order->clinical_Hx();
 
     $cr = '';
