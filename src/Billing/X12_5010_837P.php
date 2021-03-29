@@ -55,7 +55,7 @@ class X12_5010_837P
 
         $out .= "GS" .
         "*" . "HC" .
-        "*" . $claim->x12gsgs02() .
+        "*" . $claim->x12gs02() .
         "*" . trim($claim->x12gs03()) .
         "*" . date('Ymd', $today) .
         "*" . date('Hi', $today) .
@@ -87,41 +87,94 @@ class X12_5010_837P
             $lastName = $claim->providerLastName();
             $middleName = $claim->providerMiddleName();
             $suffixName = $claim->providerSuffixName();
-            $out .= "NM1" . // Loop 1000A Submitter
-            "*" . "41" .
-            "*" . "1" .
-            "*" . $lastName .
-            "*" . $firstName .
-            "*" . $middleName .
-            "*" . // Name Prefix not used
-            "*" . $suffixName .
-            "*" . "46";
-        } else {
-            $billingFacilityName = substr($claim->billingFacilityName(), 0, 60);
-            if ($billingFacilityName == '') {
-                $log .= "*** billing facility name in 1000A loop is empty\n";
+            if (
+                ($claim->x12_partner['x12_sender_id'] == '701100357') ||
+                ($claim->x12_partner['x12_sender_id'] == '030353360') ||
+                ($claim->x12_partner['x12_sender_id'] == '7111') ||
+                ($claim->x12_partner['x12_sender_id'] == 'N532') ||
+                ($claim->x12_partner['x12_sender_id'] == 'RR6355')
+               ) {
+                $out .= "NM1" . // Loop 1000A Submitter
+                    "*41" .
+                    "*2" .
+                    "*" . "CARE MANAGEMENT SOLUTIONS" .
+                    "*" .
+                    "*" .
+                    "*" .
+                    "*" .
+                    "*46" .
+                    "*" .
+                    $claim->x12_partner['x12_sender_id'];
+            } else {
+                $out .= "NM1" . // Loop 1000A Submitter
+                    "*" . "41" .
+                    "*" . "1" .
+                    "*" . $lastName .
+                    "*" . $firstName .
+                    "*" . $middleName .
+                    "*" . // Name Prefix not used
+                    "*" . $suffixName .
+                    "*" . "46";
+                $out .= "*" . $claim->billingFacilityETIN();
             }
-            $out .= "NM1" .
-            "*" . "41" .
-            "*" . "2" .
-            "*" . $billingFacilityName .
-            "*" .
-            "*" .
-            "*" .
-            "*" .
-            "*" . "46";
+        } else {
+            if (
+                ($claim->x12_partner['x12_sender_id'] == '701100357') ||
+                ($claim->x12_partner['x12_sender_id'] == '030353360') ||
+                ($claim->x12_partner['x12_sender_id'] == '7111') ||
+                ($claim->x12_partner['x12_sender_id'] == 'N532') ||
+                ($claim->x12_partner['x12_sender_id'] == 'RR6355')
+               ) {
+                $out .= "NM1" .
+                "*41" .
+                "*2" .
+                "*" . "CARE MANAGEMENT SOLUTIONS" .
+                "*" .
+                "*" .
+                "*" .
+                "*" .
+                "*46" .
+                "*" .
+                $claim->x12_partner['x12_sender_id'];
+            } else {
+                $billingFacilityName = substr($claim->billingFacilityName(), 0, 60);
+                if ($billingFacilityName == '') {
+                    $log .= "*** billing facility name in 1000A loop is empty\n";
+                }
+                $out .= "NM1" .
+                    "*" . "41" .
+                    "*" . "2" .
+                    "*" . $billingFacilityName .
+                    "*" .
+                    "*" .
+                    "*" .
+                    "*" .
+                    "*" . "46";
+                $out .= "*" . $claim->billingFacilityETIN();
+            }
         }
-        $out .= "*" . $claim->billingFacilityETIN();
         $out .= "~\n";
 
         ++$edicount;
-        $out .= "PER" . // Loop 1000A, Submitter EDI contact information
-        "*" . "IC" .
-        "*" . $claim->billingContactName() .
-        "*" . "TE" .
-        "*" . $claim->billingContactPhone() .
-        "*" . "EM" .
-        "*" . $claim->billingContactEmail();
+        $out .= "PER"; // Loop 1000A, Submitter EDI contact information
+        if ($claim->x12_partner['x12_sender_id'] == ('701100357' ||
+                    $claim->x12_partner['x12_sender_id'] == '030353360' ||
+                    $claim->x12_partner['x12_sender_id'] == '7111' ||
+                    $claim->x12_partner['x12_sender_id'] == 'N532')) {
+            $out .= "*" . "IC" .
+            "*" . "S WAITE" .
+            "*" . "TE" .
+            "*" . "8003718685" .
+            "*" . "EM" .
+            "*" . "cmswest@sover.net" ;
+        } else {
+            $out .= "*" . "IC" .
+            "*" . $claim->billingContactName() .
+            "*" . "TE" .
+            "*" . $claim->billingContactPhone() .
+            "*" . "EM" .
+            "*" . $claim->billingContactEmail();        
+        }
         $out .= "~\n";
 
         ++$edicount;
@@ -694,14 +747,14 @@ class X12_5010_837P
         }
 
         // Segment REF*F8 Payer Claim Control Number for claim re-submission.icn_resubmission_number
-        if (trim($claim->billing_options['icn_resubmission_number']) > 3) {
+        if (strlen(trim($claim->billing_options['icn_resubmission_number'] ?? null)) > 3) {
             ++$edicount;
             error_log("Method 1: " . errorLogEscape($claim->billing_options['icn_resubmission_number']), 0);
             $out .= "REF" .
             "*" . "F8" .
             "*" . $claim->icnResubmissionNumber() .
             "~\n";
-        }
+        } 
 
         if ($claim->cliaCode() && ($claim->claimType() === 'MB')) {
             // Required by Medicare when in-house labs are done.
@@ -852,11 +905,7 @@ class X12_5010_837P
                 $log .= "*** Performing provider has no taxonomy code.\n";
             }
         } else {
-            $log .= "*** Rendering provider is billing under a group.\n";
-        }
-        if (!$claim->providerNPIValid()) {
-            // If the loop was skipped because the provider NPI was invalid, generate a warning for the log.
-            $log .= "*** Skipping 2310B because " . $claim->providerLastName() . "," . $claim->providerFirstName() . " has invalid NPI.\n";
+            //$log .= "*** Rendering provider is billing under a group.\n";
         }
 
         if (!$claim->providerNPI() && in_array($claim->providerNumberType(), array('0B', '1G', 'G2', 'LU'))) {
@@ -871,7 +920,7 @@ class X12_5010_837P
         // End of Loop 2310B
 
         // Loop 2310C is omitted in the case of home visits (POS=12).
-        if ($claim->facilityPOS() != 12) {
+        if ($claim->facilityPOS() != 12 && ($claim->facilityNPI() != $claim->billingFacilityNPI())) {
             ++$edicount;
             $out .= "NM1" .       // Loop 2310C Service Location
             "*" . "77" .
@@ -1123,11 +1172,34 @@ class X12_5010_837P
             "*" .
             "*" . "PI" .
             "*";
-            if ($claim->payerID($ins)) {
-                $out .= $claim->payerID($ins);
-            } else {
-                $log .= "*** Missing other insco payer id.\n";
-            }
+            if ($claim->payerID($ins-1) == "MCDVT" ||                              
+                $claim->payerID($ins-1) ==  "822287119") { // for 2ndary gmc claims
+                if (($claim->payerID($ins)) == "BCBSVT") {                         
+                    if (($claim->payerName($ins)) == "BCBS NJ") {               
+                        $out .= "H6";                                 
+                    } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
+                        $out .= "MDB";                    
+                    } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
+                        $out .= "BV";
+                    } else {                                                
+                        $out .= "EE";                             
+                    }                                                               
+                }                                                 
+            if (($claim->payerID($ins)) == "14512") $out .= "MDB";
+            if (($claim->payerID($ins)) == "14212") $out .= "MDB";
+            if (($claim->payerID($ins)) == "87726") $out .= "MDB";
+            if (($claim->payerID($ins)) == "62308") $out .= "FB6"; 
+            if (($claim->payerID($ins)) == "14165") $out .= "Z2";                   
+            if (($claim->payerID($ins)) == "60054") $out .= "92";                   
+            if (($claim->payerID($ins)) == "00010") $out .= "42";                   
+            if (($claim->payerID($ins)) == "MPHC1") $out .= "42";                   
+            if (($claim->payerID($ins)) == "EBSRM") $out .= "AW1";
+            if (($claim->payerID($ins)) == "00882") $out .= "MDB";                              
+                                                                                
+            } else {                                                                
+                $out .= $claim->payerID($ins); 
+            }    
+            
             $out .= "~\n";
 
             ++$edicount;
@@ -1194,8 +1266,14 @@ class X12_5010_837P
 
             ++$edicount;
             $out .= "SV1" .     // Segment SV1, Professional Service. Page 400.
-            "*" . "HC:" . $claim->cptKey($prockey) .
-            "*" . sprintf('%.2f', $claim->cptCharges($prockey)) .
+            "*" . "HC:" . $claim->cptKey($prockey);
+
+            // need description of service for NOC items
+            if ($claim->cptNOC($prockey)) {
+                $out .= ":::::" . $claim->cptDescription($prockey);
+            }
+
+            $out .= "*" . sprintf('%.2f', $claim->cptCharges($prockey)) .
             "*" . "UN" .
             "*" . $claim->cptUnits($prockey) .
             "*" .
@@ -1395,8 +1473,35 @@ class X12_5010_837P
 
                 ++$edicount;
                 $out .= "SVD" . // Service line adjudication. Page 554.
-                "*" . $claim->payerID($ins) .
-                "*" . $payerpaid[1] .
+                "*";
+                if (($claim->payerID($ins-1) == "MCDVT" || $claim->payerID($ins-1) == "822287119")) {
+
+                    if (($claim->payerID($ins)) == "BCBSVT") {
+                        if (($claim->payerName($ins)) == "BCBS NJ") {               
+                            $out .= "H6";                                           
+                        } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
+                            $out .= "MDB";                    
+                        } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
+                            $out .= "BV";
+                        } else {                                                    
+                            $out .= "EE";                                           
+                        }                                                   
+                    }                                                     
+                    if (($claim->payerID($ins)) == "14512") $out .= "MDB";          
+                    if (($claim->payerID($ins)) == "14212") $out .= "MDB";
+                    if (($claim->payerID($ins)) == "87726") $out .= "MDB";
+                    if (($claim->payerID($ins)) == "62308") $out .= "FB6"; 
+                    if (($claim->payerID($ins)) == "14165") $out .= "Z2"; 
+                    if (($claim->payerID($ins)) == "60054") $out .= "92";           
+                    if (($claim->payerID($ins)) == "00010") $out .= "42";           
+                    if (($claim->payerID($ins)) == "MPHC1") $out .= "42";                   
+                    if (($claim->payerID($ins)) == "EBSRM") $out .= "AW1";          
+                    if (($claim->payerID($ins)) == "00882") $out .= "MDB";                              
+                } else {                                                             
+                    $out .= $claim->payerID($ins);                                 
+                }                                          
+
+                $out .= "*" . $payerpaid[1] .
                 "*" . "HC:" . $claim->cptKey($prockey) .
                 "*" .
                 "*" . $claim->cptUnits($prockey) .

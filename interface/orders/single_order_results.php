@@ -134,8 +134,9 @@ if (empty($_POST['form_sign'])) {
    f.submit();
   }
  }
- let stayHere = './single_order_results.php?orderid=' + <?php echo js_escape($orderid); ?>;
- window.location.assign(stayHere);
+ //let stayHere = './single_order_results.php?orderid=' + <?php echo js_escape($orderid); ?>;
+ //window.location.assign(stayHere);
+ window.close();
 </script>
     <?php
 }

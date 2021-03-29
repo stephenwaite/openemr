@@ -255,7 +255,7 @@ if ($_POST['form_save']) {
         "modifydate = NOW() " .
         "WHERE id = '" . add_escape_custom($issue) . "'";
         sqlStatement($query);
-        if ($text_type == "medication" && enddate != '') {
+        if ($text_type == "medication" && $form_end != '') {
             sqlStatement('UPDATE prescriptions SET '
             . 'medication = 0 where patient_id = ? '
             . " and upper(trim(drug)) = ? "

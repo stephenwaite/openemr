@@ -167,7 +167,7 @@ if (isset($entryID)) {
     echo ":</td><td class='text'>";
     echo "<input type='text' size='16' class='datetimepicker' name='form_date' id='form_date' " .
       "value='" . attr($form_date) . "' " .
-      "title='" . xla('yyyy-mm-dd hh:mm:ss') . "' />";
+      "title='" . xla('yyyy-mm-dd hh:mm:ss') . "' " . "autocomplete='off' />";
     echo "</td></tr>";
 
     echo "<tr><td class='required'>";

@@ -19,3 +19,10 @@ ccdaservice/node_modules
 # dev editor configs
 /.idea/*
 /nbproject/*
+/.vscode/*
+
+# ignore joe'd files with ~
+*~
+
+# no sqlconf
+/sites/*/sqlconf.php

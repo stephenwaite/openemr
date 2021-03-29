@@ -358,9 +358,11 @@ function SetDateCriteriaCustom(ObjectPassed)
   selObj.value='custom';
  }
 function ValidateDateCriteria(selStr)
- {//From date should not be greater than To date.
+ { //From date should not be greater than To date.
+  let search_all_enc = false;
   var selObj = document.getElementById(selStr);
-  for (var i=0; i<selObj.options.length; i++) {
+  let options_length = selObj.options.length
+  for (var i=0; i < options_length; i++) {
     if(selObj.options[i].value.indexOf('between') != -1)
      {
          DateArray=selObj.options[i].value.split("'");
@@ -375,7 +377,17 @@ function ValidateDateCriteria(selStr)
              return false;
           }
      }
+     
+     if (selObj.options[i].value.indexOf('from_encounter.date') != -1) {
+                    search_all_enc = true;
+            }
   }
+
+     if (search_all_enc && (options_length == 1)) {
+            alert(<?php echo xlj('Service Date values Cannot be Blank.'); ?>);
+            return false;
+        }
+
   return true;
  }
 function getPosition(who,TopOrLeft){//Returns the top and left position of the passed object.
