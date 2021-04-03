@@ -8,18 +8,18 @@
  *
  * @package OpenEMR
  * @author Rod Roark <rod@sunsetsystems.com>
- * @copyright Copyright (c) 2006 Rod Roark <rod@sunsetsystems.com>
  * @author Bill Cernansky <bill@mi-squared.com>
- * @copyright Copyright (c) 2009 Bill Cernansky <bill@mi-squared.com>
  * @author Tony McCormick <tony@mi-squared.com>
- * @copyright Copyright (c) 2009 Tony McCormick <tony@mi-squared.com>
  * @author Raymond Magauran <magauran@medfetch.com>
- * @copyright Copyright (c) 2016 Raymond Magauran <magauran@medfetch.com>
  * @author Jerry Padgett <sjpadgett@gmail.com>
- * @copyright Copyright (c) 2017 Jerry Padgett <sjpadgett@gmail.com>
  * @author Stephen Waite <stephen.waite@cmsvt.com>
- * @copyright Copyright (c) 2020 Stephen Waite <stephen.waite@cmsvt.com>
  * @author Daniel Pflieger <daniel@growlingflea.com>
+ * @copyright Copyright (c) 2006 Rod Roark <rod@sunsetsystems.com>
+ * @copyright Copyright (c) 2009 Bill Cernansky <bill@mi-squared.com>
+ * @copyright Copyright (c) 2009 Tony McCormick <tony@mi-squared.com>
+ * @copyright Copyright (c) 2016 Raymond Magauran <magauran@medfetch.com>
+ * @copyright Copyright (c) 2017 Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2020 Stephen Waite <stephen.waite@cmsvt.com>
  * @copyright Copyright (c) 2018 Daniel Pflieger <daniel@growlingflea.com>
  * @link https://github.com/openemr/openemr/tree/master
  * @license https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
@@ -133,12 +133,12 @@ function create_HTML_statement($stmt)
         return ""; // get out if no data
     }
 
-#minimum_amount_due_to _print
+    #minimum_amount_due_to _print
     if ($stmt['amount'] <= ($GLOBALS['minimum_amount_to_print']) && $GLOBALS['use_statement_print_exclusion']) {
         return "";
     }
 
-// Facility (service location) modified by Daniel Pflieger at Growlingflea Software
+    // Facility (service location) modified by Daniel Pflieger at Growlingflea Software
     $service_query = sqlStatement("SELECT * FROM `form_encounter` fe join facility f on fe.facility_id = f.id where fe.id = ? ", array($stmt['fid']));
     $row = sqlFetchArray($service_query);
     $clinic_name = "{$row['name']}";
@@ -146,7 +146,7 @@ function create_HTML_statement($stmt)
     $clinic_csz = "{$row['city']}, {$row['state']}, {$row['postal_code']}";
 
 
-// Billing location modified by Daniel Pflieger at Growlingflea Software
+    // Billing location modified by Daniel Pflieger at Growlingflea Software
     $service_query = sqlStatement("SELECT * FROM `form_encounter` fe join facility f on fe.billing_facility = f.id where fe.id = ?", array($stmt['fid']));
     $row = sqlFetchArray($service_query);
     $remit_name = "{$row['name']}";
@@ -564,7 +564,30 @@ function create_HTML_statement($stmt)
 
 function create_statement($stmt)
 {
-    if (! $stmt['pid']) {
+
+    // split into top, body and bottom
+    create_top_statement();
+
+    create_body_statement();
+
+    create_bottom_statement();
+
+    return $out;
+}
+
+/* This is the text for the top part of the page, up to but not
+ *   including the detail lines.  Some examples of variable fields are:
+ *   %s    = string with no minimum width
+ *   %9s   = right-justified string of 9 characters padded with spaces
+ *   %-25s = left-justified string of 25 characters padded with spaces
+ * Note that "\n" is a line feed (new line) character.
+ * reformatted to handle i8n by tony
+ */
+
+function create_top_statement()
+{
+
+    if (!$stmt['pid']) {
         return ""; // get out if no data
     }
 
@@ -583,7 +606,6 @@ function create_statement($stmt)
     $clinic_addr = "{$row['street']}";
     $clinic_csz = "{$row['city']}, {$row['state']}, {$row['postal_code']}";
 
-
     // Billing location modified by Daniel Pflieger at Growlingflea Software
     $service_query = sqlStatement("SELECT * FROM `form_encounter` fe join facility f on fe.billing_facility = f.id where fe.id = ?", array($stmt['fid']));
     $row = sqlFetchArray($service_query);
@@ -591,6 +613,23 @@ function create_statement($stmt)
     $remit_addr = "{$row['street']}";
     $remit_csz = "{$row['city']}, {$row['state']}, {$row['postal_code']}";
 
+    // Text only labels
+    $label_addressee = xl('ADDRESSED TO');
+    $label_remitto = xl('REMIT TO');
+    $label_chartnum = xl('Chart Number');
+    $label_insinfo = xl('Insurance information on file');
+    $label_totaldue = xl('Total amount due');
+    $label_payby = xl('If paying by');
+    $label_cards = xl('VISA/MC/Discovery/HSA');
+    $label_cardnum = xl('Card');
+    $label_expiry = xl('Exp');
+    $label_cvv = xl('CVV');
+    $label_sign = xl('Signature');
+    $label_retpay = xl('Return above part with your payment');
+    $label_pgbrk = xl('STATEMENT SUMMARY');
+    $label_visit = xl('Visit Date');
+    $label_desc = xl('Description');
+    $label_amt = xl('Amount');
 
     // Contacts
     $atres = sqlStatement("select f.attn,f.phone from facility f " .
@@ -598,6 +637,131 @@ function create_statement($stmt)
         " left join  billing b on b.provider_id=u.id and b.pid = ?  " .
         " where billing_location=1", [$stmt['pid']]);
     $row = sqlFetchArray($atres);
+
+    $out = "\n\n";
+    $providerName = getProviderName($stmt['provider_id']);
+    $out .= sprintf("%-30s %s %-s\n", $clinic_name, $stmt['patient'], $stmt['today']);
+    $out .= sprintf("%-30s %s: %-s\n", $providerName, $label_chartnum, $stmt['pid']);
+    $out .= sprintf("%-30s %s\n", $clinic_addr, $label_insinfo);
+    $out .= sprintf("%-30s %-s: %-s\n", $clinic_csz, $label_totaldue, $stmt['amount']);
+    $out .= "\n";
+    $out .= sprintf("       %-30s %-s\n", $label_addressee, $label_remitto);
+    $out .= sprintf("       %-30s %s\n", $stmt['to'][0], $remit_name);
+    $out .= sprintf("       %-30s %s\n", $stmt['to'][1], $remit_addr);
+    $out .= sprintf("       %-30s %s\n", $stmt['to'][2], $remit_csz);
+
+    if ($stmt['to'][3] != '') { //to avoid double blank lines the if condition is put.
+        $out .= sprintf("   %-32s\n", $stmt['to'][3]);
+    }
+
+    $out .= sprintf("_________________________________________________________________\n");
+    $out .= "\n";
+    $out .= sprintf("%-32s\n", $label_payby . ' ' . $label_cards);
+    $out .= "\n";
+    $out .= sprintf(
+        "%s_____________________  %s______ %s______ %s___________________\n\n",
+        $label_cardnum,
+        $label_expiry,
+        $label_cvv,
+        $label_sign
+    );
+    $out .= sprintf("-----------------------------------------------------------------\n");
+    $out .= sprintf("%-20s %s\n", null, $label_retpay);
+    $out .= "\n";
+    $out .= sprintf("_______________________ %s _______________________\n", $label_pgbrk);
+    $out .= "\n";
+    $out .= sprintf("%-11s %-46s %s\n", $label_visit, $label_desc, $label_amt);
+    $out .= "\n";
+}
+
+function create_bottom_statement()
+{
+    // Fixed text labels
+    $label_ptname = xl('Name');
+    $label_today = xl('Date');
+    $label_due = xl('Amount Due');
+    $label_thanks = xl('Thank you for choosing');
+    $label_call = xl('Please call if any of the above information is incorrect.');
+    $label_prompt = xl('We appreciate prompt payment of balances due.');
+    $label_dept = xl('Billing Department');
+    $label_bill_phone = (!empty($GLOBALS['billing_phone_number']) ? $GLOBALS['billing_phone_number'] : $billing_phone );
+    $label_appointments = xl('Future Appointments') . ':';
+
+    // This is the bottom portion of the page.
+    $out .= "\n";
+    if (strlen($stmt['bill_note']) != 0 && $GLOBALS['statement_bill_note_print']) {
+        $out .= sprintf("%-46s\n", $stmt['bill_note']);
+    }
+
+    if ($GLOBALS['use_dunning_message']) {
+        $out .= sprintf("%-46s\n", $dun_message);
+    }
+
+    $out .= "\n";
+    $out .= sprintf(
+        "%-s: %-25s %-s: %-14s %-s: %8s\n",
+        $label_ptname,
+        $stmt['patient'],
+        $label_today,
+        oeFormatShortDate($stmt['today']),
+        $label_due,
+        $stmt['amount']
+    );
+    $out .= sprintf("__________________________________________________________________\n");
+    $out .= "\n";
+    $out .= sprintf("%-s\n", $label_call);
+    $out .= sprintf("%-s\n", $label_prompt);
+    $out .= "\n";
+    $out .= sprintf("%-s\n", $billing_contact);
+    $out .= sprintf("  %-s %-25s\n", $label_dept, $label_bill_phone);
+    if ($GLOBALS['statement_message_to_patient']) {
+        $out .= "\n";
+        $statement_message = $GLOBALS['statement_msg_text'];
+        $out .= sprintf("%-40s\n", $statement_message);
+    }
+
+    if ($GLOBALS['show_aging_on_custom_statement']) {
+        # code for ageing
+        $ageline .= ' / ' . xl('Over') . '-' . ($age_index * 30) .
+            sprintf(" %.2f", $aging[$age_index]);
+        $out .= "\n" . $ageline . "\n\n";
+    }
+
+    if ($GLOBALS['number_appointments_on_statement'] != 0) {
+        $out .= "\n";
+        $num_appts = $GLOBALS['number_appointments_on_statement'];
+        $next_day = mktime(0, 0, 0, date('m'), date('d') + 1, date('Y'));
+        # add one day to date so it will not get todays appointment
+        $current_date2 = date('Y-m-d', $next_day);
+        $events = fetchNextXAppts($current_date2, $stmt['pid'], $num_appts);
+        $j = 0;
+        $out .= sprintf("%-s\n", $label_appointments);
+        #loop to add the appointments
+        for ($x = 1; $x <= $num_appts; $x++) {
+            $next_appoint_date = oeFormatShortDate($events[$j]['pc_eventDate']);
+            $next_appoint_time = substr($events[$j]['pc_startTime'], 0, 5);
+            if (strlen(umname) != 0) {
+                $next_appoint_provider = $events[$j]['ufname'] . ' ' . $events[$j]['umname'] .
+                    ' ' .  $events[$j]['ulname'];
+            } else {
+                $next_appoint_provider = $events[$j]['ufname'] . ' ' .  $events[$j]['ulname'];
+            }
+
+            if (strlen($next_appoint_time) != 0) {
+                $label_plsnote[$j] = xlt('Date') . ': ' . text($next_appoint_date) . ' ' . xlt('Time') .
+                    ' ' . text($next_appoint_time) . ' ' . xlt('Provider') . ' ' . text($next_appoint_provider);
+                $out .= sprintf("%-s\n", $label_plsnote[$j]);
+            }
+
+            $j++;
+        }
+    }
+
+    $out .= "\014"; // this is a form feed
+}
+
+function create_body_statement()
+{
     $billing_contact = "{$row['attn']}";
     $billing_phone = "{$row['phone']}";
 
@@ -630,69 +794,7 @@ function create_statement($stmt)
             }
         }
     }
-
-    // Text only labels
-
-    $label_addressee = xl('ADDRESSED TO');
-    $label_remitto = xl('REMIT TO');
-    $label_chartnum = xl('Chart Number');
-    $label_insinfo = xl('Insurance information on file');
-    $label_totaldue = xl('Total amount due');
-    $label_payby = xl('If paying by');
-    $label_cards = xl('VISA/MC/Discovery/HSA');
-    $label_cardnum = xl('Card');
-    $label_expiry = xl('Exp');
-    $label_cvv = xl('CVV');
-    $label_sign = xl('Signature');
-    $label_retpay = xl('Return above part with your payment');
-    $label_pgbrk = xl('STATEMENT SUMMARY');
-    $label_visit = xl('Visit Date');
-    $label_desc = xl('Description');
-    $label_amt = xl('Amount');
-
-    // This is the text for the top part of the page, up to but not
-    // including the detail lines.  Some examples of variable fields are:
-    //  %s    = string with no minimum width
-    //  %9s   = right-justified string of 9 characters padded with spaces
-    //  %-25s = left-justified string of 25 characters padded with spaces
-    // Note that "\n" is a line feed (new line) character.
-    // reformatted to handle i8n by tony
-    $out = "\n\n";
-    $providerNAME = getProviderName($stmt['provider_id']);
-    $out .= sprintf("%-30s %s %-s\n", $clinic_name, $stmt['patient'], $stmt['today']);
-    $out .= sprintf("%-30s %s: %-s\n", $providerNAME, $label_chartnum, $stmt['pid']);
-    $out .= sprintf("%-30s %s\n", $clinic_addr, $label_insinfo);
-    $out .= sprintf("%-30s %-s: %-s\n", $clinic_csz, $label_totaldue, $stmt['amount']);
-    $out .= "\n";
-    $out .= sprintf("       %-30s %-s\n", $label_addressee, $label_remitto);
-    $out .= sprintf("       %-30s %s\n", $stmt['to'][0], $remit_name);
-    $out .= sprintf("       %-30s %s\n", $stmt['to'][1], $remit_addr);
-    $out .= sprintf("       %-30s %s\n", $stmt['to'][2], $remit_csz);
-
-    if ($stmt['to'][3] != '') { //to avoid double blank lines the if condition is put.
-        $out .= sprintf("   %-32s\n", $stmt['to'][3]);
-    }
-
-    $out .= sprintf("_________________________________________________________________\n");
-    $out .= "\n";
-    $out .= sprintf("%-32s\n", $label_payby . ' ' . $label_cards);
-    $out .= "\n";
-    $out .= sprintf(
-        "%s_____________________  %s______ %s______ %s___________________\n\n",
-        $label_cardnum,
-        $label_expiry,
-        $label_cvv,
-        $label_sign
-    );
-    $out .= sprintf("-----------------------------------------------------------------\n");
-    $out .= sprintf("%-20s %s\n", null, $label_retpay);
-    $out .= "\n";
-    $out .= sprintf("_______________________ %s _______________________\n", $label_pgbrk);
-    $out .= "\n";
-    $out .= sprintf("%-11s %-46s %s\n", $label_visit, $label_desc, $label_amt);
-    $out .= "\n";
-
-    // This must be set to the number of lines generated above.
+// This must be set to the number of lines generated above.
     //
     $count = 25;
     $num_ages = 4;
@@ -778,93 +880,7 @@ function create_statement($stmt)
         $ageline .= ' / ' . ($age_index * 30 + 1) . '-' . ($age_index * 30 + 30) .
             sprintf(" %.2f", $aging[$age_index]);
     }
-
-    // Fixed text labels
-    $label_ptname = xl('Name');
-    $label_today = xl('Date');
-    $label_due = xl('Amount Due');
-    $label_thanks = xl('Thank you for choosing');
-    $label_call = xl('Please call if any of the above information is incorrect.');
-    $label_prompt = xl('We appreciate prompt payment of balances due.');
-    $label_dept = xl('Billing Department');
-    $label_bill_phone = (!empty($GLOBALS['billing_phone_number']) ? $GLOBALS['billing_phone_number'] : $billing_phone );
-    $label_appointments = xl('Future Appointments') . ':';
-
-    // This is the bottom portion of the page.
-    $out .= "\n";
-    if (strlen($stmt['bill_note']) != 0 && $GLOBALS['statement_bill_note_print']) {
-        $out .= sprintf("%-46s\n", $stmt['bill_note']);
-    }
-
-    if ($GLOBALS['use_dunning_message']) {
-        $out .= sprintf("%-46s\n", $dun_message);
-    }
-
-    $out .= "\n";
-    $out .= sprintf(
-        "%-s: %-25s %-s: %-14s %-s: %8s\n",
-        $label_ptname,
-        $stmt['patient'],
-        $label_today,
-        oeFormatShortDate($stmt['today']),
-        $label_due,
-        $stmt['amount']
-    );
-    $out .= sprintf("__________________________________________________________________\n");
-    $out .= "\n";
-    $out .= sprintf("%-s\n", $label_call);
-    $out .= sprintf("%-s\n", $label_prompt);
-    $out .= "\n";
-    $out .= sprintf("%-s\n", $billing_contact);
-    $out .= sprintf("  %-s %-25s\n", $label_dept, $label_bill_phone);
-    if ($GLOBALS['statement_message_to_patient']) {
-        $out .= "\n";
-        $statement_message = $GLOBALS['statement_msg_text'];
-        $out .= sprintf("%-40s\n", $statement_message);
-    }
-
-    if ($GLOBALS['show_aging_on_custom_statement']) {
-        # code for ageing
-        $ageline .= ' / ' . xl('Over') . '-' . ($age_index * 30) .
-            sprintf(" %.2f", $aging[$age_index]);
-        $out .= "\n" . $ageline . "\n\n";
-    }
-
-    if ($GLOBALS['number_appointments_on_statement'] != 0) {
-        $out .= "\n";
-        $num_appts = $GLOBALS['number_appointments_on_statement'];
-        $next_day = mktime(0, 0, 0, date('m'), date('d') + 1, date('Y'));
-        # add one day to date so it will not get todays appointment
-        $current_date2 = date('Y-m-d', $next_day);
-        $events = fetchNextXAppts($current_date2, $stmt['pid'], $num_appts);
-        $j = 0;
-        $out .= sprintf("%-s\n", $label_appointments);
-        #loop to add the appointments
-        for ($x = 1; $x <= $num_appts; $x++) {
-            $next_appoint_date = oeFormatShortDate($events[$j]['pc_eventDate']);
-            $next_appoint_time = substr($events[$j]['pc_startTime'], 0, 5);
-            if (strlen(umname) != 0) {
-                $next_appoint_provider = $events[$j]['ufname'] . ' ' . $events[$j]['umname'] .
-                    ' ' .  $events[$j]['ulname'];
-            } else {
-                $next_appoint_provider = $events[$j]['ufname'] . ' ' .  $events[$j]['ulname'];
-            }
-
-            if (strlen($next_appoint_time) != 0) {
-                $label_plsnote[$j] = xlt('Date') . ': ' . text($next_appoint_date) . ' ' . xlt('Time') .
-                    ' ' . text($next_appoint_time) . ' ' . xlt('Provider') . ' ' . text($next_appoint_provider);
-                $out .= sprintf("%-s\n", $label_plsnote[$j]);
-            }
-
-            $j++;
-        }
-    }
-
-    $out .= "\014"; // this is a form feed
-
-    return $out;
 }
-
 function osp_create_HTML_statement($stmt)
 {
     if (! $stmt['pid']) {
@@ -885,10 +901,10 @@ function osp_create_HTML_statement($stmt)
     $clinic_name = "{$row['name']}";
     $clinic_addr = "{$row['street']}";
     $clinic_csz = "{$row['city']}, {$row['state']}, {$row['postal_code']}";
-// Contacts
+    // Contacts
     $billing_contact = "{$row['attn']}";
     $billing_phone = "{$row['phone']}";
-// Billing location
+    // Billing location
     $remit_name = $clinic_name;
     $remit_addr = $clinic_addr;
     $remit_csz = $clinic_csz;

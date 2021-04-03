@@ -324,6 +324,7 @@ function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID =
         $pdf = new Cezpdf('LETTER');//pdf creation starts
         $pdf->ezSetMargins(45, 9, 36, 10);
         $pdf->selectFont('Courier');
+        $pdf->ez['fontSize'] = "9";
         $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
         $countline = 1;
         // this file contains the text to be converted to pdf.
@@ -586,8 +587,9 @@ if (
             if ($inv_pid[$inv_count] != ($inv_pid[$inv_count + 1] ?? null)) {
                 $tmp = make_statement($stmt);
                 if (empty($tmp)) {
-                    $tmp = xlt("This EOB item does not meet minimum print requirements setup in Globals or there is an unknown error.") . " " . xlt("EOB Id") . ":" . text($inv_pid[$inv_count]) . " " . xlt("Encounter") . ":" . text($stmt[encounter]) . "\n";
-                    $tmp .= "<br />\n\014<br /><br />";
+                    $tmp = xlt("This EOB item does not meet minimum print requirements setup in Globals or there is an unknown error.") . 
+                        " " . xlt("EOB Id") . ":" . text($inv_pid[$inv_count]) . " " . xlt("Encounter") . ":" . text($stmt[encounter]) . 
+                        "\n" . "<br />\n\014<br /><br />";
                 }
                 fwrite($fhprint, $tmp);
             }
