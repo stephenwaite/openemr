@@ -1208,8 +1208,8 @@ if ($_POST['form_refresh'] || $_POST['form_export'] || $_POST['form_csvexport'])
             } 
             ?>
   <td class="detail">
-     &nbsp;<a href="#" onclick="editInvoice(event,<?php echo attr_js($row['id']) ?>)">
-            <?php echo empty($row['irnumber']) ? text($row['invnumber']) : text($row['irnumber']); ?></a>
+     &nbsp;<a href="../billing/sl_eob_invoice.php?id=<?php echo $row['id'] ?>" target="_blank"> <?php 
+     echo empty($row['irnumber']) ? text($row['invnumber']) : text($row['irnumber']); ?></a>
   </td>
   <td class="detail">
    &nbsp;<?php echo text(oeFormatShortDate($row['dos'])); ?>
