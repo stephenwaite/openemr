@@ -588,7 +588,7 @@ if (
                 $tmp = make_statement($stmt);
                 if (empty($tmp)) {
                     $tmp = xlt("This EOB item does not meet minimum print requirements setup in Globals or there is an unknown error.") . 
-                        " " . xlt("EOB Id") . ":" . text($inv_pid[$inv_count]) . " " . xlt("Encounter") . ":" . text($stmt[encounter]) . 
+                        " " . xlt("EOB Id") . ":" . text($inv_pid[$inv_count]) . " " . xlt("Encounter") . ":" . text($stmt['encounter']) . 
                         "\n" . "<br />\n\014<br /><br />";
                 }
                 fwrite($fhprint, $tmp);
@@ -653,7 +653,7 @@ if (
         function editInvoice(e, id) {
             e.preventDefault();
             let url = './sl_eob_invoice.php?isPosting=1&id=' + encodeURIComponent(id);
-            dlgopen(url,'','modal-full',700,false,'', {
+            dlgopen(url,'','modal-full',700,true,'', {
                 sizeHeight: 'full',
                 onClosed: 'reSubmit'
             });

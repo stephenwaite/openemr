@@ -55,6 +55,7 @@ function make_statement($stmt)
             return create_HTML_statement($stmt);
         }
     } else {
+        // test $stmt value
         return create_statement($stmt);
     }
 }
@@ -565,12 +566,21 @@ function create_HTML_statement($stmt)
 function create_statement($stmt)
 {
 
+    if (!$stmt['pid']) {
+        return ""; // get out if no data
+    }
+
+    #minimum_amount_to _print
+    if ($stmt['amount'] <= ($GLOBALS['minimum_amount_to_print']) && $GLOBALS['use_statement_print_exclusion']) {
+        return "";
+    }
+
     // split into top, body and bottom
-    create_top_statement();
+    create_top_statement($stmt);
 
-    create_body_statement();
+    create_body_statement($stmt);
 
-    create_bottom_statement();
+    create_bottom_statement($stmt);
 
     return $out;
 }
@@ -584,18 +594,9 @@ function create_statement($stmt)
  * reformatted to handle i8n by tony
  */
 
-function create_top_statement()
-{
-
-    if (!$stmt['pid']) {
-        return ""; // get out if no data
-    }
-
-    #minimum_amount_to _print
-    if ($stmt['amount'] <= ($GLOBALS['minimum_amount_to_print']) && $GLOBALS['use_statement_print_exclusion']) {
-        return "";
-    }
-
+function create_top_statement($stmt)
+{    
+    global $out;
     // These are your clinics return address, contact etc.  Edit them.
     // TBD: read this from the facility table
 
@@ -674,94 +675,10 @@ function create_top_statement()
     $out .= "\n";
 }
 
-function create_bottom_statement()
+function create_body_statement($stmt)
 {
-    // Fixed text labels
-    $label_ptname = xl('Name');
-    $label_today = xl('Date');
-    $label_due = xl('Amount Due');
-    $label_thanks = xl('Thank you for choosing');
-    $label_call = xl('Please call if any of the above information is incorrect.');
-    $label_prompt = xl('We appreciate prompt payment of balances due.');
-    $label_dept = xl('Billing Department');
-    $label_bill_phone = (!empty($GLOBALS['billing_phone_number']) ? $GLOBALS['billing_phone_number'] : $billing_phone );
-    $label_appointments = xl('Future Appointments') . ':';
+    global $out;
 
-    // This is the bottom portion of the page.
-    $out .= "\n";
-    if (strlen($stmt['bill_note']) != 0 && $GLOBALS['statement_bill_note_print']) {
-        $out .= sprintf("%-46s\n", $stmt['bill_note']);
-    }
-
-    if ($GLOBALS['use_dunning_message']) {
-        $out .= sprintf("%-46s\n", $dun_message);
-    }
-
-    $out .= "\n";
-    $out .= sprintf(
-        "%-s: %-25s %-s: %-14s %-s: %8s\n",
-        $label_ptname,
-        $stmt['patient'],
-        $label_today,
-        oeFormatShortDate($stmt['today']),
-        $label_due,
-        $stmt['amount']
-    );
-    $out .= sprintf("__________________________________________________________________\n");
-    $out .= "\n";
-    $out .= sprintf("%-s\n", $label_call);
-    $out .= sprintf("%-s\n", $label_prompt);
-    $out .= "\n";
-    $out .= sprintf("%-s\n", $billing_contact);
-    $out .= sprintf("  %-s %-25s\n", $label_dept, $label_bill_phone);
-    if ($GLOBALS['statement_message_to_patient']) {
-        $out .= "\n";
-        $statement_message = $GLOBALS['statement_msg_text'];
-        $out .= sprintf("%-40s\n", $statement_message);
-    }
-
-    if ($GLOBALS['show_aging_on_custom_statement']) {
-        # code for ageing
-        $ageline .= ' / ' . xl('Over') . '-' . ($age_index * 30) .
-            sprintf(" %.2f", $aging[$age_index]);
-        $out .= "\n" . $ageline . "\n\n";
-    }
-
-    if ($GLOBALS['number_appointments_on_statement'] != 0) {
-        $out .= "\n";
-        $num_appts = $GLOBALS['number_appointments_on_statement'];
-        $next_day = mktime(0, 0, 0, date('m'), date('d') + 1, date('Y'));
-        # add one day to date so it will not get todays appointment
-        $current_date2 = date('Y-m-d', $next_day);
-        $events = fetchNextXAppts($current_date2, $stmt['pid'], $num_appts);
-        $j = 0;
-        $out .= sprintf("%-s\n", $label_appointments);
-        #loop to add the appointments
-        for ($x = 1; $x <= $num_appts; $x++) {
-            $next_appoint_date = oeFormatShortDate($events[$j]['pc_eventDate']);
-            $next_appoint_time = substr($events[$j]['pc_startTime'], 0, 5);
-            if (strlen(umname) != 0) {
-                $next_appoint_provider = $events[$j]['ufname'] . ' ' . $events[$j]['umname'] .
-                    ' ' .  $events[$j]['ulname'];
-            } else {
-                $next_appoint_provider = $events[$j]['ufname'] . ' ' .  $events[$j]['ulname'];
-            }
-
-            if (strlen($next_appoint_time) != 0) {
-                $label_plsnote[$j] = xlt('Date') . ': ' . text($next_appoint_date) . ' ' . xlt('Time') .
-                    ' ' . text($next_appoint_time) . ' ' . xlt('Provider') . ' ' . text($next_appoint_provider);
-                $out .= sprintf("%-s\n", $label_plsnote[$j]);
-            }
-
-            $j++;
-        }
-    }
-
-    $out .= "\014"; // this is a form feed
-}
-
-function create_body_statement()
-{
     $billing_contact = "{$row['attn']}";
     $billing_phone = "{$row['phone']}";
 
@@ -794,7 +711,7 @@ function create_body_statement()
             }
         }
     }
-// This must be set to the number of lines generated above.
+    // This must be set to the number of lines generated above.
     //
     $count = 25;
     $num_ages = 4;
@@ -881,6 +798,95 @@ function create_body_statement()
             sprintf(" %.2f", $aging[$age_index]);
     }
 }
+
+function create_bottom_statement($stmt)
+{
+    global $out;
+    
+    // Fixed text labels
+    $label_ptname = xl('Name');
+    $label_today = xl('Date');
+    $label_due = xl('Amount Due');
+    $label_thanks = xl('Thank you for choosing');
+    $label_call = xl('Please call if any of the above information is incorrect.');
+    $label_prompt = xl('We appreciate prompt payment of balances due.');
+    $label_dept = xl('Billing Department');
+    $label_bill_phone = (!empty($GLOBALS['billing_phone_number']) ? $GLOBALS['billing_phone_number'] : $billing_phone );
+    $label_appointments = xl('Future Appointments') . ':';
+
+    // This is the bottom portion of the page.
+    $out .= "\n";
+    if (strlen($stmt['bill_note']) != 0 && $GLOBALS['statement_bill_note_print']) {
+        $out .= sprintf("%-46s\n", $stmt['bill_note']);
+    }
+
+    if ($GLOBALS['use_dunning_message']) {
+        $out .= sprintf("%-46s\n", $dun_message);
+    }
+
+    $out .= "\n";
+    $out .= sprintf(
+        "%-s: %-25s %-s: %-14s %-s: %8s\n",
+        $label_ptname,
+        $stmt['patient'],
+        $label_today,
+        oeFormatShortDate($stmt['today']),
+        $label_due,
+        $stmt['amount']
+    );
+    $out .= sprintf("__________________________________________________________________\n");
+    $out .= "\n";
+    $out .= sprintf("%-s\n", $label_call);
+    $out .= sprintf("%-s\n", $label_prompt);
+    $out .= "\n";
+    $out .= sprintf("%-s\n", $billing_contact);
+    $out .= sprintf("  %-s %-25s\n", $label_dept, $label_bill_phone);
+    if ($GLOBALS['statement_message_to_patient']) {
+        $out .= "\n";
+        $statement_message = $GLOBALS['statement_msg_text'];
+        $out .= sprintf("%-40s\n", $statement_message);
+    }
+
+    if ($GLOBALS['show_aging_on_custom_statement']) {
+        # code for ageing
+        $ageline .= ' / ' . xl('Over') . '-' . ($age_index * 30) .
+            sprintf(" %.2f", $aging[$age_index]);
+        $out .= "\n" . $ageline . "\n\n";
+    }
+
+    if ($GLOBALS['number_appointments_on_statement'] != 0) {
+        $out .= "\n";
+        $num_appts = $GLOBALS['number_appointments_on_statement'];
+        $next_day = mktime(0, 0, 0, date('m'), date('d') + 1, date('Y'));
+        # add one day to date so it will not get todays appointment
+        $current_date2 = date('Y-m-d', $next_day);
+        $events = fetchNextXAppts($current_date2, $stmt['pid'], $num_appts);
+        $j = 0;
+        $out .= sprintf("%-s\n", $label_appointments);
+        #loop to add the appointments
+        for ($x = 1; $x <= $num_appts; $x++) {
+            $next_appoint_date = oeFormatShortDate($events[$j]['pc_eventDate']);
+            $next_appoint_time = substr($events[$j]['pc_startTime'], 0, 5);
+            if (strlen(umname) != 0) {
+                $next_appoint_provider = $events[$j]['ufname'] . ' ' . $events[$j]['umname'] .
+                    ' ' .  $events[$j]['ulname'];
+            } else {
+                $next_appoint_provider = $events[$j]['ufname'] . ' ' .  $events[$j]['ulname'];
+            }
+
+            if (strlen($next_appoint_time) != 0) {
+                $label_plsnote[$j] = xlt('Date') . ': ' . text($next_appoint_date) . ' ' . xlt('Time') .
+                    ' ' . text($next_appoint_time) . ' ' . xlt('Provider') . ' ' . text($next_appoint_provider);
+                $out .= sprintf("%-s\n", $label_plsnote[$j]);
+            }
+
+            $j++;
+        }
+    }
+
+    $out .= "\014"; // this is a form feed
+}
+
 function osp_create_HTML_statement($stmt)
 {
     if (! $stmt['pid']) {
