@@ -844,10 +844,10 @@ function create_bottom_statement($stmt)
     );
     $out .= sprintf("__________________________________________________________________\n");
     $out .= "\n";
-    //$out .= sprintf("%-s\n", $label_call);
-    //$out .= sprintf("%-s\n", $label_prompt);
+    $out .= sprintf("%-s\n", $label_call);
+    $out .= sprintf("%-s\n", $label_prompt);
     $out .= "\n";
-    //$out .= sprintf("%-s\n", $billing_contact);
+    $out .= sprintf("%-s\n", $billing_contact);
     $out .= sprintf("  %-s %-25s\n", $label_dept, $label_bill_phone);
     if ($GLOBALS['statement_message_to_patient']) {
         $out .= "\n";
