@@ -485,7 +485,7 @@ function create_HTML_statement($stmt)
       </tr></table>';
 
     $out .= "      </div></div>";
-    $out .= "\014";
+    $out .= "<pagebreak />";
     echo $out;
     $output = ob_get_clean();
     return $output;
@@ -578,11 +578,11 @@ function create_statement($stmt)
     }
 
     // split into top, body and bottom
-    create_top_statement($stmt);
+    create_top($stmt);
 
-    create_body_statement($stmt);
+    create_body($stmt);
 
-    create_bottom_statement($stmt);
+    create_bottom($stmt);
 
     return $out;
 }
@@ -596,7 +596,7 @@ function create_statement($stmt)
  * reformatted to handle i8n by tony
  */
 
-function create_top_statement($stmt)
+function create_top($stmt)
 {    
     global $out;
     // These are your clinics return address, contact etc.  Edit them.
@@ -674,9 +674,10 @@ function create_top_statement($stmt)
     $out .= "\n";
 }
 
-function create_body_statement($stmt)
+function create_body($stmt)
 {
     global $out;
+    global $ageline;
 
     // Contacts
     $atres = sqlStatement("select f.attn,f.phone from facility f " .
@@ -777,9 +778,10 @@ function create_body_statement($stmt)
     }
 }
 
-function create_bottom_statement($stmt)
+function create_bottom($stmt)
 {
     global $out;
+    global $ageline;
 
     // dunning message setup
 
@@ -844,10 +846,10 @@ function create_bottom_statement($stmt)
     );
     $out .= sprintf("__________________________________________________________________\n");
     $out .= "\n";
-    //$out .= sprintf("%-s\n", $label_call);
-    //$out .= sprintf("%-s\n", $label_prompt);
+    $out .= sprintf("%-s\n", $label_call);
+    $out .= sprintf("%-s\n", $label_prompt);
     $out .= "\n";
-    //$out .= sprintf("%-s\n", $billing_contact);
+    $out .= sprintf("%-s\n", $billing_contact);
     $out .= sprintf("  %-s %-25s\n", $label_dept, $label_bill_phone);
     if ($GLOBALS['statement_message_to_patient']) {
         $out .= "\n";
@@ -856,7 +858,7 @@ function create_bottom_statement($stmt)
     }
 
     if ($GLOBALS['show_aging_on_custom_statement']) {
-        # code for ageing
+        // code for aging
         $ageline .= ' / ' . xl('Over') . '-' . ($age_index * 30) .
             sprintf(" %.2f", $aging[$age_index]);
         $out .= "\n" . $ageline . "\n\n";
@@ -866,12 +868,12 @@ function create_bottom_statement($stmt)
         $out .= "\n";
         $num_appts = $GLOBALS['number_appointments_on_statement'];
         $next_day = mktime(0, 0, 0, date('m'), date('d') + 1, date('Y'));
-        # add one day to date so it will not get todays appointment
+        // add one day to date so it will not get todays appointment
         $current_date2 = date('Y-m-d', $next_day);
         $events = fetchNextXAppts($current_date2, $stmt['pid'], $num_appts);
         $j = 0;
         $out .= sprintf("%-s\n", $label_appointments);
-        #loop to add the appointments
+        // loop to add the appointments
         for ($x = 1; $x <= $num_appts; $x++) {
             $next_appoint_date = oeFormatShortDate($events[$j]['pc_eventDate']);
             $next_appoint_time = substr($events[$j]['pc_startTime'], 0, 5);
