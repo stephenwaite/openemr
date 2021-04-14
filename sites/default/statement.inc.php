@@ -1,10 +1,10 @@
-<?php
+<?php 
 /* This is a template for printing patient statements and collection
  * letters.  You must customize it to suit your practice.  If your
  * needs are simple then you do not need programming experience to do
  * this - just read the comments and make appropriate substitutions.
  * All you really need to do is replace the [strings in brackets].
- *
+ * 
  * @package OpenEMR
  * @author Rod Roark <rod@sunsetsystems.com>
  * @author Bill Cernansky <bill@mi-squared.com>
@@ -225,7 +225,7 @@ function create_HTML_statement($stmt)
 
     // This must be set to the number of lines generated above.
     //
-    $count = 6;
+    $count = 5;
     $num_ages = 4;
     $aging = array();
     for ($age_index = 0; $age_index < $num_ages; ++$age_index) {
@@ -256,7 +256,11 @@ function create_HTML_statement($stmt)
         $age_index = (int) (($age_in_days - 1) / 30);
         $age_index = max(0, min($num_ages - 1, $age_index));
         $aging[$age_index] += $line['amount'] - $line['paid'];
-
+        // suppressing individual adjustments = improved statement printing
+        $adj_flag = false;
+        $note_flag = false;
+        $pt_paid_flag = false;
+        $prev_ddate = '';
         foreach ($line['detail'] as $dkey => $ddata) {
             $ddate = substr($dkey, 0, 10);
             if (preg_match('/^(\d\d\d\d)(\d\d)(\d\d)\s*$/', $ddate, $matches)) {
@@ -267,13 +271,36 @@ function create_HTML_statement($stmt)
 
             if ($ddata['pmt']) {
                 $amount = sprintf("%.2f", 0 - $ddata['pmt']);
-                $desc = xl('Paid') .' '. oeFormatShortDate($ddate) .': '. $ddata['src'].' '. $ddata['pmt_method'].' '. $ddata['insurance_company'];
+                $desc = xl('Paid') . ' ' . substr(oeFormatShortDate($ddate), 0, 6) .
+                    substr(oeFormatShortDate($ddate), 8, 2) .
+                    ': ' . $ddata['src'] . ' ' . $ddata['pmt_method']. ' ' . $ddata['insurance_company'];
+                if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
+                    $pt_paid_flag = true;
+                    $desc = xl('Pt paid') . ' ' . substr(oeFormatShortDate($ddate), 0, 6) .
+                    substr(oeFormatShortDate($ddate), 8, 2) .
+                    ': ' . $ddata['src'] . ' ' . $ddata['pmt_method'] . ' ' . $ddata['insurance_company'];
+                }    
             } else if ($ddata['rsn']) {
                 if ($ddata['chg']) {
-                    $amount = sprintf("%.2f", $ddata['chg']);
-                    $desc = xl('Adj') .' '.  oeFormatShortDate($ddate) .': ' . $ddata['rsn'].' '.$ddata['pmt_method'].' '. $ddata['insurance_company'];
+                    // $amount = sprintf("%.2f", $ddata['chg']);
+                    // $desc = xl('Adj') .' '.  oeFormatShortDate($ddate) .': ' . $ddata['rsn'].' '.$ddata['pmt_method'].' '. $ddata['insurance_company'];
+                    // this is where the adjustments used to be printed individually
+                    $adj_flag = true;                
                 } else {
-                    $desc = xl('Note') .' '. oeFormatShortDate($ddate) .': '. $ddata['rsn'].' '.$ddata['pmt_method'].' '. $ddata['insurance_company'];
+                    // $desc = xl('Note') .' '. oeFormatShortDate($ddate) .': '. $ddata['rsn'].' '.$ddata['pmt_method'].' '. $ddata['insurance_company'];
+                    if ($ddate == $prev_ddate) {
+                        if ($note_flag) {
+                            // only 1 note per item or results in too much detail
+                            continue;
+                        } else {
+                            $desc = xl('Note') . ' ' . substr(oeFormatShortDate($ddate), 0, 6) .
+                                substr(oeFormatShortDate($ddate), 8, 2) .
+                                ': ' . ': ' . $ddata['rsn'] . ' ' . $ddata['pmt_method'] . ' ' . $ddata['insurance_company'];
+                            $note_flag = true;
+                        }
+                    } else {
+                        continue; // no need to print notes for 2nd insurances
+                    }                    
                 }
             } else if ($ddata['chg'] < 0) {
                 $amount = sprintf("%.2f", $ddata['chg']);
@@ -283,10 +310,28 @@ function create_HTML_statement($stmt)
                 $desc = $description;
             }
 
-            $out .= sprintf("%-10s  %-45s%8s\n", oeFormatShortDate($dos), $desc, $amount);
+            // $out .= sprintf("%-10s  %-45s%8s\n", oeFormatShortDate($dos), $desc, $amount);
+            if (!$adj_flag) {
+                $out .= sprintf("%-10s  %-45s%8s\n", oeFormatShortDate($dos), $desc, $amount);
+                ++$count;
+            }
+
             $dos = '';
+            $adj_flag = false;
+            $note_flag = false;
+            $prev_ddate = $ddate;
+        }
+        // print the adjustments summed after all other postings
+        if ($line['adjust'] !== '0.00') {
+            $out .= sprintf("%-10s  %-45s%8s\n", oeFormatShortDate($dos), "Insurance adjusted", sprintf("%.2f", 0 - $line['adjust']));
             ++$count;
         }
+
+        // don't print a balance after a "Paidpatient payment since it's on it's own line
+#        if (!$pt_paid_flag) {
+            $out .= sprintf("%-10s  %-45s%8s\n", oeFormatShortDate($dos), "Item balance ", sprintf("%.2f", ($line['amount'] - $line['paid'])));            
+            ++$count;
+#        }
     }
 
     // This generates blank lines until we are at line 20.
@@ -341,9 +386,9 @@ function create_HTML_statement($stmt)
     );
     $out .= sprintf("__________________________________________________________________\n");
     $out .= "\n";
-    $out .= sprintf("%-s\n", $label_call);
-    $out .= sprintf("%-s\n", $label_prompt);
-    $out .= "\n";
+//    $out .= sprintf("%-s\n", $label_call);
+//    $out .= sprintf("%-s\n", $label_prompt);
+//    $out .= "\n";
     // $out .= sprintf("%-s\n", $billing_contact);
     $out .= sprintf("  %-s %-25s\n", $label_dept, $label_bill_phone);
     if ($GLOBALS['statement_message_to_patient']) {
@@ -390,7 +435,7 @@ function create_HTML_statement($stmt)
         }
     }
 
-    while ($count++ < 29) {
+    while ($count++ < 32) {
         $out .= "\n";
     }
 
@@ -403,10 +448,10 @@ function create_HTML_statement($stmt)
     $out .= "<br /><br />";
     $out .= $label_cardnum .': __________________________________  '.$label_expiry.': ___ / ____ '.$label_cvv.':____<br /><br />';
     $out .= $label_sign .'  ______________________________________________<br />';
-    $out .="</td><td style='width:2.0in;vertical-align:middle;'>";
+    $out .="      </td><td style='width:2.0in;vertical-align:middle;'>";
     $practice_cards = $GLOBALS['OE_SITE_DIR']. "/images/visa_mc_disc_credit_card_logos_176x35.gif";
     if (file_exists($GLOBALS['OE_SITE_DIR']."/images/visa_mc_disc_credit_card_logos_176x35.gif")) {
-        $out .= "<img src='$practice_cards' style='width:90px;height:auto; margin:4px auto;'><br /><p>\n<b>" .
+        $out .= "<img src='$practice_cards' style='width:100%; margin:4px auto;'><br /><p>\n<b>" .
             $label_totaldue . "</b>: " . $stmt['amount']. "<br/>". xlt('Payment Tracking Id') . ": " .
             text($stmt['pid']);
         $out .= "<br />" . xlt('Amount Paid') . ": _______ " . xlt('Check') . " #:</p>";
@@ -441,8 +486,8 @@ function create_HTML_statement($stmt)
       </tr></table>';
 
     $out .= "      </div></div>";
-    $out .= "\014
-  <br /><br />"; // this is a form feed
+ 
+    $out .= "<formfeed>"; // this is a form feed
     echo $out;
     $output = ob_get_clean();
     return $output;
@@ -527,7 +572,7 @@ function create_statement($stmt)
     }
 
     #minimum_amount_to _print
-    if ($stmt[amount] <= ($GLOBALS['minimum_amount_to_print']) && $GLOBALS['use_statement_print_exclusion']) {
+    if ($stmt['amount'] <= ($GLOBALS['minimum_amount_to_print']) && $GLOBALS['use_statement_print_exclusion']) {
         return "";
     }
 
@@ -631,17 +676,6 @@ function create_statement($stmt)
         $out .= sprintf("   %-32s\n", $stmt['to'][3]);
     }
 
-    $out .= sprintf("_________________________________________________________________\n");
-    $out .= "\n";
-    $out .= sprintf("%-32s\n", $label_payby.' '.$label_cards);
-    $out .= "\n";
-    $out .= sprintf(
-        "%s_____________________  %s______ %s______ %s___________________\n\n",
-        $label_cardnum,
-        $label_expiry,
-        $label_cvv,
-        $label_sign
-    );
     $out .= sprintf("-----------------------------------------------------------------\n");
     $out .= sprintf("%-20s %s\n", null, $label_retpay);
     $out .= "\n";
@@ -770,11 +804,11 @@ function create_statement($stmt)
     );
     $out .= sprintf("__________________________________________________________________\n");
     $out .= "\n";
-    $out .= sprintf("%-s\n", $label_call);
-    $out .= sprintf("%-s\n", $label_prompt);
-    $out .= "\n";
-    $out .= sprintf("%-s\n", $billing_contact);
-    $out .= sprintf("  %-s %-25s\n", $label_dept, $label_bill_phone);
+    //$out .= sprintf("%-s\n", $label_call);
+    //$out .= sprintf("%-s\n", $label_prompt);
+    //$out .= "\n";
+    //$out .= sprintf("%-s\n", $billing_contact);
+    $out .= sprintf("  %-s %-25s\n", $label_dept, '800-371-8685');
     if ($GLOBALS['statement_message_to_patient']) {
         $out .= "\n";
         $statement_message = $GLOBALS['statement_msg_text'];
@@ -1128,8 +1162,7 @@ function osp_create_HTML_statement($stmt)
       </tr></table>';
 
     $out .= "      </div></div>";
-    $out .= "\014
-  <br /><br />"; // this is a form feed
+    $out .= "\014"; // this is a form feed
     echo $out;
     $output = ob_get_clean();
     return $output;
