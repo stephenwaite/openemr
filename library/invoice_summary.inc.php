@@ -191,7 +191,7 @@ function ar_get_invoice_summary($patient_id, $encounter_id, $with_detail = false
                 $tmp['src'] = empty($row['session_id']) ? $row['memo'] : $row['reference'];
             }
 
-            $tmp['insurance_company'] = substr($row['name'], 0, 10);
+            $tmp['insurance_company'] = substr($row['name'], 0, 12);
             if ($ins_id) {
                 $tmp['ins'] = $ins_id;
             }
