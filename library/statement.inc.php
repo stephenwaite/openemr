@@ -48,15 +48,7 @@ $STMT_PRINT_CMD = (new CryptoGen())->decryptStandard($GLOBALS['more_secure']['pr
  */
 function make_statement($stmt)
 {
-    if ($GLOBALS['statement_appearance'] == "1") {
-        if (!empty($_POST['form_portalnotify']) && is_auth_portal($stmt['pid'])) {
-            return osp_create_HTML_statement($stmt);
-        } else {
-            return create_HTML_statement($stmt);
-        }
-    } else {
-        return create_statement($stmt);
-    }
+    return create_statement($stmt);    
 }
     /* This function builds a printable statement or collection letter from
     // an associative array having the following keys:
