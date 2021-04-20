@@ -48,7 +48,7 @@ $STMT_PRINT_CMD = (new CryptoGen())->decryptStandard($GLOBALS['more_secure']['pr
  */
 function make_statement($stmt)
 {
-    return create_statement($stmt);    
+    return create_statement($stmt);
 }
     /* This function builds a printable statement or collection letter from
     // an associative array having the following keys:
@@ -224,9 +224,9 @@ function create_statement($stmt)
     //$out .= sprintf("%-30s %s: %-s\n", $providerNAME, $label_chartnum, $stmt['pid']);
     //$out .= sprintf("%-30s %s\n", $clinic_addr, $label_insinfo);
     //$out .= sprintf("%-30s %-s: %-s\n", $clinic_csz, $label_totaldue, $stmt['amount']);
-    $out  = sprintf("          %-30s                            %-8s \r\n", $stmt['to'][0], $stmt['pid']);
-    $out .= sprintf("          %-30s              %-8s\r\n\r\n", $stmt['to'][1], date('m d y'));
-    $out .= sprintf("          %-30s              %-8s\r\n", $stmt['to'][2], date('m d y'));
+    $out  = sprintf("          %-30s                         %-8s \r\n", strtoupper($stmt['to'][0]), $stmt['pid']);
+    $out .= sprintf("          %-30s              %-8s\r\n\r\n", strtoupper($stmt['to'][1]), date('m d y'));
+    $out .= sprintf("          %-30s              %-8s\r\n", strtoupper($stmt['to'][2]), date('m d y'));
 
     if ($stmt['to'][3] != '') { //to avoid double blank lines the if condition is put.
         $out .= sprintf("   %-32s\r\n", $stmt['to'][3]);
@@ -249,48 +249,40 @@ function create_statement($stmt)
     // This generates the detail lines.  Again, note that the values must
     // be specified in the order used.
     //
-
+    $agedate = '0000-00-00';
     foreach ($stmt['lines'] as $line) {
-        if ($GLOBALS['use_custom_statement']) {
-            $description = substr($line['desc'], 0, 30);
-        } else {
-            $description = $line['desc'];
-        }
-        
-        $tmp = substr($description, 0, 14);
-        if ($tmp == 'Procedure 9920' || $tmp == 'Procedure 9921' || $tmp == 'Procedure 9200' || $tmp == 'Procedure 9201') {
-            $description = str_replace("Procedure", xl('Office Visit') . ":", $description);
-        }
+        $desc_row = sqlQuery("SELECT code_text from codes WHERE code = ?", array(substr($line['desc'], 10, 5)));
+        $description = $desc_row['code_text'];
+
 
         //92002-14 are Eye Office Visit Codes
 
         $dos = $line['dos'];
         ksort($line['detail']);
-        # Compute the aging bucket index and accumulate into that bucket.
-        #
-        $age_in_days = (int) (($todays_time - strtotime($dos)) / (60 * 60 * 24));
-        $age_index = (int) (($age_in_days - 1) / 30);
-        $age_index = max(0, min($num_ages - 1, $age_index));
-        $aging[$age_index] += $line['amount'] - $line['paid'];
+        //Compute the aging bucket index and accumulate into that bucket.                        
 
-        foreach ($line['detail'] as $dkey => $ddata) {           
+        foreach ($line['detail'] as $dkey => $ddata) {
             $ddate = substr($dkey, 0, 10);
             if (preg_match('/^(\d\d\d\d)(\d\d)(\d\d)\s*$/', $ddate, $matches)) {
                 $ddate = $matches[1] . '-' . $matches[2] . '-' . $matches[3];
-            }                        
+            }
 
             $amount = '';
 
             if ($ddata['pmt']) {
-                $dos = $ddate;
+                $dos = $ddate;      
+                if ($dos > $agedate) {
+                    $agedate = $dos;
+                }          
                 $amount = sprintf("%.2f", $ddata['pmt']);
                 $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . $ddata['pmt_method'] . ' ' . $ddata['insurance_company'];
                 if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
                     $pt_paid_flag = true;
                     $desc = xl('Pt paid');
                 }
+
                 $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
-            } elseif ($ddata['rsn']) {
+            } elseif ($ddata['rsn']) {                
                 $dos = $ddate;
                 if ($ddata['chg']) {
                     $amount = sprintf("%.2f", ($ddata['chg'] * -1));
@@ -310,9 +302,16 @@ function create_statement($stmt)
                 $bal = sprintf("%.2f", ($line['amount'] - $line['paid']));
                 $out .= sprintf("%-8s %-44s    %-8s          %-8s \r\n", sidDate($dos), $desc, $amount, $bal);
             }
-                            
+
             ++$count;
         }
+        if ($agedate == '0000-00-00') {
+            $agedate = $dos;
+        }
+        $age_in_days = (int) (($todays_time - strtotime($agedate)) / (60 * 60 * 24));
+        $age_index = (int) (($age_in_days - 1) / 30);
+        $age_index = max(0, min($num_ages - 1, $age_index));
+        $aging[$age_index] += $line['amount'] - $line['paid'];
     }
 
 
@@ -351,7 +350,7 @@ function create_statement($stmt)
         $out .= sprintf("%-46s\r\n", $dun_message);
     }
 
-    
+
     if ($GLOBALS['statement_message_to_patient']) {
         $out .= "\r\n";
         $statement_message = $GLOBALS['statement_msg_text'];
@@ -361,10 +360,10 @@ function create_statement($stmt)
 
     if ($GLOBALS['show_aging_on_custom_statement']) {
         # code for ageing
-        $ageline .= sprintf("      %.2f             %.2f", $aging[$age_index], $stmt['amount']);
+        $ageline .= sprintf("      %.2f               %.2f", $aging[$age_index], $stmt['amount']);
         $out .= $ageline . "\r\n";
     }
-    
+
     /*
     if ($GLOBALS['number_appointments_on_statement'] != 0) {
         $out .= "\r\n";

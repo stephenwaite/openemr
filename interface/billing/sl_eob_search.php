@@ -720,8 +720,8 @@ if (
             if ($inv_pid[$inv_count] != ($inv_pid[$inv_count + 1] ?? null)) {
                 $tmp = make_statement($stmt);
                 if (empty($tmp)) {
-                    $tmp = xlt("This EOB item does not meet minimum print requirements setup in Globals or there is an unknown error.") . " " . xlt("EOB Id") . ":" . text($inv_pid[$inv_count]) . " " . xlt("Encounter") . ":" . text($stmt[encounter]) . "\n";
-                    $tmp .= "<br />\n\014<br /><br />";
+                    //$tmp = xlt("This EOB item does not meet minimum print requirements setup in Globals or there is an unknown error.") . " " . xlt("EOB Id") . ":" . text($inv_pid[$inv_count]) . " " . xlt("Encounter") . ":" . text($stmt[encounter]) . "\n";
+                    //$tmp .= "<br />\n\014<br /><br />";
                 }
                 fwrite($fhprint, $tmp);
             }
