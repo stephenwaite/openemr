@@ -225,10 +225,15 @@ function upload_file_to_client($file_to_send)
 {
     global $STMT_TEMP_FILE_PDF;
     global $srcdir;
+    global $page_count;
+    $page_count = -1;
 
     function printHeader($header, $pdf) {
+        global $page_count;
         $png = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
-        $pdf->ezNewPage();        
+        if ($page_count) {
+            $pdf->ezNewPage();        
+        }
         $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
         $pdf->addPngFromFile($png, 0, 0, 612, 792);
         $pdf->ezText($header, 12, array(
@@ -256,7 +261,6 @@ function upload_file_to_client($file_to_send)
     $pdf = new Cezpdf('LETTER');
     $pdf->ezSetMargins(170, 0, 10, 0);
     $pdf->selectFont('Courier');
-    $page_count = 0;
     $continued = false;
     $is_continued = false;
     $was_continued = false;
@@ -266,8 +270,10 @@ function upload_file_to_client($file_to_send)
     $content = file_get_contents($file_to_send);
     $pages = explode("\014", $content); // form feeds separate pages
     //error_log("content is " . $content);
+    
     foreach ($pages as $page) {
-        
+        global $page_count;
+        $page_count++;
         $body_count = 0;    
         
         $page_lines = explode("\012", $page);
@@ -730,6 +736,10 @@ if (
     if (!empty($stmt)) {
         ++$stmt_count;
     }
+
+    // remove unneccessary page feed from end of $fhprint
+    $stat = fstat($fhprint);
+    ftruncate($fhprint, $stat['size']-1);
 
     fclose($fhprint);
     sleep(1);
