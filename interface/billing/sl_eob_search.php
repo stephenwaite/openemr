@@ -265,6 +265,7 @@ function upload_file_to_client($file_to_send)
 
     $content = file_get_contents($file_to_send);
     $pages = explode("\014", $content); // form feeds separate pages
+    //error_log("content is " . $content);
     foreach ($pages as $page) {
         
         $body_count = 0;    

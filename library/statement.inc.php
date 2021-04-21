@@ -224,9 +224,9 @@ function create_statement($stmt)
     //$out .= sprintf("%-30s %s: %-s\n", $providerNAME, $label_chartnum, $stmt['pid']);
     //$out .= sprintf("%-30s %s\n", $clinic_addr, $label_insinfo);
     //$out .= sprintf("%-30s %-s: %-s\n", $clinic_csz, $label_totaldue, $stmt['amount']);
-    $out  = sprintf("          %-30s                         %-8s \r\n", strtoupper($stmt['to'][0]), $stmt['pid']);
-    $out .= sprintf("          %-30s              %-8s\r\n\r\n", strtoupper($stmt['to'][1]), date('m d y'));
-    $out .= sprintf("          %-30s              %-8s\r\n", strtoupper($stmt['to'][2]), date('m d y'));
+    $out  = sprintf("%-9s %-30s %-23s %6s \r\n", ' ', strtoupper($stmt['to'][0]), ' ', $stmt['pid']);
+    $out .= sprintf("%-9s %-30s %-12s %-8s\r\n\r\n", ' ', strtoupper($stmt['to'][1]), ' ', date('m d y'));
+    $out .= sprintf("%-9s %-30s %-12s %-8s\r\n", ' ', strtoupper($stmt['to'][2]), ' ', date('m d y'));
 
     if ($stmt['to'][3] != '') { //to avoid double blank lines the if condition is put.
         $out .= sprintf("   %-32s\r\n", $stmt['to'][3]);
@@ -259,7 +259,6 @@ function create_statement($stmt)
 
         $dos = $line['dos'];
         ksort($line['detail']);
-        //Compute the aging bucket index and accumulate into that bucket.                        
 
         foreach ($line['detail'] as $dkey => $ddata) {
             $ddate = substr($dkey, 0, 10);
@@ -279,9 +278,10 @@ function create_statement($stmt)
                 if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
                     $pt_paid_flag = true;
                     $desc = xl('Pt paid');
+                    $out .= sprintf("%-8s %-44s           %8s  %7s \r\n", sidDate($dos), $desc, $amount, '-' . $amount);
+                } else {
+                    $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
                 }
-
-                $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
             } elseif ($ddata['rsn']) {                
                 $dos = $ddate;
                 if ($ddata['chg']) {
@@ -297,10 +297,12 @@ function create_statement($stmt)
                 $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
             } else {
                 $amount = sprintf("%.2f", $ddata['chg']);
+                $chg_amount = $line['amount'];
+                $pd_amount = $line['paid'];
                 $dos = $line['dos'];
                 $desc = $description;
-                $bal = sprintf("%.2f", ($line['amount'] - $line['paid']));
-                $out .= sprintf("%-8s %-44s    %-8s          %-8s \r\n", sidDate($dos), $desc, $amount, $bal);
+                $bal = sprintf("%.2f", ($chg_amount - $pd_amount));
+                $out .= sprintf("%-8s %-44s    %-8s          %6s \r\n", sidDate($dos), $desc, $amount, $bal);
             }
 
             ++$count;
@@ -308,6 +310,7 @@ function create_statement($stmt)
         if ($agedate == '0000-00-00') {
             $agedate = $dos;
         }
+        //Compute the aging bucket index and accumulate into that bucket.                        
         $age_in_days = (int) (($todays_time - strtotime($agedate)) / (60 * 60 * 24));
         $age_index = (int) (($age_in_days - 1) / 30);
         $age_index = max(0, min($num_ages - 1, $age_index));
@@ -358,9 +361,10 @@ function create_statement($stmt)
     }
     */
 
+
     if ($GLOBALS['show_aging_on_custom_statement']) {
         # code for ageing
-        $ageline .= sprintf("      %.2f               %.2f", $aging[$age_index], $stmt['amount']);
+        $ageline .= sprintf("      %.2f               %-.2f", $aging[$age_index], $stmt['amount']);
         $out .= $ageline . "\r\n";
     }
 
