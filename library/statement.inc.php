@@ -251,9 +251,7 @@ function create_statement($stmt)
     //
     $agedate = '0000-00-00';
     foreach ($stmt['lines'] as $line) {
-        $desc_row = sqlQuery("SELECT code_text from codes WHERE code = ?", array(substr($line['desc'], 10, 5)));
-        $description = $desc_row['code_text'];
-
+        $description = substr($line['desc'], 0, 30);        
 
         //92002-14 are Eye Office Visit Codes
 

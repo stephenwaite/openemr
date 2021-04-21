@@ -674,11 +674,9 @@ if (
         foreach ($invlines as $key => $value) {
             $line = array();
             $line['dos'] = $svcdate;
-            if ($GLOBALS['use_custom_statement']) {
-                $line['desc'] = ($key == 'CO-PAY') ? "Patient Payment" : $value['code_text'];
-            } else {
-                $line['desc'] = ($key == 'CO-PAY') ? "Patient Payment" : "Procedure $key";
-            }
+            $line['desc'] = ($key == 'CO-PAY') ? "Patient Payment" : $value['code_text'];
+            $line['desc'] = ($key == 'CO-PAY') ? "Patient Payment" : "Procedure $key";
+
 
             $line['amount'] = sprintf("%.2f", $value['chg']);
             $line['adjust'] = sprintf("%.2f", ($value['adj'] ?? null));
