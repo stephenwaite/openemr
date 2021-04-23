@@ -326,7 +326,7 @@ function create_statement($stmt)
     # Current xxx.xx / 31-60 x.xx / 61-90 x.xx / Over-90 xxx.xx
     # ....+....1....+....2....+....3....+....4....+....5....+....6....+
     #
-    $ageline = sprintf("  %.2f              %.2f", $stmt['amount'], $aging[0]);
+    $ageline = sprintf("  %.2f   %.2f   %.2f", $stmt['amount'], ins_due($stmt['pid']), $aging[0]);
     for ($age_index = 1; $age_index < ($num_ages - 1); ++$age_index) {
         $ageline .= sprintf("       %.2f", $aging[$age_index]);
     }
@@ -408,4 +408,15 @@ function sidDate($date) {
 
 function rodDate($date) {
     return substr($date, 0, 2) . " " . substr($date, 3, 2) . " " . substr($date, 6, 2);
+}
+
+function ins_due($pid) {
+    //PATIENT BALANCE,INS BALANCE naina@capminds.com
+    $patientbalance = get_patient_balance($pid, false);
+    //Debit the patient balance from insurance balance
+    $totalbalance = get_patient_balance($pid, true) - $patientbalance;
+    error_log("totalbalance is $totalbalance");
+    //if ($totalbalance)
+
+    
 }
