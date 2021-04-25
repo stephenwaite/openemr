@@ -47,6 +47,7 @@ $eraname = '';
 $eracount = 0;
 $g_posting_adj_disable = $GLOBALS['posting_adj_disable'] ? 'checked' : '';
 $posting_adj_disable = prevSetting('sl_eob_search.', 'posting_adj_disable', 'posting_adj_disable', $g_posting_adj_disable);
+$form_cb = false;
 
 /* Load dependencies only if we need them */
 if (!empty($GLOBALS['portal_onsite_two_enable'])) {
@@ -222,20 +223,155 @@ function emailLogin($patient_id, $message)
 //
 function upload_file_to_client($file_to_send)
 {
-    header("Pragma: public");
+    global $STMT_TEMP_FILE_PDF;
+    global $srcdir;
+
+    function printHeader($header, $pdf) {
+        $png = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
+        $pdf->ezNewPage();        
+        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
+        $pdf->addPngFromFile($png, 0, 0, 612, 792);
+        $pdf->ezText($header, 12, array(
+            'justification' => 'left',
+            'leading' => 12
+        ));
+    }
+
+    function printBody($content, $pdf) {
+        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
+        $pdf->ezText($content, 12, array(
+            'justification' => 'left',
+            'leading' => 12
+        ));
+    }
+
+    function printFooter($footer, $pdf) { 
+        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
+        $pdf->ezText($footer, 12, array(
+            'justification' => 'left',
+            'leading' => 12
+        ));
+    }
+
+    $pdf = new Cezpdf('LETTER');
+    $pdf->ezSetMargins(170, 0, 10, 0);
+    $pdf->selectFont('Courier');
+    $page_count = 0;
+    $continued = false;
+    $is_continued = false;
+    $was_continued = false;
+    $body_count = 0;
+    $old_body = '';
+
+    $content = file_get_contents($file_to_send);
+    $pages = explode("\014", $content); // form feeds separate pages
+    foreach ($pages as $page) {
+
+        $body_count = 0;    
+
+        $page_lines = explode("\012", $page);
+        $page_lines_count = count($page_lines);
+
+        $was_continued = $is_continued;
+
+        if (!strpos($page, "CONTINUED")) {         
+            $is_continued = false;
+        } else {        
+            $is_continued = true;
+        }
+
+        $header = '';
+        for ($i = 0; $i < 5; $i++) {
+            $header .= $page_lines[$i];
+        }
+
+        $body = '';
+        for ($i = 5; $i < ($page_lines_count - 4); $i++) {        
+            $body .= $page_lines[$i];
+            $body_count++;
+        }
+
+        $footer = '';
+        for ($i = ($page_lines_count - 3); $i < $page_lines_count; $i++) {
+            if ($page_lines[$i] == '') {
+                $footer .= $page_lines[$i] . "\r";
+            }
+            $footer .= $page_lines[$i];
+        }    
+
+        if (!$is_continued && !$was_continued) {
+            printHeader($header, $pdf);
+            printBody($body, $pdf);
+            printFooter($footer, $pdf);
+            $total_body_count = 0;
+        }
+
+        if ($is_continued && !$was_continued) {
+            $old_body .= $body;
+            $total_body_count += $body_count;
+
+        }
+
+        if (!$is_continued && $was_continued) {
+            $total_body_count += $body_count;
+            if ($total_body_count < 35) {
+                $old_body .= $body;
+                printHeader($header, $pdf);
+                printBody($old_body, $pdf);
+                printFooter($footer, $pdf);
+                $old_body = '';
+                $total_body_count = 0;
+            } else {
+                printHeader($header, $pdf);
+                printBody($old_body, $pdf);
+                printFooter($footer, $pdf);
+                printHeader($header, $pdf);
+                $body = "\r" . $body ;
+                printBody($body, $pdf);
+                printFooter($footer, $pdf);
+                $old_body = '';
+                $total_body_count = 0;
+            }    
+        }
+
+        if ($is_continued && $was_continued) {
+            $total_body_count += $body_count;
+            if ($total_body_count < 41) {
+                $old_body .= $body;
+            } else {
+                printHeader($header, $pdf);
+                printBody($old_body, $pdf);
+                printFooter($footer, $pdf);
+                $old_body = "\r" . $body ;
+                $total_body_count = $body_count;
+            }
+        }
+
+
+    }
+
+
+
+    $fh = @fopen($STMT_TEMP_FILE_PDF, 'w');
+        if ($fh) {
+            fwrite($fh, $pdf->ezOutput());
+            fclose($fh);
+        }
+            header("Pragma: public");
     header("Expires: 0");
     header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
     header("Content-Type: application/force-download");
-    header("Content-Length: " . filesize($file_to_send));
-    header("Content-Disposition: attachment; filename=" . basename($file_to_send));
+    header("Content-Length: " . filesize($STMT_TEMP_FILE_PDF));
+    header("Content-Disposition: attachment; filename=" . basename($STMT_TEMP_FILE_PDF));
     header("Content-Description: File Transfer");
-    readfile($file_to_send);
+    readfile($STMT_TEMP_FILE_PDF);
     // flush the content to the browser. If you don't do this, the text from the subsequent
     // output from this script will be in the file instead of sent to the browser.
     flush();
     exit(); //added to exit from process properly in order to stop bad html code -ehrlive
     // sleep one second to ensure there's no follow-on.
     sleep(1);
+}
 }
 
 function upload_file_to_client_email($ppid, $file_to_send)
@@ -318,14 +454,16 @@ function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID =
         $temp_filename = $STMT_TEMP_FILE_PDF;
         $content_pdf = $pdf2->Output($STMT_TEMP_FILE_PDF, 'F');
     } else {
+
         $pdf = new Cezpdf('LETTER');//pdf creation starts
-        $pdf->ezSetMargins(45, 9, 36, 10);
+        $pdf->ezSetMargins(60, 5, 36, 10);
         $pdf->selectFont('Courier');
         $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
         $countline = 1;
         $file = fopen($file_to_send, "r");//this file contains the text to be converted to pdf.
         while (!feof($file)) {
             $OneLine = fgets($file);//one line is read
+
             if (stristr($OneLine, "\014") == true && !feof($file)) {//form feed means we should start a new page.
                 $pdf->ezNewPage();
                 $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
@@ -366,9 +504,24 @@ function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID =
 
 
 $today = date("Y-m-d");
+
+// were any invoices selected?
+if (!empty($_REQUEST['form_cb'])) {
+    $form_cb = true;
+}
+
 // Print or download statements if requested.
 //
-if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_email'] || $_REQUEST['form_pdf']) || $_REQUEST['form_portalnotify'] && $_REQUEST['form_cb']) {
+if (
+    (
+        (
+            $_REQUEST['form_print'] ||
+            $_REQUEST['form_download'] ||
+            $_REQUEST['form_email'] ||
+            $_REQUEST['form_pdf']
+        ) || $_REQUEST['form_portalnotify']
+    ) && $form_cb
+) {
     if (!CsrfUtils::verifyCsrfToken($_REQUEST["csrf_token_form"])) {
         CsrfUtils::csrfNotVerified();
     }
@@ -575,10 +728,9 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
     fclose($fhprint);
     sleep(1);
     // Download or print the file, as selected
-    if ($_REQUEST['form_download']) {
+    if ($_REQUEST['form_pdf']) {
         upload_file_to_client($STMT_TEMP_FILE);
-    } elseif ($_REQUEST['form_pdf']) {
-        upload_file_to_client_pdf($STMT_TEMP_FILE, $aPatientFirstName, $aPatientID, $usePatientNamePdf);
+    } 
     } elseif ($_REQUEST['form_email']) {
         upload_file_to_client_email($stmt['pid'], $STMT_TEMP_FILE);
     } elseif ($_REQUEST['form_portalnotify']) {
@@ -598,6 +750,21 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
         } // end not debug
     } // end not form_download
 } // end statements requested
+
+// let biller know no why statement was not generated
+if (
+    (
+        (
+            $_REQUEST['form_print'] ||
+            $_REQUEST['form_download'] ||
+            $_REQUEST['form_email'] ||
+            $_REQUEST['form_pdf']
+        ) || $_REQUEST['form_portalnotify']
+    ) && !$form_cb
+) {
+    echo "<script> alert(" . xlj('No invoices were checked.') . ");\n</script>";
+}
+
 ?>
 <html>
 <head>
@@ -611,7 +778,7 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
         function editInvoice(e, id) {
             let url = './sl_eob_invoice.php?isPosting=1&id=' + encodeURIComponent(id);
             dlgopen(url,'','modal-lg',750,false,'', {
-                onClosed: 'reSubmit'
+                onClosed: ''
             });
         }
 
@@ -638,10 +805,16 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
         }
 
         function npopup(pid) {
-            window.open('sl_eob_patient_note.php?patient_id=' + encodeURIComponent(pid), '_blank', 'width=500,height=250,resizable=1');
+            dlgopen('sl_eob_patient_note.php?patient_id=' + encodeURIComponent(pid),
+                '_blank',
+                '950',
+                '250',
+                true,
+                'Billing note',
+                resizable='1');
             return false;
         }
-
+        
         function toEncSummary(pid) {
             // Tabs only
             top.restoreSession();
@@ -719,11 +892,11 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
 <body>
 <div id="container_div" class="<?php echo attr($oemr_ui->oeContainer()); ?>">
     <div class="row">
-            <div class="col-sm-12">
-                <div class="page-header">
-                    <?php echo $oemr_ui->pageHeading() . "\r\n"; ?>
-                </div>
+        <div class="col-sm-12">
+            <div class="page-header">
+                <?php echo $oemr_ui->pageHeading() . "\r\n"; ?>
             </div>
+        </div>
     </div>
     <div class="row">
         <div class="col-sm-12">
@@ -809,7 +982,7 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
                         </div>
 
                         <input type="hidden" id="hid1" value="<?php echo xla('Invoice Search'); ?>">
-                        <input type="hidden" id="hid2" value="<?php echo xla('ERA Upload'); ?>">
+                        <input checked="checked" type="hidden" id="hid2" value="<?php echo xla('ERA Upload'); ?>">
                         <input type="hidden" id="hid3" value="<?php echo xla('Select Method'); ?>">
                     </legend>
                     <div class="col-xs-12 .oe-custom-line oe-show-hide" id='inv-search'>
@@ -937,6 +1110,7 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
 
                                 if (is_file($erafullname)) {
                                     $alertmsg .= "Warning: Set $eraname was already uploaded ";
+
                                     if (is_file($GLOBALS['OE_SITE_DIR'] . "/documents/era/$eraname.html")) {
                                         $alertmsg .= "and processed. ";
                                     } else {
@@ -1194,20 +1368,9 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
                                         onclick='checkAll(true)'><?php echo xlt('Select All'); ?></button>
                                 <button type="button" class="btn btn-default btn-undo" name="Submit2"
                                         onclick='checkAll(false)'><?php echo xlt('Clear All'); ?></button>
-                                <?php if ($GLOBALS['statement_appearance'] != '1') { ?>
-                                    <button type="submit" class="btn btn-default btn-print" name='form_print'
-                                            value="<?php echo xla('Print Selected Statements'); ?>">
-                                        <?php echo xlt('Print Selected Statements'); ?></button>
-                                    <button type="submit" class="btn btn-default btn-download" name='form_download'
-                                            value="<?php echo xla('Download Selected Statements'); ?>">
-                                        <?php echo xlt('Download Selected Statements'); ?></button>
-                                <?php } ?>
                                 <button type="submit" class="btn btn-default btn-download" name='form_pdf'
                                         value="<?php echo xla('PDF Download Selected Statements'); ?>">
                                     <?php echo xlt('PDF Download Selected Statements'); ?></button>
-                                <button type="submit" class="btn btn-default btn-mail" name='form_download'
-                                        value="<?php echo xla('Email Selected Statements'); ?>">
-                                    <?php echo xlt('Email Selected Statements'); ?></button>
                                 <?php
                                 if ($is_portal) { ?>
                                     <button type="submit" class="btn btn-default btn-save" name='form_portalnotify'
@@ -1278,7 +1441,6 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
                 $('#btn-inv-search').show();
                 var legend_text = $('#hid1').val();
                 $('#search-upload').find('legend').find('span').text(legend_text);
-                $('#search-upload').find('#form_name').focus();
                 $('#select-method-tooltip').hide();
             }
             else if (flip == 'era-upld') {
@@ -1297,6 +1459,10 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
                 $('#select-method-tooltip').show();
             }
         });
+        
+        <?php if (empty($_REQUEST['form_search'])) { ?>
+            $("#invoice_search").click();
+        <?php } ?>
     });
     <?php
     if ($alertmsg) {
@@ -1308,6 +1474,8 @@ if (($_REQUEST['form_print'] || $_REQUEST['form_download'] || $_REQUEST['form_em
 //using jquery-ui-1-12-1 tooltip instead of bootstrap tooltip
         $('#select-method-tooltip').attr("title", <?php echo xlj('Click on either the Invoice Search button on the far right, for manual entry or ERA Upload button for uploading an entire electronic remittance advice ERA file'); ?>).tooltip();
     });
+
+
 </script>
 <?php
 $tr_str = xl('Search');
