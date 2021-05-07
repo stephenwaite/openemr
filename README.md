@@ -11,4 +11,15 @@ make labs subdir in sites/default
 sudo snap install pdftk
 sudo ln -fs /snap/pdftk/current/usr/bin/pdftk /usr/bin/pdftk
 
+### for deploy test to cmsvt.dev
+
+follow phpmyadmin guide at hakimab
+
+locally import into docker so can trim in phpmyadmin
+truncate `log` before exporting sql to shrink the size of upload
+
+really slow to restore in the cloud standard package
+
+
+
 
