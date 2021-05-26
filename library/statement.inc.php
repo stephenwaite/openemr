@@ -130,7 +130,7 @@ function create_statement($stmt)
     }
 
     #minimum_amount_to _print
-    if ($stmt['amount'] <= ($GLOBALS['minimum_amount_to_print']) && $GLOBALS['use_statement_print_exclusion']) {
+    if ($stmt['amount'] <= ($GLOBALS['minimum_amount_to_print']) && $GLOBALS['use_statement_print_exclusion'] && ($_REQUEST['form_category'] != "All")) {
         return "";
     }
 
@@ -226,7 +226,7 @@ function create_statement($stmt)
     //$out .= sprintf("%-30s %-s: %-s\n", $clinic_csz, $label_totaldue, $stmt['amount']);
     $out  = sprintf("          %-30s                         %-8s \r\n", strtoupper($stmt['to'][0]), $stmt['pid']);
     $out .= sprintf("          %-30s              %-8s\r\n\r\n", strtoupper($stmt['to'][1]), date('m d y'));
-    $out .= sprintf("          %-30s              %-8s\r\n", strtoupper($stmt['to'][2]), date('m d y'));
+    $out .= sprintf("          %-30s              %-8s  %-6s\r\n", strtoupper($stmt['to'][2]), date('m d y'), $stmt['amount']);
 
     if ($stmt['to'][3] != '') { //to avoid double blank lines the if condition is put.
         $out .= sprintf("   %-32s\r\n", $stmt['to'][3]);
@@ -279,7 +279,8 @@ function create_statement($stmt)
                 if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
                     $pt_paid_flag = true;
                     $desc = xl('Pt paid');
-                    $out .= sprintf("%-8s %-44s           %8s  -%-8s \r\n", sidDate($dos), $desc, $amount, $amount);
+                    //$out .= sprintf("%-8s %-44s           %8s  -%-8s \r\n", sidDate($dos), $desc, $amount, $amount);
+                    $out .= sprintf("%-8s %-44s           %8s  \r\n", sidDate($dos), $desc, $amount);
                 } else {
                     $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
                 }
