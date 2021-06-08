@@ -14,13 +14,13 @@
 [-include file="$TPL_NAME/views/header.html"-]
 
 [-*Values used in setting timeslot and event heights*-]
-[-php-]
+{php}
 /* if you change these be sure to change their matching values in
  * the CSS for the calendar, found in interface/themes/ajax_calendar.css
  */
 $timeslotHeightVal=20;
 $timeslotHeightUnit="px";
-[-/php-]
+{/php}
 
 <script>
 
@@ -48,18 +48,18 @@ $timeslotHeightUnit="px";
 
  function goPid(pid) {
   top.restoreSession();
-[-php-]
+{php}
   		echo "  top.RTop.location = '../../patient_file/summary/demographics.php' " .
    		"+ '?set_pid=' + encodeURIComponent(pid);\n";
-[-/php-]
+{/php}
  }
 
  function goGid(gid) {
   top.restoreSession();
-[-php-]
+{php}
         echo "  top.RTop.location = '" . $GLOBALS['rootdir'] . "/therapy_groups/index.php' " .
         "+ '?method=groupDetails&group_id=' + encodeURIComponent(gid) \n ";
-[-/php-]
+{/php}
  }
 
  function GoToToday(theForm){
@@ -85,7 +85,7 @@ $timeslotHeightUnit="px";
  }
 </script>
 
-[-php-]
+{php}
  // this is my proposed setting in the globals config file so we don't
  // need to mess with altering the pn database AND the config file
  //pnModSetVar(__POSTCALENDAR__, 'pcFirstDayOfWeek', $GLOBALS['schedule_dow_start']);
@@ -150,7 +150,7 @@ if ( $_SESSION['pc_facility'] ) {
 
 $chevron_icon_left = $_SESSION['language_direction'] == 'ltr' ? 'fa-chevron-circle-left' : 'fa-chevron-circle-right';
 $chevron_icon_right = $_SESSION['language_direction'] == 'ltr' ? 'fa-chevron-circle-right' : 'fa-chevron-circle-left';
-[-/php-]
+{/php}
 <div id="wrapper">
     <form name='theform' id='theform' action='index.php?module=PostCalendar&func=view&tplview=default&pc_category=&pc_topic=' method='post' onsubmit='return top.restoreSession()'>
       <div class="container-fluid sticky-top">
@@ -158,29 +158,29 @@ $chevron_icon_right = $_SESSION['language_direction'] == 'ltr' ? 'fa-chevron-cir
             <div id="functions">
                 <a id="menu-toggle" href="#" class="btn btn-outline-dark"><i class="fas fa-bars"></i></a>
                 <input type="hidden" name="jumpdate" id="jumpdate" value="" />
-                <input type="hidden" name="viewtype" id="viewtype" value="[-php-]echo attr($viewtype);[-/php-]" />
-                [-php-] echo "<a href='#' title='" . xla("New Appointment") . "' onclick='newEvt(1, 9, 00, " . attr_js($Date) . ", 0, 0)' class='btn btn-primary'><i class='fa fa-plus'></i></a>\n";
+                <input type="hidden" name="viewtype" id="viewtype" value="{php}echo attr($viewtype);{/php}" />
+                {php} echo "<a href='#' title='" . xla("New Appointment") . "' onclick='newEvt(1, 9, 00, " . attr_js($Date) . ", 0, 0)' class='btn btn-primary'><i class='fa fa-plus'></i></a>\n";
                 echo "<a href='#' title='" . xla("Search Appointment") . "' onclick='top.restoreSession();location=\"index.php?module=PostCalendar&func=search\"' class='btn btn-primary'><i class='fa fa-search'></i></a>\n";
                 if ($Date <> date('Ymd')) {
-                [-/php-]
+                {/php}
                 <a href='#' name='bnsubmit' value='[-xla t="Today"-]' onClick='GoToToday(theform);' class='btn btn-primary'>[-xlt t='Today'-]</a>
-                [-php-]
+                {php}
     }
-[-/php-]
+{/php}
 
 </div>
 <div id="dateNAV">
-[-php-]
+{php}
 echo "   <a id='prevday' href='$PREV_DAY_URL' onclick='top.restoreSession()' title='" . xla("Previous Day") . "'>
             <i class='fa " . attr($chevron_icon_left) . " chevron_color'></i></a>\n";
 $atmp = array_keys($A_EVENTS);
 echo text(dateformat(strtotime($atmp[0]),true));
 echo "   <a id='nextday' href='$NEXT_DAY_URL' onclick='top.restoreSession()' title='" . xla("Next Day") . "'>
             <i class= 'fa " . attr($chevron_icon_right) . " chevron_color'></i></a>\n";
-[-/php-]
+{/php}
 </div>
 <div id="viewPicker">
-[-php-]
+{php}
 echo "   <a href='#' id='printview' title='" . xla("View Printable Version") . "' class='btn btn-primary'>
             <i class='fa fa-print' aria-hidden='true'></i></a>\n";
 echo "   <a href='#' title='" . xla("Refresh") . "' onclick='javascript:refreshme()' class='btn btn-primary'>
@@ -188,14 +188,14 @@ echo "   <a href='#' title='" . xla("Refresh") . "' onclick='javascript:refreshm
 echo "   <a href='#' type='button' id='dayview' title='" . xla('Day View') . "' class='btn btn-primary'>" . xlt('Day') . "</a>\n";
 echo "   <a href='#' type='button' id='weekview' title='" . xla('Week View') . "' class='btn btn-primary'>" . xlt('Week') . "</a>\n";
 echo "   <a href='#' type='button' id='monthview' title='" . xla('Month View') . "' class='btn btn-primary'>" . xlt('Month') . "</a>\n";
-[-/php-]
+{/php}
 </div>
 </div> <!-- end topToolbarRight -->
 </div>
 <div class="sticky-top">
 <div id="bottomLeft" class="sidebar-wrapper">
 <div id="datePicker">
-[-php-]
+{php}
 $atmp = array_keys($A_EVENTS);
 $caldate = strtotime($atmp[0]);
 $cMonth = date("m", $caldate);
@@ -204,11 +204,11 @@ $cDay = date("d", $caldate);
 
 include_once($GLOBALS['fileroot'].'/interface/main/calendar/modules/PostCalendar/pntemplates/default/views/monthSelector.php');
 echo "\n";
-[-/php-]
+{/php}
 <div class="table-responsive">
 <table class='table table-sm table-borderless'>
 <tbody><tr>
-[-php-]
+{php}
 
 // compute the previous month date
 // stay on the same day if possible
@@ -227,22 +227,22 @@ $nYear = $cYear;
 if ($nMonth > 12) { $nMonth = 1; $nYear = $cYear + 1; }
 while (! checkdate($nMonth, $nDay, $nYear)) { $nDay = $nDay - 1; }
 $nextMonth = sprintf("%d%02d%02d",$nYear,$nMonth,$nDay);
-[-/php-]
-<td class="tdDOW-small tdDatePicker" id="[-php-]echo attr($prevMonth)[-/php-]" title="[-php-]echo xla(date("F", strtotime($prevMonth)));[-/php-]">&lt;</td>
+{/php}
+<td class="tdDOW-small tdDatePicker" id="{php}echo attr($prevMonth){/php}" title="{php}echo xla(date("F", strtotime($prevMonth)));{/php}">&lt;</td>
 <td colspan="5" class="tdMonthName-small">
-[-php-]
+{php}
 echo xl(date('F', $caldate));
-[-/php-]
+{/php}
 </td>
-<td class="tdDOW-small tdDatePicker" id="[-php-]echo attr($nextMonth)[-/php-]" title="[-php-]echo xla(date("F", strtotime($nextMonth)));[-/php-]">&gt;</td>
+<td class="tdDOW-small tdDatePicker" id="{php}echo attr($nextMonth){/php}" title="{php}echo xla(date("F", strtotime($nextMonth)));{/php}">&gt;</td>
 </tr><tr>
-[-php-]
+{php}
 foreach ($DOWlist as $dow) {
     echo "<td class='tdDOW-small'>" . text($this->_tpl_vars['A_SHORT_DAY_NAMES'][$dow]) . "</td>";
 }
-[-/php-]
+{/php}
 </tr>
-[-php-]
+{php}
 $atmp = array_keys($A_EVENTS);
 $caldate = strtotime($atmp[0]);
 $caldateEnd = strtotime($atmp[6] ?? '');
@@ -303,7 +303,7 @@ while ($currdate <= $enddate) {
     $currdate = strtotime("+1 day", $currdate);
     ////////
 }
-[-/php-]
+{/php}
 </tbody>
 </table>
 </div>
@@ -315,7 +315,7 @@ while ($currdate <= $enddate) {
 <div id="providerPicker">
 [-xlt t='Providers'-]
 <div>
-[-php-]
+{php}
 // ==============================
 // FACILITY FILTERING (lemonsoftware)
 /*********************************************************************
@@ -353,14 +353,14 @@ if (count($facilities) > 1) {
     echo ">" . text($doc['lname']) . ", " . text($doc['fname']) . "</option>\n";
  }
  echo "   </select>\n";
-[-/php-]
+{/php}
 </div>
-[-php-]
+{php}
 if($_SESSION['pc_facility'] == 0){
-[-/php-]
+{/php}
 <div id="facilityColor" class="table-responsive">
  <table>
-[-php-]
+{php}
 foreach ($facilities as $f){
   echo "   <tr>\n";
   echo "   <td>\n";
@@ -368,12 +368,12 @@ foreach ($facilities as $f){
   echo "   </td>\n";
   echo "   </tr>\n";
 }
-[-/php-]
+{/php}
  </table>
 </div>
-[-php-]
+{php}
 }
-[-/php-]
+{/php}
 [-assign var="dayname" value=$DATE|date_format:"%w"-]
 [-assign var="day"     value=$DATE|date_format:"%d"|string_format:"%1d"-]
 [-assign var="month"   value=$DATE|date_format:"%m"|string_format:"%1d"-]
@@ -389,7 +389,7 @@ foreach ($facilities as $f){
 <div class="page-content-wrapper">
 <div class="container-fluid calsearch_body">
 <div id="bigCal">
-[-php-]
+{php}
 /* used in debugging
     foreach ($A_EVENTS as $date => $events) {
         echo $date." = ";
@@ -920,7 +920,7 @@ foreach ($providers as $provider) {
 echo " </tr>\n";
 echo "</table>\n";
 echo "</div>\n";
-[-/php-]
+{/php}
 </div>  <!-- end bigCal DIV -->
 </div>  <!-- end bottom DIV -->
 </div>
@@ -928,8 +928,8 @@ echo "</div>\n";
 </div>
 
 <script>
-    var tsHeight=[-php-] echo js_escape($timeslotHeightVal.$timeslotHeightUnit); [-/php-];
-    var tsHeightNum=[-php-] echo js_escape($timeslotHeightVal); [-/php-];
+    var tsHeight={php} echo js_escape($timeslotHeightVal.$timeslotHeightUnit); {/php};
+    var tsHeightNum={php} echo js_escape($timeslotHeightVal); {/php};
 
     function providerXclick(e) {
         var username=$(this).data('username');
@@ -995,13 +995,13 @@ echo "</div>\n";
      * the datepicker DIV
      */
     var ChangeDate = function(eObj) {
-        baseURL = "[-php-]echo pnModURL(__POSTCALENDAR__,'user','view',
+        baseURL = "{php}echo pnModURL(__POSTCALENDAR__,'user','view',
                         array('tplview'=>($template_view ?? ''),
                         'viewtype'=>$viewtype,
                         'Date'=> '~REPLACEME~',
                         'pc_username'=>($pc_username ?? ''),
                         'pc_category'=>($category ?? ''),
-                        'pc_topic'=>($topic ?? '')));[-/php-]";
+                        'pc_topic'=>($topic ?? '')));{/php}";
         newURL = baseURL.replace(/~REPLACEME~/, eObj.id);
         document.location.href=newURL;
     }
@@ -1009,14 +1009,14 @@ echo "</div>\n";
     /* pop up a window to print the current view
      */
     var PrintView = function (eventObject) {
-        printURL = "[-php-]echo pnModURL(__POSTCALENDAR__,'user','view',
+        printURL = "{php}echo pnModURL(__POSTCALENDAR__,'user','view',
                         array('tplview'=>($template_view ?? ''),
                         'viewtype'=>$viewtype,
                         'Date'=> $Date,
                         'print'=> 1,
                         'pc_username'=>($pc_username ?? ''),
                         'pc_category'=>($category ?? ''),
-                        'pc_topic'=>($topic ?? '')));[-/php-]";
+                        'pc_topic'=>($topic ?? '')));{/php}";
         window.open(printURL,'printwindow','width=740,height=480,toolbar=no,location=no,directories=no,status=no,menubar=yes,scrollbars=yes,copyhistory=no,resizable=yes');
         return false;
     }
