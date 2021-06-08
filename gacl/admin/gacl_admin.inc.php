@@ -60,7 +60,7 @@ $gacl = &$gacl_api;
 
 $db = &$gacl->db;
 
-$smarty = new Smarty;
+$smarty = new SmartyBC;
 $smarty->compile_check = TRUE;
 $smarty->template_dir = $gacl_options['smarty_template_dir'];
 $smarty->compile_dir = $GLOBALS['OE_SITE_DIR'] . '/documents/smarty/gacl';

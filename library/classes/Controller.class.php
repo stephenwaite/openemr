@@ -1,6 +1,6 @@
 <?php
 
-class Controller extends Smarty
+class Controller extends SmartyBC
 {
 
     public $template_mod;       
