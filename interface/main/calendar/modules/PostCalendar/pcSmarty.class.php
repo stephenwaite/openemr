@@ -76,16 +76,16 @@ class pcSmarty extends Smarty
         $func = pnVarCleanFromInput('func');
         $print = pnVarCleanFromInput('print');
         // assign theme globals
-        $this->assign_by_ref('BGCOLOR1', $bgcolor1);
-        $this->assign_by_ref('BGCOLOR2', $bgcolor2);
-        $this->assign_by_ref('BGCOLOR3', $bgcolor3);
-        $this->assign_by_ref('BGCOLOR4', $bgcolor4);
-        $this->assign_by_ref('BGCOLOR5', $bgcolor5);
-        $this->assign_by_ref('BGCOLOR6', $bgcolor6);
-        $this->assign_by_ref('TEXTCOLOR1', $textcolor1);
-        $this->assign_by_ref('TEXTCOLOR2', $textcolor2);
-        $this->assign_by_ref('USER_LANG', $lang);
-        $this->assign_by_ref('FUNCTION', $func);
+        $this->assignByRef('BGCOLOR1', $bgcolor1);
+        $this->assignByRef('BGCOLOR2', $bgcolor2);
+        $this->assignByRef('BGCOLOR3', $bgcolor3);
+        $this->assignByRef('BGCOLOR4', $bgcolor4);
+        $this->assignByRef('BGCOLOR5', $bgcolor5);
+        $this->assignByRef('BGCOLOR6', $bgcolor6);
+        $this->assignByRef('TEXTCOLOR1', $textcolor1);
+        $this->assignByRef('TEXTCOLOR2', $textcolor2);
+        $this->assignByRef('USER_LANG', $lang);
+        $this->assignByRef('FUNCTION', $func);
         $this->assign('PRINT_VIEW', $print);
         $this->assign('USE_POPUPS', _SETTING_USE_POPUPS);
         $this->assign('USE_TOPICS', _SETTING_DISPLAY_TOPICS);
@@ -94,8 +94,8 @@ class pcSmarty extends Smarty
         $this->assign('EVENT_DATE_FORMAT', _SETTING_DATE_FORMAT);
         $this->assign('HIGHLIGHT_COLOR', _SETTING_DAY_HICOLOR);
         $this->assign('24HOUR_TIME', _SETTING_TIME_24HOUR);
-        $this->assign_by_ref('MODULE_NAME', $pcDisplayName);
-        $this->assign_by_ref('MODULE_DIR', $pcDir);
+        $this->assignByRef('MODULE_NAME', $pcDisplayName);
+        $this->assignByRef('MODULE_DIR', $pcDir);
         //=================================================================
         //  Find out what Template we're using
         //=================================================================
@@ -113,8 +113,8 @@ class pcSmarty extends Smarty
         }
 
         $this->config_dir = "modules/$pcDir/pntemplates/$template_name/config/";
-        $this->assign_by_ref('TPL_NAME', $template_name);
-        $this->assign_by_ref('TPL_VIEW', $template_view);
+        $this->assignByRef('TPL_NAME', $template_name);
+        $this->assignByRef('TPL_VIEW', $template_view);
         $this->assign('TPL_IMAGE_PATH', $GLOBALS['rootdir'] . "/main/calendar/modules/$pcDir/pntemplates/$template_name/images");
         $this->assign('TPL_ROOTDIR', $GLOBALS['rootdir']);
         $this->assign('TPL_STYLE_PATH', "modules/$pcDir/pntemplates/$template_name/style");

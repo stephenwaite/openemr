@@ -4,7 +4,6 @@ class C_PracticeSettings extends Controller
 {
 
     var $template_mod;
-
     var $direction;
 
     function __construct($template_mod = "general")

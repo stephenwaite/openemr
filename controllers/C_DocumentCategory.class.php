@@ -134,7 +134,7 @@ class C_DocumentCategory extends Controller
         return $this->list_action();
     }
 
-    function &_array_recurse($array)
+    public function &_array_recurse($array)
     {
         if (!is_array($array)) {
             $array = array();

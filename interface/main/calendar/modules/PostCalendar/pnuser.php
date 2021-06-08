@@ -146,7 +146,7 @@ function postcalendar_user_search()
         $cat_options .= "<option value=\"" . attr($category['id']) . "\" $selected>" . text(xl_appt_category($category['name'])) . "</option>";
     }
 
-    $tpl->assign_by_ref('CATEGORY_OPTIONS', $cat_options);
+    $tpl->assignByRef('CATEGORY_OPTIONS', $cat_options);
 
     $tpl->assign('event_dur_hours', $event_dur_hours);
     $tpl->assign('event_dur_minutes', $event_dur_minutes);
@@ -200,7 +200,7 @@ function postcalendar_user_search()
         $provider_options .= text($provider['lname']) . ", " . text($provider['fname']) . "</option>";
     }
 
-    $tpl->assign_by_ref('PROVIDER_OPTIONS', $provider_options);
+    $tpl->assignByRef('PROVIDER_OPTIONS', $provider_options);
 
     // build a list of facility options for the select box on the input form -- JRM
     $facilities = getFacilities();
@@ -215,7 +215,7 @@ function postcalendar_user_search()
         $fac_options .= text($facility['name']) . "</option>";
     }
 
-    $tpl->assign_by_ref('FACILITY_OPTIONS', $fac_options);
+    $tpl->assignByRef('FACILITY_OPTIONS', $fac_options);
 
     $PatientID = pnVarCleanFromInput("patient_id");
     // limit the number of results returned by getPatientPID
@@ -295,7 +295,7 @@ function postcalendar_user_search()
             $top_options .= "<option value=\"" . attr($topic['id']) . "\">" . text($topic['text']) . "</option>";
         }
 
-        $tpl->assign_by_ref('TOPIC_OPTIONS', $top_options);
+        $tpl->assignByRef('TOPIC_OPTIONS', $top_options);
     }
 
     //=================================================================

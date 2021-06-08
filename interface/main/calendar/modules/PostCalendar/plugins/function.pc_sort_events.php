@@ -87,5 +87,5 @@ function smarty_function_pc_sort_events($params, &$smarty)
         $newArray[$date] = $events;
     }
 
-    $smarty->assign_by_ref($var, $newArray);
+    $smarty->assignByRef($var, $newArray);
 }

@@ -245,7 +245,7 @@ function postcalendar_userapi_buildView($args)
         }
 
         // passing the times array to the tpl the times array is for the days schedule
-        $tpl->assign_by_ref("times", $times);
+        $tpl->assignByRef("times", $times);
         // load the table width to the template
         // $tpl->assign("day_td_width",$GLOBALS['day_view_td_width']);
 
@@ -506,7 +506,7 @@ function postcalendar_userapi_buildView($args)
         $all_categories = pnModAPIFunc(__POSTCALENDAR__, 'user', 'getCategories');
 
         if (isset($calendarView)) {
-            $tpl->assign_by_ref('CAL_FORMAT', $calendarView);
+            $tpl->assignByRef('CAL_FORMAT', $calendarView);
         }
 
         if ($viewtype == "week") {
@@ -531,37 +531,37 @@ function postcalendar_userapi_buildView($args)
         $tpl->assign('show_days', $show_days);
 
         //$provinfo[count($provinfo) +1] = array("id" => "","lname" => "Other");
-        $tpl->assign_by_ref('providers', $provinfo);
+        $tpl->assignByRef('providers', $provinfo);
 
         if (pnVarCleanFromInput("show_days") != 1) {
             $tpl->assign('showdaysurl', "index.php?" . $_SERVER['QUERY_STRING'] . "&show_days=1");
         }
 
         $tpl->assign('interval', $GLOBALS['calendar_interval']);
-        $tpl->assign_by_ref('VIEW_TYPE', $viewtype);
-        $tpl->assign_by_ref('A_MONTH_NAMES', $pc_month_names);
-        $tpl->assign_by_ref('A_LONG_DAY_NAMES', $pc_long_day_names);
-        $tpl->assign_by_ref('A_SHORT_DAY_NAMES', $pc_short_day_names);
-        $tpl->assign_by_ref('S_LONG_DAY_NAMES', $daynames);
-        $tpl->assign_by_ref('S_SHORT_DAY_NAMES', $sdaynames);
-        $tpl->assign_by_ref('A_EVENTS', $eventsByDate);
-        $tpl->assign_by_ref('A_CATEGORY', $all_categories);
-        $tpl->assign_by_ref('PREV_MONTH_URL', $pc_prev);
-        $tpl->assign_by_ref('NEXT_MONTH_URL', $pc_next);
-        $tpl->assign_by_ref('PREV_DAY_URL', $pc_prev_day);
-        $tpl->assign_by_ref('NEXT_DAY_URL', $pc_next_day);
-        $tpl->assign_by_ref('PREV_WEEK_URL', $pc_prev_week);
-        $tpl->assign_by_ref('NEXT_WEEK_URL', $pc_next_week);
-        $tpl->assign_by_ref('PREV_YEAR_URL', $pc_prev_year);
-        $tpl->assign_by_ref('NEXT_YEAR_URL', $pc_next_year);
-        $tpl->assign_by_ref('WEEK_START_DATE', $week_view_start);
-        $tpl->assign_by_ref('WEEK_END_DATE', $week_view_end);
-        $tpl->assign_by_ref('MONTH_START_DATE', $month_view_start);
-        $tpl->assign_by_ref('MONTH_END_DATE', $month_view_end);
-        $tpl->assign_by_ref('TODAY_DATE', $today_date);
-        $tpl->assign_by_ref('DATE', $Date);
+        $tpl->assignByRef('VIEW_TYPE', $viewtype);
+        $tpl->assignByRef('A_MONTH_NAMES', $pc_month_names);
+        $tpl->assignByRef('A_LONG_DAY_NAMES', $pc_long_day_names);
+        $tpl->assignByRef('A_SHORT_DAY_NAMES', $pc_short_day_names);
+        $tpl->assignByRef('S_LONG_DAY_NAMES', $daynames);
+        $tpl->assignByRef('S_SHORT_DAY_NAMES', $sdaynames);
+        $tpl->assignByRef('A_EVENTS', $eventsByDate);
+        $tpl->assignByRef('A_CATEGORY', $all_categories);
+        $tpl->assignByRef('PREV_MONTH_URL', $pc_prev);
+        $tpl->assignByRef('NEXT_MONTH_URL', $pc_next);
+        $tpl->assignByRef('PREV_DAY_URL', $pc_prev_day);
+        $tpl->assignByRef('NEXT_DAY_URL', $pc_next_day);
+        $tpl->assignByRef('PREV_WEEK_URL', $pc_prev_week);
+        $tpl->assignByRef('NEXT_WEEK_URL', $pc_next_week);
+        $tpl->assignByRef('PREV_YEAR_URL', $pc_prev_year);
+        $tpl->assignByRef('NEXT_YEAR_URL', $pc_next_year);
+        $tpl->assignByRef('WEEK_START_DATE', $week_view_start);
+        $tpl->assignByRef('WEEK_END_DATE', $week_view_end);
+        $tpl->assignByRef('MONTH_START_DATE', $month_view_start);
+        $tpl->assignByRef('MONTH_END_DATE', $month_view_end);
+        $tpl->assignByRef('TODAY_DATE', $today_date);
+        $tpl->assignByRef('DATE', $Date);
         $tpl->assign('SCHEDULE_BASE_URL', pnModURL(__POSTCALENDAR__, 'user', 'submit'));
-        $tpl->assign_by_ref('intervals', $intervals);
+        $tpl->assignByRef('intervals', $intervals);
     };
 
     //=================================================================

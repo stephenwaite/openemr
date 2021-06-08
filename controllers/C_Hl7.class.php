@@ -3,6 +3,8 @@
 class C_Hl7 extends Controller
 {
 
+    var $template_mod;
+    
     function __construct($template_mod = "general")
     {
         parent::__construct();

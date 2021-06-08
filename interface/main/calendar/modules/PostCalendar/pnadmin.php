@@ -491,11 +491,11 @@ function postcalendar_admin_categories($msg = '', $e = '', $args = array())
     }
     $tpl->assign('globals', $GLOBALS);
 
-    $tpl->assign_by_ref('TPL_NAME', $template_name);
+    $tpl->assignByRef('TPL_NAME', $template_name);
     $tpl->assign('FUNCTION', pnVarCleanFromInput('func'));
-    $tpl->assign_by_ref('ModuleName', $modname);
-    $tpl->assign_by_ref('ModuleDirectory', $modir);
-    $tpl->assign_by_ref('all_categories', $all_categories);
+    $tpl->assignByRef('ModuleName', $modname);
+    $tpl->assignByRef('ModuleDirectory', $modir);
+    $tpl->assignByRef('all_categories', $all_categories);
 
     $tpl->assign('pcDir', $modir);
     $tpl->assign('action', pnModURL(__POSTCALENDAR__, 'admin', 'categoriesConfirm'));
