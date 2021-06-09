@@ -25,7 +25,7 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
-class pcSmarty extends Smarty
+class pcSmarty extends SmartyBC
 {
     function __construct()
     {
@@ -70,7 +70,8 @@ class pcSmarty extends Smarty
 
         unset($use_safe_mode, $safe_mode, $safe_mode_gid, $open_basedir);
 
-        $this->autoload_filters = array('output' => array('trimwhitespace'));
+        // looks like this is unused
+        //$this->autoload_filters = array('output' => array('trimwhitespace'));
 
         $lang = 'eng';
         $func = pnVarCleanFromInput('func');

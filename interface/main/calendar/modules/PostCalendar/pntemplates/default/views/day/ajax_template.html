@@ -8,9 +8,9 @@
 [-* as published by the Free Software Foundation; either version 2            *-]
 [-* of the License, or (at your option) any later version.                    *-]
 [-*****************************************************************************-]
-[-config_load file="default.conf"-]
+{config_load file="default.conf"}
 [-*Load the Language Definitions*-]
-[-config_load file="lang.$USER_LANG"-]
+{config_load file="lang.$USER_LANG"}
 {php include file="$TPL_NAME/views/header.html" {/php}
 
 [-*Values used in setting timeslot and event heights*-]
@@ -374,10 +374,10 @@ foreach ($facilities as $f){
 {php}
 }
 {/php}
-[-assign var="dayname" value=$DATE|date_format:"%w"-]
-[-assign var="day"     value=$DATE|date_format:"%d"|string_format:"%1d"-]
-[-assign var="month"   value=$DATE|date_format:"%m"|string_format:"%1d"-]
-[-assign var="year"    value=$DATE|date_format:"%Y"|string_format:"%4d"-]
+{assign var="dayname" value=$DATE|date_format:"%w"}
+{assign var="day"     value=$DATE|date_format:"%d"|string_format:"%1d"}
+{assign var="month"   value=$DATE|date_format:"%m"|string_format:"%1d"}
+{assign var="year"    value=$DATE|date_format:"%Y"|string_format:"%4d"}
 
 {pc_sort_events var="S_EVENTS" sort="time" order="asc" value=$A_EVENTS}
 
