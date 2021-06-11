@@ -5,6 +5,8 @@ class C_InsuranceCompany extends Controller
 
     var $template_mod;
     var $icompanies;
+    var $InsuranceCompany;
+    var $caching;
 
     function __construct($template_mod = "general")
     {
@@ -17,6 +19,7 @@ class C_InsuranceCompany extends Controller
         $this->assign("SUPPORT_ENCOUNTER_CLAIMS", $GLOBALS['support_encounter_claims']);
         $this->assign("SUPPORT_ELIGIBILITY_REQUESTS", $GLOBALS['enable_oa']);
         $this->InsuranceCompany = new InsuranceCompany();
+        $this->assign("CACHING", $this->caching);
     }
 
     function default_action()
@@ -26,6 +29,8 @@ class C_InsuranceCompany extends Controller
 
     function edit_action($id = "", $patient_id = "", $p_obj = null)
     {
+        //error_log("edit action caching is " . $this->caching);
+
         if ($p_obj != null && get_class($p_obj) == "insurancecompany") {
             $this->icompanies[0] = $p_obj;
         } elseif (empty($this->icompanies[0]) || $this->icompanies[0] == null || get_class($this->icompanies[0]) != "insurancecompany") {
@@ -39,11 +44,10 @@ class C_InsuranceCompany extends Controller
         return $this->fetch($GLOBALS['template_dir'] . "insurance_companies/" . $this->template_mod . "_edit.html");
     }
 
-    function list_action($sort = "")
+    function list_action($city ="", $sort = "", $cached="")
     {
-
         if (!empty($sort)) {
-            $this->assign("icompanies", $this->InsuranceCompany->insurance_companies_factory("", $sort));
+            $this->assign("icompanies", $this->InsuranceCompany->insurance_companies_factory($city, $sort));
         } else {
             $this->assign("icompanies", $this->InsuranceCompany->insurance_companies_factory());
         }

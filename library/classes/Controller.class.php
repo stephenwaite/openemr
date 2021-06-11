@@ -3,9 +3,9 @@
 class Controller extends Smarty
 {
 
-       public $_current_action;
-       public $_state;
-       public $_args = array();
+    public $_current_action;
+    public $_state;
+    public $_args = array();
 
     public function __construct()
     {
@@ -14,6 +14,7 @@ class Controller extends Smarty
          $this->_current_action = "";
          $this->_state = true;
          $this->compile_dir = $GLOBALS['OE_SITE_DIR'] . '/documents/smarty/main';
+         $this->cache_dir   =   $GLOBALS['OE_SITE_DIR'] . '/documents/smarty/main';
          $this->compile_check = true;
          $this->plugins_dir = array(__DIR__ . "/../smarty/plugins", $GLOBALS['vendor_dir'] . "/smarty/smarty/libs/plugins");
          $this->assign("PROCESS", "true");
@@ -50,7 +51,6 @@ class Controller extends Smarty
             $func = "set_" . $varname;
             if ((!(str_starts_with("_", $varname))) && is_callable(array($obj,$func))) {
                 //echo "c: $func on w: "  . $var . "<br />";
-
                 $obj->$func($var, $_POST);
             }
         }
