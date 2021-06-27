@@ -81,9 +81,9 @@ class FacilityService extends BaseService
         return $validator->validate($facility);
     }
 
-    public function getAllFacility()
+    public function getAllFacility($order = array("order" => "ORDER BY FAC.name ASC"))
     {
-        return $this->get(array("order" => "ORDER BY FAC.name ASC"));
+        return $this->get($order);
     }
 
     public function getPrimaryBusinessEntity($options = null)
