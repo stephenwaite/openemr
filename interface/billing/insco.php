@@ -13,7 +13,7 @@ sqlStatement("TRUNCATE addresses");
 $handle = fopen("/tmp/wsteve", "r");
 
 // set run_flag to 0 to truncate and reload
-$run_flag = 1;
+$run_flag = 0;
 
 if ($handle) {
     while (($line = fgets($handle)) !== false) {
@@ -71,22 +71,23 @@ if ($handle) {
 
 
         // each acct has it's own parm36
-        if (in_array($ins_code, array("002", "006", "074", "230"))) {
+        if (in_array($ins_code, array("002", "006", "074", "214"))) {
             //echo "ins_code is $ins_code";
             $q = "UPDATE insurance_companies SET cms_id = 'BCBSVT', ins_type_code = '6', x12_default_partner_id = '45' where id = $ins_code";
             $r = sqlStatement($q);
-        } else if ($ins_code == "003") {
+        } elseif ($ins_code == "003") {
             $q = "UPDATE insurance_companies SET cms_id = '14512', ins_type_code = '2', x12_default_partner_id = '6' where id = $ins_code";
             $r = sqlStatement($q);
-        } else if ($ins_code == "004") {
+        } elseif ($ins_code == "004") {
             $q = "UPDATE insurance_companies SET cms_id = 'MCDVT', ins_type_code = '3', x12_default_partner_id = '11' where id = $ins_code";
             $r = sqlStatement($q);
-        } else if ($ins_code == "028") {
+        } elseif ($ins_code == "028") {
             $q = "UPDATE insurance_companies SET cms_id = '00882', ins_type_code = '2', x12_default_partner_id = '47' where id = $ins_code";
             $r = sqlStatement($q);
         } else {
-            $q = "UPDATE insurance_companies SET cms_id = '99999', ins_type_code = '17', x12_default_partner_id = '' where id = $ins_code";
+            $q = "UPDATE insurance_companies SET ins_type_code = '1', x12_default_partner_id = '46' where id = $ins_code";
             $r = sqlStatement($q);
+        }    
 
         $run_flag++;
 

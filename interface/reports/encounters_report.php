@@ -10,9 +10,11 @@
  * @author    Rod Roark <rod@sunsetsystems.com>
  * @author    Terry Hill <terry@lilysystems.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
+ * @author    Stephen Waite <stephen.waite@cmsvt.com>
  * @copyright Copyright (c) 2007-2016 Rod Roark <rod@sunsetsystems.com>
  * @copyright Copyright (c) 2015 Terry Hill <terry@lillysystems.com>
  * @copyright Copyright (c) 2017-2018 Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2019 Stephen Waite <stephen.waite@cmsvt.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -23,13 +25,12 @@ require_once("$srcdir/patient.inc");
 require_once "$srcdir/options.inc.php";
 
 use OpenEMR\Billing\BillingUtilities;
-use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
 
+$file = "/tmp/d1.csv";
+error_log("filename is $file");
+
 if (!empty($_POST)) {
-    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
-        CsrfUtils::csrfNotVerified();
-    }
 }
 
 $alertmsg = ''; // not used yet but maybe later
@@ -92,7 +93,7 @@ $sqlBindArray = array();
 $query = "SELECT " .
   "fe.encounter, fe.date, fe.reason, " .
   "f.formdir, f.form_name, " .
-  "p.fname, p.mname, p.lname, p.dob, p.sex, p.pid, p.pubpid, " .
+  "p.fname, p.mname, p.lname, p.pid, p.pubpid, p.DOB, p.sex, " .
   "u.lname AS ulname, u.fname AS ufname, u.mname AS umname " .
   "$esign_fields" .
   "FROM ( form_encounter AS fe, forms AS f ) " .
@@ -144,7 +145,7 @@ $res = sqlStatement($query, $sqlBindArray);
 
     <?php Header::setupHeader(['datetime-picker', 'report-helper']); ?>
 
-    <style>
+    <style type="text/css">
         /* specifically include & exclude from printing */
         @media print {
             #report_parameters {
@@ -169,8 +170,8 @@ $res = sqlStatement($query, $sqlBindArray);
         }
     </style>
 
-    <script>
-        $(function () {
+    <script LANGUAGE="JavaScript">
+        $(function() {
             oeFixedHeaderSetup(document.getElementById('mymaintable'));
             var win = top.printLogSetup ? top : opener.top;
             win.printLogSetup(document.getElementById('printbutton'));
@@ -203,11 +204,10 @@ $res = sqlStatement($query, $sqlBindArray);
 <span class='title'><?php echo xlt('Report'); ?> - <?php echo xlt('Encounters'); ?></span>
 
 <div id="report_parameters_daterange">
-<?php echo text(oeFormatShortDate($form_from_date)) ." &nbsp; " . xlt('to{{Range}}') . " &nbsp; ". text(oeFormatShortDate($form_to_date)); ?>
+<?php echo text(oeFormatShortDate($form_from_date)) ." &nbsp; " . xlt('to') . " &nbsp; ". text(oeFormatShortDate($form_to_date)); ?>
 </div>
 
 <form method='post' name='theform' id='theform' action='encounters_report.php' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
 <div id="report_parameters">
 <table>
@@ -217,13 +217,13 @@ $res = sqlStatement($query, $sqlBindArray);
 
     <table class='text'>
         <tr>
-            <td class='col-form-label'>
+            <td class='control-label'>
                 <?php echo xlt('Facility'); ?>:
             </td>
             <td>
             <?php dropdown_facility($form_facility, 'form_facility', true); ?>
             </td>
-            <td class='col-form-label'>
+            <td class='control-label'>
                 <?php echo xlt('Provider'); ?>:
             </td>
             <td>
@@ -256,14 +256,14 @@ $res = sqlStatement($query, $sqlBindArray);
             </td>
         </tr>
         <tr>
-            <td class='col-form-label'>
+            <td class='control-label'>
                 <?php echo xlt('From'); ?>:
             </td>
             <td>
                <input type='text' class='datepicker form-control' name='form_from_date' id="form_from_date" size='10' value='<?php echo attr(oeFormatShortDate($form_from_date)); ?>'>
             </td>
-            <td class='col-form-label'>
-                <?php echo xlt('To{{Range}}'); ?>:
+            <td class='control-label'>
+                <?php echo xlt('To'); ?>:
             </td>
             <td>
                <input type='text' class='datepicker form-control' name='form_to_date' id="form_to_date" size='10' value='<?php echo attr(oeFormatShortDate($form_to_date)); ?>'>
@@ -302,17 +302,17 @@ $res = sqlStatement($query, $sqlBindArray);
     </div>
 
   </td>
-  <td class='h-100' align='left' valign='middle'>
-    <table class='w-100 h-100' style='border-left:1px solid;'>
+  <td align='left' valign='middle' height="100%">
+    <table style='border-left:1px solid; width:100%; height:100%' >
         <tr>
             <td>
                 <div class="text-center">
           <div class="btn-group" role="group">
-                      <a href='#' class='btn btn-secondary btn-save' onclick='$("#form_refresh").attr("value","true"); $("#theform").submit();'>
+                      <a href='#' class='btn btn-default btn-save' onclick='$("#form_refresh").attr("value","true"); $("#theform").submit();'>
                             <?php echo xlt('Submit'); ?>
                       </a>
                         <?php if ($_POST['form_refresh'] || $_POST['form_orderby']) { ?>
-              <a href='#' class='btn btn-secondary btn-print' id='printbutton'>
+              <a href='#' class='btn btn-default btn-print' id='printbutton'>
                                 <?php echo xlt('Print'); ?>
                         </a>
                         <?php } ?>
@@ -329,55 +329,42 @@ $res = sqlStatement($query, $sqlBindArray);
 
 <?php
 if ($_POST['form_refresh'] || $_POST['form_orderby']) {
-    ?>
+?>
 <div id="report_results">
-<table class='table' id='mymaintable'>
-<thead class='thead-light'>
-    <?php if ($form_details) { ?>
+<table id='mymaintable'>
+<thead>
+<?php if ($form_details) { ?>
   <th>
    <a href="nojs.php" onclick="return dosort('doctor')"
-        <?php echo ($form_orderby == "doctor") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('Provider'); ?> </a>
+    <?php echo ($form_orderby == "doctor") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Provider'); ?> </a>
   </th>
   <th>
    <a href="nojs.php" onclick="return dosort('time')"
-        <?php echo ($form_orderby == "time") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('Date'); ?></a>
+    <?php echo ($form_orderby == "time") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Date'); ?></a>
   </th>
   <th>
    <a href="nojs.php" onclick="return dosort('patient')"
-        <?php echo ($form_orderby == "patient") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('lname'); ?></a>
+    <?php echo ($form_orderby == "patient") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Patient'); ?></a>
   </th>
-        <th>
-            <a href="nojs.php" onclick="return dosort('patient')"
-                <?php echo ($form_orderby == "patient") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('fname'); ?></a>
-        </th>
-        <th>
-            <a href="nojs.php" onclick="return dosort('patient')"
-                <?php echo ($form_orderby == "patient") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('dob'); ?></a>
-        </th>
-        <th>
-            <a href="nojs.php" onclick="return dosort('patient')"
-                <?php echo ($form_orderby == "patient") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('sex'); ?></a>
-        </th>
-
-        <th>
+  <th>
    <a href="nojs.php" onclick="return dosort('pubpid')"
-        <?php echo ($form_orderby == "pubpid") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('ID'); ?></a>
+    <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('ID'); ?></a>
   </th>
   <th>
-        <?php echo xlt('Status'); ?>
+    <?php echo xlt('Status'); ?>
   </th>
   <th>
-        <?php echo xlt('Encounter'); ?>
+    <?php echo xlt('Encounter'); ?>
   </th>
   <th>
    <a href="nojs.php" onclick="return dosort('encounter')"
-        <?php echo ($form_orderby == "encounter") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('Encounter Number'); ?></a>
+    <?php echo ($form_orderby == "encounter") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('Encounter Number'); ?></a>
   </th>
   <th>
-        <?php echo xlt('Form'); ?>
+    <?php echo xlt('Form'); ?>
   </th>
   <th>
-        <?php echo xlt('Coding'); ?>
+    <?php echo xlt('Coding'); ?>
   </th>
 <?php } else { ?>
   <th><?php echo xlt('Provider'); ?></td>
@@ -385,146 +372,157 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 <?php } ?>
 </thead>
 <tbody>
-    <?php
-    if ($res) {
-        $lastdocname = "";
-        $doc_encounters = 0;
-        while ($row = sqlFetchArray($res)) {
-            $patient_id = $row['pid'];
+<?php
+if ($res) {
+    $lastdocname = "";
+    $doc_encounters = 0;
+    while ($row = sqlFetchArray($res)) {
+        $patient_id = $row['pid'];
 
-            $docname = '';
-            if (!empty($row['ulname']) || !empty($row['ufname'])) {
-                $docname = $row['ulname'];
-                if (!empty($row['ufname']) || !empty($row['umname'])) {
-                    $docname .= ', ' . $row['ufname'] . ' ' . $row['umname'];
+        $docname = '';
+        if (!empty($row['ulname']) || !empty($row['ufname'])) {
+            $docname = $row['ulname'];
+            if (!empty($row['ufname']) || !empty($row['umname'])) {
+                $docname .= ', ' . $row['ufname'] . ' ' . $row['umname'];
+            }
+        }
+
+        $errmsg  = "";
+        if ($form_details) {
+            // Fetch all other forms for this encounter.
+            $encnames = '';
+            $encarr = getFormByEncounter(
+                $patient_id,
+                $row['encounter'],
+                "formdir, user, form_name, form_id"
+            );
+            if ($encarr!='') {
+                foreach ($encarr as $enc) {
+                    if ($enc['formdir'] == 'newpatient') {
+                        continue;
+                    }
+
+                    if ($encnames) {
+                        $encnames .= '<br />';
+                    }
+
+                    $encnames .= text($enc['form_name']); // need to html escape it here for output below
                 }
             }
 
-            $errmsg  = "";
-            if ($form_details) {
-                // Fetch all other forms for this encounter.
-                $encnames = '';
-                $encarr = getFormByEncounter(
-                    $patient_id,
-                    $row['encounter'],
-                    "formdir, user, form_name, form_id"
-                );
-                if ($encarr!='') {
-                    foreach ($encarr as $enc) {
-                        if ($enc['formdir'] == 'newpatient') {
-                            continue;
+            // Fetch coding and compute billing status.
+            $coded = "";
+            $billed_count = 0;
+            $unbilled_count = 0;
+            if ($billres = BillingUtilities::getBillingByEncounter(
+                $row['pid'],
+                $row['encounter'],
+                "code_type, code, code_text, billed"
+            )) {
+                foreach ($billres as $billrow) {
+                    // $title = addslashes($billrow['code_text']);
+                    if ($billrow['code_type'] != 'COPAY' && $billrow['code_type'] != 'TAX') {
+                        $coded .= $billrow['code'] . ', ';
+                        if ($billrow['billed']) {
+                            ++$billed_count;
+                        } else {
+                            ++$unbilled_count;
                         }
-
-                        if ($encnames) {
-                            $encnames .= '<br />';
-                        }
-
-                        $encnames .= text($enc['form_name']); // need to html escape it here for output below
                     }
                 }
-
-                // Fetch coding and compute billing status.
-                $coded = "";
-                $billed_count = 0;
-                $unbilled_count = 0;
-                if ($billres = BillingUtilities::getBillingByEncounter(
-                    $row['pid'],
-                    $row['encounter'],
-                    "code_type, code, code_text, billed"
-                )) {
-                    foreach ($billres as $billrow) {
-                        // $title = addslashes($billrow['code_text']);
-                        if ($billrow['code_type'] != 'COPAY' && $billrow['code_type'] != 'TAX') {
-                            $coded .= $billrow['code'] . ', ';
-                            if ($billrow['billed']) {
-                                ++$billed_count;
-                            } else {
-                                ++$unbilled_count;
-                            }
-                        }
-                    }
 
                     $coded = substr($coded, 0, strlen($coded) - 2);
-                }
-
-                // Figure product sales into billing status.
-                $sres = sqlStatement("SELECT billed FROM drug_sales " .
-                "WHERE pid = ? AND encounter = ?", array($row['pid'], $row['encounter']));
-                while ($srow = sqlFetchArray($sres)) {
-                    if ($srow['billed']) {
-                        ++$billed_count;
-                    } else {
-                        ++$unbilled_count;
-                    }
-                }
-
-                // Compute billing status.
-                if ($billed_count && $unbilled_count) {
-                    $status = xl('Mixed');
-                } else if ($billed_count) {
-                    $status = xl('Closed');
-                } else if ($unbilled_count) {
-                    $status = xl('Open');
-                } else {
-                    $status = xl('Empty');
-                }
-                ?>
-       <tr bgcolor='<?php echo attr($bgcolor); ?>'>
-  <td>
-                <?php echo ($docname == $lastdocname) ? "" : text($docname) ?>&nbsp;
-  </td>
-  <td>
-                <?php echo text(oeFormatShortDate(substr($row['date'], 0, 10))) ?>&nbsp;
-  </td>
-  <td>
-                <?php echo strtoupper(text($row['lname'])); ?>&nbsp;
-  </td>
-           <td>
-               <?php echo strtoupper(text($row['fname'])); ?>&nbsp;
-           </td>
-           <td>
-               <?php echo text($row['dob']); ?>&nbsp;
-           </td>
-           <td>
-               <?php echo text($row['sex']); ?>&nbsp;
-           </td>
-  <td>
-                <?php echo text($row['pubpid']); ?>&nbsp;
-  </td>
-  <td>
-                <?php echo text($status); ?>&nbsp;
-  </td>
-  <td>
-                <?php echo text($row['reason']); ?>&nbsp;
-  </td>
-   <td>
-                <?php echo text($row['encounter']); ?>&nbsp;
-  </td>
-  <td>
-                <?php echo $encnames; //since this variable contains html, have already html escaped it above ?>&nbsp;
-  </td>
-  <td>
-                <?php echo text($coded); ?>
-  </td>
- </tr>
-                <?php
-            } else {
-                if ($docname != $lastdocname) {
-                    show_doc_total($lastdocname, $doc_encounters);
-                    $doc_encounters = 0;
-                }
-
-                  ++$doc_encounters;
             }
 
-            $lastdocname = $docname;
+            // Figure product sales into billing status.
+            $sres = sqlStatement("SELECT billed FROM drug_sales " .
+            "WHERE pid = ? AND encounter = ?", array($row['pid'], $row['encounter']));
+            while ($srow = sqlFetchArray($sres)) {
+                if ($srow['billed']) {
+                    ++$billed_count;
+                } else {
+                    ++$unbilled_count;
+                }
+            }
+
+            // Compute billing status.
+            if ($billed_count && $unbilled_count) {
+                $status = xl('Mixed');
+            } else if ($billed_count) {
+                $status = xl('Closed');
+            } else if ($unbilled_count) {
+                $status = xl('Open');
+            } else {
+                $status = xl('Empty');
+            }
+
+            //if (empty($encnames)) {
+            //    continue;
+            //}
+
+            if (strlen($row['pubpid']) == 8) {
+                continue;
+            }
+        ?>
+       <tr bgcolor='<?php echo attr($bgcolor); ?>'>
+  <td>
+        <?php echo ($docname == $lastdocname) ? "" : text($docname) ?>&nbsp;
+  </td>
+  <td>
+        <?php echo trim(oeFormatShortDate(substr($row['date'], 0, 10)));
+        $current = file_get_contents($file);
+        $current .= trim(oeFormatShortDate(substr($row['date'], 0, 10))) . ","; ?>&nbsp;
+  </td>
+  <td>
+        <?php echo strtoupper(trim($row['lname']));
+              $current .= strtoupper(trim($row['lname'])) . ","; ?>&nbsp;
+  </td>
+           <td> <?php echo strtoupper(trim( $row['fname']));
+               $current .= strtoupper(trim( $row['fname']))  . ","; ?> </td>
+           <td> <?php echo text ( $row['DOB']);
+                $current .= text ( $row['DOB']) . ","; ?> </td>
+           <td> <?php echo text ($row['sex']);
+                $current .= text ($row['sex']) . ","; ?> </td>
+  <td>
+        <?php echo text($row['pubpid']);
+            $current .= text($row['pubpid']) . "\n";
+        // Write the contents back to the file
+        file_put_contents($file, $current); ?>&nbsp;
+  </td>
+  <td>
+        <?php echo text($status); ?>&nbsp;
+  </td>
+  <td>
+        <?php echo text($row['reason']); ?>&nbsp;
+  </td>
+   <td>
+        <?php echo text($row['encounter']); ?>&nbsp;
+  </td>
+  <td>
+        <?php echo $encnames; //since this variable contains html, have already html escaped it above ?>&nbsp;
+  </td>
+  <td>
+        <?php echo text($coded); ?>
+  </td>
+ </tr>
+<?php
+        } else {
+            if ($docname != $lastdocname) {
+                show_doc_total($lastdocname, $doc_encounters);
+                $doc_encounters = 0;
+            }
+
+              ++$doc_encounters;
         }
 
-        if (!$form_details) {
-            show_doc_total($lastdocname, $doc_encounters);
-        }
+        $lastdocname = $docname;
     }
-    ?>
+
+    if (!$form_details) {
+        show_doc_total($lastdocname, $doc_encounters);
+    }
+}
+?>
 </tbody>
 </table>
 </div>  <!-- end encresults -->
@@ -540,7 +538,7 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 </form>
 </body>
 
-<script>
+<script language='JavaScript'>
 <?php if ($alertmsg) {
     echo " alert(" . js_escape($alertmsg) . ");\n";
 } ?>
