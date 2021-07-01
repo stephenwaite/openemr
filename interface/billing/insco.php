@@ -5,7 +5,6 @@ $_GET['site'] = $argv[1];
 
 require_once(dirname(__FILE__) . "/../../interface/globals.php");
 
-
 sqlStatement("TRUNCATE insurance_companies");
 sqlStatement("TRUNCATE addresses");
 
