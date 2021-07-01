@@ -30,7 +30,7 @@ while ($line = fgets($fh)) {
             echo "we will update $pubpid to $garno \n";
             $q = "update patient_data set pubpid = '$garno' where pubpid = '$pubpid'";
             sqlStatement($q);
-            echo $q . "</br>";
+            echo $q . "\n";
         } else {
             echo "this isn't matching, did we already update $pubpid? \n";
         }

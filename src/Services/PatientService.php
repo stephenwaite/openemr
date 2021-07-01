@@ -126,10 +126,13 @@ class PatientService
         $sql .= "     state=?,";
         $sql .= "     country_code=?,";
         $sql .= "     phone_contact=?,";
+        $sql .= "     phone_cell=?,";
         $sql .= "     dob=?,";
         $sql .= "     sex=?,";
+        $sql .= "     ref_providerID=?,";
         $sql .= "     race=?,";
-        $sql .= "     ethnicity=?";
+        $sql .= "     ethnicity=?,";
+        $sql .= "     pubpid=?";
 
         $results = sqlInsert(
             $sql,
@@ -145,10 +148,13 @@ class PatientService
                 $data["state"],
                 $data["country_code"],
                 $data["phone_contact"],
+                $data["phone_cell"],
                 $data["dob"],
                 $data["sex"],
+                $data["ref_providerID"],
                 $data["race"],
-                $data["ethnicity"]
+                $data["ethnicity"],
+                $data["pubpid"]
             )
         );
 
@@ -172,10 +178,13 @@ class PatientService
         $sql .= "     state=?,";
         $sql .= "     country_code=?,";
         $sql .= "     phone_contact=?,";
+        $sql .= "     phone_cell=?,";
         $sql .= "     dob=?,";
         $sql .= "     sex=?,";
+        $sql .= "     ref_providerID=?,";
         $sql .= "     race=?,";
-        $sql .= "     ethnicity=?";
+        $sql .= "     ethnicity=?,";
+        $sql .= "     pubpid=?";
         $sql .= "     where pid=?";
 
         return sqlStatement(
@@ -191,10 +200,13 @@ class PatientService
                 $data["state"],
                 $data["country_code"],
                 $data["phone_contact"],
+                $data["phone_cell"],
                 $data["dob"],
                 $data["sex"],
                 $data["race"],
+                $data["ref_providerID"],
                 $data["ethnicity"],
+                $data["pubpid"],
                 $pid
             )
         );
