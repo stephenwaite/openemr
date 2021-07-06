@@ -15,8 +15,8 @@ require_once(dirname(__FILE__) . "/../../interface/globals.php");
 require_once(dirname(__FILE__) . "/../../library/patient.inc");
 require_once(dirname(__FILE__) . "/../../library/forms.inc");
 
-$res = sqlStatement("delete from `codes` where code_type=?", array("1"));
-sqlStatement("truncate prices");
+//$res = sqlStatement("delete from `codes` where code_type=?", array("1"));
+//sqlStatement("truncate prices");
 
 // w1 is unload of procfile
 $handle1 = fopen("/tmp/w1", "r");
