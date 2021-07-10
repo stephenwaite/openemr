@@ -157,10 +157,13 @@ class X12_5010_837P
 
         ++$edicount;
         $out .= "PER"; // Loop 1000A, Submitter EDI contact information
-        if ($claim->x12_partner['x12_sender_id'] == ('701100357' ||
-                    $claim->x12_partner['x12_sender_id'] == '030353360' ||
-                    $claim->x12_partner['x12_sender_id'] == '7111' ||
-                    $claim->x12_partner['x12_sender_id'] == 'N532')) {
+        if (
+            ($claim->x12_partner['x12_sender_id'] == '701100357') ||
+            ($claim->x12_partner['x12_sender_id'] == '030353360') ||
+            ($claim->x12_partner['x12_sender_id'] == '7111') ||
+            ($claim->x12_partner['x12_sender_id'] == 'N532') ||
+            ($claim->x12_partner['x12_sender_id'] == 'RR6355')
+            ) {
             $out .= "*" . "IC" .
             "*" . "S WAITE" .
             "*" . "TE" .
@@ -738,7 +741,13 @@ class X12_5010_837P
         // Segment REF*EW (Mammography Certification Number) omitted.
         // Segment REF*9F (Referral Number) omitted.
 
-        if ($claim->priorAuth()) {
+        if (!$claim->priorAuth() && $claim->payerID() == "VACCN") {
+            ++$edicount;
+            $out .= "REF" .     // Prior Authorization Number
+            "*" . "G1" .
+            "*" . "VA9999999999" .
+            "~\n";
+        } elseif ($claim->priorAuth()) {
             ++$edicount;
             $out .= "REF" .     // Prior Authorization Number
             "*" . "G1" .
@@ -1174,7 +1183,7 @@ class X12_5010_837P
             "*";
             if ($claim->payerID($ins-1) == "MCDVT" ||                              
                 $claim->payerID($ins-1) ==  "822287119") { // for 2ndary gmc claims
-                if (($claim->payerID($ins)) == "BCBSVT") {                         
+                if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {                         
                     if (($claim->payerName($ins)) == "BCBS NJ") {               
                         $out .= "H6";                                 
                     } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
@@ -1187,7 +1196,7 @@ class X12_5010_837P
                 }                                                 
             if (($claim->payerID($ins)) == "14512") $out .= "MDB";
             if (($claim->payerID($ins)) == "14212") $out .= "MDB";
-            if (($claim->payerID($ins)) == "87726") $out .= "MDB";
+            if (($claim->payerID($ins)) == "87726") $out .= "MDC";
             if (($claim->payerID($ins)) == "62308") $out .= "FB6"; 
             if (($claim->payerID($ins)) == "14165") $out .= "Z2";                   
             if (($claim->payerID($ins)) == "60054") $out .= "92";                   
@@ -1195,7 +1204,9 @@ class X12_5010_837P
             if (($claim->payerID($ins)) == "MPHC1") $out .= "42";                   
             if (($claim->payerID($ins)) == "EBSRM") $out .= "AW1";
             if (($claim->payerID($ins)) == "00882") $out .= "MDB";                              
-                                                                                
+            if (($claim->payerID($ins)) == "53275") $out .= "AE7";                                                                                                              
+            if (($claim->payerID($ins)) == "39026") $out .= "S02";
+
             } else {                                                                
                 $out .= $claim->payerID($ins); 
             }    
@@ -1400,8 +1411,8 @@ class X12_5010_837P
         // Loop 2420A, Rendering Provider (service-specific).
         // Used if the rendering provider for this service line is different
         // from that in loop 2310B.
-
-            if ($claim->providerNPI() != $claim->providerNPI($prockey)) {
+            if (($claim->providerNPI() != $claim->providerNPI($prockey)) || 
+               (($claim->payerID($ins-1) == "14165"))) {
                 ++$edicount;
                 $out .= "NM1" .       // Loop 2420A Rendering Provider
                 "*" . "82" .
@@ -1466,9 +1477,9 @@ class X12_5010_837P
                 $aarr = $claim->payerAdjustments($ins, $claim->cptKey($prockey));
 
                 if ($payerpaid[1] == 0 && !count($aarr)) {
-                    $log .= "*** Procedure '" . $claim->cptKey($prockey) .
+                      $log .= "*** Procedure '" . $claim->cptKey($prockey) .
                         "' has no payments or adjustments from previous payer!\n";
-                    continue;
+                      continue;
                 }
 
                 ++$edicount;
@@ -1476,7 +1487,7 @@ class X12_5010_837P
                 "*";
                 if (($claim->payerID($ins-1) == "MCDVT" || $claim->payerID($ins-1) == "822287119")) {
 
-                    if (($claim->payerID($ins)) == "BCBSVT") {
+                    if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
                         if (($claim->payerName($ins)) == "BCBS NJ") {               
                             $out .= "H6";                                           
                         } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
@@ -1489,7 +1500,7 @@ class X12_5010_837P
                     }                                                     
                     if (($claim->payerID($ins)) == "14512") $out .= "MDB";          
                     if (($claim->payerID($ins)) == "14212") $out .= "MDB";
-                    if (($claim->payerID($ins)) == "87726") $out .= "MDB";
+                    if (($claim->payerID($ins)) == "87726") $out .= "MDC";
                     if (($claim->payerID($ins)) == "62308") $out .= "FB6"; 
                     if (($claim->payerID($ins)) == "14165") $out .= "Z2"; 
                     if (($claim->payerID($ins)) == "60054") $out .= "92";           
@@ -1497,6 +1508,8 @@ class X12_5010_837P
                     if (($claim->payerID($ins)) == "MPHC1") $out .= "42";                   
                     if (($claim->payerID($ins)) == "EBSRM") $out .= "AW1";          
                     if (($claim->payerID($ins)) == "00882") $out .= "MDB";                              
+                    if (($claim->payerID($ins)) == "53275") $out .= "AE7";                                                                                                                                  
+                    if (($claim->payerID($ins)) == "39026") $out .= "S02";
                 } else {                                                             
                     $out .= $claim->payerID($ins);                                 
                 }                                          
