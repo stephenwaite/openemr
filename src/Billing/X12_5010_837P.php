@@ -1196,6 +1196,7 @@ class X12_5010_837P
                 }                                                 
             if (($claim->payerID($ins)) == "14512") $out .= "MDB";
             if (($claim->payerID($ins)) == "14212") $out .= "MDB";
+            if (($claim->payerID($ins)) == "14163") $out .= "MDB";
             if (($claim->payerID($ins)) == "87726") $out .= "MDC";
             if (($claim->payerID($ins)) == "62308") $out .= "FB6"; 
             if (($claim->payerID($ins)) == "14165") $out .= "Z2";                   
@@ -1411,6 +1412,7 @@ class X12_5010_837P
         // Loop 2420A, Rendering Provider (service-specific).
         // Used if the rendering provider for this service line is different
         // from that in loop 2310B.
+//            error_log("ins is $ins and mvp claim payer id is " . $claim->payerID($ins-1));
             if (($claim->providerNPI() != $claim->providerNPI($prockey)) || 
                (($claim->payerID($ins-1) == "14165"))) {
                 ++$edicount;
@@ -1500,6 +1502,7 @@ class X12_5010_837P
                     }                                                     
                     if (($claim->payerID($ins)) == "14512") $out .= "MDB";          
                     if (($claim->payerID($ins)) == "14212") $out .= "MDB";
+                    if (($claim->payerID($ins)) == "14163") $out .= "MDB";
                     if (($claim->payerID($ins)) == "87726") $out .= "MDC";
                     if (($claim->payerID($ins)) == "62308") $out .= "FB6"; 
                     if (($claim->payerID($ins)) == "14165") $out .= "Z2"; 
@@ -1527,6 +1530,7 @@ class X12_5010_837P
                 $adj_count = 0;
                 $aarr_count = count($aarr);
                 foreach ($aarr as $a) {
+                  //error_log($a[0]. " " . $a[1] . " " . $a[2] . $a[3]);
                     ++$adj_count;
                     $adj_group_code[$adj_count] = $a[1];
                     // when the adj group code changes increment edi
