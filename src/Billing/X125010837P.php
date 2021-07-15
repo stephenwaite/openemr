@@ -8,12 +8,8 @@
  * @author Rod Roark <rod@sunsetsystems.com>
  * @author Stephen Waite <stephen.waite@cmsvt.com>
  * @copyright Copyright (c) 2009 Rod Roark <rod@sunsetsystems.com>
-<<<<<<< HEAD
- * @copyright Copyright (c) 2018-2019 Stephen Waite <stephen.waite@cmsvt.com>
-=======
  * @copyright Copyright (c) 2018-2021 Stephen Waite <stephen.waite@cmsvt.com>
  * @copyright Copyright (c) 2021 Daniel Pflieger <daniel@mi-squared.com>, <daniel@growlingflea.com>
->>>>>>> e08b28887... billing fix for corrected claims alphanumeric claim no. (#4292)
  * @link https://github.com/openemr/openemr/tree/master
  * @license https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
@@ -101,31 +97,66 @@ class X125010837P
             "*" . $suffixName .
             "*" . "46";
         } else {
-            $billingFacilityName = substr($claim->billingFacilityName(), 0, 60);
-            if ($billingFacilityName == '') {
-                $log .= "*** billing facility name in 1000A loop is empty\n";
+            if (
+                ($claim->x12_partner['x12_sender_id'] == '701100357') ||
+                ($claim->x12_partner['x12_sender_id'] == '030353360') ||
+                ($claim->x12_partner['x12_sender_id'] == '7111') ||
+                ($claim->x12_partner['x12_sender_id'] == 'N532') ||
+                ($claim->x12_partner['x12_sender_id'] == 'RR6355')
+               ) {
+                $out .= "NM1" .
+                "*41" .
+                "*2" .
+                "*" . "CARE MANAGEMENT SOLUTIONS" .
+                "*" .
+                "*" .
+                "*" .
+                "*" .
+                "*46" .
+                "*" .
+                $claim->x12_partner['x12_sender_id'];
+            } else {
+                $billingFacilityName = substr($claim->billingFacilityName(), 0, 60);
+                if ($billingFacilityName == '') {
+                    $log .= "*** billing facility name in 1000A loop is empty\n";
+                }
+                $out .= "NM1" .
+                    "*" . "41" .
+                    "*" . "2" .
+                    "*" . $billingFacilityName .
+                    "*" .
+                    "*" .
+                    "*" .
+                    "*" .
+                    "*" . "46";
+                $out .= "*" . $claim->billingFacilityETIN();
             }
-            $out .= "NM1" .
-            "*" . "41" .
-            "*" . "2" .
-            "*" . $billingFacilityName .
-            "*" .
-            "*" .
-            "*" .
-            "*" .
-            "*" . "46";
-        }
-        $out .= "*" . $claim->billingFacilityETIN();
+        }    
         $out .= "~\n";
 
         ++$edicount;
-        $out .= "PER" . // Loop 1000A, Submitter EDI contact information
-        "*" . "IC" .
-        "*" . $claim->billingContactName() .
-        "*" . "TE" .
-        "*" . $claim->billingContactPhone() .
-        "*" . "EM" .
-        "*" . $claim->billingContactEmail();
+        $out .= "PER"; // Loop 1000A, Submitter EDI contact information
+        if (
+            ($claim->x12_partner['x12_sender_id'] == '701100357') ||
+            ($claim->x12_partner['x12_sender_id'] == '030353360') ||
+            ($claim->x12_partner['x12_sender_id'] == '7111') ||
+            ($claim->x12_partner['x12_sender_id'] == 'N532') ||
+            ($claim->x12_partner['x12_sender_id'] == 'RR6355')
+            ) {
+            $out .= "*" . "IC" .
+            "*" . "S WAITE" .
+            "*" . "TE" .
+            "*" . "8003718685" .
+            "*" . "EM" .
+            "*" . "cmswest@sover.net" ;
+        } else {
+            $out .= "*" . "IC" .
+            "*" . $claim->billingContactName() .
+            "*" . "TE" .
+            "*" . $claim->billingContactPhone() .
+            "*" . "EM" .
+            "*" . $claim->billingContactEmail();        
+        }
         $out .= "~\n";
 
         ++$edicount;
