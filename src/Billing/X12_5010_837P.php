@@ -698,6 +698,13 @@ class X12_5010_837P
             "*" . "D8" .
             "*" . $claim->dateInitialTreatment() .
             "~\n";
+        } elseif ($claim->dateInitialTreatment() && ($claim->box15Qualifier()) && ($claim->dateInitialTreatmentValid()) && $claim->facilityTaxonomy() == "213E00000X" && empty($claim->onsetDate())) {
+            ++$edicount;
+            $out .= "DTP" .       // Date Last Seen
+            "*" . $claim->box15Qualifier() .
+            "*" . "D8" .
+            "*" . $claim->dateInitialTreatment() .
+            "~\n";
         }
 
         if (strcmp($claim->facilityPOS(), '21') == 0 && $claim->onsetDateValid()) {
