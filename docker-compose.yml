@@ -19,7 +19,7 @@ services:
   openemr:
     restart: always
     # use an image if you're not changing the build steps:
-    image: openemr/openemr:flex
+    image: openemr/openemr:flex-3.10
     # if editing the Dockerfile, clone the devops repo and point to the path:
     # build: ../openemr-devops/docker/openemr/flex-edge/
     ports:
@@ -43,8 +43,8 @@ services:
       MYSQL_PASS: openemr
       OE_USER: admin
       OE_PASS: pass
-      FLEX_REPOSITORY: https://github.com/openemr/openemr.git
-      FLEX_REPOSITORY_BRANCH: master
+      FLEX_REPOSITORY: https://github.com/stephenwaite/openemr.git
+      FLEX_REPOSITORY_BRANCH: cms-mods-502
       EASY_DEV_MODE: "yes"
     depends_on:
     - mysql

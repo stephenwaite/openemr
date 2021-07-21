@@ -18,6 +18,7 @@ use OpenEMR\Services\FacilityService;
 class Claim
 {
     const X12_VERSION = '005010X222A1';
+    const NOC_CODES = array('J3301'); 
 
     public $pid;               // patient id
     public $encounter_id;      // encounter id
@@ -1213,6 +1214,17 @@ class Claim
         }
 
         return '';
+    }
+
+    // Not Otherwise Classified codes require a description on the SV1 line after the modifie
+    public function cptNOC($prockey)
+    {
+        return in_array($this->cptCode($prockey), Claim::NOC_CODES);
+    }
+
+    public function cptDescription($prockey)
+    {
+        return $this->x12Clean($this->procs[$prockey]['code_text']);
     }
 
     public function onsetDate()

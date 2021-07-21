@@ -21,7 +21,13 @@ use OpenEMR\Core\Header;
 use OpenEMR\Services\FacilityService;
 use OpenEMR\OeUI\OemrUI;
 
+$date_label = "Onset/Hosp. Date";
 $facilityService = new FacilityService();
+$facility_pbe = $facilityService->getPrimaryBusinessEntity();
+
+if ($facility_pbe['facility_taxonomy'] == "213E00000X") {
+    $date_label = "Date Last Seen";
+}
 
 if ($GLOBALS['enable_group_therapy']) {
     require_once("$srcdir/group.inc");
@@ -361,7 +367,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                                         if ($GLOBALS['ippf_specific']) {
                                             echo " style='visibility:hidden;'";
                                         } ?>>
-                                        <label for='form_onset_date' class="control-label col-sm-2 oe-text-to-right"><?php echo xlt('Onset/hosp. date:'); ?> &nbsp;<i id='onset-tooltip' class="fa fa-info-circle text-primary" aria-hidden="true"></i></label>
+                                        <label for='form_onset_date' class="control-label col-sm-2 oe-text-to-right"><?php echo $date_label; ?> &nbsp;<i id='onset-tooltip' class="fa fa-info-circle text-primary" aria-hidden="true"></i></label>
                                         <div class="col-sm-3">
                                             <input type='text' class='form-control datepicker col-sm-12' name='form_onset_date' id='form_onset_date'
                                             value='<?php echo $viewmode && $result['onset_date']!='0000-00-00 00:00:00' ? attr(oeFormatShortDate(substr($result['onset_date'], 0, 10))) : ''; ?>'

@@ -55,7 +55,7 @@ class X12_5010_837P
 
         $out .= "GS" .
         "*" . "HC" .
-        "*" . $claim->x12gs02() .
+        "*" . $claim->x12gsgs02() .
         "*" . trim($claim->x12gs03()) .
         "*" . date('Ymd', $today) .
         "*" . date('Hi', $today) .
@@ -653,14 +653,14 @@ class X12_5010_837P
         // Segment DTP*431 (Onset of Current Symptoms or Illness)
         // Segment DTP*484 (Last Menstrual Period Date)
 
-        if ($claim->onsetDate() && ($claim->onsetDate() !== $claim->serviceDate()) && ($claim->onsetDateValid())) {
+        if ($claim->onsetDate() && ($claim->onsetDate() !== $claim->serviceDate()) && ($claim->onsetDateValid()) && ($claim->facilityTaxonomy() != "213E00000X")) {
             ++$edicount;
             $out .= "DTP" .       // Date of Onset
             "*" . "431" .
             "*" . "D8" .
             "*" . $claim->onsetDate() .
             "~\n";
-        } else if ($claim->miscOnsetDate() && ($claim->miscOnsetDate() !== $claim->serviceDate())
+        } elseif ($claim->miscOnsetDate() && ($claim->miscOnsetDate() !== $claim->serviceDate())
             && ($claim->box14Qualifier()) && ($claim->miscOnsetDateValid())) {
             ++$edicount;
             $out .= "DTP" .
@@ -668,6 +668,14 @@ class X12_5010_837P
             "*" . "D8" .
             "*" . $claim->miscOnsetDate() .
             "~\n";
+        // use fka onset date from new encounter page for podiatry last seen date    
+        } elseif ($claim->onsetDateValid() && $claim->facilityTaxonomy() == "213E00000X") {
+        ++$edicount;
+        $out .= "DTP" .
+        "*" . "304" .
+        "*" . "D8" .
+        "*" . $claim->onsetDate() .
+        "~\n";
         }
 
         // Segment DTP*304 (Last Seen Date)
@@ -683,7 +691,7 @@ class X12_5010_837P
 
         // Segment DTP*454 (Initial Treatment Date)
 
-        if ($claim->dateInitialTreatment() && ($claim->box15Qualifier()) && ($claim->dateInitialTreatmentValid())) {
+        if ($claim->dateInitialTreatment() && ($claim->box15Qualifier()) && ($claim->dateInitialTreatmentValid()) && ($claim->facilityTaxonomy() != "213E00000X")) {
             ++$edicount;
             $out .= "DTP" .       // Date Last Seen
             "*" . $claim->box15Qualifier() .
@@ -995,22 +1003,39 @@ class X12_5010_837P
         // Segment PER (Service Facility Contact Information) omitted.
 
         // Loop 2310D, Supervising Provider
-        if (! empty($claim->supervisorLastName())) {
+        if (! empty($claim->supervisorLastName()) || $claim->facilityTaxonomy() == "213E00000X" ) {
             ++$edicount;
             $out .= "NM1" .
             "*" . "DQ" . // Supervising Physician
-            "*" . "1" .  // Person
-            "*" . $claim->supervisorLastName() .
-            "*" . $claim->supervisorFirstName() .
-            "*" . $claim->supervisorMiddleName() .
-            "*" .   // NM106 not used
-            "*";    // Name Suffix not used
-            if ($claim->supervisorNPI()) {
-                $out .=
-                "*" . "XX" .
-                "*" . $claim->supervisorNPI();
-            } else {
-                $log .= "*** Supervising Provider has no NPI.\n";
+            "*" . "1";  // Person
+            if ($claim->supervisorLastName()) {
+                $out .= "" . 
+                "*" . $claim->supervisorLastName() .
+                "*" . $claim->supervisorFirstName() .
+                "*" . $claim->supervisorMiddleName() .
+                "*" .   // NM106 not used
+                "*";    // Name Suffix not used
+                if ($claim->supervisorNPI()) {
+                    $out .=
+                    "*" . "XX" .
+                    "*" . $claim->supervisorNPI();
+                } else {
+                    $log .= "*** Supervising Provider has no NPI.\n";
+                }
+            } elseif ($claim->facilityTaxonomy() == "213E00000X") {
+                $out .= "" . 
+                "*" . $claim->referrerLastName() .
+                "*" . $claim->referrerFirstName() .
+                "*" . $claim->referrerMiddleName() .
+                "*" .   // NM106 not used
+                "*";    // Name Suffix not used
+                if ($claim->referrerNPI()) {
+                    $out .=
+                    "*" . "XX" .
+                    "*" . $claim->referrerNPI();
+                } else {
+                    $log .= "*** using Referring as Supervising Provider has no NPI.\n";
+                }
             }
             $out .= "~\n";
 
