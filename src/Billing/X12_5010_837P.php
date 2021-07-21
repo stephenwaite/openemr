@@ -860,13 +860,9 @@ class X12_5010_837P
             $out .= "NM1" .     // Loop 2310A Referring Provider
             "*" . "DN" .
             "*" . "1" .
-            "*";
-            if ($claim->referrerLastName()) {
-                $out .= $claim->referrerLastName();
-            } else {
-                $log .= "*** Missing referrer last name.\n";
-            }
+            "*" . $claim->referrerLastName();
             $out .= "*";
+
             if ($claim->referrerFirstName()) {
                 $out .= $claim->referrerFirstName();
             } else {
@@ -884,6 +880,8 @@ class X12_5010_837P
                 $log .= "*** Referring provider has no NPI.\n";
             }
             $out .= "~\n";
+        } else {
+            $log .= "*** Missing referrer last name.\n";
         }
 
         // Per the implementation guide lines, only include this information if it is different
