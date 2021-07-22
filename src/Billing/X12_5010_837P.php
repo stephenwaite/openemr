@@ -906,7 +906,7 @@ class X12_5010_837P
             }
             $out .= "~\n";
         } else {
-            $log .= "*** Missing referrer last name.\n";
+            //$log .= "*** Missing referrer last name.\n";
         }
 
         // Per the implementation guide lines, only include this information if it is different
