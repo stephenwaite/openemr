@@ -631,6 +631,7 @@ class X12_5010_837P
         $clm_total_charges = 0;
         for ($prockey = 0; $prockey < $proccount; ++$prockey) {
             $clm_total_charges += $claim->cptCharges($prockey);
+            $cpts[] = $claim->cptCode($prockey);
         }
         if (!$clm_total_charges) {
             $log .= "*** This claim has no charges!\n";
@@ -653,7 +654,12 @@ class X12_5010_837P
         // Segment DTP*431 (Onset of Current Symptoms or Illness)
         // Segment DTP*484 (Last Menstrual Period Date)
 
-        if ($claim->onsetDate() && ($claim->onsetDate() !== $claim->serviceDate()) && ($claim->onsetDateValid()) && ($claim->facilityTaxonomy() != "213E00000X")) {
+        if (
+            $claim->onsetDate() && 
+            $claim->onsetDate() !== $claim->serviceDate() && 
+            $claim->onsetDateValid() && 
+            $claim->facilityTaxonomy() != "213E00000X"
+            ) {
             ++$edicount;
             $out .= "DTP" .       // Date of Onset
             "*" . "431" .
@@ -669,7 +675,12 @@ class X12_5010_837P
             "*" . $claim->miscOnsetDate() .
             "~\n";
         // use fka onset date from new encounter page for podiatry last seen date    
-        } elseif ($claim->onsetDateValid() && $claim->facilityTaxonomy() == "213E00000X") {
+        } elseif 
+        (
+            $claim->onsetDateValid() && 
+            $claim->facilityTaxonomy() == "213E00000X" &&
+            array_intersect($cpts, ['11055', '11056', '11057', '11719', '11720', 'G0127'])
+        ) {
         ++$edicount;
         $out .= "DTP" .
         "*" . "304" .
@@ -691,14 +702,28 @@ class X12_5010_837P
 
         // Segment DTP*454 (Initial Treatment Date)
 
-        if ($claim->dateInitialTreatment() && ($claim->box15Qualifier()) && ($claim->dateInitialTreatmentValid()) && ($claim->facilityTaxonomy() != "213E00000X")) {
+        if 
+        (
+            $claim->dateInitialTreatment() && 
+            $claim->box15Qualifier() && 
+            $claim->dateInitialTreatmentValid() && 
+            $claim->facilityTaxonomy() != "213E00000X"
+        ) {
             ++$edicount;
             $out .= "DTP" .       // Date Last Seen
             "*" . $claim->box15Qualifier() .
             "*" . "D8" .
             "*" . $claim->dateInitialTreatment() .
             "~\n";
-        } elseif ($claim->dateInitialTreatment() && ($claim->box15Qualifier()) && ($claim->dateInitialTreatmentValid()) && $claim->facilityTaxonomy() == "213E00000X" && empty($claim->onsetDate())) {
+        } elseif 
+        (
+            $claim->dateInitialTreatment() && 
+            $claim->box15Qualifier() && 
+            $claim->dateInitialTreatmentValid() && 
+            $claim->facilityTaxonomy() == "213E00000X" && 
+            empty($claim->onsetDate()) &&
+            array_intersect($cpts, ['11055', '11056', '11057', '11719', '11720', 'G0127'])
+            ) {
             ++$edicount;
             $out .= "DTP" .       // Date Last Seen
             "*" . $claim->box15Qualifier() .
@@ -1008,7 +1033,14 @@ class X12_5010_837P
         // Segment PER (Service Facility Contact Information) omitted.
 
         // Loop 2310D, Supervising Provider
-        if (! empty($claim->supervisorLastName()) || $claim->facilityTaxonomy() == "213E00000X" ) {
+        if 
+        (
+            !empty($claim->supervisorLastName()) || 
+            (
+                $claim->facilityTaxonomy() == "213E00000X" && 
+                array_intersect($cpts, ['11055', '11056', '11057', '11719', '11720', 'G0127'])
+            )
+        ) {
             ++$edicount;
             $out .= "NM1" .
             "*" . "DQ" . // Supervising Physician
@@ -1027,7 +1059,11 @@ class X12_5010_837P
                 } else {
                     $log .= "*** Supervising Provider has no NPI.\n";
                 }
-            } elseif ($claim->facilityTaxonomy() == "213E00000X") {
+            } elseif 
+            (
+                $claim->facilityTaxonomy() == "213E00000X" &&
+                array_intersect($cpts, ['11055', '11056', '11057', '11719', '11720', 'G0127'])
+                ) {
                 $out .= "" . 
                 "*" . $claim->referrerLastName() .
                 "*" . $claim->referrerFirstName() .
