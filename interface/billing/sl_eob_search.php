@@ -24,9 +24,9 @@
 require_once("../globals.php");
 require_once("$srcdir/patient.inc.php");
 require_once("$srcdir/appointments.inc.php");
-require_once($GLOBALS['OE_SITE_DIR'] . "/statement.inc.php");
-require_once("$srcdir/api.inc.php");
-require_once("$srcdir/forms.inc.php");
+require_once("$srcdir/statement.inc.php");
+require_once("$srcdir/api.inc");
+require_once("$srcdir/forms.inc");
 require_once("$srcdir/../controllers/C_Document.class.php");
 require_once("$srcdir/documents.php");
 require_once("$srcdir/options.inc.php");
@@ -228,14 +228,149 @@ function emailLogin($patient_id, $message)
 //
 function upload_file_to_client($file_to_send)
 {
+    global $STMT_TEMP_FILE_PDF;
+    global $srcdir;
+
+    function printHeader($header, $pdf) {
+        $png = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
+        $pdf->ezNewPage();        
+        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
+        $pdf->addPngFromFile($png, 0, 0, 612, 792);
+        $pdf->ezText($header, 12, array(
+            'justification' => 'left',
+            'leading' => 12
+        ));
+    }
+
+    function printBody($content, $pdf) {
+        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
+        $pdf->ezText($content, 12, array(
+            'justification' => 'left',
+            'leading' => 12
+        ));
+    }
+
+    function printFooter($footer, $pdf) { 
+        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
+        $pdf->ezText($footer, 12, array(
+            'justification' => 'left',
+            'leading' => 12
+        ));
+    }
+
+    $pdf = new Cezpdf('LETTER');
+    $pdf->ezSetMargins(170, 0, 10, 0);
+    $pdf->selectFont('Courier');
+    $page_count = 0;
+    $continued = false;
+    $is_continued = false;
+    $was_continued = false;
+    $body_count = 0;
+    $old_body = '';
+
+    $content = file_get_contents($file_to_send);
+    $pages = explode("\014", $content); // form feeds separate pages
+    foreach ($pages as $page) {
+
+        $body_count = 0;    
+
+        $page_lines = explode("\012", $page);
+        $page_lines_count = count($page_lines);
+
+        $was_continued = $is_continued;
+
+        if (!strpos($page, "CONTINUED")) {         
+            $is_continued = false;
+        } else {        
+            $is_continued = true;
+        }
+
+        $header = '';
+        for ($i = 0; $i < 5; $i++) {
+            $header .= $page_lines[$i];
+        }
+
+        $body = '';
+        for ($i = 5; $i < ($page_lines_count - 4); $i++) {        
+            $body .= $page_lines[$i];
+            $body_count++;
+        }
+
+        $footer = '';
+        for ($i = ($page_lines_count - 3); $i < $page_lines_count; $i++) {
+            if ($page_lines[$i] == '') {
+                $footer .= $page_lines[$i] . "\r";
+            }
+            $footer .= $page_lines[$i];
+        }    
+
+        if (!$is_continued && !$was_continued) {
+            printHeader($header, $pdf);
+            printBody($body, $pdf);
+            printFooter($footer, $pdf);
+            $total_body_count = 0;
+        }
+
+        if ($is_continued && !$was_continued) {
+            $old_body .= $body;
+            $total_body_count += $body_count;
+
+        }
+
+        if (!$is_continued && $was_continued) {
+            $total_body_count += $body_count;
+            if ($total_body_count < 35) {
+                $old_body .= $body;
+                printHeader($header, $pdf);
+                printBody($old_body, $pdf);
+                printFooter($footer, $pdf);
+                $old_body = '';
+                $total_body_count = 0;
+            } else {
+                printHeader($header, $pdf);
+                printBody($old_body, $pdf);
+                printFooter($footer, $pdf);
+                printHeader($header, $pdf);
+                $body = "\r" . $body ;
+                printBody($body, $pdf);
+                printFooter($footer, $pdf);
+                $old_body = '';
+                $total_body_count = 0;
+            }    
+        }
+
+        if ($is_continued && $was_continued) {
+            $total_body_count += $body_count;
+            if ($total_body_count < 41) {
+                $old_body .= $body;
+            } else {
+                printHeader($header, $pdf);
+                printBody($old_body, $pdf);
+                printFooter($footer, $pdf);
+                $old_body = "\r" . $body ;
+                $total_body_count = $body_count;
+            }
+        }
+
+
+    }
+
+
+
+    $fh = @fopen($STMT_TEMP_FILE_PDF, 'w');
+    if ($fh) {
+        fwrite($fh, $pdf->ezOutput());
+        fclose($fh);
+    }
+    header("Pragma: public");
     header("Pragma: public");
     header("Expires: 0");
     header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
     header("Content-Type: application/force-download");
-    header("Content-Length: " . filesize($file_to_send));
-    header("Content-Disposition: attachment; filename=" . basename($file_to_send));
+    header("Content-Length: " . filesize($STMT_TEMP_FILE_PDF));
+    header("Content-Disposition: attachment; filename=" . basename($STMT_TEMP_FILE_PDF));
     header("Content-Description: File Transfer");
-    readfile($file_to_send);
+    readfile($STMT_TEMP_FILE_PDF);
     // flush the content to the browser. If you don't do this, the text from the subsequent
     // output from this script will be in the file instead of sent to the browser.
     flush();
@@ -605,10 +740,8 @@ if (
     fclose($fhprint);
     sleep(1);
     // Download or print the file, as selected
-    if (!empty($_REQUEST['form_download'])) {
+    if ($_REQUEST['form_pdf']) {
         upload_file_to_client($STMT_TEMP_FILE);
-    } elseif ($_REQUEST['form_pdf']) {
-        upload_file_to_client_pdf($STMT_TEMP_FILE, $aPatientFirstName, $aPatientID, $usePatientNamePdf);
     } elseif ($_REQUEST['form_email']) {
         upload_file_to_client_email($stmt['pid'], $STMT_TEMP_FILE);
     } elseif ($_REQUEST['form_portalnotify']) {
@@ -658,12 +791,8 @@ if (
             <?php if (isset($_FILES['form_erafile']['size']) && !$_FILES['form_erafile']['size']) { ?>
                 dlgopen(url,'','modal-full',700,false,'', {
                 sizeHeight: 'full',
-                onClosed: 'reSubmit'
-            }); <?php } else { // keep era page up so can check on other remits ?>
-                dlgopen(url,'','modal-full',700,false,'', {
-                sizeHeight: 'full',
                 onClosed: ''
-            }); <?php } ?>
+            });
         }
 
         function checkAll(checked) {
@@ -1197,13 +1326,8 @@ if (
                                 <?php
                             } else { ?>
                                 <button type="button" class="btn btn-secondary btn-save" name="Submit1" onclick='checkAll(true)'><?php echo xlt('Select All'); ?></button>
-                                <button type="button" class="btn btn-secondary btn-undo" name="Submit2" onclick='checkAll(false)'><?php echo xlt('Clear All'); ?></button>
-                                <?php if ($GLOBALS['statement_appearance'] != '1') { ?>
-                                    <button type="submit" class="btn btn-secondary btn-print" name='form_print' value="<?php echo xla('Print Selected Statements'); ?>"><?php echo xlt('Print Selected'); ?></button>
-                                    <button type="submit" class="btn btn-secondary btn-download" name='form_download' value="<?php echo xla('Download Selected Statements'); ?>"><?php echo xlt('Download Selected'); ?></button>
-                                <?php } ?>
+                                <button type="button" class="btn btn-secondary btn-undo" name="Submit2" onclick='checkAll(false)'><?php echo xlt('Clear All'); ?></button>                                
                                 <button type="submit" class="btn btn-secondary btn-download" name='form_pdf' value="<?php echo xla('PDF Download Selected Statements'); ?>"><?php echo xlt('PDF Download Selected'); ?></button>
-                                <button type="submit" class="btn btn-secondary btn-mail" name='form_email' value="<?php echo xla('Email Selected Statements'); ?>"><?php echo xlt('Email Selected'); ?></button>
                                 <?php
                                 if (!empty($is_portal)) { ?>
                                     <button type="submit" class="btn btn-secondary btn-save" name='form_portalnotify' value="<?php echo xla('Notify via Patient Portal'); ?>"><?php echo xlt('Notify Patients Portal'); ?></button>
