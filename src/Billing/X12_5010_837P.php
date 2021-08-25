@@ -1,4 +1,5 @@
 <?php
+
 /* X12_5010_837P Class
  *
  * This program creates an X12 5010 837P file.
@@ -93,7 +94,7 @@ class X12_5010_837P
                 ($claim->x12_partner['x12_sender_id'] == '7111') ||
                 ($claim->x12_partner['x12_sender_id'] == 'N532') ||
                 ($claim->x12_partner['x12_sender_id'] == 'RR6355')
-               ) {
+            ) {
                 $out .= "NM1" . // Loop 1000A Submitter
                     "*41" .
                     "*2" .
@@ -124,7 +125,7 @@ class X12_5010_837P
                 ($claim->x12_partner['x12_sender_id'] == '7111') ||
                 ($claim->x12_partner['x12_sender_id'] == 'N532') ||
                 ($claim->x12_partner['x12_sender_id'] == 'RR6355')
-               ) {
+            ) {
                 $out .= "NM1" .
                 "*41" .
                 "*2" .
@@ -163,7 +164,7 @@ class X12_5010_837P
             ($claim->x12_partner['x12_sender_id'] == '7111') ||
             ($claim->x12_partner['x12_sender_id'] == 'N532') ||
             ($claim->x12_partner['x12_sender_id'] == 'RR6355')
-            ) {
+        ) {
             $out .= "*" . "IC" .
             "*" . "S WAITE" .
             "*" . "TE" .
@@ -176,7 +177,7 @@ class X12_5010_837P
             "*" . "TE" .
             "*" . $claim->billingContactPhone() .
             "*" . "EM" .
-            "*" . $claim->billingContactEmail();        
+            "*" . $claim->billingContactEmail();
         }
         $out .= "~\n";
 
@@ -299,7 +300,7 @@ class X12_5010_837P
                 "*" . $claim->providerNumberType() .
                 "*" . $claim->providerNumber() .
                 "~\n";
-        } else if ($claim->providerNumber() && !$claim->providerNumberType()) {
+        } elseif ($claim->providerNumber() && !$claim->providerNumberType()) {
             $log .= "*** Payer-specific provider insurance number is present but has no type assigned.\n";
         }
 
@@ -654,39 +655,50 @@ class X12_5010_837P
         // Segment DTP*431 (Onset of Current Symptoms or Illness)
         // Segment DTP*484 (Last Menstrual Period Date)
 
+        // check for required Date Last Seen for diabetic routine foot care for podiatry
+        $diabDlsRequired = false;
         if (
-            $claim->onsetDate() && 
-            $claim->onsetDate() !== $claim->serviceDate() && 
-            $claim->onsetDateValid() && 
-            $claim->facilityTaxonomy() != "213E00000X"
-            ) {
+            $claim->facilityTaxonomy() == "213E00000X" &&
+            array_intersect($cpts, ['11055', '11056', '11057', '11719', '11720', 'G0127'])
+        ) {
+                $diabDlsRequired = true;
+        }
+
+        if (
+            $claim->onsetDate() &&
+            $claim->onsetDate() !== $claim->serviceDate() &&
+            $claim->onsetDateValid() &&
+            !$diabDlsRequired
+        ) {
             ++$edicount;
             $out .= "DTP" .       // Date of Onset
             "*" . "431" .
             "*" . "D8" .
             "*" . $claim->onsetDate() .
             "~\n";
-        } elseif ($claim->miscOnsetDate() && ($claim->miscOnsetDate() !== $claim->serviceDate())
-            && ($claim->box14Qualifier()) && ($claim->miscOnsetDateValid())) {
+        } elseif (
+            $claim->miscOnsetDate() &&
+            $claim->miscOnsetDate() !== $claim->serviceDate() &&
+            $claim->box14Qualifier() &&
+            $claim->miscOnsetDateValid()
+        ) {
             ++$edicount;
             $out .= "DTP" .
             "*" . $claim->box14Qualifier() .
             "*" . "D8" .
             "*" . $claim->miscOnsetDate() .
             "~\n";
-        // use fka onset date from new encounter page for podiatry last seen date    
-        } elseif 
-        (
-            $claim->onsetDateValid() && 
-            $claim->facilityTaxonomy() == "213E00000X" &&
-            array_intersect($cpts, ['11055', '11056', '11057', '11719', '11720', 'G0127'])
+        // use fka onset date from new encounter page for podiatry last seen date
+        } elseif (
+            $claim->onsetDateValid() &&
+            $diabDlsRequired
         ) {
-        ++$edicount;
-        $out .= "DTP" .
-        "*" . "304" .
-        "*" . "D8" .
-        "*" . $claim->onsetDate() .
-        "~\n";
+            ++$edicount;
+            $out .= "DTP" .
+            "*" . "304" .
+            "*" . "D8" .
+            "*" . $claim->onsetDate() .
+            "~\n";
         }
 
         // Segment DTP*304 (Last Seen Date)
@@ -702,12 +714,11 @@ class X12_5010_837P
 
         // Segment DTP*454 (Initial Treatment Date)
 
-        if 
-        (
-            $claim->dateInitialTreatment() && 
-            $claim->box15Qualifier() && 
-            $claim->dateInitialTreatmentValid() && 
-            $claim->facilityTaxonomy() != "213E00000X"
+        if (
+            $claim->dateInitialTreatment() &&
+            $claim->box15Qualifier() &&
+            $claim->dateInitialTreatmentValid() &&
+            !$diabDlsRequired
         ) {
             ++$edicount;
             $out .= "DTP" .       // Date Last Seen
@@ -715,21 +726,24 @@ class X12_5010_837P
             "*" . "D8" .
             "*" . $claim->dateInitialTreatment() .
             "~\n";
-        } elseif 
-        (
-            $claim->dateInitialTreatment() && 
-            $claim->box15Qualifier() && 
-            $claim->dateInitialTreatmentValid() && 
-            $claim->facilityTaxonomy() == "213E00000X" && 
+        } elseif (
+            $claim->dateInitialTreatment() &&
+            $claim->box15Qualifier() &&
+            $claim->dateInitialTreatmentValid() &&
             empty($claim->onsetDate()) &&
-            array_intersect($cpts, ['11055', '11056', '11057', '11719', '11720', 'G0127'])
-            ) {
+            $diabDlsRequired
+        ) {
             ++$edicount;
             $out .= "DTP" .       // Date Last Seen
             "*" . $claim->box15Qualifier() .
             "*" . "D8" .
             "*" . $claim->dateInitialTreatment() .
             "~\n";
+        } elseif (
+            !($claim->onsetDateValid() || $claim->dateInitialTreatmentValid()) &&
+            $diabDlsRequired
+        ) {
+            $log .= "*** Invalid date last seen in encounter form or Misc Billing Options.\n";
         }
 
         if (strcmp($claim->facilityPOS(), '21') == 0 && $claim->onsetDateValid()) {
@@ -803,7 +817,7 @@ class X12_5010_837P
             "*" . "F8" .
             "*" . $claim->icnResubmissionNumber() .
             "~\n";
-        } 
+        }
 
         if ($claim->cliaCode() && ($claim->claimType() === 'MB')) {
             // Required by Medicare when in-house labs are done.
@@ -879,6 +893,7 @@ class X12_5010_837P
         // Segment HI*BP (Anesthesia Related Procedure) omitted.
         // Segment HI*BG (Condition Information) omitted.
         // Segment HCP (Claim Pricing/Repricing Information) omitted.
+        error_log("referrer last name is " . $claim->referrerLastName());
         if ($claim->referrerLastName()) {
             // Medicare requires referring provider's name and NPI.
             ++$edicount;
@@ -1033,20 +1048,16 @@ class X12_5010_837P
         // Segment PER (Service Facility Contact Information) omitted.
 
         // Loop 2310D, Supervising Provider
-        if 
-        (
-            !empty($claim->supervisorLastName()) || 
-            (
-                $claim->facilityTaxonomy() == "213E00000X" && 
-                array_intersect($cpts, ['11055', '11056', '11057', '11719', '11720', 'G0127'])
-            )
+        if (
+            !empty($claim->supervisorLastName()) ||
+            $diabDlsRequired
         ) {
             ++$edicount;
             $out .= "NM1" .
             "*" . "DQ" . // Supervising Physician
             "*" . "1";  // Person
             if ($claim->supervisorLastName()) {
-                $out .= "" . 
+                $out .= "" .
                 "*" . $claim->supervisorLastName() .
                 "*" . $claim->supervisorFirstName() .
                 "*" . $claim->supervisorMiddleName() .
@@ -1058,13 +1069,14 @@ class X12_5010_837P
                     "*" . $claim->supervisorNPI();
                 } else {
                     $log .= "*** Supervising Provider has no NPI.\n";
+                    if ($diabDlsRequired) {
+                        $log .= "*** Choose a referring provider for this podiatry routine foot care please.";
+                    }
                 }
-            } elseif 
-            (
-                $claim->facilityTaxonomy() == "213E00000X" &&
-                array_intersect($cpts, ['11055', '11056', '11057', '11719', '11720', 'G0127'])
-                ) {
-                $out .= "" . 
+            } elseif (
+                $diabDlsRequired
+            ) {
+                $out .= "" .
                 "*" . $claim->referrerLastName() .
                 "*" . $claim->referrerFirstName() .
                 "*" . $claim->referrerMiddleName() .
@@ -1075,7 +1087,7 @@ class X12_5010_837P
                     "*" . "XX" .
                     "*" . $claim->referrerNPI();
                 } else {
-                    $log .= "*** using Referring as Supervising Provider has no NPI.\n";
+                    $log .= "*** using Referring as Supervising but no NPI for Date Last Seen - routine foot care.\n";
                 }
             }
             $out .= "~\n";
@@ -1247,37 +1259,64 @@ class X12_5010_837P
             "*" .
             "*" . "PI" .
             "*";
-            if ($claim->payerID($ins-1) == "MCDVT" ||                              
-                $claim->payerID($ins-1) ==  "822287119") { // for 2ndary gmc claims
-                if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {                         
-                    if (($claim->payerName($ins)) == "BCBS NJ") {               
-                        $out .= "H6";                                 
+            if (
+                $claim->payerID($ins - 1) == "MCDVT" ||
+                $claim->payerID($ins - 1) ==  "822287119"
+            ) { // for 2ndary gmc claims
+                if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
+                    if (($claim->payerName($ins)) == "BCBS NJ") {
+                        $out .= "H6";
                     } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
-                        $out .= "MDB";                    
+                        $out .= "MDB";
                     } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
                         $out .= "BV";
-                    } else {                                                
-                        $out .= "EE";                             
-                    }                                                               
-                }                                                 
-            if (($claim->payerID($ins)) == "14512") $out .= "MDB";
-            if (($claim->payerID($ins)) == "14212") $out .= "MDB";
-            if (($claim->payerID($ins)) == "14163") $out .= "MDB";
-            if (($claim->payerID($ins)) == "87726") $out .= "MDC";
-            if (($claim->payerID($ins)) == "62308") $out .= "FB6"; 
-            if (($claim->payerID($ins)) == "14165") $out .= "Z2";                   
-            if (($claim->payerID($ins)) == "60054") $out .= "92";                   
-            if (($claim->payerID($ins)) == "00010") $out .= "42";                   
-            if (($claim->payerID($ins)) == "MPHC1") $out .= "42";                   
-            if (($claim->payerID($ins)) == "EBSRM") $out .= "AW1";
-            if (($claim->payerID($ins)) == "00882") $out .= "MDB";                              
-            if (($claim->payerID($ins)) == "53275") $out .= "AE7";                                                                                                              
-            if (($claim->payerID($ins)) == "39026") $out .= "S02";
+                    } else {
+                        $out .= "EE";
+                    }
+                }
+                if (($claim->payerID($ins)) == "14512") {
+                    $out .= "MDB";
+                }
+                if (($claim->payerID($ins)) == "14212") {
+                    $out .= "MDB";
+                }
+                if (($claim->payerID($ins)) == "14163") {
+                    $out .= "MDB";
+                }
+                if (($claim->payerID($ins)) == "87726") {
+                    $out .= "MDC";
+                }
+                if (($claim->payerID($ins)) == "62308") {
+                    $out .= "FB6";
+                }
+                if (($claim->payerID($ins)) == "14165") {
+                    $out .= "Z2";
+                }
+                if (($claim->payerID($ins)) == "60054") {
+                    $out .= "92";
+                }
+                if (($claim->payerID($ins)) == "00010") {
+                    $out .= "42";
+                }
+                if (($claim->payerID($ins)) == "MPHC1") {
+                    $out .= "42";
+                }
+                if (($claim->payerID($ins)) == "EBSRM") {
+                    $out .= "AW1";
+                }
+                if (($claim->payerID($ins)) == "00882") {
+                    $out .= "MDB";
+                }
+                if (($claim->payerID($ins)) == "53275") {
+                    $out .= "AE7";
+                }
+                if (($claim->payerID($ins)) == "39026") {
+                    $out .= "S02";
+                }
+            } else {
+                $out .= $claim->payerID($ins);
+            }
 
-            } else {                                                                
-                $out .= $claim->payerID($ins); 
-            }    
-            
             $out .= "~\n";
 
             ++$edicount;
@@ -1479,8 +1518,10 @@ class X12_5010_837P
         // Used if the rendering provider for this service line is different
         // from that in loop 2310B.
 //            error_log("ins is $ins and mvp claim payer id is " . $claim->payerID($ins-1));
-            if (($claim->providerNPI() != $claim->providerNPI($prockey)) || 
-               (($claim->payerID($ins-1) == "14165"))) {
+            if (
+                ($claim->providerNPI() != $claim->providerNPI($prockey)) ||
+                (($claim->payerID($ins - 1) == "14165"))
+            ) {
                 ++$edicount;
                 $out .= "NM1" .       // Loop 2420A Rendering Provider
                 "*" . "82" .
@@ -1553,35 +1594,60 @@ class X12_5010_837P
                 ++$edicount;
                 $out .= "SVD" . // Service line adjudication. Page 554.
                 "*";
-                if (($claim->payerID($ins-1) == "MCDVT" || $claim->payerID($ins-1) == "822287119")) {
-
+                if (($claim->payerID($ins - 1) == "MCDVT" || $claim->payerID($ins - 1) == "822287119")) {
                     if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
-                        if (($claim->payerName($ins)) == "BCBS NJ") {               
-                            $out .= "H6";                                           
+                        if (($claim->payerName($ins)) == "BCBS NJ") {
+                            $out .= "H6";
                         } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
-                            $out .= "MDB";                    
+                            $out .= "MDB";
                         } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
                             $out .= "BV";
-                        } else {                                                    
-                            $out .= "EE";                                           
-                        }                                                   
-                    }                                                     
-                    if (($claim->payerID($ins)) == "14512") $out .= "MDB";          
-                    if (($claim->payerID($ins)) == "14212") $out .= "MDB";
-                    if (($claim->payerID($ins)) == "14163") $out .= "MDB";
-                    if (($claim->payerID($ins)) == "87726") $out .= "MDC";
-                    if (($claim->payerID($ins)) == "62308") $out .= "FB6"; 
-                    if (($claim->payerID($ins)) == "14165") $out .= "Z2"; 
-                    if (($claim->payerID($ins)) == "60054") $out .= "92";           
-                    if (($claim->payerID($ins)) == "00010") $out .= "42";           
-                    if (($claim->payerID($ins)) == "MPHC1") $out .= "42";                   
-                    if (($claim->payerID($ins)) == "EBSRM") $out .= "AW1";          
-                    if (($claim->payerID($ins)) == "00882") $out .= "MDB";                              
-                    if (($claim->payerID($ins)) == "53275") $out .= "AE7";                                                                                                                                  
-                    if (($claim->payerID($ins)) == "39026") $out .= "S02";
-                } else {                                                             
-                    $out .= $claim->payerID($ins);                                 
-                }                                          
+                        } else {
+                            $out .= "EE";
+                        }
+                    }
+                    if (($claim->payerID($ins)) == "14512") {
+                        $out .= "MDB";
+                    }
+                    if (($claim->payerID($ins)) == "14212") {
+                        $out .= "MDB";
+                    }
+                    if (($claim->payerID($ins)) == "14163") {
+                        $out .= "MDB";
+                    }
+                    if (($claim->payerID($ins)) == "87726") {
+                        $out .= "MDC";
+                    }
+                    if (($claim->payerID($ins)) == "62308") {
+                        $out .= "FB6";
+                    }
+                    if (($claim->payerID($ins)) == "14165") {
+                        $out .= "Z2";
+                    }
+                    if (($claim->payerID($ins)) == "60054") {
+                        $out .= "92";
+                    }
+                    if (($claim->payerID($ins)) == "00010") {
+                        $out .= "42";
+                    }
+                    if (($claim->payerID($ins)) == "MPHC1") {
+                        $out .= "42";
+                    }
+                    if (($claim->payerID($ins)) == "EBSRM") {
+                        $out .= "AW1";
+                    }
+                    if (($claim->payerID($ins)) == "00882") {
+                        $out .= "MDB";
+                    }
+                    if (($claim->payerID($ins)) == "53275") {
+                        $out .= "AE7";
+                    }
+                    if (($claim->payerID($ins)) == "39026") {
+                        $out .= "S02";
+                    }
+                } else {
+                    $out .= $claim->payerID($ins);
+                }
 
                 $out .= "*" . $payerpaid[1] .
                 "*" . "HC:" . $claim->cptKey($prockey) .
