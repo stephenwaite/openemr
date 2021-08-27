@@ -233,9 +233,6 @@ function upload_file_to_client($file_to_send)
 
     function printHeader($header, $pdf) {
         $png = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
-        if (is_file($png)) {
-            error_log("png is valid");
-        }
         $pdf->ezNewPage();        
         $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
         $pdf->addPngFromFile($png, 0, 0, 612, 792);
