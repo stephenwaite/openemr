@@ -233,6 +233,9 @@ function upload_file_to_client($file_to_send)
 
     function printHeader($header, $pdf) {
         $png = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
+        if (is_file($png)) {
+            error_log("png is valid");
+        }
         $pdf->ezNewPage();        
         $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
         $pdf->addPngFromFile($png, 0, 0, 612, 792);
@@ -287,7 +290,9 @@ function upload_file_to_client($file_to_send)
 
         $header = '';
         for ($i = 0; $i < 5; $i++) {
-            $header .= $page_lines[$i];
+            if (isset($page_lines[$i])) { 
+                $header .= $page_lines[$i];
+            }
         }
 
         $body = '';
@@ -298,10 +303,12 @@ function upload_file_to_client($file_to_send)
 
         $footer = '';
         for ($i = ($page_lines_count - 3); $i < $page_lines_count; $i++) {
-            if ($page_lines[$i] == '') {
-                $footer .= $page_lines[$i] . "\r";
+            if (isset($page_lines[$i])) { 
+                if ($page_lines[$i] == '') {
+                    $footer .= $page_lines[$i] . "\r";
+                }
+                $footer .= $page_lines[$i];
             }
-            $footer .= $page_lines[$i];
         }    
 
         if (!$is_continued && !$was_continued) {
