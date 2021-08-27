@@ -229,9 +229,9 @@ function create_statement($stmt)
     $out  = sprintf("          %-30s                         %-8s \r\n", strtoupper($stmt['to'][0]), $stmt['pid']);
     $out .= sprintf("          %1$-43s %2$-8s", $addrline, date('m d y'));
     $out .= "\r\n\r\n";
-    $out .= sprintf("          %-30s              %-8s  %-6s\r\n", strtoupper($stmt['to'][2]), date('m d y'), $stmt['amount']);
+    $out .= sprintf("          %-30s              %-8s  %-6s\r\n", strtoupper($stmt['to'][2] ?? ''), date('m d y'), $stmt['amount']);
 
-    if ($stmt['to'][3] != '') { //to avoid double blank lines the if condition is put.
+    if (($stmt['to'][3] ?? '') != '') { //to avoid double blank lines the if condition is put.
         $out .= sprintf("   %-32s\r\n", $stmt['to'][3]);
     }
 
@@ -257,7 +257,7 @@ function create_statement($stmt)
 
     foreach ($stmt['lines'] as $line) {
       $desc_row = sqlQuery("SELECT code_text from codes WHERE code = ?", array(substr($line['desc'], 10, 5)));
-      $description = $desc_row['code_text'];
+      $description = $desc_row['code_text'] ?? '';
 
         //92002-14 are Eye Office Visit Codes
 
@@ -272,7 +272,7 @@ function create_statement($stmt)
 
             $amount = '';
 
-            if ($ddata['pmt']) {
+            if ($ddata['pmt'] ?? '') {
                 $dos = $ddate;
                 if ($dos > $agedate) {
                     $agedate = $dos;
@@ -287,7 +287,7 @@ function create_statement($stmt)
                 } else {
                     $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
                 }
-            } elseif ($ddata['rsn']) {
+            } elseif ($ddata['rsn'] ?? '') {
                 $dos = $ddate;
                 if ($ddata['chg']) {
                     $amount = sprintf("%.2f", ($ddata['chg'] * -1));
