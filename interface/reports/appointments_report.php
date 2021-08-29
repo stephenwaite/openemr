@@ -22,7 +22,7 @@
 //         that does not require sessions
 $sessionAllowWrite = true;
 require_once("../globals.php");
-require_once("../../library/patient.inc.php");
+require_once("../../library/patient.inc");
 require_once "$srcdir/options.inc.php";
 require_once "$srcdir/appointments.inc.php";
 require_once "$srcdir/clinical_rules.php";
@@ -359,8 +359,12 @@ if (empty($_POST['form_csvexport'])) {
                                 <a href='#' class='btn btn-secondary btn-print' id='printbutton'>
                                     <?php echo xlt('Print'); ?>
                                 </a>
-                                <a href='#' class='btn btn-secondary btn-transmit' onclick='window.open("../patient_file/printed_fee_sheet.php?fill=2", "_blank").opener = null' onsubmit='return top.restoreSession()'>
+                                <a href='#' class='btn btn-secondary btn-transmit'
+                                    onclick='window.open("../patient_file/printed_fee_sheet_<?php echo $_SESSION["site_id"]?>.php?fill=2", "_blank").opener = null' onsubmit='return top.restoreSession()'>                                     
                                     <?php echo xlt('Superbills'); ?>
+                                </a>
+                                <a href='#' class='btn btn-secondary btn-transmit' onclick='window.open("../patient_file/printed_intake_<?php echo $_SESSION['site_id']?>.php?fill=2","_blank")' onsubmit='return top.restoreSession()'>
+                                            <span> <?php echo xlt('Intake Forms'); ?> </span> 
                                 </a>
                                 <a href='#' class='btn btn-secondary btn-transmit' onclick='window.open("../patient_file/addr_appt_label.php", "_blank").opener = null' onsubmit='return top.restoreSession()'>
                                     <?php echo xlt('Address Labels'); ?>
@@ -391,9 +395,6 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
 <table class='table'>
 
     <thead class='thead-light'>
-        <th><a href="nojs.php" onclick="return dosort('doctor')"
-        <?php echo ($form_orderby == "doctor") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('Provider'); ?>
-        </a></th>
 
         <th <?php echo $chk_day_of_week ? '' : 'style="display:none;"' ?>>
             <?php
@@ -417,9 +418,12 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
         <?php echo ($form_orderby == "pubpid") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('ID'); ?></a>
         </th>
 
-            <th><?php echo xlt('Home'); //Sorting by phone# not really useful ?></th>
+        <th><a href="nojs.php" onclick="return dosort('dob')"
+                    <?php echo ($form_orderby == "dob") ? " style=\"color:#00cc00\"" : ""; ?>><?php echo xlt('DOB'); ?></a>
+        </th>
 
-                <th><?php echo xlt('Cell'); //Sorting by phone# not really useful ?></th>
+        <th><?php echo xlt('Phone'); //Sorting by phone# not really useful ?></th>
+        <th><?php echo "Pt Due";?></th>
 
         <th><a href="nojs.php" onclick="return dosort('type')"
         <?php echo ($form_orderby == "type") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('Type'); ?></a>
@@ -463,7 +467,7 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
 
     $appointments = sortAppointments($appointments, $form_orderby);
     if (!empty($_POST['form_csvexport'])) {
-        $fields = ['pc_eventDate', 'pc_startTime', 'fname', 'lname', 'DOB'];
+        $fields = ['fname', 'lname', 'phone_home', 'pc_eventDate', 'pc_startTime'];
         $spreadsheet = new SpreadSheetService($appointments, $fields, 'appts');
         if (!empty($spreadsheet->buildSpreadsheet())) {
             $spreadsheet->downloadSpreadsheet('Csv');
@@ -471,6 +475,7 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
     } else {
         $pid_list = array();  // Initialize list of PIDs for Superbill option
         $apptdate_list = array(); // same as above for the appt details
+        $apptphone_list = array();
         $totalAppointments = count($appointments);
         $canceledAppointments = 0;
 
@@ -492,14 +497,19 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
             array_push($pid_list, $appointment['pid']);
             array_push($apptdate_list, $appointment['pc_eventDate']);
             $patient_id = $appointment['pid'];
-            $docname  = $appointment['ulname'] . ', ' . $appointment['ufname'] . ' ' . $appointment['umname'];
+            $patient_dob = getPatientData($patient_id, "dob");
+            $patient_ins = getInsuranceData($patient_id, "primary");
+            $getIP = getInsuranceProvider($patient_ins['provider']);
+            $patientbalance = get_patient_balance($appointment['pid'], false);
+            if ($patientbalance == "-0.00") {
+                $patientbalance = "0.00";
+            }
 
             $errmsg  = "";
             $pc_apptstatus = $appointment['pc_apptstatus'];
             ?>
 
             <tr valign='top' id='p1.<?php echo attr($patient_id) ?>' bgcolor='<?php echo attr($bgcolor ?? ''); ?>'>
-            <td class="detail">&nbsp;<?php echo ($docname == $lastdocname) ? "" : text($docname) ?>
             </td>
 
             <td class="detail" <?php echo $chk_day_of_week ? '' : 'style="display:none;"' ?>>
@@ -517,16 +527,23 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
             <td class="detail"><?php echo text(oeFormatTime($appointment['pc_startTime'])) ?>
             </td>
 
-            <td class="detail">&nbsp;<?php echo text($appointment['fname'] . " " . $appointment['lname']) ?>
+            <td class="detail"><?php echo text($appointment['fname'] . " " . $appointment['lname']) ?>
             </td>
 
             <td class="detail">&nbsp;<?php echo text($appointment['pubpid']) ?></td>
+            <td class="detail">&nbsp;<?php echo text(oeFormatShortDate($patient_dob['dob'])) ?></td>
+            <td class="detail">
+            <?php if (!$appointment['phone_cell']) {
+                $appt_phone = substr($appointment['phone_home'], 0, 12);
+            } else {
+                $appt_phone = substr($appointment['phone_cell'], 0, 12);
+            }
+            echo text($appt_phone);
 
-            <td class="detail">&nbsp;<?php echo text($appointment['phone_home']) ?></td>
+             ?></td>
 
-            <td class="detail">&nbsp;<?php echo text($appointment['phone_cell']) ?></td>
-
-            <td class="detail">&nbsp;<?php echo text(xl_appt_category($appointment['pc_catname'])) ?></td>
+            <td class="detail">&nbsp;<?php echo "$" . text($patientbalance); ?></td>    
+            <td class="detail"><?php echo text(xl_appt_category($appointment['pc_catname'])) ?></td>
 
             <td class="detail">&nbsp;
                 <?php
@@ -550,6 +567,9 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
             <td colspan='<?php echo $showDate ? '"3"' : '"2"' ?>' class="detail"></td>
         <td colspan='<?php echo ($incl_reminders ? "3" : "6") ?>' class="detail" align='left'>
                     <?php
+                    if ($getIP) {
+                        echo ' <b>' . xlt('Primary Ins ') . '</b>: ' . $getIP . '&nbsp';
+                    }
                     if (trim($appointment['pc_hometext'])) {
                         echo '<strong>' . xlt('Comments') . '</strong>: ' . text($appointment['pc_hometext']);
                     }
@@ -570,7 +590,7 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
                     <?php
                 } // End of row 2 display
 
-                $lastdocname = $docname;
+                $lastdocname = $docname ?? '';
         }
     // assign the session key with the $pid_list array - note array might be empty -- handle on the printed_fee_sheet.php page.
         $_SESSION['pidList'] = $pid_list;
