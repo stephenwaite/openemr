@@ -48,7 +48,7 @@ $STMT_PRINT_CMD = (new CryptoGen())->decryptStandard($GLOBALS['more_secure']['pr
  */
 function make_statement($stmt)
 {
-    return create_statement($stmt);    
+    return create_statement($stmt);
 }
     /* This function builds a printable statement or collection letter from
     // an associative array having the following keys:
@@ -252,25 +252,30 @@ function create_statement($stmt)
     // This generates the detail lines.  Again, note that the values must
     // be specified in the order used.
     //
-    
+
     $agedate = '0000-00-00';
 
     foreach ($stmt['lines'] as $line) {
-      $desc_row = sqlQuery("SELECT code_text from codes WHERE code = ?", array(substr($line['desc'], 10, 5)));
-      $description = $desc_row['code_text'] ?? '';
+        $desc_row = sqlQuery("SELECT code_text from codes WHERE code = ?", array(substr($line['desc'], 10, 5)));
+        $description = $desc_row['code_text'] ?? $line['desc'];
 
         //92002-14 are Eye Office Visit Codes
 
         $dos = $line['dos'];
         ksort($line['detail']);
 
-        foreach ($line['detail'] as $dkey => $ddata) {           
+        foreach ($line['detail'] as $dkey => $ddata) {
             $ddate = substr($dkey, 0, 10);
             if (preg_match('/^(\d\d\d\d)(\d\d)(\d\d)\s*$/', $ddate, $matches)) {
                 $ddate = $matches[1] . '-' . $matches[2] . '-' . $matches[3];
-            }                        
+            }
 
             $amount = '';
+
+            $insco = $insco;
+            if (strpos($ddata['pmt_method'], $insco) !== false) {
+                $insco = '';
+            }
 
             if ($ddata['pmt'] ?? '') {
                 $dos = $ddate;
@@ -278,7 +283,7 @@ function create_statement($stmt)
                     $agedate = $dos;
                 }
                 $amount = sprintf("%.2f", $ddata['pmt']);
-                $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . $ddata['pmt_method'] . ' ' . $ddata['insurance_company'];
+                $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . $ddata['pmt_method'] . ' ' . $insco;
                 if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
                     $pt_paid_flag = true;
                     $desc = xl('Pt paid');
@@ -291,9 +296,9 @@ function create_statement($stmt)
                 $dos = $ddate;
                 if ($ddata['chg']) {
                     $amount = sprintf("%.2f", ($ddata['chg'] * -1));
-                    $desc = xl('Adj') . ' ' . $ddata['rsn'] . ' ' . $ddata['pmt_method'] . ' ' . $ddata['insurance_company'];
+                    $desc = xl('Adj') . ' ' . $ddata['rsn'] . ' ' . $ddata['pmt_method'] . ' ' . $insco;
                 } else {
-                    $desc = xl('Note') . ' ' . $ddata['rsn'] . ' ' . $ddata['pmt_method'] . ' ' . $ddata['insurance_company'];
+                    $desc = xl('Note') . ' ' . $ddata['rsn'] . ' ' . $ddata['pmt_method'] . ' ' . $insco;
                 }
                 $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
             } elseif ($ddata['chg'] < 0) {
@@ -307,13 +312,13 @@ function create_statement($stmt)
                 $bal = sprintf("%.2f", ($line['amount'] - $line['paid']));
                 $out .= sprintf("%-8s %-44s    %-8s          %-8s \r\n", sidDate($dos), $desc, $amount, $bal);
             }
-                            
+
             ++$count;
         }
         if ($agedate == '0000-00-00') {
             $agedate = $dos;
         }
-        
+
         // Compute the aging bucket index and accumulate into that bucket.
         $age_in_days = (int) (($todays_time - strtotime($agedate)) / (60 * 60 * 24));
         $age_index = (int) (($age_in_days - 1) / 30);
@@ -357,7 +362,7 @@ function create_statement($stmt)
         $out .= sprintf("%-46s\r\n", $dun_message);
     }
 
-    
+
     if ($GLOBALS['statement_message_to_patient']) {
         $out .= "\r\n";
         $statement_message = $GLOBALS['statement_msg_text'];
@@ -370,7 +375,7 @@ function create_statement($stmt)
         $ageline .= sprintf("      %.2f              %.2f", $aging[$age_index], $stmt['amount']);
         $out .= $ageline . "\r\n";
     //}
-    
+
     /*
     if ($GLOBALS['number_appointments_on_statement'] != 0) {
         $out .= "\r\n";
@@ -407,10 +412,12 @@ function create_statement($stmt)
     return $out;
 }
 
-function sidDate($date) {
+function sidDate($date)
+{
     return substr($date, 5, 2) . " " . substr($date, 8, 2) . " " . substr($date, 2, 2);
 }
 
-function rodDate($date) {
+function rodDate($date)
+{
     return substr($date, 0, 2) . " " . substr($date, 3, 2) . " " . substr($date, 6, 2);
 }
