@@ -663,7 +663,8 @@ class X125010837P
         $proccount = $claim->procCount();
         $clm_total_charges = 0;
         for ($prockey = 0; $prockey < $proccount; ++$prockey) {
-            $clm_total_charges += floatval($claim->cptCharges($prockey));
+            $clm_total_charges += $claim->cptCharges($prockey);
+            $cpts[] = $claim->cptCode($prockey);
         }
         if (!$clm_total_charges) {
             $log .= "*** This claim has no charges!\n";
@@ -689,10 +690,23 @@ class X125010837P
         // Segment DTP*431 (Onset of Current Symptoms or Illness)
         // Segment DTP*484 (Last Menstrual Period Date)
 
+        $da = $claim->diagArray();
+        $routineFootCareDxs = ['E0841', 'E0842', 'E0843', 'E0844', 'E0849', 'E0851', 'E0852', 'E0859', 'E08610', 'E0942', 'E0949', 'E0951', 'E0952', 'E0959', 'E09610', 'E1041', 'E1042', 'E1043', 'E1044', 'E1049', 'E1051', 'E1052', 'E1059', 'E10610', 'E1141', 'E1142', 'E1143', 'E1144', 'E1149', 'E1151', 'E1152', 'E1159', 'E11610', 'E1342', 'E1349', 'E1351', 'E1352', 'E1359', 'E13610', 'E5111', 'E5112', 'E52', 'E531', 'E538', 'E640', 'G130', 'G131', 'G35', 'G610', 'G611', 'G620', 'G621', 'G622', 'G6282', 'G701', 'G7081', 'G731', 'G733', 'I8001', 'I8002', 'I8003', 'I8011', 'I8012', 'I8013', 'I80211', 'I80212', 'I80213', 'I80221', 'I80222', 'I80223', 'I80231', 'I80232', 'I80233', 'I80241', 'I80242', 'I80243', 'I80251', 'I80252', 'I80253', 'I80291', 'I80292', 'I80293', 'I82541', 'I82542', 'I82543', 'I82811', 'I82812', 'I82813', 'I82891', 'K902', 'K903', 'K912', 'M05471', 'M05472', 'M05571', 'M05572', 'M05771', 'M05772', 'M05871', 'M05872', 'M06071', 'M06072', 'M06871', 'M06872', 'N181', 'N182', 'N1830', 'N1831', 'N1832', 'N184', 'N185', 'N186'];
+
+        $diabDlsRequired = false;
         if (
-            $claim->onsetDate()
-            && $claim->onsetDate() !== $claim->serviceDate()
-            && $claim->onsetDateValid()
+            $claim->facilityTaxonomy() == "213E00000X" &&
+            array_intersect($cpts, ['11055', '11056', '11057', '11719', '11720', 'G0127']) &&
+            array_intersect($da, $routineFootCareDxs)
+        ) {
+                $diabDlsRequired = true;
+        }
+
+        if (
+            $claim->onsetDate() &&
+            $claim->onsetDate() !== $claim->serviceDate() &&
+            $claim->onsetDateValid() &&
+            !$diabDlsRequired
         ) {
             ++$edicount;
             $out .= "DTP" .       // Date of Onset
@@ -701,19 +715,29 @@ class X125010837P
                 "*" . $claim->onsetDate() .
                 "~\n";
         } elseif (
-            $claim->miscOnsetDate()
-            && $claim->miscOnsetDate() !== $claim->serviceDate()
-            && $claim->box14Qualifier()
-            && $claim->miscOnsetDateValid()
+            $claim->miscOnsetDate() &&
+            $claim->miscOnsetDate() !== $claim->serviceDate() &&
+            $claim->box14Qualifier() &&
+            $claim->miscOnsetDateValid()
         ) {
             ++$edicount;
             $out .= "DTP" .
-                "*" . $claim->box14Qualifier() .
-                "*" . "D8" .
-                "*" . $claim->miscOnsetDate() .
-                "~\n";
+            "*" . $claim->box14Qualifier() .
+            "*" . "D8" .
+            "*" . $claim->miscOnsetDate() .
+            "~\n";
+        // use fka onset date from new encounter page for podiatry last seen date
+        } elseif (
+            $claim->onsetDateValid() &&
+            $diabDlsRequired
+        ) {
+            ++$edicount;
+            $out .= "DTP" .
+            "*" . "304" .
+            "*" . "D8" .
+            "*" . $claim->onsetDate() .
+            "~\n";
         }
-
         // Segment DTP*304 (Last Seen Date)
         // Segment DTP*453 (Acute Manifestation Date)
         // Segment DTP*439 (Accident Date)
@@ -727,13 +751,36 @@ class X125010837P
 
         // Segment DTP*454 (Initial Treatment Date)
 
-        if ($claim->dateInitialTreatment() && ($claim->box15Qualifier()) && ($claim->dateInitialTreatmentValid())) {
+        if (
+            $claim->dateInitialTreatment() &&
+            $claim->box15Qualifier() &&
+            $claim->dateInitialTreatmentValid() &&
+            !$diabDlsRequired
+        ) {
             ++$edicount;
             $out .= "DTP" .       // Date Last Seen
-                "*" . $claim->box15Qualifier() .
-                "*" . "D8" .
-                "*" . $claim->dateInitialTreatment() .
-                "~\n";
+            "*" . $claim->box15Qualifier() .
+            "*" . "D8" .
+            "*" . $claim->dateInitialTreatment() .
+            "~\n";
+        } elseif (
+            $claim->dateInitialTreatment() &&
+            $claim->box15Qualifier() &&
+            $claim->dateInitialTreatmentValid() &&
+            empty($claim->onsetDate()) &&
+            $diabDlsRequired
+        ) {
+            ++$edicount;
+            $out .= "DTP" .       // Date Last Seen
+            "*" . $claim->box15Qualifier() .
+            "*" . "D8" .
+            "*" . $claim->dateInitialTreatment() .
+            "~\n";
+        } elseif (
+            !($claim->onsetDateValid() || $claim->dateInitialTreatmentValid()) &&
+            $diabDlsRequired
+        ) {
+            $log .= "*** Invalid date last seen in encounter form or Misc Billing Options.\n";
         }
 
         if (strcmp($claim->facilityPOS(), '21') == 0 && $claim->onsetDateValid()) {
@@ -862,7 +909,6 @@ class X125010837P
 
         // Diagnoses, up to $max_per_seg per HI segment.
         $max_per_seg = 12;
-        $da = $claim->diagArray();
         if ($claim->diagtype == "ICD9") {
             $diag_type_code = 'BK';
         } else {
@@ -893,23 +939,18 @@ class X125010837P
         // Segment HI*BP (Anesthesia Related Procedure) omitted.
         // Segment HI*BG (Condition Information) omitted.
         // Segment HCP (Claim Pricing/Repricing Information) omitted.
-        if ($claim->referrer ?? null) {
+        if ($claim->claimType() === 'MB' && $diabDlsRequired && $claim->referrerLastName()) {
             // Medicare requires referring provider's name and NPI.
             ++$edicount;
             $out .= "NM1" .     // Loop 2310A Referring Provider
-                "*" . "DN" .
-                "*" . "1" .
-                "*";
-            if ($claim->referrerLastName()) {
-                $out .= $claim->referrerLastName();
-            } else {
-                $log .= "*** Missing referrer last name.\n";
-            }
+            "*" . "DN" .
+            "*" . "1" .
+            "*" . $claim->referrerLastName();
             $out .= "*";
             if ($claim->referrerFirstName()) {
                 $out .= $claim->referrerFirstName();
             } else {
-                $log .= "*** Missing referrer first name.\n";
+                $log .= "*** Missing referring provider first name.\n";
             }
             $out .= "*" .
                 $claim->referrerMiddleName() .
@@ -920,9 +961,11 @@ class X125010837P
                     "*" . "XX" .
                     "*" . $claim->referrerNPI();
             } else {
-                $log .= "*** Referring provider has no NPI.\n";
+                $log .= "*** Missing referring provider NPI.\n";
             }
             $out .= "~\n";
+        } elseif ($claim->claimType() === 'MB' && $diabDlsRequired && !$claim->referrerLastName()) {
+            $log .= "*** Missing referring provider last name.\n";
         }
 
         // Per the implementation guide lines, only include this information if it is different
@@ -967,6 +1010,8 @@ class X125010837P
             } else {
                 $log .= "*** Performing provider has no taxonomy code.\n";
             }
+        } else {
+            $log .= "*** Rendering provider is billing under a group.\n";
         }
 
         if (!$claim->providerNPIValid()) {
@@ -1053,22 +1098,47 @@ class X125010837P
         // Segment PER (Service Facility Contact Information) omitted.
 
         // Loop 2310D, Supervising Provider
-        if (! empty($claim->supervisorLastName())) {
+        if (
+            !empty($claim->supervisorLastName()) ||
+            $diabDlsRequired
+        ) {
             ++$edicount;
             $out .= "NM1" .
-                "*" . "DQ" . // Supervising Physician
-                "*" . "1" .  // Person
+            "*" . "DQ" . // Supervising Physician
+            "*" . "1";  // Person
+            if ($claim->supervisorLastName()) {
+                $out .= "" .
                 "*" . $claim->supervisorLastName() .
                 "*" . $claim->supervisorFirstName() .
                 "*" . $claim->supervisorMiddleName() .
                 "*" .   // NM106 not used
                 "*";    // Name Suffix not used
-            if ($claim->supervisorNPI()) {
-                $out .=
+                if ($claim->supervisorNPI()) {
+                    $out .=
                     "*" . "XX" .
                     "*" . $claim->supervisorNPI();
-            } else {
-                $log .= "*** Supervising Provider has no NPI.\n";
+                } else {
+                    $log .= "*** Supervising Provider has no NPI.\n";
+                    if ($diabDlsRequired) {
+                        $log .= "*** Choose a referring provider for this podiatry routine foot care please.";
+                    }
+                }
+            } elseif (
+                $diabDlsRequired
+            ) {
+                $out .= "" .
+                "*" . $claim->referrerLastName() .
+                "*" . $claim->referrerFirstName() .
+                "*" . $claim->referrerMiddleName() .
+                "*" .   // NM106 not used
+                "*";    // Name Suffix not used
+                if ($claim->referrerNPI()) {
+                    $out .=
+                    "*" . "XX" .
+                    "*" . $claim->referrerNPI();
+                } else {
+                    $log .= "*** using Referring as Supervising but no NPI for Date Last Seen - routine foot care.\n";
+                }
             }
             $out .= "~\n";
 
@@ -1245,12 +1315,66 @@ class X125010837P
                 $log .= "*** Missing other insco payer name.\n";
             }
             $out .= "*" .
-                "*" .
-                "*" .
-                "*" .
-                "*" . "PI" .
-                "*";
-            if ($claim->payerID($ins)) {
+            "*" .
+            "*" .
+            "*" .
+            "*" . "PI" .
+            "*";
+            if (
+                $claim->payerID($ins - 1) == "MCDVT" ||
+                $claim->payerID($ins - 1) ==  "822287119"
+            ) { // for 2ndary gmc claims
+                if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
+                    if (($claim->payerName($ins)) == "BCBS NJ") {
+                        $out .= "H6";
+                    } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
+                        $out .= "MDB";
+                    } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
+                        $out .= "BV";
+                    } else {
+                        $out .= "EE";
+                    }
+                }
+                if (($claim->payerID($ins)) == "14512") {
+                    $out .= "MDB";
+                }
+                if (($claim->payerID($ins)) == "14212") {
+                    $out .= "MDB";
+                }
+                if (($claim->payerID($ins)) == "14163") {
+                    $out .= "MDB";
+                }
+                if (($claim->payerID($ins)) == "87726") {
+                    $out .= "MDC";
+                }
+                if (($claim->payerID($ins)) == "62308") {
+                    $out .= "FB6";
+                }
+                if (($claim->payerID($ins)) == "14165") {
+                    $out .= "Z2";
+                }
+                if (($claim->payerID($ins)) == "60054") {
+                    $out .= "92";
+                }
+                if (($claim->payerID($ins)) == "00010") {
+                    $out .= "42";
+                }
+                if (($claim->payerID($ins)) == "MPHC1") {
+                    $out .= "42";
+                }
+                if (($claim->payerID($ins)) == "EBSRM") {
+                    $out .= "AW1";
+                }
+                if (($claim->payerID($ins)) == "00882") {
+                    $out .= "MDB";
+                }
+                if (($claim->payerID($ins)) == "53275") {
+                    $out .= "AE7";
+                }
+                if (($claim->payerID($ins)) == "39026") {
+                    $out .= "S02";
+                }
+            } elseif ($claim->payerID($ins)) {
                 $out .= $claim->payerID($ins);
             } else {
                 $log .= "*** Missing other insco payer id.\n";
@@ -1462,7 +1586,10 @@ class X125010837P
             // Used if the rendering provider for this service line is different
             // from that in loop 2310B.
 
-            if ($claim->providerNPI() != $claim->providerNPI($prockey)) {
+            if (
+                ($claim->providerNPI() != $claim->providerNPI($prockey)) ||
+                ($claim->payerID($ins - 1) == "14165")
+            ) {
                 ++$edicount;
                 $out .= "NM1" .       // Loop 2420A Rendering Provider
                     "*" . "82" .
@@ -1551,12 +1678,67 @@ class X125010837P
 
                 ++$edicount;
                 $out .= "SVD" . // Service line adjudication. Page 554.
-                    "*" . $claim->payerID($ins) .
-                    "*" . $payerpaid[1] .
-                    "*" . "HC:" . $claim->cptKey($prockey) .
-                    "*" .
-                    "*" . $claim->cptUnits($prockey) .
-                    "~\n";
+                "*";
+                if (($claim->payerID($ins - 1) == "MCDVT" || $claim->payerID($ins - 1) == "822287119")) {
+                    if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
+                        if (($claim->payerName($ins)) == "BCBS NJ") {
+                            $out .= "H6";
+                        } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
+                            $out .= "MDB";
+                        } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
+                            $out .= "BV";
+                        } else {
+                            $out .= "EE";
+                        }
+                    }
+                    if (($claim->payerID($ins)) == "14512") {
+                        $out .= "MDB";
+                    }
+                    if (($claim->payerID($ins)) == "14212") {
+                        $out .= "MDB";
+                    }
+                    if (($claim->payerID($ins)) == "14163") {
+                        $out .= "MDB";
+                    }
+                    if (($claim->payerID($ins)) == "87726") {
+                        $out .= "MDC";
+                    }
+                    if (($claim->payerID($ins)) == "62308") {
+                        $out .= "FB6";
+                    }
+                    if (($claim->payerID($ins)) == "14165") {
+                        $out .= "Z2";
+                    }
+                    if (($claim->payerID($ins)) == "60054") {
+                        $out .= "92";
+                    }
+                    if (($claim->payerID($ins)) == "00010") {
+                        $out .= "42";
+                    }
+                    if (($claim->payerID($ins)) == "MPHC1") {
+                        $out .= "42";
+                    }
+                    if (($claim->payerID($ins)) == "EBSRM") {
+                        $out .= "AW1";
+                    }
+                    if (($claim->payerID($ins)) == "00882") {
+                        $out .= "MDB";
+                    }
+                    if (($claim->payerID($ins)) == "53275") {
+                        $out .= "AE7";
+                    }
+                    if (($claim->payerID($ins)) == "39026") {
+                        $out .= "S02";
+                    }
+                } else {
+                    $out .= $claim->payerID($ins);
+                }
+
+                $out .= "*" . $payerpaid[1] .
+                "*" . "HC:" . $claim->cptKey($prockey) .
+                "*" .
+                "*" . $claim->cptUnits($prockey) .
+                "~\n";
 
                 $tmpdate = $payerpaid[0];
                 $cas = $claim->getLineItemAdjustments($aarr);
