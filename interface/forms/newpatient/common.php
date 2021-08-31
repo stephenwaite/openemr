@@ -28,6 +28,12 @@ use OpenEMR\OeUI\OemrUI;
 use OpenEMR\OeUI\RenderFormFieldHelper;
 
 $facilityService = new FacilityService();
+$date_label = "Onset/Hosp. Date";
+$facility_pbe = $facilityService->getPrimaryBusinessEntity();
+
+if ($facility_pbe['facility_taxonomy'] == "213E00000X") {
+    $date_label = "Date Last Seen";
+}
 
 if ($GLOBALS['enable_group_therapy']) {
     require_once("$srcdir/group.inc.php");

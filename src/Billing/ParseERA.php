@@ -32,19 +32,16 @@ class ParseERA
             // from poorly reported payment reversals, in which case we may need to
             // create the 'Claim' service type here.
             //
-            if ($GLOBALS['force_claim_balancing']) {
-                $chgtotal = floatval($out['amount_charged']);
-                $paytotal = floatval($out['amount_approved']);
-                $pattotal = floatval($out['amount_patient']);
-                $adjtotal = $chgtotal - $paytotal - $pattotal;
-                foreach ($out['svc'] as $svc) {
-                    $paytotal -= $svc['paid'];
-                    foreach ($svc['adj'] as $adj) {
-                        if ($adj['group_code'] != 'PR') {
-                            $adjtotal -= $adj['amount'];
-                        }
+            $paytotal = $out['amount_approved'];
+            $adjtotal = $out['amount_charged'] - $out['amount_approved'] - (int)$out['amount_patient'];
+            foreach ($out['svc'] as $svc) {
+                $paytotal -= $svc['paid'];
+                foreach ($svc['adj'] as $adj) {
+                    if ($adj['group_code'] != 'PR') {
+                        $adjtotal -= $adj['amount'];
                     }
                 }
+            }
 
                 $paytotal = round($paytotal, 2);
                 $adjtotal = round($adjtotal, 2);
