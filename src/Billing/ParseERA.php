@@ -33,7 +33,7 @@ class ParseERA
             // create the 'Claim' service type here.
             //
             $paytotal = $out['amount_approved'];
-            $adjtotal = $out['amount_charged'] - $out['amount_approved'] - $out['amount_patient'];
+            $adjtotal = $out['amount_charged'] - $out['amount_approved'] - (int)$out['amount_patient'];
             foreach ($out['svc'] as $svc) {
                 $paytotal -= $svc['paid'];
                 foreach ($svc['adj'] as $adj) {
