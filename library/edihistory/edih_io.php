@@ -182,7 +182,11 @@ function edih_disp_archive()
  * @return string  html format
  */
 function edih_disp_file_process()
+<<<<<<< HEAD
 {
+=======
+{    
+>>>>>>> edi_history
     // debug
     if (isset($_GET)) {
         $dbg_str = 'GET vars ';
@@ -193,7 +197,6 @@ function edih_disp_file_process()
         csv_edihist_log("edih_disp_file_process $dbg_str");
     }
 
-    //
     if (!isset($_GET['ProcessFiles'])) {
         // should only be called with this value existing
         $str_html = "Error: invalid value for Process New <br />" . PHP_EOL;

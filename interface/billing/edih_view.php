@@ -500,6 +500,10 @@ if (!AclMain::aclCheckCore('acct', 'eob')) {
     $('#tblshow').on('click', 'a', function(e) {
         e.preventDefault();
         e.stopPropagation();
+<<<<<<< HEAD
+=======
+        $('#link-1.edihDlg').html('');
+>>>>>>> edi_history
         $('<div/>', {'class':'edihDlg', 'id':'link-'+($(this).index()+1)})
             .load($(this).attr('href')).appendTo('#tblshow');
     });
