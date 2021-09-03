@@ -196,9 +196,7 @@ function edih_disp_archive()
  * @return string  html format
  */
 function edih_disp_file_process()
-{
-    //file "fileUplMulti "submit" "uplsubmit" "button""uplreset"
-    //
+{    
     // debug
     if (isset($_GET)) {
         $dbg_str = 'GET vars ';
@@ -209,7 +207,6 @@ function edih_disp_file_process()
         csv_edihist_log("edih_disp_file_process $dbg_str");
     }
 
-    //
     if (!isset($_GET['ProcessFiles'])) {
         // should only be called with this value existing
         $str_html = "Error: invalid value for Process New <br />" . PHP_EOL;
@@ -243,7 +240,7 @@ function edih_disp_file_process()
             $dh = opendir($fdir);
             if ($dh) {
                 while (($file = readdir($dh)) !== false) {
-                    if ($file != '.' && $file != '..') {
+                    if ($file != '.' && $file != '..' && $file != "process_bills.log") {
                         $checkdir = true;
                         break;
                     }
@@ -522,7 +519,7 @@ function edih_disp_x12trans()
 }
 
 /**
- * display fule uploaded from x12 File tab
+ * display file uploaded from x12 File tab
  * wrap individual transactions in accordian jquery ui widget
  *
  * @uses csv_check_x12_obj()
@@ -768,7 +765,7 @@ function edih_disp_era_processed()
         $row = sqlQuery("SELECT reference, pay_total, global_amount FROM ar_session WHERE reference = ?", array($srchval));
         if (!empty($row)) {
             $str_html .= "trace {$row['reference']} total \${$row['pay_total']}";
-            if ($row['global_amount'] === '0') {
+            if ($row['global_amount'] === '0' || $row['global_amount'] === '0.00') {
                 $str_html .= " fully allocated";
             } else {
                 $str_html .= " (" . text($row['global_amount']) . " not allocated)";

@@ -894,7 +894,7 @@ function csv_archive_select_list($outtp = 'json')
 /**
  * List files in the directory for the given type
  *
- * Write an entry in the log if an file is in the directory
+ * Write an entry in the log if a file is in the directory
  * that does not match the type
  *
  * @uses csv_parameters()
@@ -923,7 +923,7 @@ function csv_dirfile_list($type)
     if (is_dir($search_dir)) {
         if ($dh = opendir($search_dir)) {
             while (($file = readdir($dh)) !== false) {
-                if ($file == '.' || $file == '..') {
+                if ($file == '.' || $file == '..' || $file == "process_bills.log") {
                     continue;
                 } elseif ($tp == 'f837' && ($file == 'history' || $file == 'README.txt')) {
                     continue;

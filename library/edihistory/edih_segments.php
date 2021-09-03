@@ -1268,7 +1268,7 @@ function edih_display_text($filepath, $filetype = '', $claimid = '', $trace = fa
     }
 
     //
-    $capstr .= ($claimid) ? " <em>ID:</em> " . text($claimid) : "";
+    $capstr .= ($claimid) ? " ID: " . text($claimid) : "";
     //
     $str_html .= "<table id=" . attr($tbl_id) . " cols=3 class='segtxt'><caption>" . text($capstr) . "</caption>" . PHP_EOL;
     $str_html .= "<thead>" . PHP_EOL;

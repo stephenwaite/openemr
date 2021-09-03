@@ -37,7 +37,7 @@
  */
 function edih_round_cb(&$v, $k)
 {
-    $v = round($v, 2);
+    $v = round((int)$v, 2);
 }
 /**
  * Create summary html string for an x12 835 claim payment
@@ -714,7 +714,7 @@ function edih_835_transaction_html($trans_array, $codes27x, $codes835, $delimite
                     if (strpos($sar[1], $ds)) {
                         $scda = explode($ds, $sar[1]);
                         reset($scda);
-                        while (list($key, $val) = each($scda)) {
+                        foreach ($scda as $key => $val) {
                             if ($key == 0 && $val) {
                                 $svc01 = $cd27x->get_271_code('EB13', $val);
                             } else {
@@ -738,7 +738,7 @@ function edih_835_transaction_html($trans_array, $codes27x, $codes835, $delimite
                     if (strpos($sar[6], $ds)) {
                         $scda = explode($ds, $sar[6]);
                         reset($scda);
-                        while (list($key, $val) = each($scda)) {
+                        foreach ($scda as $key => $value) {
                             if ($key == 0 && $val) {
                                 $svc06 = $cd27x->get_271_code('EB13', $val) . " ";
                             } else {

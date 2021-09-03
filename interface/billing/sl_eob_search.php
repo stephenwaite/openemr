@@ -1070,6 +1070,7 @@ if (
                                 $alertmsg .= ParseERA::parseERA($tmp_name, 'era_callback');
                                 echo "-->\n";
                                 $erafullname = $GLOBALS['OE_SITE_DIR'] . "/documents/era/$eraname.edi";
+                                $edihname = $GLOBALS['OE_SITE_DIR'] . "/documents/edi/history/f835/$eraname.835";
 
                                 if (is_file($erafullname)) {
                                     $alertmsg .= "Warning: Set $eraname was already uploaded ";
@@ -1080,6 +1081,7 @@ if (
                                     }
                                 }
                                 rename($tmp_name, $erafullname);
+                                copy($erafullname, $edihname);
                             } // End 835 upload
 
                             if ($eracount) {
