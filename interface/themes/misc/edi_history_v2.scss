@@ -1190,3 +1190,7 @@ div.filetext table.batchst td.bterr {
   padding: 1px 3px;
   text-align: $left;
 }
+
+div.dataTables_length select {
+  width: 50px !important;
+}

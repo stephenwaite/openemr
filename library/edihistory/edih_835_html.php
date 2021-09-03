@@ -727,7 +727,11 @@ function edih_835_transaction_html($trans_array, $codes27x, $codes835, $delimite
                     if (strpos($sar[6], $ds)) {
                         $scda = explode($ds, $sar[6]);
                         reset($scda);
+<<<<<<< HEAD
                         foreach ($scda as $key => $val) {
+=======
+                        foreach ($scda as $key => $value) {
+>>>>>>> edi_history
                             if ($key == 0 && $val) {
                                 $svc06 = $cd27x->get_271_code('EB13', $val) . " ";
                             } else {
