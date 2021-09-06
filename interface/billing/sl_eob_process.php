@@ -516,6 +516,8 @@ function era_callback(&$out)
 
             // Post and report adjustments from this ERA.  Posted adjustment reasons
             // must be 25 characters or less in order to fit on patient statements.
+            // use $pt_responsible to trap for denied items that would be adjusted automatically
+            $pt_responsible = false;
             foreach ($svc['adj'] as $adj) {
                 $description = ($adj['reason_code'] ?? '') . ': ' .
                     BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[$adj['reason_code'] ?? ''];
@@ -529,6 +531,7 @@ function era_callback(&$out)
                     else if ($adj['reason_code'] == '2') $reason = 'Coinsurance: ';
                     else if ($adj['reason_code'] == '3') $reason = 'Co-pay: ';
                 ****/
+                        $pt_responsible = true;
                         $reason = "$inslabel ptresp: "; // Reasons should be 25 chars or less.
                         if ($adj['reason_code'] == '1') {
                             $reason = "$inslabel dedbl: ";
