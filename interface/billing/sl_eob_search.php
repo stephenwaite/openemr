@@ -350,8 +350,6 @@ function upload_file_to_client($file_to_send)
 
     }
 
-
-
     $fh = @fopen($STMT_TEMP_FILE_PDF, 'w');
         if ($fh) {
             fwrite($fh, $pdf->ezOutput());
@@ -372,7 +370,7 @@ function upload_file_to_client($file_to_send)
     // sleep one second to ensure there's no follow-on.
     sleep(1);
 }
-}
+
 
 function upload_file_to_client_email($ppid, $file_to_send)
 {
@@ -730,7 +728,6 @@ if (
     // Download or print the file, as selected
     if ($_REQUEST['form_pdf']) {
         upload_file_to_client($STMT_TEMP_FILE);
-    } 
     } elseif ($_REQUEST['form_email']) {
         upload_file_to_client_email($stmt['pid'], $STMT_TEMP_FILE);
     } elseif ($_REQUEST['form_portalnotify']) {
