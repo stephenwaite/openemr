@@ -373,7 +373,7 @@ function era_callback(&$out)
 
             // This reports detail lines already on file for this service item.
             if ($prev) {
-                $codetype = $codes[$codekey]['code_type']; //store code type
+                $codetype = $codes[$codekey]['code_type'] ?? 'none'; //store code type
                 writeOldDetail($prev, $patient_name, $invnumber, $service_date, $codekey, $bgcolor);
                 // Check for sanity in amount charged.
                 $prevchg = sprintf("%.2f", $prev['chg'] + ($prev['adj'] ?? null));
@@ -496,6 +496,8 @@ function era_callback(&$out)
 
             // Post and report adjustments from this ERA.  Posted adjustment reasons
             // must be 25 characters or less in order to fit on patient statements.
+            // use $pt_responsible to trap for denied items that would be adjusted automatically
+            $pt_responsible = false;
             foreach ($svc['adj'] as $adj) {
                 $description = $adj['reason_code'] ?? '' . ': ' .
                     BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[$adj['reason_code'] ?? ''];
@@ -509,6 +511,7 @@ function era_callback(&$out)
                     else if ($adj['reason_code'] == '2') $reason = 'Coinsurance: ';
                     else if ($adj['reason_code'] == '3') $reason = 'Co-pay: ';
                 ****/
+                        $pt_responsible = true;
                         $reason = "$inslabel ptresp: "; // Reasons should be 25 chars or less.
                         if ($adj['reason_code'] == '1') {
                             $reason = "$inslabel dedbl: ";
@@ -551,7 +554,7 @@ function era_callback(&$out)
                     // we don't want to write off the amount which would force
                     // the biller to manually delete and re-work so we post a zero-dollar adj
                     // and save it as a comment
-                    if ($svc['paid'] == 0 && $adj['reason_code'] != "1") {
+                    if ($svc['paid'] == 0 && $adj['group_code'] == "CO" && !$pt_responsible) {
                         $class = 'errdetail';         
                         $error = true;               
                     } elseif (!$error && !$debug) {
