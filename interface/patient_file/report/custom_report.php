@@ -239,18 +239,18 @@ function zip_content($source, $destination, $content = '', $create = true)
                 /******************************************************************/
                 // Setup Headers and Footers for mPDF only Download
                 // in HTML view it's just one line at the top of page 1
-                echo '<page_header class="custom-tag text-right"> ' . xlt("PATIENT") . ':' . text($titleres['lname']) . ', ' . text($titleres['fname']) . ' - ' . text($titleres['DOB_TS']) . '</page_header>    ';
-                echo '<page_footer class="custom-tag text-right">' . xlt('Generated on') . ' ' . text(oeFormatShortDate()) . ' - ' . text($facility['name']) . ' ' . text($facility['phone']) . '</page_footer>';
+                echo '<page_header class="custom-tag text-right"> ' . xlt("PATIENT") . ':&nbsp' . text($titleres['lname']) . ', ' . text($titleres['fname']) . ' - ' . text($titleres['DOB_TS']) . '</page_header>    ';
+                // echo '<page_footer class="custom-tag text-right">' . xlt('Generated on') . ' ' . text(oeFormatShortDate()) . ' - ' . text($facility['name']) . ' ' . text($facility['phone']) . '</page_footer>';
 
                 // Use logo if it exists as 'practice_logo.gif' in the site dir
                 // old code used the global custom dir which is no longer a valid
                 $practice_logo = "";
-                $plogo = glob("$OE_SITE_DIR/images/*");// let's give the user a little say in image format.
-                $plogo = preg_grep('~practice_logo\.(gif|png|jpg|jpeg)$~i', $plogo);
-                if (! empty($plogo)) {
-                    $k = current(array_keys($plogo));
-                    $practice_logo = $plogo[$k];
-                }
+                //$plogo = glob("$OE_SITE_DIR/images/*");// let's give the user a little say in image format.
+                //$plogo = preg_grep('~practice_logo\.(gif|png|jpg|jpeg)$~i', $plogo);
+                //if (! empty($plogo)) {
+                //    $k = current(array_keys($plogo));
+                //    $practice_logo = $plogo[$k];
+                //}
 
                 echo "<div class='table-responsive'><table class='table'><tbody><tr><td>";
                 if (file_exists($practice_logo)) {
@@ -265,7 +265,7 @@ function zip_content($source, $destination, $content = '', $create = true)
                 <?php echo text($facility['phone']); ?><br />
 
                 <a href="javascript:window.close();"><span class='title'><?php echo xlt('Patient') . ": " . text($titleres['fname']) . " " . text($titleres['lname']); ?></span></a><br />
-                <span class='text'><?php echo xlt('Generated on'); ?>: <?php echo text(oeFormatShortDate()); ?></span>
+                <span class='text'><?php //echo xlt('Generated on'); ?>: <?php //echo text(oeFormatShortDate()); ?></span>
                 <?php echo "</td></tr></tbody></table></div>";?>
 
             <?php } else { // not printable
@@ -777,14 +777,14 @@ function zip_content($source, $destination, $content = '', $create = true)
 
                             if ($res[1] == 'newpatient') {
                                 echo "<div class='text encounter'>\n";
-                                echo "<h1>" . xlt($formres["form_name"]) . "</h1>";
+                                // echo "<h1>" . xlt($formres["form_name"]) . "</h1>";
                             } else {
                                 echo "<div class='text encounter_form'>";
                                 echo "<h1>" . text(xl_form_title($formres["form_name"])) . "</h1>";
                             }
 
                             // show the encounter's date
-                            echo "(" . text(oeFormatSDFT(strtotime($dateres["date"]))) . ") ";
+                            echo "Date of Service: (" . text(oeFormatSDFT(strtotime($dateres["date"]))) . ") ";
                             if ($res[1] == 'newpatient') {
                                 // display the provider info
                                 echo ' ' . xlt('Provider') . ': ' . text(getProviderName(getProviderIdOfEncounter($form_encounter)));
@@ -837,7 +837,7 @@ function zip_content($source, $destination, $content = '', $create = true)
             } // end $ar loop
 
             if ($printable && ! $PDF_OUTPUT) {// Patched out of pdf 04/20/2017 sjpadgett
-                echo "<br /><br />" . xlt('Signature') . ": _______________________________<br />";
+                echo "<br /><i>" . xlt('Electronically signed') . "<i/>";
             }
             ?>
 

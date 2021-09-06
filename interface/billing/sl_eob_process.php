@@ -127,13 +127,13 @@ function writeOldDetail(&$prev, $ptname, $invnumber, $dos, $code, $bgcolor)
     ksort($prev['dtl']);
     foreach ($prev['dtl'] as $dkey => $ddata) {
         $ddate = substr($dkey, 0, 10);
-        $description = $ddata['src'] . $ddata['rsn'];
+        $description = $ddata['src'] ?? '' . ($ddata['rsn'] ?? '');
         if ($ddate == '          ') { // this is the service item
             $ddate = $dos;
             $description = 'Service Item';
         }
 
-        $amount = sprintf("%.2f", $ddata['chg'] - $ddata['pmt']);
+        $amount = sprintf("%.2f", ($ddata['chg'] ?? 0) - ($ddata['pmt'] ?? 0));
         $invoice_total = sprintf("%.2f", $invoice_total + $amount);
         writeDetailLine(
             $bgcolor,
@@ -158,7 +158,7 @@ function era_callback_check(&$out)
     global $InsertionId;//last inserted ID of
     global $StringToEcho,$debug;
 
-    if ($_GET['original'] == 'original') {
+    if (($_GET['original'] ?? '') == 'original') {
         $StringToEcho = "<br/><br/><br/><br/><br/><br/>";
         $StringToEcho .= "<table class='table table-bordered' cellpadding='0' cellspacing='0' width='750'>";
         $StringToEcho .= "<tr class='table-light'><td width='50'></td><td class='dehead' width='150' align='center'>" . xlt('Check Number') . "</td><td class='dehead' width='400' align='center'>" . xlt('Payee Name') . "</td><td class='dehead' width='150' align='center'>" . xlt('Check Amount') . "</td></tr>";
@@ -352,15 +352,15 @@ function era_callback(&$out)
                 $codekey .= ':' . $svc['mod'];
             }
 
-            $prev = $codes[$codekey];
+            $prev = $codes[$codekey] ?? '';
             $codetype = ''; //will hold code type, if exists
 
             // This reports detail lines already on file for this service item.
             if ($prev) {
-                $codetype = $codes[$codekey]['code_type']; //store code type
+                $codetype = $codes[$codekey]['code_type'] ?? 'none'; //store code type
                 writeOldDetail($prev, $patient_name, $invnumber, $service_date, $codekey, $bgcolor);
                 // Check for sanity in amount charged.
-                $prevchg = sprintf("%.2f", $prev['chg'] + $prev['adj']);
+                $prevchg = sprintf("%.2f", $prev['chg'] + $prev['adj'] ?? 0);
                 if ($prevchg != abs($svc['chg'])) {
                     writeMessageLine(
                         $bgcolor,
@@ -423,7 +423,7 @@ function era_callback(&$out)
             $class = $error ? 'errdetail' : 'newdetail';
 
             // Report Allowed Amount.
-            if ($svc['allowed']) {
+            if ($svc['allowed'] ?? '') {
                 // A problem here is that some payers will include an adjustment
                 // reflecting the allowed amount, others not.  So here we need to
                 // check if the adjustment exists, and if not then create it.  We
@@ -449,7 +449,7 @@ function era_callback(&$out)
             }
 
             // Report miscellaneous remarks.
-            if ($svc['remark']) {
+            if ($svc['remark'] ?? '') {
                 $rmk = $svc['remark'];
                 writeMessageLine($bgcolor, 'infdetail', "$rmk: " .
                     BillingUtilities::REMITTANCE_ADVICE_REMARK_CODES[$rmk]);
@@ -495,9 +495,11 @@ function era_callback(&$out)
 
             // Post and report adjustments from this ERA.  Posted adjustment reasons
             // must be 25 characters or less in order to fit on patient statements.
+            // use $pt_responsible to trap for denied items that would be adjusted automatically
+            $pt_responsible = false;
             foreach ($svc['adj'] as $adj) {
                 $description = $adj['reason_code'] . ': ' .
-                    BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[$adj['reason_code']];
+                    BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[$adj['reason_code'] ?? ''] ;
                 if ($adj['group_code'] == 'PR' || !$primary) {
                     // Group code PR is Patient Responsibility.  Enter these as zero
                     // adjustments to retain the note without crediting the claim.
@@ -508,6 +510,7 @@ function era_callback(&$out)
                     else if ($adj['reason_code'] == '2') $reason = 'Coinsurance: ';
                     else if ($adj['reason_code'] == '3') $reason = 'Co-pay: ';
                 ****/
+                        $pt_responsible = true;
                         $reason = "$inslabel ptresp: "; // Reasons should be 25 chars or less.
                         if ($adj['reason_code'] == '1') {
                             $reason = "$inslabel dedbl: ";
@@ -549,7 +552,7 @@ function era_callback(&$out)
                     // we don't want to write off the amount which would force
                     // the biller to manually delete and re-work so we post a zero-dollar adj
                     // and save it as a comment
-                    if ($svc['paid'] == 0 && $adj['reason_code'] != "1") {
+                    if ($svc['paid'] == 0 && $adj['group_code'] == "CO" && !$pt_responsible) {
                         $class = 'errdetail';         
                         $error = true;               
                     } elseif (!$error && !$debug) {
@@ -716,7 +719,7 @@ if (!$debug) {
 
 <center>
 <?php
-if ($_GET['original'] == 'original') {
+if (($_GET['original'] ?? '') == 'original') {
     $alertmsg = ParseERA::parseERAForCheck($GLOBALS['OE_SITE_DIR'] . "/documents/era/$eraname.edi", 'era_callback');
     echo $StringToEcho;
 } else {
@@ -793,10 +796,10 @@ if ($alertmsg) {
 ?>
 </script>
 <input type="hidden" name="paydate" value="<?php echo attr(DateToYYYYMMDD($_REQUEST['paydate'])); ?>" />
-<input type="hidden" name="post_to_date" value="<?php echo attr(DateToYYYYMMDD($_REQUEST['post_to_date'])); ?>" />
-<input type="hidden" name="deposit_date" value="<?php echo attr(DateToYYYYMMDD($_REQUEST['deposit_date'])); ?>" />
+<input type="hidden" name="post_to_date" value="<?php echo attr(DateToYYYYMMDD($_REQUEST['post_to_date'] ?? '')); ?>" />
+<input type="hidden" name="deposit_date" value="<?php echo attr(DateToYYYYMMDD($_REQUEST['deposit_date'] ?? '')); ?>" />
 <input type="hidden" name="debug" value="<?php echo attr($_REQUEST['debug']); ?>" />
-<input type="hidden" name="InsId" value="<?php echo attr($_REQUEST['InsId']); ?>" />
+<input type="hidden" name="InsId" value="<?php echo attr($_REQUEST['InsId'] ?? ''); ?>" />
 <input type="hidden" name="eraname" value="<?php echo attr($eraname); ?>" />
 </form>
 </body>

@@ -180,7 +180,7 @@ class ParseERA
                 }
                 $out['loopid'] = '1000A';
                 $out['payer_name'] = trim($seg[2]);
-                $out['payer_id'] = trim($seg[4]); // will be overwritten if in REF*2U below
+                $out['payer_id'] = trim($seg[4] ?? ''); // will be overwritten if in REF*2U below
             } elseif ($segid == 'N3' && $out['loopid'] == '1000A') {
                 $out['payer_street'] = trim($seg[1]);
                 // TBD: N302 may exist as an additional address line.
@@ -343,7 +343,7 @@ class ParseERA
                 }
 
                 $out['loopid'] = '2110';
-                if ($seg[6]) {
+                if ($seg[6] ?? '') {
                     // SVC06 if present is our original procedure code that they are changing.
                     // We will not put their crap in our invoice, but rather log a note and
                     // treat it as adjustments to our originally submitted coding.
@@ -388,7 +388,7 @@ class ParseERA
             } elseif ($segid == 'CAS' && $out['loopid'] == '2110') {
                 $i = count($out['svc']) - 1;
                 for ($k = 2; $k < 20; $k += 3) {
-                    if (!$seg[$k]) {
+                    if (!($seg[$k] ?? '')) {
                         break;
                     }
 
@@ -529,7 +529,7 @@ class ParseERA
                 //if ($out['loopid']) return 'Unexpected TRN segment';
                 $out['check_number' . $check_count] = trim($seg[2]);
                 $out['payer_tax_id' . $check_count] = substr($seg[3], 1); // 9 digits
-                $out['payer_id' . $check_count] = trim($seg[4]);
+                $out['payer_id' . $check_count] = trim($seg[4] ?? '');
                 // Note: TRN04 further qualifies the paying entity within the
                 // organization identified by TRN03.
             }
