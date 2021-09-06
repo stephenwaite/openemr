@@ -787,8 +787,7 @@ function zip_content($source, $destination, $content = '', $create = true)
                             }
                             if (!empty($dateres['date'])) {
                             // show the encounter's date
-                                echo "(" . text(oeFormatSDFT(strtotime($dateres["date"]))) . ") ";
-                            }
+                            echo "Date of Service: (" . text(oeFormatSDFT(strtotime($dateres["date"]))) . ") ";
                             if ($res[1] == 'newpatient') {
                                 // display the provider info
                                 echo ' ' . xlt('Provider') . ': ' . text(getProviderName(getProviderIdOfEncounter($form_encounter)));
