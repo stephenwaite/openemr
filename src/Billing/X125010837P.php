@@ -1127,244 +1127,246 @@ class X125010837P
                 $tmp2 = 'PP';
             }
 
-            ++$edicount;
-            $out .= "SBR" . // Loop 2320, Subscriber Information - page 297/318
-            "*" . $claim->payerSequence($ins) .
-            "*" . $claim->insuredRelationship($ins) .
-            "*" . $claim->groupNumber($ins) .
-            "*" . ($claim->groupNumber() ? '' : $claim->groupName()) .
-            "*" . $claim->insuredTypeCode($ins) .
-            "*" .
-            "*" .
-            "*" .
-            "*" . $claim->claimType($ins) .
-            "~\n";
-
-            // Things that apply only to previous payers, not future payers.
-            if ($claim->payerSequence($ins) < $claim->payerSequence()) {
-                // Generate claim-level adjustments.
-                $aarr = $claim->payerAdjustments($ins);
-                foreach ($aarr as $a) {
-                    ++$edicount;
-                    $out .= "CAS" . // Previous payer's claim-level adjustments. Page 301/323.
-                    "*" . $a[1] .
-                    "*" . $a[2] .
-                    "*" . $a[3] .
-                    "~\n";
-                }
-
-                $payerpaid = $claim->payerTotals($ins);
+            if ($tmp1 != 'ZZ') {
                 ++$edicount;
-                $out .= "AMT" . // Previous payer's paid amount. Page 307/332.
-                "*" . "D" .
-                "*" . $payerpaid[1] .
+                $out .= "SBR" . // Loop 2320, Subscriber Information - page 297/318
+                "*" . $claim->payerSequence($ins) .
+                "*" . $claim->insuredRelationship($ins) .
+                "*" . $claim->groupNumber($ins) .
+                "*" . ($claim->groupNumber() ? '' : $claim->groupName()) .
+                "*" . $claim->insuredTypeCode($ins) .
+                "*" .
+                "*" .
+                "*" .
+                "*" . $claim->claimType($ins) .
                 "~\n";
-                // Segment AMT*A8 (COB Total Non-Covered Amount) omitted.
-                // Segment AMT*EAF (Remaining Patient Liability) omitted.
-            }   // End of things that apply only to previous payers.
 
-            ++$edicount;
-            $out .= "OI" .  // Other Insurance Coverage Information. Page 310/344.
-            "*" .
-            "*" .
-            "*" . ($claim->billingFacilityAssignment($ins) ? 'Y' : 'N') .
-            // For this next item, the 5010 example in the spec does not match its
-            // description.  So this might be wrong.
-            "*" .
-            "*" .
-            "*" .
-            "Y" .
-            "~\n";
-
-            // Segment MOA (Medicare Outpatient Adjudication) omitted.
-            ++$edicount;
-            $out .= "NM1" . // Loop 2330A Subscriber info for other insco. Page 315/350.
-            "*" . "IL" .
-            "*" . "1" .
-            "*";
-            if ($claim->insuredLastName($ins)) {
-                $out .= $claim->insuredLastName($ins);
-            } else {
-                $log .= "*** Missing other insco insured last name.\n";
-            }
-            $out .= "*";
-            if ($claim->insuredFirstName($ins)) {
-                $out .= $claim->insuredFirstName($ins);
-            } else {
-                $log .= "*** Missing other insco insured first name.\n";
-            }
-            $out .= "*" .
-            $claim->insuredMiddleName($ins) .
-            "*" .
-            "*" .
-            "*" . "MI" .
-            "*";
-            if ($claim->policyNumber($ins)) {
-                $out .= $claim->policyNumber($ins);
-            } else {
-                $log .= "*** Missing other insco policy number.\n";
-            }
-            $out .= "~\n";
-
-            ++$edicount;
-            $out .= "N3" .
-            "*";
-            if ($claim->insuredStreet($ins)) {
-                $out .= $claim->insuredStreet($ins);
-            } else {
-                $log .= "*** Missing other insco insured street.\n";
-            }
-            $out .= "~\n";
-
-            ++$edicount;
-            $out .= "N4" .
-            "*";
-            if ($claim->insuredCity($ins)) {
-                $out .= $claim->insuredCity($ins);
-            } else {
-                $log .= "*** Missing other insco insured city.\n";
-            }
-            $out .= "*";
-            if ($claim->insuredState($ins)) {
-                $out .= $claim->insuredState($ins);
-            } else {
-                $log .= "*** Missing other insco insured state.\n";
-            }
-            $out .= "*";
-            if ($claim->x12Zip($claim->insuredZip($ins))) {
-                $out .= $claim->x12Zip($claim->insuredZip($ins));
-            } else {
-                $log .= "*** Missing other insco insured zip.\n";
-            }
-            $out .= "~\n";
-
-            // Segment REF (Other Subscriber Secondary Identification) omitted.
-            ++$edicount;
-            $payerName = substr($claim->payerName($ins), 0, 60);
-            $out .= "NM1" . // Loop 2330B Payer info for other insco. Page 322/359.
-            "*" . "PR" .
-            "*" . "2" .
-            "*";
-            if ($payerName) {
-                $out .= $payerName;
-            } else {
-                $log .= "*** Missing other insco payer name.\n";
-            }
-            $out .= "*" .
-            "*" .
-            "*" .
-            "*" .
-            "*" . "PI" .
-            "*";
-            if (
-                $claim->payerID($ins - 1) == "MCDVT" ||
-                $claim->payerID($ins - 1) ==  "822287119"
-            ) { // for 2ndary gmc claims
-                if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
-                    if (($claim->payerName($ins)) == "BCBS NJ") {
-                        $out .= "H6";
-                    } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
-                        $out .= "MDB";
-                    } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
-                        $out .= "BV";
-                    } else {
-                        $out .= "EE";
+                // Things that apply only to previous payers, not future payers.
+                if ($claim->payerSequence($ins) < $claim->payerSequence()) {
+                    // Generate claim-level adjustments.
+                    $aarr = $claim->payerAdjustments($ins);
+                    foreach ($aarr as $a) {
+                        ++$edicount;
+                        $out .= "CAS" . // Previous payer's claim-level adjustments. Page 301/323.
+                        "*" . $a[1] .
+                        "*" . $a[2] .
+                        "*" . $a[3] .
+                        "~\n";
                     }
-                }
-                if (($claim->payerID($ins)) == "14512") {
-                    $out .= "MDB";
-                }
-                if (($claim->payerID($ins)) == "14212") {
-                    $out .= "MDB";
-                }
-                if (($claim->payerID($ins)) == "14163") {
-                    $out .= "MDB";
-                }
-                if (($claim->payerID($ins)) == "87726") {
-                    $out .= "MDC";
-                }
-                if (($claim->payerID($ins)) == "62308") {
-                    $out .= "FB6";
-                }
-                if (($claim->payerID($ins)) == "14165") {
-                    $out .= "Z2";
-                }
-                if (($claim->payerID($ins)) == "60054") {
-                    $out .= "92";
-                }
-                if (($claim->payerID($ins)) == "00010") {
-                    $out .= "42";
-                }
-                if (($claim->payerID($ins)) == "MPHC1") {
-                    $out .= "42";
-                }
-                if (($claim->payerID($ins)) == "EBSRM") {
-                    $out .= "AW1";
-                }
-                if (($claim->payerID($ins)) == "00882") {
-                    $out .= "MDB";
-                }
-                if (($claim->payerID($ins)) == "53275") {
-                    $out .= "AE7";
-                }
-                if (($claim->payerID($ins)) == "39026") {
-                    $out .= "S02";
-                }
-            } elseif ($claim->payerID($ins)) {
-                $out .= $claim->payerID($ins);
-            } else {
-                $log .= "*** Missing other insco payer id.\n";
-            }
-            $out .= "~\n";
 
-            ++$edicount;
-            $out .= "N3" .
-            "*";
-            if ($claim->payerStreet($ins)) {
-                $out .= $claim->payerStreet($ins);
-            } else {
-                $log .= "*** Missing other insco street.\n";
-            }
-            $out .= "~\n";
+                    $payerpaid = $claim->payerTotals($ins);
+                    ++$edicount;
+                    $out .= "AMT" . // Previous payer's paid amount. Page 307/332.
+                    "*" . "D" .
+                    "*" . $payerpaid[1] .
+                    "~\n";
+                    // Segment AMT*A8 (COB Total Non-Covered Amount) omitted.
+                    // Segment AMT*EAF (Remaining Patient Liability) omitted.
+                }   // End of things that apply only to previous payers.
 
-            ++$edicount;
-            $out .= "N4" .
-            "*";
-            if ($claim->payerCity($ins)) {
-                $out .= $claim->payerCity($ins);
-            } else {
-                $log .= "*** Missing other insco city.\n";
-            }
-            $out .= "*";
-            if ($claim->payerState($ins)) {
-                $out .= $claim->payerState($ins);
-            } else {
-                $log .= "*** Missing other payer state.\n";
-            }
-            $out .= "*";
-            if ($claim->x12Zip($claim->payerZip($ins))) {
-                $out .= $claim->x12Zip($claim->payerZip($ins));
-            } else {
-                $log .= "*** Missing other payer zip.\n";
-            }
-            $out .= "~\n";
+                ++$edicount;
+                $out .= "OI" .  // Other Insurance Coverage Information. Page 310/344.
+                "*" .
+                "*" .
+                "*" . ($claim->billingFacilityAssignment($ins) ? 'Y' : 'N') .
+                // For this next item, the 5010 example in the spec does not match its
+                // description.  So this might be wrong.
+                "*" .
+                "*" .
+                "*" .
+                "Y" .
+                "~\n";
 
-            // Segment DTP*573 (Claim Check or Remittance Date) omitted.
-            // Segment REF (Other Payer Secondary Identifier) omitted.
-            // Segment REF*G1 (Other Payer Prior Authorization Number) omitted.
-            // Segment REF*9F (Other Payer Referral Number) omitted.
-            // Segment REF*T4 (Other Payer Claim Adjustment Indicator) omitted.
-            // Segment REF*F8 (Other Payer Claim Control Number) omitted.
-            // Segment NM1 (Other Payer Referring Provider) omitted.
-            // Segment REF (Other Payer Referring Provider Secondary Identification) omitted.
-            // Segment NM1 (Other Payer Rendering Provider) omitted.
-            // Segment REF (Other Payer Rendering Provider Secondary Identification) omitted.
-            // Segment NM1 (Other Payer Service Facility Location) omitted.
-            // Segment REF (Other Payer Service Facility Location Secondary Identification) omitted.
-            // Segment NM1 (Other Payer Supervising Provider) omitted.
-            // Segment REF (Other Payer Supervising Provider Secondary Identification) omitted.
-            // Segment NM1 (Other Payer Billing Provider) omitted.
-            // Segment REF (Other Payer Billing Provider Secondary Identification) omitted.
+                // Segment MOA (Medicare Outpatient Adjudication) omitted.
+                ++$edicount;
+                $out .= "NM1" . // Loop 2330A Subscriber info for other insco. Page 315/350.
+                "*" . "IL" .
+                "*" . "1" .
+                "*";
+                if ($claim->insuredLastName($ins)) {
+                    $out .= $claim->insuredLastName($ins);
+                } else {
+                    $log .= "*** Missing other insco insured last name.\n";
+                }
+                $out .= "*";
+                if ($claim->insuredFirstName($ins)) {
+                    $out .= $claim->insuredFirstName($ins);
+                } else {
+                    $log .= "*** Missing other insco insured first name.\n";
+                }
+                $out .= "*" .
+                $claim->insuredMiddleName($ins) .
+                "*" .
+                "*" .
+                "*" . "MI" .
+                "*";
+                if ($claim->policyNumber($ins)) {
+                    $out .= $claim->policyNumber($ins);
+                } else {
+                    $log .= "*** Missing other insco policy number.\n";
+                }
+                $out .= "~\n";
+
+                ++$edicount;
+                $out .= "N3" .
+                "*";
+                if ($claim->insuredStreet($ins)) {
+                    $out .= $claim->insuredStreet($ins);
+                } else {
+                    $log .= "*** Missing other insco insured street.\n";
+                }
+                $out .= "~\n";
+
+                ++$edicount;
+                $out .= "N4" .
+                "*";
+                if ($claim->insuredCity($ins)) {
+                    $out .= $claim->insuredCity($ins);
+                } else {
+                    $log .= "*** Missing other insco insured city.\n";
+                }
+                $out .= "*";
+                if ($claim->insuredState($ins)) {
+                    $out .= $claim->insuredState($ins);
+                } else {
+                    $log .= "*** Missing other insco insured state.\n";
+                }
+                $out .= "*";
+                if ($claim->x12Zip($claim->insuredZip($ins))) {
+                    $out .= $claim->x12Zip($claim->insuredZip($ins));
+                } else {
+                    $log .= "*** Missing other insco insured zip.\n";
+                }
+                $out .= "~\n";
+
+                // Segment REF (Other Subscriber Secondary Identification) omitted.
+                ++$edicount;
+                $payerName = substr($claim->payerName($ins), 0, 60);
+                $out .= "NM1" . // Loop 2330B Payer info for other insco. Page 322/359.
+                "*" . "PR" .
+                "*" . "2" .
+                "*";
+                if ($payerName) {
+                    $out .= $payerName;
+                } else {
+                    $log .= "*** Missing other insco payer name.\n";
+                }
+                $out .= "*" .
+                "*" .
+                "*" .
+                "*" .
+                "*" . "PI" .
+                "*";
+                if (
+                    $claim->payerID($ins - 1) == "MCDVT" ||
+                    $claim->payerID($ins - 1) ==  "822287119"
+                ) { // for 2ndary gmc claims
+                    if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
+                        if (($claim->payerName($ins)) == "BCBS NJ") {
+                            $out .= "H6";
+                        } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
+                            $out .= "MDB";
+                        } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
+                            $out .= "BV";
+                        } else {
+                            $out .= "EE";
+                        }
+                    }
+                    if (($claim->payerID($ins)) == "14512") {
+                        $out .= "MDB";
+                    }
+                    if (($claim->payerID($ins)) == "14212") {
+                        $out .= "MDB";
+                    }
+                    if (($claim->payerID($ins)) == "14163") {
+                        $out .= "MDB";
+                    }
+                    if (($claim->payerID($ins)) == "87726") {
+                        $out .= "MDC";
+                    }
+                    if (($claim->payerID($ins)) == "62308") {
+                        $out .= "FB6";
+                    }
+                    if (($claim->payerID($ins)) == "14165") {
+                        $out .= "Z2";
+                    }
+                    if (($claim->payerID($ins)) == "60054") {
+                        $out .= "92";
+                    }
+                    if (($claim->payerID($ins)) == "00010") {
+                        $out .= "42";
+                    }
+                    if (($claim->payerID($ins)) == "MPHC1") {
+                        $out .= "42";
+                    }
+                    if (($claim->payerID($ins)) == "EBSRM") {
+                        $out .= "AW1";
+                    }
+                    if (($claim->payerID($ins)) == "00882") {
+                        $out .= "MDB";
+                    }
+                    if (($claim->payerID($ins)) == "53275") {
+                        $out .= "AE7";
+                    }
+                    if (($claim->payerID($ins)) == "39026") {
+                        $out .= "S02";
+                    }
+                } elseif ($claim->payerID($ins)) {
+                    $out .= $claim->payerID($ins);
+                } else {
+                    $log .= "*** Missing other insco payer id.\n";
+                }
+                $out .= "~\n";
+
+                ++$edicount;
+                $out .= "N3" .
+                "*";
+                if ($claim->payerStreet($ins)) {
+                    $out .= $claim->payerStreet($ins);
+                } else {
+                    $log .= "*** Missing other insco street.\n";
+                }
+                $out .= "~\n";
+
+                ++$edicount;
+                $out .= "N4" .
+                "*";
+                if ($claim->payerCity($ins)) {
+                    $out .= $claim->payerCity($ins);
+                } else {
+                    $log .= "*** Missing other insco city.\n";
+                }
+                $out .= "*";
+                if ($claim->payerState($ins)) {
+                    $out .= $claim->payerState($ins);
+                } else {
+                    $log .= "*** Missing other payer state.\n";
+                }
+                $out .= "*";
+                if ($claim->x12Zip($claim->payerZip($ins))) {
+                    $out .= $claim->x12Zip($claim->payerZip($ins));
+                } else {
+                    $log .= "*** Missing other payer zip.\n";
+                }
+                $out .= "~\n";
+
+                // Segment DTP*573 (Claim Check or Remittance Date) omitted.
+                // Segment REF (Other Payer Secondary Identifier) omitted.
+                // Segment REF*G1 (Other Payer Prior Authorization Number) omitted.
+                // Segment REF*9F (Other Payer Referral Number) omitted.
+                // Segment REF*T4 (Other Payer Claim Adjustment Indicator) omitted.
+                // Segment REF*F8 (Other Payer Claim Control Number) omitted.
+                // Segment NM1 (Other Payer Referring Provider) omitted.
+                // Segment REF (Other Payer Referring Provider Secondary Identification) omitted.
+                // Segment NM1 (Other Payer Rendering Provider) omitted.
+                // Segment REF (Other Payer Rendering Provider Secondary Identification) omitted.
+                // Segment NM1 (Other Payer Service Facility Location) omitted.
+                // Segment REF (Other Payer Service Facility Location Secondary Identification) omitted.
+                // Segment NM1 (Other Payer Supervising Provider) omitted.
+                // Segment REF (Other Payer Supervising Provider Secondary Identification) omitted.
+                // Segment NM1 (Other Payer Billing Provider) omitted.
+                // Segment REF (Other Payer Billing Provider Secondary Identification) omitted.
+            }
         } // End loops 2320/2330*.
 
         $loopcount = 0;
