@@ -1418,22 +1418,23 @@ class X125010837P
             $out .= $claim->x12Zip($claim->payerZip($ins));
             $out .= "~\n";
 
-            // Segment DTP*573 (Claim Check or Remittance Date) omitted.
-            // Segment REF (Other Payer Secondary Identifier) omitted.
-            // Segment REF*G1 (Other Payer Prior Authorization Number) omitted.
-            // Segment REF*9F (Other Payer Referral Number) omitted.
-            // Segment REF*T4 (Other Payer Claim Adjustment Indicator) omitted.
-            // Segment REF*F8 (Other Payer Claim Control Number) omitted.
-            // Segment NM1 (Other Payer Referring Provider) omitted.
-            // Segment REF (Other Payer Referring Provider Secondary Identification) omitted.
-            // Segment NM1 (Other Payer Rendering Provider) omitted.
-            // Segment REF (Other Payer Rendering Provider Secondary Identification) omitted.
-            // Segment NM1 (Other Payer Service Facility Location) omitted.
-            // Segment REF (Other Payer Service Facility Location Secondary Identification) omitted.
-            // Segment NM1 (Other Payer Supervising Provider) omitted.
-            // Segment REF (Other Payer Supervising Provider Secondary Identification) omitted.
-            // Segment NM1 (Other Payer Billing Provider) omitted.
-            // Segment REF (Other Payer Billing Provider Secondary Identification) omitted.
+                // Segment DTP*573 (Claim Check or Remittance Date) omitted.
+                // Segment REF (Other Payer Secondary Identifier) omitted.
+                // Segment REF*G1 (Other Payer Prior Authorization Number) omitted.
+                // Segment REF*9F (Other Payer Referral Number) omitted.
+                // Segment REF*T4 (Other Payer Claim Adjustment Indicator) omitted.
+                // Segment REF*F8 (Other Payer Claim Control Number) omitted.
+                // Segment NM1 (Other Payer Referring Provider) omitted.
+                // Segment REF (Other Payer Referring Provider Secondary Identification) omitted.
+                // Segment NM1 (Other Payer Rendering Provider) omitted.
+                // Segment REF (Other Payer Rendering Provider Secondary Identification) omitted.
+                // Segment NM1 (Other Payer Service Facility Location) omitted.
+                // Segment REF (Other Payer Service Facility Location Secondary Identification) omitted.
+                // Segment NM1 (Other Payer Supervising Provider) omitted.
+                // Segment REF (Other Payer Supervising Provider Secondary Identification) omitted.
+                // Segment NM1 (Other Payer Billing Provider) omitted.
+                // Segment REF (Other Payer Billing Provider Secondary Identification) omitted.
+            }
         } // End loops 2320/2330*.
 
         $loopcount = 0;
