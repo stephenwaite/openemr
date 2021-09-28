@@ -350,9 +350,9 @@ function create_statement($stmt)
     # Current xxx.xx / 31-60 x.xx / 61-90 x.xx / Over-90 xxx.xx
     # ....+....1....+....2....+....3....+....4....+....5....+....6....+
     #
-    $ageline = sprintf("  %.2f %13s %.2f", $stmt['amount'], '', $aging[0]);
+    $ageline = sprintf(" %7.2f %10s %7.2f", $stmt['amount'], '', $aging[0]);
     for ($age_index = 1; $age_index < ($num_ages - 1); ++$age_index) {
-        $ageline .= sprintf("%6s %.2f", '', $aging[$age_index]);
+        $ageline .= sprintf("   %7.2f", $aging[$age_index]);
     }
 
     // Fixed text labels
