@@ -230,10 +230,16 @@ function upload_file_to_client($file_to_send)
 {
     global $STMT_TEMP_FILE_PDF;
     global $srcdir;
+    global $page_count;
+    // we need page count so we don't create a blank page at the beginning
+    $page_count = -1;
 
     function printHeader($header, $pdf) {
+        global $page_count;
         $png = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
-        $pdf->ezNewPage();        
+        if ($page_count > 1) {
+            $pdf->ezNewPage();
+        }
         $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
         $pdf->addPngFromFile($png, 0, 0, 612, 792);
         $pdf->ezText($header, 12, array(
@@ -251,7 +257,7 @@ function upload_file_to_client($file_to_send)
     }
 
     function printFooter($footer, $pdf) { 
-        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 560);
+        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 570);
         $pdf->ezText($footer, 12, array(
             'justification' => 'left',
             'leading' => 12
@@ -267,28 +273,40 @@ function upload_file_to_client($file_to_send)
     $was_continued = false;
     $body_count = 0;
     $old_body = '';
+    $header = '';
+    $total_body_count = 0;
 
     $content = file_get_contents($file_to_send);
+    $multi_pages = strpos($content, "\014");
     $pages = explode("\014", $content); // form feeds separate pages
     foreach ($pages as $page) {
-
-        $body_count = 0;    
-
         $page_lines = explode("\012", $page);
         $page_lines_count = count($page_lines);
 
+        $page_count++;
+        $body_count = 0;    
+
+        if (!$page_lines[0] && $page_lines_count == 1) {
+            continue;
+        }
         $was_continued = $is_continued;
 
         if (!strpos($page, "CONTINUED")) {         
             $is_continued = false;
+            if (!$was_continued) {
+                $header = '';
+            }        
         } else {        
             $is_continued = true;
         }
 
-        $header = '';
-        for ($i = 0; $i < 5; $i++) {
-            if (isset($page_lines[$i])) { 
-                $header .= $page_lines[$i];
+
+
+        if (!$was_continued) {
+            for ($i = 0; $i < 5; $i++) {
+                if (isset($page_lines[$i])) { 
+                    $header .= $page_lines[$i];
+                }
             }
         }
 
@@ -299,20 +317,26 @@ function upload_file_to_client($file_to_send)
         }
 
         $footer = '';
-        for ($i = ($page_lines_count - 3); $i < $page_lines_count; $i++) {
-            if (isset($page_lines[$i])) { 
-                if ($page_lines[$i] == '') {
-                    $footer .= $page_lines[$i] . "\r";
+        if ((!$is_continued && $was_continued) || !$is_continued) {
+            for ($i = ($page_lines_count - 2); $i < $page_lines_count; $i++) {
+                if (isset($page_lines[$i])) { 
+                    if ($page_lines[$i] == '') {
+                        $footer .= $page_lines[$i] . "\r";
+                    }
+                    $footer .= $page_lines[$i];
                 }
-                $footer .= $page_lines[$i];
-            }
-        }    
+            }    
+        } else {
+            $footer = "CONTINUED \r\n";
+        }
 
         if (!$is_continued && !$was_continued) {
             printHeader($header, $pdf);
             printBody($body, $pdf);
             printFooter($footer, $pdf);
             $total_body_count = 0;
+            $header = '';
+            $is_continued = false;
         }
 
         if ($is_continued && !$was_continued) {
@@ -330,6 +354,7 @@ function upload_file_to_client($file_to_send)
                 printFooter($footer, $pdf);
                 $old_body = '';
                 $total_body_count = 0;
+                $header = '';
             } else {
                 printHeader($header, $pdf);
                 printBody($old_body, $pdf);
@@ -340,6 +365,7 @@ function upload_file_to_client($file_to_send)
                 printFooter($footer, $pdf);
                 $old_body = '';
                 $total_body_count = 0;
+                $header = '';
             }    
         }
 

@@ -218,18 +218,12 @@ function create_statement($stmt)
     //  %-25s = left-justified string of 25 characters padded with spaces
     // Note that "\n" is a line feed (new line) character.
     // reformatted to handle i8n by tony
-    //$out = "\n\n";
-    $providerNAME = getProviderName($stmt['provider_id']);
-    //$out .= sprintf("%-30s %s %-s\n", $clinic_name, $stmt['patient'], $stmt['today']);
-    //$out .= sprintf("%-30s %s: %-s\n", $providerNAME, $label_chartnum, $stmt['pid']);
-    //$out .= sprintf("%-30s %s\n", $clinic_addr, $label_insinfo);
-    //$out .= sprintf("%-30s %-s: %-s\n", $clinic_csz, $label_totaldue, $stmt['amount']);
+    //$out = "\n\n";    
     $addrline = strtoupper(preg_replace('/\s+/', ' ', $stmt['to'][1]));
-    #$addr_ln_pad = str_pad($addrline, 43, "-", "STR_PAD_LEFT");
-    $out  = sprintf("          %-30s                         %-8s \r\n", strtoupper($stmt['to'][0]), $stmt['pid']);
-    $out .= sprintf("          %1$-43s %2$-8s", $addrline, date('m d y'));
-    $out .= "\r\n\r\n";
-    $out .= sprintf("          %-30s              %-8s  %-6s\r\n", strtoupper($stmt['to'][2] ?? ''), date('m d y'), $stmt['amount']);
+    $out  = sprintf("%-9s %-55s %6s \r\n", '', strtoupper($stmt['to'][0]), $stmt['pid']);
+    $out .= sprintf("%-9s %-43s %-8s \r\n", '', $addrline, date('m d y'));
+    $out .= "\r\n";
+    $out .= sprintf("%-9s %-43s %-8s %9s\r\n", '', strtoupper($stmt['to'][2] ?? ''), date('m d y'), $stmt['amount']);
 
     if (($stmt['to'][3] ?? '') != '') { //to avoid double blank lines the if condition is put.
         $out .= sprintf("   %-32s\r\n", $stmt['to'][3]);
@@ -237,6 +231,8 @@ function create_statement($stmt)
 
     $out .= "\r\n";
     $out .= "\r\n";
+
+    $header = $out;
 
     // This must be set to the number of lines generated above.
     //
@@ -255,6 +251,10 @@ function create_statement($stmt)
 
     $agedate = '0000-00-00';
 
+    $line_count = 0;
+    $page_count = 0;
+    $continued = false;
+    $continued_text = '';
     foreach ($stmt['lines'] as $line) {
         $desc_row = sqlQuery("SELECT code_text from codes WHERE code = ?", array(substr($line['desc'], 10, 5)));
         $description = $desc_row['code_text'] ?? $line['desc'];
@@ -265,15 +265,19 @@ function create_statement($stmt)
         ksort($line['detail']);
 
         foreach ($line['detail'] as $dkey => $ddata) {
+            if ($continued = true) {
+                $out .= $continued_text;
+            }
+            $continued_text = '';
+
             $ddate = substr($dkey, 0, 10);
             if (preg_match('/^(\d\d\d\d)(\d\d)(\d\d)\s*$/', $ddate, $matches)) {
                 $ddate = $matches[1] . '-' . $matches[2] . '-' . $matches[3];
             }
 
             $amount = '';
-
-            $insco = $insco;
-            if (strpos($ddata['pmt_method'], $insco) !== false) {
+            
+            if (strpos(($ddata['pmt_method'] ?? ''), ($insco ?? '')) !== false) {
                 $insco = '';
             }
 
@@ -283,7 +287,7 @@ function create_statement($stmt)
                     $agedate = $dos;
                 }
                 $amount = sprintf("%.2f", $ddata['pmt']);
-                $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . $ddata['pmt_method'] . ' ' . $insco;
+                $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco;
                 if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
                     $pt_paid_flag = true;
                     $desc = xl('Pt paid');
@@ -296,9 +300,9 @@ function create_statement($stmt)
                 $dos = $ddate;
                 if ($ddata['chg']) {
                     $amount = sprintf("%.2f", ($ddata['chg'] * -1));
-                    $desc = xl('Adj') . ' ' . $ddata['rsn'] . ' ' . $ddata['pmt_method'] . ' ' . $insco;
+                    $desc = xl('Adj') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco;
                 } else {
-                    $desc = xl('Note') . ' ' . $ddata['rsn'] . ' ' . $ddata['pmt_method'] . ' ' . $insco;
+                    $desc = xl('Note') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco;
                 }
                 $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
             } elseif ($ddata['chg'] < 0) {
@@ -314,6 +318,15 @@ function create_statement($stmt)
             }
 
             ++$count;
+            ++$line_count;
+            if ($line_count % 34 == 0) {
+                $page_count++;
+                $continued = true;
+                $continued_text = "\r\n\r\n";
+                $continued_text .= sprintf("                       %.2f", $stmt['amount']);
+                $continued_text .= "CONTINUED PAGE $page_count \r\n";
+                $continued_text .= "\014"; // this is a form feed                
+            }
         }
         if ($agedate == '0000-00-00') {
             $agedate = $dos;
@@ -337,9 +350,9 @@ function create_statement($stmt)
     # Current xxx.xx / 31-60 x.xx / 61-90 x.xx / Over-90 xxx.xx
     # ....+....1....+....2....+....3....+....4....+....5....+....6....+
     #
-    $ageline = sprintf("  %.2f              %.2f", $stmt['amount'], $aging[0]);
+    $ageline = sprintf("  %.2f %13s %.2f", $stmt['amount'], '', $aging[0]);
     for ($age_index = 1; $age_index < ($num_ages - 1); ++$age_index) {
-        $ageline .= sprintf("       %.2f", $aging[$age_index]);
+        $ageline .= sprintf("%6s %.2f", '', $aging[$age_index]);
     }
 
     // Fixed text labels
@@ -372,7 +385,7 @@ function create_statement($stmt)
 
     //if ($GLOBALS['show_aging_on_custom_statement']) {
         # code for ageing
-        $ageline .= sprintf("      %.2f              %.2f", $aging[$age_index], $stmt['amount']);
+        $ageline .= sprintf("%5s %.2f %12s %.2f", '', $aging[$age_index], '', $stmt['amount']);
         $out .= $ageline . "\r\n";
     //}
 
