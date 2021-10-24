@@ -20,7 +20,7 @@
     <div class="btn-group" role="group">
         {% if isAdmin == true and allowPatientDelete == true %}
             <a class="btn btn-secondary btn-sm btn-delete deleter delete"
-                href="{{ urlWebRoot|attr }}/interface/patient_file/deleter.php?patient={{ pid|attr_url }}&csrf_token_form={{ csrf|attr_url }}"
+                href="{{ urlWebRoot|attr }}/interface/patient_file/deleter.php?pat_delete=true&patient={{ pid|attr_url }}&csrf_token_form={{ csrf|attr_url }}"
                 onclick='return top.restoreSession()'>{{ "Delete"|xlt }}</a>
         {% endif %}
         {% if erxEnable %}

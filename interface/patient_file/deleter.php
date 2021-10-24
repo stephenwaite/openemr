@@ -29,8 +29,8 @@ if (!empty($_GET)) {
         CsrfUtils::csrfNotVerified();
     }
 }
-
-$patient     = $_REQUEST['patient'];
+$pat_delete  = $_REQUEST['pat_delete'] ?? '';
+$patient     = $_REQUEST['patient'] ?? '';
 $encounterid = $_REQUEST['encounterid'] ?? '';
 $formid      = $_REQUEST['formid'] ?? '';
 $issue       = $_REQUEST['issue'] ?? '';
@@ -213,7 +213,7 @@ function popup_close() {
                 CsrfUtils::csrfNotVerified();
             }
 
-            if ($patient) {
+            if ($pat_delete) {
                 if (!AclMain::aclCheckCore('admin', 'super') || !$GLOBALS['allow_pat_delete']) {
                     die(xlt("Not authorized!"));
                 }
@@ -447,7 +447,7 @@ function popup_close() {
         }
         ?>
 
-        <form method='post' name="deletefrm" action='deleter.php?patient=<?php echo attr_url($patient) ?>&encounterid=<?php echo attr_url($encounterid) ?>&formid=<?php echo attr_url($formid) ?>&issue=<?php echo attr_url($issue) ?>&document=<?php echo attr_url($document) ?>&payment=<?php echo attr_url($payment) ?>&billing=<?php echo attr_url($billing) ?>&transaction=<?php echo attr_url($transaction); ?>&csrf_token_form=<?php echo attr_url(CsrfUtils::collectCsrfToken()); ?>'>
+        <form method='post' name="deletefrm" action='deleter.php?pat_delete=<?php echo attr_url($pat_delete) ?>&patient=<?php echo attr_url($patient) ?>&encounterid=<?php echo attr_url($encounterid) ?>&formid=<?php echo attr_url($formid) ?>&issue=<?php echo attr_url($issue) ?>&document=<?php echo attr_url($document) ?>&payment=<?php echo attr_url($payment) ?>&billing=<?php echo attr_url($billing) ?>&transaction=<?php echo attr_url($transaction); ?>&csrf_token_form=<?php echo attr_url(CsrfUtils::collectCsrfToken()); ?>'>
             <input type="hidden" name="csrf_token_form"
                 value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
             <p>

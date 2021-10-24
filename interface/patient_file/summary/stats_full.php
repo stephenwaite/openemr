@@ -129,7 +129,7 @@ function deleteSelectedIssues(tableName) {
         }
     }
 
-    dlgopen('../deleter.php?issue=' + ids + '&csrf_token_form=' + <?php echo js_url(CsrfUtils::collectCsrfToken()); ?>, '_blank', 500, 450);
+    dlgopen('../deleter.php?patient=' + <?php echo js_url($pid); ?> + '&issue=' + ids + '&csrf_token_form=' + <?php echo js_url(CsrfUtils::collectCsrfToken()); ?>, '_blank', 500, 450);
 }
 
 // Called by the deleter.php window on a successful delete.
