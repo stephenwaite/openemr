@@ -1749,7 +1749,7 @@ function get_patient_balance($pid, $with_insurance = false, $eid = false)
 
             $amt = !empty($brow['amount']) ? $brow['amount'] * 1 : 0;
             $pay = !empty($drow['payments']) ? $drow['payments'] * 1 : 0;
-            $ptbal = $copay + $amt - $pay;
+            $ptbal = ($copay ?? 0) + $amt - $pay;
             if ($ptbal) { // @TODO check if we want to show patient payment credits.
                 $balance += $ptbal;
             }

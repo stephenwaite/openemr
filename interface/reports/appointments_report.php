@@ -495,9 +495,9 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
 
         <td class="detail">
             <?php if (!$appointment['phone_cell']) {
-                echo text($appointment['phone_home']);
+                echo text(substr($appointment['phone_home'], 0, 12));
             } else {
-                    echo text($appointment['phone_cell']);
+                    echo text(substr($appointment['phone_cell'], 0, 12));
             } ?></td>
 
         <td class="detail">&nbsp;<?php echo "$" . text($patientbalance); ?></td>    
