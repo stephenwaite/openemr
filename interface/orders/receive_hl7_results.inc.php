@@ -683,11 +683,11 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
             $tmp = explode($d2, $a[5]);
             $in_lname = rhl7Text($tmp[0]);
             $in_fname = rhl7Text($tmp[1]);
-            $in_mname = rhl7Text($tmp[2]);
+            $in_mname = rhl7Text($tmp[2] ?? '');
             $patient_id = 0;
             // Patient matching is needed for a results-only interface or MDM message type.
             if ('R' == $direction || 'MDM' == $msgtype) {
-                $ptarr = array('ss' => strtoupper($in_ss), 'fname' => strtoupper($in_fname),
+                $ptarr = array('ss' => strtoupper($in_ss ?? ''), 'fname' => strtoupper($in_fname),
                 'lname' => strtoupper($in_lname), 'mname' => strtoupper($in_mname),
                 'DOB' => strtoupper($in_dob));
                 $patient_id = match_patient($ptarr);
@@ -765,7 +765,7 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
 
             $tmp = explode($d2, $a[4]);
             $in_procedure_code = $tmp[0];
-            $in_procedure_name = $tmp[1];
+            $in_procedure_name = rhl7Text($tmp[1]);
             $in_report_status = rhl7ReportStatus($a[25]);
 
             // Filler identifier is supposed to be unique for each incoming report.
@@ -1001,14 +1001,14 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
                 $j >= 0 && $context == 'OBX' && $a[2] == 'TX'
                 && $amain[$i]['res'][$j]['result_data_type'] == 'L'
                 && $amain[$i]['res'][$j]['result_code'     ] == $result_code
-                && $amain[$i]['res'][$j]['date'            ] == rhl7DateTime($a[14])
-                && $amain[$i]['res'][$j]['facility'        ] == rhl7Text($a[15])
-                && $amain[$i]['res'][$j]['abnormal'        ] == rhl7Abnormal($a[8])
-                && $amain[$i]['res'][$j]['result_status'   ] == rhl7ReportStatus($a[11])
+                && $amain[$i]['res'][$j]['date'            ] == rhl7DateTime($a[14] ?? '')
+                && $amain[$i]['res'][$j]['facility'        ] == rhl7Text($a[15] ?? '')
+                && $amain[$i]['res'][$j]['abnormal'        ] == rhl7Abnormal($a[8] ?? '')
+                && $amain[$i]['res'][$j]['result_status'   ] == rhl7ReportStatus($a[11] ?? '')
             ) {
                 $amain[$i]['res'][$j]['comments'] =
-                substr($amain[$i]['res'][$j]['comments'], 0, strlen($amain[$i]['res'][$j]['comments']) - 1) .
-                '~' . rhl7Text($a[5]) . $commentdelim;
+                    substr($amain[$i]['res'][$j]['comments'], 0, strlen($amain[$i]['res'][$j]['comments'])) .
+                    rhl7Text($a[5] ?? '') . $commentdelim;
                 continue;
             }
 
@@ -1051,24 +1051,24 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
                 // The first line of comments is reserved for such things.
                 $ares['result_data_type'] = 'L';
                 $ares['result'] = '';
-                $ares['comments'] = rhl7Text($a[5]) . $commentdelim;
+                $ares['comments'] = rhl7Text($a[5] ?? '') . $commentdelim;
             } else {
                 $ares['result'] = rhl7Text($a[5]);
             }
 
             $ares['result_code'  ] = $result_code;
             $ares['result_text'  ] = $result_text;
-            $ares['date'         ] = rhl7DateTime($a[14]);
-            $ares['facility'     ] = rhl7Text($a[15]);
+            $ares['date'         ] = rhl7DateTime($a[14] ?? '');
+            $ares['facility'     ] = rhl7Text($a[15] ?? '');
             // Ensoftek: Units may have mutiple segments(as seen in MU2 samples), parse and take just first segment.
-            $tmp = explode($d2, $a[6]);
+            $tmp = explode($d2, $a[6] ?? '');
             $ares['units'] = rhl7Text($tmp[0]);
-            $ares['range'        ] = rhl7Text($a[7]);
-            $ares['abnormal'     ] = rhl7Abnormal($a[8]); // values are lab dependent
-            $ares['result_status'] = rhl7ReportStatus($a[11]);
+            $ares['range'        ] = rhl7Text($a[7] ?? '');
+            $ares['abnormal'     ] = rhl7Abnormal($a[8] ?? ''); // values are lab dependent
+            $ares['result_status'] = rhl7ReportStatus($a[11] ?? '');
 
             // Ensoftek: Performing Organization Details. Goes into "Pending Review/Patient Results--->Notes--->Facility" section.
-            $performingOrganization = getPerformingOrganizationDetails($a[23], $a[24], $a[25], $d2, $commentdelim);
+            $performingOrganization = getPerformingOrganizationDetails($a[23] ?? '', $a[24] ?? '', $a[25] ?? '', $d2, $commentdelim);
             if (!empty($performingOrganization)) {
                 $ares['facility'] .= $performingOrganization . $commentdelim;
             }
@@ -1081,7 +1081,7 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
             ****/
 
             // obxkey is to allow matching this as a parent result.
-            $ares['obxkey'] = $a[3] . $d1 . $a[4];
+            $ares['obxkey'] = $a[3] . $d1 . ($a[4] ?? '');
 
             // Append this result to those for the most recent report.
             // Note the 'procedure_report_id' item is not yet present.

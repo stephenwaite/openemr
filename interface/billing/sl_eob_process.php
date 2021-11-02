@@ -360,7 +360,7 @@ function era_callback(&$out)
                 $codetype = $codes[$codekey]['code_type'] ?? 'none'; //store code type
                 writeOldDetail($prev, $patient_name, $invnumber, $service_date, $codekey, $bgcolor);
                 // Check for sanity in amount charged.
-                $prevchg = sprintf("%.2f", $prev['chg'] + $prev['adj'] ?? 0);
+                $prevchg = sprintf("%.2f", $prev['chg'] + ($prev['adj'] ?? 0));
                 if ($prevchg != abs($svc['chg'])) {
                     writeMessageLine(
                         $bgcolor,

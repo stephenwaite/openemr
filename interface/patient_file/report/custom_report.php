@@ -202,6 +202,10 @@ function zip_content($source, $destination, $content = '', $create = true)
     img {
         max-width:700px;
     }
+
+    .text {
+        font-size: 1rem;
+    }
 </style>
 
 <?php if (!$PDF_OUTPUT) { ?>
@@ -265,7 +269,7 @@ function zip_content($source, $destination, $content = '', $create = true)
                 <?php echo text($facility['phone']); ?><br />
 
                 <a href="javascript:window.close();"><span class='title'><?php echo xlt('Patient') . ": " . text($titleres['fname']) . " " . text($titleres['lname']); ?></span></a><br />
-                <span class='text'><?php //echo xlt('Generated on'); ?>: <?php //echo text(oeFormatShortDate()); ?></span>
+                <span class='text'><?php //echo xlt('Generated on'); ?><?php //echo text(oeFormatShortDate()); ?></span>
                 <?php echo "</td></tr></tbody></table></div>";?>
 
             <?php } else { // not printable
