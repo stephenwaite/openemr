@@ -118,9 +118,9 @@ body {
             f.form_external_refresh.value = '1';
             f.submit();
         }
+        window.close();
     }
-    // let stayHere = './single_order_results.php?orderid=' + <?php echo js_escape($orderid); ?>;
-    // window.location.assign(stayHere);
+    
 </script>
 <?php } ?>
 </body>
