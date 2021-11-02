@@ -32,8 +32,10 @@ class ParseERA
             // from poorly reported payment reversals, in which case we may need to
             // create the 'Claim' service type here.
             //
-            $paytotal = $out['amount_approved'];
-            $adjtotal = $out['amount_charged'] - $out['amount_approved'] - (int)$out['amount_patient'];
+            $charged_amt = $out['amount_charged'] ?? null;
+            $paytotal = $out['amount_approved'] ?? null;
+            $pattotal = $out['amount_patient'] ?? null;
+            $adjtotal = $charged_amt - $paytotal - $pattotal;
             foreach ($out['svc'] as $svc) {
                 $paytotal -= $svc['paid'];
                 foreach ($svc['adj'] as $adj) {
@@ -311,7 +313,7 @@ class ParseERA
             } elseif ($segid == 'NM1' && $out['loopid'] == '2100') { // PR = Corrected Payer
                 // $out['warnings'] .= "NM1 segment at claim level ignored.\n";
             } elseif ($segid == 'MOA' && $out['loopid'] == '2100') {
-                $out['warnings'] .= "MOA segment at claim level ignored.\n";
+                // $out['warnings'] .= "MOA segment at claim level ignored.\n";
             } elseif ($segid == 'REF' && $seg[1] == '1W' && $out['loopid'] == '2100') {
                 // REF segments may provide various identifying numbers, where REF02
                 // indicates the type of number.

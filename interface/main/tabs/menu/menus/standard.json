@@ -445,7 +445,7 @@
       {
         "label": "Posting Payments",
         "menu_id": "eob",
-        "target": "bil",
+        "target": "edi",
         "url": "/interface/billing/sl_eob_search.php",
         "children": [],
         "requirement": 0,
@@ -647,7 +647,7 @@
       {
         "label": "Electronic Reports",
         "menu_id": "ore0",
-        "target": "pat",
+        "target": "lab",
         "url": "/interface/orders/list_reports.php",
         "children": [],
         "requirement": 0,
