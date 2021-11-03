@@ -202,7 +202,6 @@ function zip_content($source, $destination, $content = '', $create = true)
     img {
         max-width:700px;
     }
-
     .text {
         font-size: 1rem;
     }
@@ -783,8 +782,8 @@ function zip_content($source, $destination, $content = '', $create = true)
                                 echo "<div class='text encounter'>\n";
                                 // echo "<h1>" . xlt($formres["form_name"]) . "</h1>";
                             } else {
-                                echo "<div class='text encounter_form'>";
-                                echo "<h1>" . text(xl_form_title($formres["form_name"])) . "</h1>";
+                                //echo "<div class='text encounter_form'>";
+                                //echo "<h3>" . text(xl_form_title($formres["form_name"])) . "</h3>";
                             }
 
                             // show the encounter's date

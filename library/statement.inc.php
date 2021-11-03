@@ -220,7 +220,7 @@ function create_statement($stmt)
     // reformatted to handle i8n by tony
     //$out = "\n\n";    
     $addrline = strtoupper(preg_replace('/\s+/', ' ', $stmt['to'][1]));
-    $out  = sprintf("%-9s %-55s %6s \r\n", '', strtoupper($stmt['to'][0]), $stmt['pid']);
+    $out  = sprintf("%-9s %-55s %6s \r\n", '', trim(strtoupper($stmt['to'][0])), $stmt['pid']);
     $out .= sprintf("%-9s %-43s %-8s \r\n", '', $addrline, date('m d y'));
     $out .= "\r\n";
     $out .= sprintf("%-9s %-43s %-8s %9s\r\n", '', strtoupper($stmt['to'][2] ?? ''), date('m d y'), $stmt['amount']);

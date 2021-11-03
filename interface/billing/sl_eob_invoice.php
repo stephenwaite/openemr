@@ -749,8 +749,8 @@ $pdrow = sqlQuery("select billing_note from patient_data where pid = ? limit 1",
                 <div class="col-sm-12 text-left position-override" id="search-btn">
                     <div class="btn-group" role="group">
                         <!-- @todo leave as I may still use sjp 08/2020 -->
-                        <!--<button type='submit' class="btn btn-primary btn-save" name='form_save' id="btn-save-stay"
-                            onclick="this.value='1';"><?php /*echo xlt("Save Current"); */?></button>-->
+                        <button type='submit' class="btn btn-primary btn-save" name='form_save' id="btn-save-stay"
+                            onclick="this.value='1';"><?php echo xlt("Save Current"); ?></button>
                         <button type='submit' class="btn btn-primary btn-save" name='form_save' id="btn-save"
                             onclick="this.value='2';"><?php echo xlt("Save"); ?></button>
                         <button type='button' class="btn btn-secondary btn-cancel" name='form_cancel'
