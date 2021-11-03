@@ -641,7 +641,7 @@ if (
             #guardiansname this will allow you to send statements to the parent
             #of a child or a guardian etc
             if (empty($row['guardiansname'])) {
-                $stmt['to'] = array($row['fname'] . ' ' . $row['lname']);
+                $stmt['to'] = array(trim($row['fname']) . ' ' . $row['lname']);
             } else {
                 $stmt['to'] = array($row['guardiansname']);
             }
