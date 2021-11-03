@@ -337,7 +337,10 @@ if ($_POST['form_csvexport']) {
                                 <a href='#' class='btn btn-secondary btn-print' id='printbutton'>
                                     <?php echo xlt('Print'); ?>
                                 </a>
-                                <a href='#' class='btn btn-secondary btn-transmit' onclick='window.open("../patient_file/printed_fee_sheet.php?fill=2", "_blank").opener = null' onsubmit='return top.restoreSession()'>
+                                <a href='#' class='btn btn-secondary btn-transmit' <?php if ($_SESSION['site_id'] == "default") { ?>
+                                    onclick='window.open("../patient_file/printed_fee_sheet_<?php echo $_SESSION["site_id"]?>.php?fill=2", "_blank").opener = null' onsubmit='return top.restoreSession()'>
+                                    <?php } else { ?> onclick='window.open("../patient_file/printed_fee_sheet.php?fill=2", "_blank").opener = null' onsubmit='return top.restoreSession()'>
+                                    <?php } ?>                                        
                                     <?php echo xlt('Superbills'); ?>
                                 </a>
                                 <a href='#' class='btn btn-secondary btn-transmit' onclick='window.open("../patient_file/printed_intake_<?php echo $_SESSION['site_id']?>.php?fill=2","_blank")' onsubmit='return top.restoreSession()'>
