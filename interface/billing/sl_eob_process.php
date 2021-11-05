@@ -329,7 +329,7 @@ function era_callback(&$out)
             writeMessageLine($bgcolor, 'infdetail', rtrim($out['warnings']), true);
         }
 
-    // Simplify some claim attributes for cleaner code.
+        // Simplify some claim attributes for cleaner code.
         $service_date = parse_date($out['dos']);
         $check_date      = $paydate ? $paydate : parse_date($out['check_date']);
         $production_date = $paydate ? $paydate : parse_date($out['production_date']);
@@ -369,19 +369,6 @@ function era_callback(&$out)
                     );
                     $error = true;
                 }
-
-                // Check for already-existing primary remittance activity.
-                // Removed this check because it was not allowing for copays manually
-                // entered into the invoice under a non-copay billing code.
-                /****
-            if ((sprintf("%.2f",$prev['chg']) != sprintf("%.2f",$prev['bal']) ||
-                $prev['adj'] != 0) && $primary)
-            {
-                writeMessageLine($bgcolor, 'errdetail',
-                    "This service item already has primary payments and/or adjustments!");
-                $error = true;
-            }
-                ****/
 
                 unset($codes[$codekey]);
             } else { // If the service item is not in our database...
@@ -424,23 +411,6 @@ function era_callback(&$out)
 
             // Report Allowed Amount.
             if ($svc['allowed'] ?? '') {
-                // A problem here is that some payers will include an adjustment
-                // reflecting the allowed amount, others not.  So here we need to
-                // check if the adjustment exists, and if not then create it.  We
-                // assume that any nonzero CO (Contractual Obligation) or PI
-            // (Payer Initiated) adjustment is good enough.
-                $contract_adj = sprintf("%.2f", $svc['chg'] - $svc['allowed']);
-                foreach ($svc['adj'] as $adj) {
-                    if (($adj['group_code'] == 'CO' || $adj['group_code'] == 'PI') && $adj['amount'] != 0) {
-                        $contract_adj = 0;
-                    }
-                }
-
-                if ($contract_adj > 0) {
-                    $svc['adj'][] = array('group_code' => 'CO', 'reason_code' => 'A2',
-                    'amount' => $contract_adj);
-                }
-
                 writeMessageLine(
                     $bgcolor,
                     'infdetail',
@@ -458,7 +428,7 @@ function era_callback(&$out)
             // Post and report the payment for this service item from the ERA.
             // By the way a 'Claim' level payment is probably going to be negative,
             // i.e. a payment reversal.
-            if ($svc['paid']) {
+            if ($svc['paid'] ?? '') {
                 if (!$error && !$debug) {
                     SLEOB::arPostPayment(
                         $pid,
@@ -495,8 +465,6 @@ function era_callback(&$out)
 
             // Post and report adjustments from this ERA.  Posted adjustment reasons
             // must be 25 characters or less in order to fit on patient statements.
-            // use $pt_responsible to trap for denied items that would be adjusted automatically
-            $pt_responsible = false;
             foreach ($svc['adj'] as $adj) {
                 $description = $adj['reason_code'] . ': ' .
                     BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[$adj['reason_code'] ?? ''] ;
@@ -510,7 +478,6 @@ function era_callback(&$out)
                     else if ($adj['reason_code'] == '2') $reason = 'Coinsurance: ';
                     else if ($adj['reason_code'] == '3') $reason = 'Co-pay: ';
                 ****/
-                        $pt_responsible = true;
                         $reason = "$inslabel ptresp: "; // Reasons should be 25 chars or less.
                         if ($adj['reason_code'] == '1') {
                             $reason = "$inslabel dedbl: ";
@@ -552,9 +519,9 @@ function era_callback(&$out)
                     // we don't want to write off the amount which would force
                     // the biller to manually delete and re-work so we post a zero-dollar adj
                     // and save it as a comment
-                    if ($svc['paid'] == 0 && $adj['group_code'] == "CO" && !$pt_responsible) {
-                        $class = 'errdetail';         
-                        $error = true;               
+                    if ($svc['paid'] == 0 && !($adj['group_code'] == "CO" && $adj['reason_code'] == '45')) {
+                        $class = 'errdetail';
+                        $error = true;
                     } elseif (!$error && !$debug) {
                         SLEOB::arPostAdjustment(
                             $pid,
@@ -595,7 +562,7 @@ function era_callback(&$out)
             writeOldDetail($prev, $patient_name, $invnumber, $service_date, $code, $bgcolor);
             $got_response = false;
             foreach ($prev['dtl'] as $ddata) {
-                if ($ddata['pmt'] || $ddata['rsn']) {
+                if (($ddata['pmt'] ?? '') || ($ddata['rsn'] ?? '')) {
                     $got_response = true;
                 }
             }
