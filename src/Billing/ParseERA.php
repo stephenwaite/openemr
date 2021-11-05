@@ -32,9 +32,9 @@ class ParseERA
             // from poorly reported payment reversals, in which case we may need to
             // create the 'Claim' service type here.
             //
-            $charged_amt = $out['amount_charged'] ?? null;
-            $paytotal = $out['amount_approved'] ?? null;
-            $pattotal = $out['amount_patient'] ?? null;
+            $charged_amt = floatval($out['amount_charged']);
+            $paytotal = floatval($out['amount_approved']);
+            $pattotal = floatval($out['amount_patient']);
             $adjtotal = $charged_amt - $paytotal - $pattotal;
             foreach ($out['svc'] as $svc) {
                 $paytotal -= $svc['paid'];
