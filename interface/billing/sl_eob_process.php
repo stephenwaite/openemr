@@ -386,19 +386,6 @@ function era_callback(&$out)
                     $error = true;
                 }
 
-                // Check for already-existing primary remittance activity.
-                // Removed this check because it was not allowing for copays manually
-                // entered into the invoice under a non-copay billing code.
-                /****
-            if ((sprintf("%.2f",$prev['chg']) != sprintf("%.2f",$prev['bal']) ||
-                $prev['adj'] != 0) && $primary)
-            {
-                writeMessageLine($bgcolor, 'errdetail',
-                    "This service item already has primary payments and/or adjustments!");
-                $error = true;
-            }
-                ****/
-
                 unset($codes[$codekey]);
             } else { // If the service item is not in our database...
                 // This is not an error. If we are not in error mode and not debugging,
@@ -496,8 +483,6 @@ function era_callback(&$out)
 
             // Post and report adjustments from this ERA.  Posted adjustment reasons
             // must be 25 characters or less in order to fit on patient statements.
-            // use $pt_responsible to trap for denied items that would be adjusted automatically
-            $pt_responsible = false;
             foreach ($svc['adj'] as $adj) {
                 $description = $adj['reason_code'] ?? '' . ': ' .
                     BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[$adj['reason_code'] ?? ''];
@@ -511,7 +496,6 @@ function era_callback(&$out)
                     else if ($adj['reason_code'] == '2') $reason = 'Coinsurance: ';
                     else if ($adj['reason_code'] == '3') $reason = 'Co-pay: ';
                 ****/
-                        $pt_responsible = true;
                         $reason = "$inslabel ptresp: "; // Reasons should be 25 chars or less.
                         if ($adj['reason_code'] == '1') {
                             $reason = "$inslabel dedbl: ";
@@ -554,9 +538,9 @@ function era_callback(&$out)
                     // we don't want to write off the amount which would force
                     // the biller to manually delete and re-work so we post a zero-dollar adj
                     // and save it as a comment
-                    if ($svc['paid'] == 0 && $adj['group_code'] == "CO" && !$pt_responsible) {
-                        $class = 'errdetail';         
-                        $error = true;               
+                    if ($svc['paid'] == 0 && !($adj['group_code'] == "CO" && $adj['reason_code'] == '45')) {
+                        $class = 'errdetail';
+                        $error = true;
                     } elseif (!$error && !$debug) {
                         SLEOB::arPostAdjustment(
                             $pid,
