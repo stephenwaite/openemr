@@ -231,7 +231,8 @@ function upload_file_to_client($file_to_send)
     // we need page count so we don't create a blank page at the beginning
     $page_count = -1;
 
-    function printHeader($header, $pdf) {
+    function printHeader($header, $pdf)
+    {
         global $page_count;
         $png = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
         if ($page_count > 1) {
@@ -245,7 +246,8 @@ function upload_file_to_client($file_to_send)
         ));
     }
 
-    function printBody($content, $pdf) {
+    function printBody($content, $pdf)
+    {
         $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
         $pdf->ezText($content, 12, array(
             'justification' => 'left',
@@ -253,7 +255,8 @@ function upload_file_to_client($file_to_send)
         ));
     }
 
-    function printFooter($footer, $pdf) { 
+    function printFooter($footer, $pdf)
+    {
         $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 570);
         $pdf->ezText($footer, 12, array(
             'justification' => 'left',
@@ -281,19 +284,19 @@ function upload_file_to_client($file_to_send)
         $page_lines_count = count($page_lines);
 
         $page_count++;
-        $body_count = 0;    
+        $body_count = 0;
 
         if (!$page_lines[0] && $page_lines_count == 1) {
             continue;
         }
         $was_continued = $is_continued;
 
-        if (!strpos($page, "CONTINUED")) {         
+        if (!strpos($page, "CONTINUED")) {
             $is_continued = false;
             if (!$was_continued) {
                 $header = '';
-            }        
-        } else {        
+            }
+        } else {
             $is_continued = true;
         }
 
@@ -301,14 +304,14 @@ function upload_file_to_client($file_to_send)
 
         if (!$was_continued) {
             for ($i = 0; $i < 5; $i++) {
-                if (isset($page_lines[$i])) { 
+                if (isset($page_lines[$i])) {
                     $header .= $page_lines[$i];
                 }
             }
         }
 
         $body = '';
-        for ($i = 5; $i < ($page_lines_count - 4); $i++) {        
+        for ($i = 5; $i < ($page_lines_count - 4); $i++) {
             $body .= $page_lines[$i];
             $body_count++;
         }
@@ -316,13 +319,13 @@ function upload_file_to_client($file_to_send)
         $footer = '';
         if ((!$is_continued && $was_continued) || !$is_continued) {
             for ($i = ($page_lines_count - 2); $i < $page_lines_count; $i++) {
-                if (isset($page_lines[$i])) { 
+                if (isset($page_lines[$i])) {
                     if ($page_lines[$i] == '') {
                         $footer .= $page_lines[$i] . "\r";
                     }
                     $footer .= $page_lines[$i];
                 }
-            }    
+            }
         } else {
             $footer = "CONTINUED \r\n";
         }
@@ -339,7 +342,6 @@ function upload_file_to_client($file_to_send)
         if ($is_continued && !$was_continued) {
             $old_body .= $body;
             $total_body_count += $body_count;
-
         }
 
         if (!$is_continued && $was_continued) {
@@ -363,7 +365,7 @@ function upload_file_to_client($file_to_send)
                 $old_body = '';
                 $total_body_count = 0;
                 $header = '';
-            }    
+            }
         }
 
         if ($is_continued && $was_continued) {
@@ -378,8 +380,6 @@ function upload_file_to_client($file_to_send)
                 $total_body_count = $body_count;
             }
         }
-
-
     }
 
 
@@ -753,8 +753,8 @@ if (
             if ($inv_pid[$inv_count] != ($inv_pid[$inv_count + 1] ?? null)) {
                 $tmp = make_statement($stmt);
                 if (empty($tmp)) {
-                    $tmp = xlt("This EOB item does not meet minimum print requirements setup in Globals or there is an unknown error.") . " " . xlt("EOB Id") . ":" . text($inv_pid[$inv_count]) . " " . xlt("Encounter") . ":" . text($stmt['encounter']) . "\n";
-                    $tmp .= "<br />\n\014<br /><br />";
+                    error_log("This EOB item does not meet minimum print requirements setup in Globals or there is an unknown error." . " " . xlt("EOB Id") . ":" . text($inv_pid[$inv_count]) . " " . xlt("Encounter") . ":" . text($stmt['encounter']));
+                    continue;
                 }
                 fwrite($fhprint, $tmp);
             }
