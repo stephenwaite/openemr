@@ -786,7 +786,7 @@ function zip_content($source, $destination, $content = '', $create = true)
                             $dateres = getEncounterDateByEncounter($form_encounter);
                             $formId = getFormIdByFormdirAndFormid($res[1], $form_id);
 
-                            if ($res[1] == 'newpatient') {
+                            if (in_array($res[1], array('newpatient', 'dictation'))) {
                                 echo "<div class='text encounter'>\n";
                                 echo "<h4>" . xlt($formres["form_name"]) . "</h4>";
                             } else {
@@ -795,13 +795,13 @@ function zip_content($source, $destination, $content = '', $create = true)
                             }
 
                             // show the encounter's date
-                            echo "Date of Service: (" . text(oeFormatSDFT(strtotime($dateres["date"]))) . ") ";
                             if ($res[1] == 'newpatient') {
                                 // display the provider info
+                                echo "Date of Service: (" . text(oeFormatSDFT(strtotime($dateres["date"]))) . ") ";
                                 echo ' ' . xlt('Provider') . ': ' . text(getProviderName(getProviderIdOfEncounter($form_encounter)));
                             }
 
-                            echo "<br />\n";
+                            //echo "<br />\n";
 
                             // call the report function for the form
                             ?>
