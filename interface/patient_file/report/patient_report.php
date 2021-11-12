@@ -376,7 +376,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                                         "form_encounter.encounter = forms.encounter " .
                                         " AND forms.deleted=0 " . // --JRM--
                                         "ORDER BY form_encounter.encounter DESC, form_encounter.date DESC, fdate ASC", array($pid, $pid));
-                                        $res2 = sqlStatement("SELECT name FROM registry ORDER BY priority");
+                                        $res2 = sqlStatement("SELECT name FROM registry ORDER BY priority DESC");
                                         $html_strings = array();
                                         $registry_form_name = array();
                                         while ($result2 = sqlFetchArray($res2)) {
