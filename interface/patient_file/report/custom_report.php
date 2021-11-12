@@ -778,22 +778,22 @@ function zip_content($source, $destination, $content = '', $create = true)
                             $dateres = getEncounterDateByEncounter($form_encounter);
                             $formId = getFormIdByFormdirAndFormid($res[1], $form_id);
 
-                            if ($res[1] == 'newpatient') {
+                            if (in_array($res[1], array('newpatient', 'dictation'))) {
                                 echo "<div class='text encounter'>\n";
                                 // echo "<h1>" . xlt($formres["form_name"]) . "</h1>";
                             } else {
-                                //echo "<div class='text encounter_form'>";
-                                //echo "<h3>" . text(xl_form_title($formres["form_name"])) . "</h3>";
+                                echo "<div class='text encounter_form'>";
+                                echo "<h4>" . text(xl_form_title($formres["form_name"])) . "</h4>";
                             }
 
                             // show the encounter's date
-                            echo "Date of Service: (" . text(oeFormatSDFT(strtotime($dateres["date"]))) . ") ";
                             if ($res[1] == 'newpatient') {
                                 // display the provider info
+                                echo "Date of Service: (" . text(oeFormatSDFT(strtotime($dateres["date"]))) . ") ";
                                 echo ' ' . xlt('Provider') . ': ' . text(getProviderName(getProviderIdOfEncounter($form_encounter)));
                             }
 
-                            echo "<br />\n";
+                            //echo "<br />\n";
 
                             // call the report function for the form
                             ?>
@@ -804,6 +804,8 @@ function zip_content($source, $destination, $content = '', $create = true)
                             } else {
                                 call_user_func($res[1] . "_report", $pid, $form_encounter, $N, $form_id);
                             }
+
+                            echo "<br />\n";
 
                             $esign = $esignApi->createFormESign($formId, $res[1], $form_encounter);
                             if ($esign->isLogViewable("report")) {
@@ -840,7 +842,7 @@ function zip_content($source, $destination, $content = '', $create = true)
             } // end $ar loop
 
             if ($printable && ! $PDF_OUTPUT) {// Patched out of pdf 04/20/2017 sjpadgett
-                echo "<br /><i>" . xlt('Electronically signed') . "<i/>";
+                //echo "<i>" . xlt('Electronically signed') . "<i/>";
             }
             ?>
 

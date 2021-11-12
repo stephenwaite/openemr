@@ -21,7 +21,7 @@ function newpatient_report($pid, $encounter, $cols, $id)
     while ($result = sqlFetchArray($res)) {
         print "<span class=bold>" . xlt('Facility') . ": </span><span class=text>" . text($result["facility_name"]) . "</span><br />\n";
         if (empty($result['sensitivity']) || AclMain::aclCheckCore('sensitivities', $result['sensitivity'])) {
-            if ($result["reason"]) {
+            if ($result["reason"] != 'Please indicate visit reason') {
                 print "<span class=bold>" . xlt('Reason') . ": </span><span class=text>" . nl2br(text($result["reason"])) . "</span><br />\n";
             }
         }
