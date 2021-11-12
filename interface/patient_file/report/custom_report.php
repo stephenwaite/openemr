@@ -831,8 +831,8 @@ function zip_content($source, $destination, $content = '', $create = true)
                                     array($pid, $form_encounter)
                                 );
                                 while ($brow = sqlFetchArray($bres)) {
-                                    echo "<div class='font-weight-bold d-inline-block'>&nbsp;" . xlt('Procedure') . ": </div><div class='text d-inline-block'>" .
-                                        text($brow['code']) . ":" . text($brow['modifier']) . " " . text($brow['code_text']) . "</div><br />\n";
+                                    //echo "<div class='font-weight-bold d-inline-block'>&nbsp;" . xlt('Procedure') . ": </div><div class='text d-inline-block'>" .
+                                    //    text($brow['code']) . ":" . text($brow['modifier']) . " " . text($brow['code_text']) . "</div><br />\n";
                                 }
                             }
 
