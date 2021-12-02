@@ -702,6 +702,16 @@ class X125010837P
                 $diabDlsRequired = true;
         }
 
+        $xrayReferrerRequired = false;
+        
+        if (
+            $claim->facilityTaxonomy() == "213E00000X" &&
+            array_intersect($cpts, ['73600', '73610', '73620', '73630', '73650', '73660'])
+        ) {
+                $xrayReferrerRequired = true;
+        }
+
+
         if (
             $claim->onsetDate() &&
             $claim->onsetDate() !== $claim->serviceDate() &&
@@ -939,7 +949,7 @@ class X125010837P
         // Segment HI*BP (Anesthesia Related Procedure) omitted.
         // Segment HI*BG (Condition Information) omitted.
         // Segment HCP (Claim Pricing/Repricing Information) omitted.
-        if ($claim->claimType() === 'MB' && $diabDlsRequired && $claim->referrerLastName()) {
+        if ($claim->claimType() === 'MB' && ($diabDlsRequired || $xrayReferrerRequired) && $claim->referrerLastName()) {
             // Medicare requires referring provider's name and NPI.
             ++$edicount;
             $out .= "NM1" .     // Loop 2310A Referring Provider
@@ -964,7 +974,7 @@ class X125010837P
                 $log .= "*** Missing referring provider NPI.\n";
             }
             $out .= "~\n";
-        } elseif ($claim->claimType() === 'MB' && $diabDlsRequired && !$claim->referrerLastName()) {
+        } elseif ($claim->claimType() === 'MB' && ($diabDlsRequired || $xrayReferrerRequired) && !$claim->referrerLastName()) {
             $log .= "*** Missing referring provider last name.\n";
         }
 
