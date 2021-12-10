@@ -258,9 +258,14 @@ class Claim
         "ORDER BY forms.date";
         $this->billing_options = sqlQuery($sql, array($this->encounter_id, $this->pid));
 
-        $referrer_id = (empty($GLOBALS['MedicareReferrerIsRenderer']) ||
-        $this->insurance_numbers['provider_number_type'] != '1C') ?
-          $this->patient_data['ref_providerID'] : $provider_id;
+        if ($this->billing_options['provider_id'] ?? '') {
+            $referrer_id = $this->billing_options['provider_id'];
+        } else {
+            $referrer_id = (empty($GLOBALS['MedicareReferrerIsRenderer']) ||
+                ($this->insurance_numbers['provider_number_type'] ?? '') != '1C') ?
+                $this->patient_data['ref_providerID'] : $provider_id;
+        }
+
         $sql = "SELECT * FROM users WHERE id = ?";
         $this->referrer = sqlQuery($sql, array($referrer_id));
         if (!$this->referrer) {
@@ -268,6 +273,7 @@ class Claim
         }
 
         $supervisor_id = $this->encounter['supervisor_id'];
+
         $sql = "SELECT * FROM users WHERE id = ?";
         $this->supervisor = sqlQuery($sql, array($supervisor_id));
         if (!$this->supervisor) {
