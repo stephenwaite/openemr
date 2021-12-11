@@ -867,8 +867,8 @@ class X125010837P
             "*" . $claim->priorAuth() .
             "~\n";
         } else {
-            if ($claim->payerID($ins) == 'VACCN') {
-                $log .= "*** Missing prior auth for $ins.\n";
+            if ($claim->payerID() == 'VACCN') {
+                $log .= "*** Missing prior auth for " . $claim->payerID() . "\n";
             }
         }
 
