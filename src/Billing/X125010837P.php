@@ -815,6 +815,10 @@ class X125010837P
             "*" . "G1" .
             "*" . $claim->priorAuth() .
             "~\n";
+        } else {
+            if ($claim->payerID($ins) == 'VACCN') {
+                $log .= "*** Missing prior auth for $ins.\n";
+            }
         }
 
         // Segment REF*F8 Payer Claim Control Number for claim re-submission.icn_resubmission_number
