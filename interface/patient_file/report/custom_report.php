@@ -268,7 +268,7 @@ function zip_content($source, $destination, $content = '', $create = true)
                 <?php echo text($facility['phone']); ?><br />
 
                 <a href="javascript:window.close();"><span class='title'><?php echo xlt('Patient') . ": " . text($titleres['fname']) . " " . text($titleres['lname']); ?></span></a><br />
-                <span class='text'><?php //echo xlt('Generated on'); ?><?php //echo text(oeFormatShortDate()); ?></span>
+                <span class='text'><?php echo "DOB: " . text($titleres['DOB_TS']); ?></span><br />
                 <?php echo "</td></tr></tbody></table></div>";?>
 
             <?php } else { // not printable
