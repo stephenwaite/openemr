@@ -83,16 +83,16 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_export']) || !empty($_
         $form_cb_err      = (!empty($_POST['form_cb_err']))      ? true : false;
     }
 } else {
-    $form_cb_ssn      = true;
-    $form_cb_dob      = false;
+    $form_cb_ssn      = false;
+    $form_cb_dob      = true;
     $form_cb_pubpid   = false;
     $form_cb_adate    = false;
-    $form_cb_policy   = false;
-    $form_cb_phone    = true;
+    $form_cb_policy   = true;
+    $form_cb_phone    = false;
     $form_cb_city     = false;
     $form_cb_ins1     = false;
     $form_cb_referrer = false;
-    $form_cb_idays    = false;
+    $form_cb_idays    = true;
     $form_cb_err      = false;
 }
 
