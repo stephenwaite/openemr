@@ -90,7 +90,7 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_export']) || !empty($_
     $form_cb_policy   = true;
     $form_cb_phone    = false;
     $form_cb_city     = false;
-    $form_cb_ins1     = false;
+    $form_cb_ins1     = true;
     $form_cb_referrer = false;
     $form_cb_idays    = true;
     $form_cb_err      = false;
