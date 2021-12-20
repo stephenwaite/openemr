@@ -249,8 +249,6 @@ function create_statement($stmt)
     // be specified in the order used.
     //
 
-    $agedate = '0000-00-00';
-
     $line_count = 0;
     $page_count = 0;
     $continued = false;
@@ -263,7 +261,7 @@ function create_statement($stmt)
 
         $dos = $line['dos'];
         ksort($line['detail']);
-
+        $last_activity_date = $dos;
         foreach ($line['detail'] as $dkey => $ddata) {
             if ($continued = true) {
                 $out .= $continued_text;
@@ -275,17 +273,18 @@ function create_statement($stmt)
                 $ddate = $matches[1] . '-' . $matches[2] . '-' . $matches[3];
             }
 
+            if ($ddate && $ddate > $last_activity_date) {
+                $last_activity_date = $ddate;
+            }
+
             $amount = '';
             
             if (strpos(($ddata['pmt_method'] ?? ''), ($insco ?? '')) !== false) {
                 $insco = '';
             }
 
-            if ($ddata['pmt'] ?? '') {
-                $dos = $ddate;
-                if ($dos > $agedate) {
-                    $agedate = $dos;
-                }
+            if ($ddata['pmt'] ?? '') {   
+                $dos = $ddate;             
                 $amount = sprintf("%.2f", $ddata['pmt']);
                 $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco;
                 if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
@@ -310,8 +309,8 @@ function create_statement($stmt)
                 $desc = xl('Patient Payment');
                 $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
             } else {
-                $amount = sprintf("%.2f", $ddata['chg']);
                 $dos = $line['dos'];
+                $amount = sprintf("%.2f", $ddata['chg']);
                 $desc = $description;
                 $bal = sprintf("%.2f", ($line['amount'] - $line['paid']));
                 $out .= sprintf("%-8s %-44s    %-8s          %-8s \r\n", sidDate($dos), $desc, $amount, $bal);
@@ -328,12 +327,17 @@ function create_statement($stmt)
                 $continued_text .= "\014"; // this is a form feed                
             }
         }
-        if ($agedate == '0000-00-00') {
-            $agedate = $dos;
+        
+        # Compute the aging bucket index and accumulate into that bucket.
+        $last_activity_date = ($line['bill_date'] > $last_activity_date) ? $line['bill_date'] : $last_activity_date;
+        // If first bill then make the amount due current and reset aging date
+        if ($stmt['dun_count'] == '0') {
+            $last_activity_date = date('Y-m-d');
+            sqlStatement("UPDATE billing SET bill_date = ? WHERE pid = ? AND encounter = ?", array(date('Y-m-d'), $patient_id, $encounter_id));
         }
+        
 
-        // Compute the aging bucket index and accumulate into that bucket.
-        $age_in_days = (int) (($todays_time - strtotime($agedate)) / (60 * 60 * 24));
+        $age_in_days = (int) (($todays_time - strtotime($last_activity_date)) / (60 * 60 * 24));
         $age_index = (int) (($age_in_days - 1) / 30);
         $age_index = max(0, min($num_ages - 1, $age_index));
         $aging[$age_index] += $line['amount'] - $line['paid'];

@@ -67,6 +67,7 @@ if (!empty($_POST['formaction']) && ($_POST['formaction'] == 'save') && $list_id
                     ") VALUES ( ?,?,? )", array($category, $option, $codes));
             }
         }
+        $current_checksum = listChecksum($list_id);
     } elseif ($list_id == 'code_types') {
         // special case for code types
         sqlStatement("DELETE FROM code_types");
