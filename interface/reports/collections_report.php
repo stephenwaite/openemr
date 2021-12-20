@@ -551,7 +551,7 @@ if (!empty($_POST['form_csvexport'])) {
                         <td>
                            <select name='form_category' class='form-control'>
                         <?php
-                        foreach (array('Open' => xl('Open'),'Due Pt' => xl('Due Pt'),'Due Ins' => xl('Due Ins'),'Ins Summary' => xl('Ins Summary'),'Credits' => xl('Credits'),'All' => xl('All')) as $key => $value) {
+                        foreach (array('Due Ins' => xl('Due Ins'),'Due Pt' => xl('Due Pt'),'Open' => xl('Open'),'Ins Summary' => xl('Ins Summary'),'Credits' => xl('Credits'),'All' => xl('All')) as $key => $value) {
                             echo "    <option value='" . attr($key) . "'";
                             if ($form_category == $key) {
                                 echo " selected";
