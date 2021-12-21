@@ -279,8 +279,10 @@ function create_statement($stmt)
 
             $amount = '';
             
-            if (strpos(($ddata['pmt_method'] ?? ''), ($insco ?? '')) !== false) {
-                $insco = '';
+            if (!empty($insco)) {
+                if (strpos(($ddata['pmt_method'] ?? ''), $insco) !== false) {
+                    $insco = '';
+                }
             }
 
             if ($ddata['pmt'] ?? '') {   
