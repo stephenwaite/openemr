@@ -34,13 +34,9 @@ function dictation_report($pid, $encounter, $cols, $id)
             }
 
             $key = ucwords(str_replace("_", " ", $key));
-            print "<td><span class=bold>" . xlt($key) . ": </span><span class=text>" .
-            nl2br(text($value)) . "</span></td>";
+            print "<h3>" . xlt($key) . ": </h3>" .
+                "<p>" . nl2br(text($value)) . "</p>";
             $count++;
-            if ($count == $cols) {
-                $count = 0;
-                print "</tr><tr>\n";
-            }
         }
     }
 
