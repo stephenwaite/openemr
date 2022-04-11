@@ -699,10 +699,8 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                         // It is labled(Included for Insurance ajax criteria)(Line:-279-299).
                         $TPSCriteriaIncludeMaster[1] = "OpenEMR\Billing\BillingReport::insuranceCompanyDisplay";
                         if (!isset($_REQUEST['mode'])) {// default case
-                            $_REQUEST['final_this_page_criteria'][0] = "form_encounter.date|between|" . date("Y-m-d 00:00:00") . "|" . date("Y-m-d 23:59:59");
-                            $_REQUEST['final_this_page_criteria_text'][0] = xl("Date of Service = Today");
-                            $_REQUEST['final_this_page_criteria'][1] = "billing.billed|=|0";
-                            $_REQUEST['final_this_page_criteria_text'][1] = xl("Billing Status = Unbilled");
+                            $_REQUEST['final_this_page_criteria'][0] = "billing.billed|=|0";
+                            $_REQUEST['final_this_page_criteria_text'][0] = xl("Billing Status = Unbilled");
                             $_REQUEST['date_master_criteria_form_encounter_date'] = "today";
                             $_REQUEST['master_from_date_form_encounter_date'] = date("Y-m-d");
                             $_REQUEST['master_to_date_form_encounter_date'] = date("Y-m-d");
@@ -1011,7 +1009,8 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                                     }
                                 }
                                 // Is there a MBO
-                                $mboid = sqlQuery("SELECT forms.form_id FROM forms WHERE forms.encounter = ? AND forms.authorized = 1 AND forms.formdir = 'misc_billing_options' AND forms.deleted != 1 LIMIT 1", array($iter['enc_encounter']));
+                                // removed this for carmody: AND forms.authorized = 1
+                                $mboid = sqlQuery("SELECT forms.form_id FROM forms WHERE forms.encounter = ? AND forms.formdir = 'misc_billing_options' AND forms.deleted != 1 LIMIT 1", array($iter['enc_encounter']));
                                 $iter['mboid'] = $mboid ? attr($mboid['form_id']) : 0;
 
                                 $name = getPatientData($iter['enc_pid'], "fname, mname, lname, pubpid, billing_note, DATE_FORMAT(DOB,'%Y-%m-%d') as DOB_YMD");
@@ -1085,6 +1084,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                                 $lhtml .= "<a class='btn btn-sm btn-primary' role='button' " . "href=\"javascript:window.topatient(" . attr_js($iter['enc_pid']) . "," . attr_js($name['pubpid']) . "," . attr_js($ptname) . "," . attr_js($iter['enc_encounter']) . "," . attr_js(oeFormatShortDate($raw_encounter_date)) . "," . attr_js(" " . xl('DOB') . ": " . oeFormatShortDate($name['DOB_YMD']) . " " . xl('Age') . ": " . getPatientAge($name['DOB_YMD'])) . ");
                                     top.window.parent.left_nav.setPatientEncounter(EncounterIdArray[" . attr($iter['enc_pid']) . "],EncounterDateArray[" . attr($iter['enc_pid']) . "], CalendarCategoryArray[" . attr($iter['enc_pid']) . "])\">" . xlt('Insurance') . "</a>";
                                 $is_edited = $iter['mboid'] ? 'btn-success' : 'btn-secondary';
+//                                error_log("iter mboid is " . $iter['mboid']);
                                 $title = $iter['mboid'] ? xlt("This claim has HCFA 1500 miscellaneous billing options") : xlt("Click to add HCFA 1500 miscellaneous billing options");
                                 $lhtml .= "<a class='btn btn-sm $is_edited' role='button' title='" . attr($title) . "' onclick='popMBO(" . attr_js($iter['enc_pid']) . "," . attr_js($iter['enc_encounter']) . "," . attr_js($iter['mboid']) . "); return false;'>" . xlt('MBO ') . "</a>";
                                 if ($ub04_support && isset($iter['billed'])) {
