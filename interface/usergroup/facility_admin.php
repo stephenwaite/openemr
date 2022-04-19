@@ -288,6 +288,14 @@ if (isset($_GET["fid"])) {
                             <input type="text" class="form-control form-control-sm" name="domain_identifier" size="45" value="<?php echo attr($facility['domain_identifier']); ?>" />
                         </div>
                     </div>
+                    <div class="form-row my-2 d-flex align-items-center">
+                        <div class="col-2">
+                            <label for="weno_id" class="col-form-label col-form-label-sm"><?php echo xlt('WENO ID'); ?>: </label>
+                        </div>
+                        <div class="col">
+                            <input type="text" class="form-control form-control-sm" size="20" name="weno_id" value="<?php echo attr($facility["weno_id"]) ?>" />
+                        </div>
+                    </div>
                 </div>
                 <div class="col-6">
                     <div class="form-row my-2">

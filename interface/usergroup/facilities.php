@@ -31,7 +31,11 @@ $facilityService = new FacilityService();
 $alertmsg = '';
 
 /*      Inserting New facility                  */
-if (isset($_POST["mode"]) && ($_POST["mode"] == "facility") && (empty($_POST["newmode"]) || ($_POST["newmode"] != "admin_facility"))) {
+if (
+    isset($_POST["mode"]) &&
+    ($_POST["mode"] == "facility") &&
+    (empty($_POST["newmode"]) || ($_POST["newmode"] != "admin_facility"))
+) {
     $newFacility = array(
         "name" => trim(isset($_POST["facility"]) ? $_POST["facility"] : ''),
         "phone" => trim(isset($_POST["phone"]) ? $_POST["phone"] : ''),
@@ -63,7 +67,8 @@ if (isset($_POST["mode"]) && ($_POST["mode"] == "facility") && (empty($_POST["ne
         "mail_zip" => trim(isset($_POST["mail_zip"]) ? $_POST["mail_zip"] : ''),
         "oid" => trim(isset($_POST["oid"]) ? $_POST["oid"] : ''),
         "iban" => trim(isset($_POST["iban"]) ? $_POST["iban"] : ''),
-        "info" => trim(isset($_POST["info"]) ? $_POST["info"] : '')
+        "info" => trim(isset($_POST["info"]) ? $_POST["info"] : ''),
+        "weno_id" => trim(isset($_POST["weno_id"]) ? $_POST["weno_id"] : '')
     );
 
     $insert_id = $facilityService->insertFacility($newFacility);
@@ -104,7 +109,8 @@ if (isset($_POST["mode"]) && $_POST["mode"] == "facility" && $_POST["newmode"] =
         "mail_zip" => trim(isset($_POST["mail_zip"]) ? $_POST["mail_zip"] : ''),
         "oid" => trim(isset($_POST["oid"]) ? $_POST["oid"] : ''),
         "iban" => trim(isset($_POST["iban"]) ? $_POST["iban"] : ''),
-        "info" => trim(isset($_POST["info"]) ? $_POST["info"] : '')
+        "info" => trim(isset($_POST["info"]) ? $_POST["info"] : ''),
+        "weno_id" => trim(isset($_POST["weno_id"]) ? $_POST["weno_id"] : '')
     );
 
     $facilityService->updateFacility($newFacility);

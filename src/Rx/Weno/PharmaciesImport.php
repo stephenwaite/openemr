@@ -12,14 +12,14 @@ namespace OpenEMR\Rx\Weno;
 
 use Pharmacy;
 
-class wenoPharmaciesImport
+class PharmaciesImport
 {
     private $filename;
     private $state;
 
     public function __construct()
     {
-        $this->filename = $GLOBALS['fileroot'] . "/contrib/weno/WenoPharmacyDirectory2020-12-13.csv";
+        $this->filename = $GLOBALS['fileroot'] . "/contrib/weno/WenoPharmacyDirectory2022-04-15_02_07_46.csv";
         $this->state = $this->getState();
     }
 
@@ -33,20 +33,20 @@ class wenoPharmaciesImport
             $import = fopen($this->filename, "r");
             while (! feof($import)) {
                 $line = fgetcsv($import);
-                if ($i <= 95) {
-                    ++$i;
-                    continue;
-                }
-                if ($line[12] === $this->state) {
+                if (($line[12] ?? null) === $this->state) {
                     $pharmacy = new Pharmacy();
                     $pharmacy->set_id();
                     $pharmacy->set_name($line[8]);
-                    $pharmacy->set_ncpdp($line[6]);
-                    $pharmacy->set_npi($line[2]);
+                    // if the 2020 file was imported then the
+                    // npi and ncpdp are reversed in the db
+                    // todo: add an update mechanism here so
+                    // doesn't create duplicate pharmacies
+                    $pharmacy->set_ncpdp(substr($line[3],1,7));
+                    $pharmacy->set_npi($line[6]);
                     $pharmacy->set_address_line1($line[9]);
                     $pharmacy->set_city($line[11]);
                     $pharmacy->set_state($line[12]);
-                    $pharmacy->set_zip($line[13]);
+                    $pharmacy->set_zip(substr($line[14],1,5));
                     $pharmacy->set_fax($line[21]);
                     $pharmacy->set_phone($line[19]);
                     $pharmacy->set_transmit_method("4");

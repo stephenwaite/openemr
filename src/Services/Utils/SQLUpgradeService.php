@@ -1051,7 +1051,7 @@ class SQLUpgradeService
      */
     private function ImportDrugInformation()
     {
-        if ($GLOBALS['weno_rx_enable']) {
+        if ($GLOBALS['weno_rx_enable'] ?? null) {
             $drugs = file_get_contents('contrib/weno/erx_weno_drugs.sql');
             $drugsArray = preg_split('/;\R/', $drugs);
 

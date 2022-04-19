@@ -329,11 +329,6 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
             return false;
         }
 
-        function getWeno() {
-            top.restoreSession();
-            location.href = '../../weno/indexrx.php'
-        }
-
         function toggleIndicator(target, div) {
             // <i id="show_hide" class="fa fa-lg small fa-eye-slash" title="Click to Hide"></i>
             $mode = $(target).find(".indicator").text();

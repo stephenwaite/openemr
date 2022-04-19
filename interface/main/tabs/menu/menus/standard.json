@@ -917,6 +917,21 @@
               "super"
             ],
             "global_req": "enable_cdr"
+          },
+          {
+            "label":"Weno Pharmacies",
+            "menu_id":"adm0",
+            "target":"adm",
+            "url":"/interface/weno/pharmacies.php",
+            "children":[],
+            "requirement":0,
+            "acl_req": [
+              "admin",
+              "super"
+            ],
+              "global_req": [
+                  "weno_rx_enable"
+              ]
           }
         ],
         "requirement": 0,
@@ -1272,21 +1287,6 @@
             "global_req": [
               "erx_enable"
             ]
-          },
-          {
-            "label":"Weno Management",
-            "menu_id":"adm0",
-            "target":"adm",
-            "url":"/interface/weno/facilities.php",
-            "children":[],
-            "requirement":0,
-            "acl_req": [
-              "admin",
-              "super"
-            ],
-              "global_req": [
-                  "weno_rx_enable"
-              ]
           }
         ],
         "requirement": 0,

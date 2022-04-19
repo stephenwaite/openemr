@@ -64,7 +64,8 @@ class LogProperties
         $this->rxsynclog = $GLOBALS['OE_SITE_DIR'] . "/documents/logs_and_misc/logsync.csv";
         $this->enc_key = $this->cryptoGen->decryptStandard($GLOBALS['weno_encryption_key']);
         $this->key = substr(hash('sha256', $this->enc_key, true), 0, 32);
-        $this->iv = chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0);
+        $this->iv = chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) .
+            chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0) . chr(0x0);
         $this->provider = $this->container->getTransmitproperties();
     }
 
@@ -92,7 +93,8 @@ class LogProperties
             "ToDate" => $yesterday,
             "ResponseFormat" => "CSV"
         ];
-        $plaintext = json_encode($p);                //json encode email and password
+        //json encode email and password
+        $plaintext = json_encode($p);
         if ($this->enc_key && $md5) {
             return base64_encode(openssl_encrypt($plaintext, $this->method, $this->key, OPENSSL_RAW_DATA, $this->iv));
         } else {
@@ -106,14 +108,17 @@ class LogProperties
     public function logReview()
     {
         $email = $this->provider->getProviderEmail();
-        $prov_pass =  $this->provider->getProviderPassword();                // gets the password stored for the
-        $md5 = md5($prov_pass);                       // hash the current password
+        // gets the password stored for the provider
+        $prov_pass =  $this->provider->getProviderPassword();
+        // hash the current password
+        $md5 = md5($prov_pass);
 
         $p = [
             "UserEmail" => $email['email'],
             "MD5Password" => $md5
         ];
-        $plaintext = json_encode($p);                //json encode email and password
+        //json encode email and password
+        $plaintext = json_encode($p);
         if ($this->enc_key && $md5) {
             return base64_encode(openssl_encrypt($plaintext, $this->method, $this->key, OPENSSL_RAW_DATA, $this->iv));
         } else {
@@ -150,9 +155,21 @@ class LogProperties
         if ($statusCode == 200) {
             file_put_contents($this->rxsynclog, $rpt);
             $logstring = "prescription log import initiated successfully";
-            EventAuditLogger::instance()->newEvent("prescriptions_log", $_SESSION['authUser'], $_SESSION['authProvider'], 1, "$logstring");
+            EventAuditLogger::instance()->newEvent(
+                "prescriptions_log",
+                $_SESSION['authUser'],
+                $_SESSION['authProvider'],
+                1,
+                "$logstring"
+            );
         } else {
-            EventAuditLogger::instance()->newEvent("prescriptions_log", $_SESSION['authUser'], $_SESSION['authProvider'], 1, "$statusCode");
+            EventAuditLogger::instance()->newEvent(
+                "prescriptions_log",
+                $_SESSION['authUser'],
+                $_SESSION['authProvider'],
+                1,
+                "$statusCode"
+            );
         }
 
         if (file_exists($this->rxsynclog)) {

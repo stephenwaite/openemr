@@ -3414,11 +3414,18 @@ $GLOBALS_METADATA = array(
             xl('Encryption key issued by Weno eRx service.')
         ),
 
-        'weno_provider_password' => array(
-            xl('Weno Provider Account Password'),
+        'weno_online_admin_email' => array(
+            xl('Weno Online Admin Email'),
+            'text',                      // data type
+            '',
+            xl('Weno Online Admin Email')
+        ),
+
+        'weno_online_admin_password' => array(
+            xl('Weno Online Admin Password'),
             'encrypted',                      // data type
             '',
-            xl('Each provider needs to set this under user settings. This should be blank')
+            xl('Weno Online Admin Password')
         ),
 
         'ccda_alt_service_enable' => array(
