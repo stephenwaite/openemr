@@ -1279,6 +1279,7 @@ class X125010837P
                     $claim->payerID($ins - 1) == "MCDVT" ||
                     $claim->payerID($ins - 1) ==  "822287119"
                 ) { // for 2ndary gmc claims
+                    $out .= "MDB";
                     if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
                         if (($claim->payerName($ins)) == "BCBS NJ") {
                             $out .= "H6";
@@ -1623,6 +1624,7 @@ class X125010837P
                 $out .= "SVD" . // Service line adjudication. Page 554.
                 "*";
                 if (($claim->payerID($ins - 1) == "MCDVT" || $claim->payerID($ins - 1) == "822287119")) {
+                    $out .= "MDB";
                     if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
                         if (($claim->payerName($ins)) == "BCBS NJ") {
                             $out .= "H6";
