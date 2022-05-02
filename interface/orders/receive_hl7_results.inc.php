@@ -1126,20 +1126,15 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
                         // Now create the procedure order.
                         $in_orderid = sqlInsert(
                             "INSERT INTO procedure_order SET " .
-                                "date_ordered   = ?, " .
-                                "provider_id    = ?, " .
-                                "lab_id         = ?, " .
-                                "date_collected = ?, " .
-                                "date_transmitted = ?, " .
-                                "patient_id     = ?, " .
-                                "encounter_id   = ?, " .
-                                "control_id     = ?, " .
-                                "external_id    = ?",
-                            array(
-                                $datetime_report,
-                                $provider_id,
-                                $lab_id,
-                                rhl7DateTime($a[22]),
+                            "date_ordered   = ?, " .
+                            "provider_id    = ?, " .
+                            "lab_id         = ?, " .
+                            "date_collected = ?, " .
+                            "date_transmitted = ?, " .
+                            "patient_id     = ?, " .
+                            "encounter_id   = ?, " .
+                            "control_id     = ?",
+                            array($datetime_report, $provider_id, $lab_id, rhl7DateTime($a[22]),
                                 rhl7DateTime($a[7]),
                                 $patient_id,
                                 $encounter_id,
