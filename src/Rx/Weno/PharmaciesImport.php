@@ -19,7 +19,7 @@ class PharmaciesImport
 
     public function __construct()
     {
-        $this->filename = $GLOBALS['fileroot'] . "/contrib/weno/WenoPharmacyDirectory2022-04-15_02_07_46.csv";
+        $this->filename = "/tmp/PharmacyDirectory.zip";
         $this->state = $this->getState();
     }
 
@@ -30,7 +30,12 @@ class PharmaciesImport
     {
         $i = 0;
         if (file_exists($this->filename)) {
-            $import = fopen($this->filename, "r");
+            $za = new \ZipArchive();
+            $za->open($this->filename);
+            $za->extractTo('/tmp');
+            $za_filename = '/tmp' . "/" . $za->statIndex(0)['name'];
+
+            $import = fopen($za_filename, "r");
             while (! feof($import)) {
                 $line = fgetcsv($import);
                 if (($line[12] ?? null) === $this->state) {

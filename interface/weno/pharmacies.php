@@ -25,6 +25,7 @@ if ($_POST) {
     if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token"])) {
         CsrfUtils::csrfNotVerified();
     }
+    (new PharmaciesImport())->importPharmacy();
     
 }
 
@@ -75,7 +76,7 @@ $pharmacies = sqlStatement("SELECT d.id, d.name, d.ncpdp, a.line1, a.city, a.sta
 </div>
 
 <script>
-    function() {
+    function import() {
         $("button").click(function(){
             $(".oe-spinner").css("visibility", "visible");
         });
