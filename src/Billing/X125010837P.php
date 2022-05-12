@@ -955,7 +955,10 @@ class X125010837P
         // Segment HI*BP (Anesthesia Related Procedure) omitted.
         // Segment HI*BG (Condition Information) omitted.
         // Segment HCP (Claim Pricing/Repricing Information) omitted.
-        if ($claim->claimType() === 'MB' && ($diabDlsRequired || $xrayReferrerRequired) && $claim->referrerLastName()) {
+        error_log("claim mbo provider id" . $claim->billing_options['provider_id']);
+        if (
+            //$claim->billing_options['provider_id'] ||
+            ($claim->claimType() === 'MB' && ($diabDlsRequired || $xrayReferrerRequired) && $claim->referrerLastName())) {
             // Medicare requires referring provider's name and NPI.
             ++$edicount;
             $out .= "NM1" .     // Loop 2310A Referring Provider
