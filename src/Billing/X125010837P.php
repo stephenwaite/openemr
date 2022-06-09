@@ -289,7 +289,14 @@ class X125010837P
             } else {
                 $out .= "*EI"; // For dealing with the situation before adding TaxId type In facility.
             }
-            $out .= "*" . $claim->billingFacilityETIN() . "~\n";
+            if (
+                $claim->billingFacilityETIN() == '083380054'
+                && $claim->clearingHouseETIN() == 'BCBSVT'
+            ) {
+                $out .= "*" . '030238036' . "~\n";
+            } else {
+                $out .= "*" . $claim->billingFacilityETIN() . "~\n";
+            }
         } else {
             $log .= "*** No billing facility NPI and/or ETIN.\n";
         }
