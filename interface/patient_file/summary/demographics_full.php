@@ -151,7 +151,7 @@ $(function () {
     $(".medium_modal").on('click', function(e) {
         e.preventDefault();e.stopPropagation();
         let title = <?php echo xlj('Insurance Search/Select/Add'); ?>;
-        dlgopen('', '', 700, 460, '', title, {
+        dlgopen('', '', 700, 600, '', title, {
             buttons: [
                 {text: <?php echo xlj('Close'); ?>, close: true, style: 'default btn-sm'}
             ],
@@ -315,7 +315,7 @@ function checkNum () {
 function address_verify() {
     top.restoreSession();
     var f = document.demographics_form;
-    
+
     dlgopen('../../practice/address_verify.php?address1=' + encodeURIComponent(f.form_street.value) +
     '&address2=' + encodeURIComponent(f.form_street_line_2.value) +
     '&city=' + encodeURIComponent(f.form_city.value) +
@@ -323,7 +323,7 @@ function address_verify() {
     '&zip5=' + encodeURIComponent(f.form_postal_code.value.substring(0,5)) +
     '&zip4=' + encodeURIComponent(f.form_postal_code.value.substring(5,9))
     , '_blank', 400, 150, '', xl('Address Verify'));
-    
+
     return false;
 }
 
@@ -1001,12 +1001,14 @@ if (! $GLOBALS['simplified_demographics']) {
             <div class="col-md-9">
               <select class='form-control form-control-sm mb-1 sel2' name='i<?php echo attr($i); ?>policy_type'>
                 <?php
-                foreach ($policy_types as $key => $value) {
-                    echo "            <option value ='" . attr($key) . "'";
-                    if (!empty($result3['policy_type']) && ($key == $result3['policy_type'])) {
-                        echo " selected";
+                if (!empty($policy_types)) {
+                    foreach ($policy_types as $key => $value) {
+                        echo "            <option value ='" . attr($key) . "'";
+                        if (!empty($result3['policy_type']) && ($key == $result3['policy_type'])) {
+                            echo " selected";
+                        }
+                        echo ">" . text($value) . "</option>\n";
                     }
-                    echo ">" . text($value) . "</option>\n";
                 }
                 ?>
               </select>
@@ -1159,7 +1161,10 @@ $use_validate_js = $GLOBALS['new_validate'];
             duplicateFieldsArray['#form_' + flds[i]] = fval;
         }
         $(".sel2").select2({
-            <?php require($GLOBALS['srcdir'] . '/js/xl/select2.js.php'); ?>
+            theme: "bootstrap4",
+            dropdownAutoWidth: true,
+            width: 'resolve',
+        <?php require($GLOBALS['srcdir'] . '/js/xl/select2.js.php'); ?>
         });
 
         <?php if ($GLOBALS['usps_webtools_enable']) { ?>

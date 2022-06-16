@@ -11,6 +11,7 @@
 namespace OpenEMR\Services\Qdm\Services;
 
 use OpenEMR\Cqm\Qdm\BaseTypes\DateTime;
+use OpenEMR\Services\Qdm\QdmRecord;
 
 /**
  * Class AbstractCarePlanService
@@ -27,9 +28,11 @@ abstract class AbstractCarePlanService extends AbstractQdmService
     const CARE_PLAN_TYPE_TEST_OR_ORDER = 'test_or_order'; // for LaboratoryTestOrderedService
     const CARE_PLAN_TYPE_PLAN_OF_CARE = 'plan_of_care'; // for DiagnosticStudyOrderedService
     const CARE_PLAN_TYPE_INTERVENTION = 'intervention'; // for InterventionOrderedService
-    const CARE_PLAN_TYPE_PLANNED_MED_ACTIVITY = 'planned_medication_activity'; // for MedicationOrderService
+    const CARE_PLAN_TYPE_PLANNED_MED_ACTIVITY = 'planned_medication_activity'; // for SubstanceOrderService
     const CARE_PLAN_TYPE_MEDICATION = 'medication'; // for SubstanceRecommendedService
     const CARE_PLAN_TYPE_PROCEDURE_REC = 'procedure'; // for ProcedureRecommendedService
+    const CARE_PLAN_TYPE_DEVICE_ORDER = 'device_order'; // for DeviceOrderService
+    const CARE_PLAN_TYPE_DEVICE_RECOMMENDED = 'device'; // for DeviceRecommendedService
 
     abstract public function getCarePlanType();
 
@@ -38,7 +41,7 @@ abstract class AbstractCarePlanService extends AbstractQdmService
     public function getSqlStatement()
     {
         $carePlanType = $this->getCarePlanType();
-        return "SELECT pid, `date`, code, codetext, description, care_plan_type, reason_code
+        return "SELECT pid, `date`, date_end, code, codetext, description, care_plan_type, reason_code, reason_status
             FROM form_care_plan
             WHERE care_plan_type = '" . add_escape_custom($carePlanType) . "'";
     }
@@ -50,10 +53,14 @@ abstract class AbstractCarePlanService extends AbstractQdmService
      *
      * Since almost all the care plans contain the same data, we put the base code for making the model here.
      */
-    public function makeQdmModel(array $record)
+    public function makeQdmModel(QdmRecord $recordObj)
     {
+        $record = $recordObj->getData();
         $modelClass = $this->getModelClass();
+        $id = parent::convertToObjectIdBSONFormat($recordObj->getEntityCount());
         $model = new $modelClass([
+            '_id' => $id,
+            'id' => $id,
             'authorDatetime' => new DateTime([
                 'date' => $record['date']
             ]),
@@ -61,16 +68,15 @@ abstract class AbstractCarePlanService extends AbstractQdmService
 
         // If there is a Negation reason noted why this plan was NOT done, add a negation. It will be in the 'code' column
         // with a code-system of "OID". Otherwise, add the code as usual
-        if ($this->isNegationCode($record['code'])) {
-            $model->negationRationale = $this->makeQdmCode($record['code']);
-        } else {
-            $model->addCode($this->makeQdmCode($record['code']));
+        if (!empty($record['reason_code'])) {
+            if ($record['reason_status'] == parent::NEGATED) {
+                $model->negationRationale = $this->makeQdmCode($record['reason_code']);
+            } else {
+                $model->reason = $this->makeQdmCode($record['reason_code']);
+            }
         }
 
-        // Add the reason code if we are supplied one
-        if (!empty($record['reason_code'])) {
-            $model->reason = $this->makeQdmCode($record['reason_code']);
-        }
+        $model->addCode($this->makeQdmCode($record['code']));
 
         return $model;
     }

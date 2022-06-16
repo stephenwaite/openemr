@@ -25,7 +25,7 @@
  * @author    Bill Cernansky (www.mi-squared.com)
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @author    Stephen Waite <stephen.waite@cmsvt.com>
- * @copyright Copyright (c) 2008-2014, 2016, 2021 Rod Roark <rod@sunsetsystems.com>
+ * @copyright Copyright (c) 2008-2014, 2016, 2021-2022 Rod Roark <rod@sunsetsystems.com>
  * @copyright Copyright (c) 2018 Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2019 Stephen Waite <stephen.waite@cmsvt.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
@@ -39,6 +39,7 @@ require_once("$srcdir/patient.inc");
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Logging\EventAuditLogger;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
 if (!empty($_POST)) {
@@ -59,7 +60,8 @@ if (!function_exists('gzopen') && function_exists('gzopen64')) {
 }
 
 if (!AclMain::aclCheckCore('admin', 'super')) {
-    die(xlt('Not authorized'));
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Backup")]);
+    exit;
 }
 
 // When automatically including lists used in selected layouts, these lists are not included.
@@ -443,6 +445,8 @@ function export_submit(step) {
 
 <?php
 $cmd = '';
+// $cmdarr exists because some commands may be too long for a single exec.
+$cmdarr = array();
 $mysql_cmd = $MYSQL_PATH . DIRECTORY_SEPARATOR . 'mysql';
 $mysql_dump_cmd = $mysql_cmd . 'dump';
 $mysql_ssl = '';
@@ -730,10 +734,10 @@ if ($form_step == 102) {
             }
             if (IS_WINDOWS) {
                 # The Perl script differs in windows also.
-                $cmd .= " | " . escapeshellcmd('"' . $perl . '"') . " -pe \"s/ DEFAULT CHARSET=utf8//i; s/ collate[ =][^ ;,]*//i;\"" .
+                $cmd .= " | " . escapeshellcmd('"' . $perl . '"') . " -pe \"s/ DEFAULT CHARSET=[A-Za-z0-9]*//i; s/ collate[ =][^ ;,]*//i;\"" .
                     " >> " . escapeshellarg($EXPORT_FILE) . " & ";
             } else {
-                $cmd .= " | " . escapeshellcmd($perl) . " -pe 's/ DEFAULT CHARSET=utf8//i; s/ collate[ =][^ ;,]*//i;'" .
+                $cmd .= " | " . escapeshellcmd($perl) . " -pe 's/ DEFAULT CHARSET=[A-Za-z0-9]*//i; s/ collate[ =][^ ;,]*//i;'" .
                     " > " . escapeshellarg($EXPORT_FILE) . ";";
             }
         }
@@ -782,22 +786,21 @@ if ($form_step == 102) {
                     # windows will place the quotes in the outputted code if they are there. we removed them here.
                     $cmd .= " echo 'DELETE FROM list_options WHERE list_id = \"" . add_escape_custom($listid) . "\";' >> " . escapeshellarg($EXPORT_FILE) . " & ";
                     $cmd .= " echo 'DELETE FROM list_options WHERE list_id = 'lists' AND option_id = \"" . add_escape_custom($listid) . "\";' >> " . escapeshellarg($EXPORT_FILE) . " & ";
-                } else {
-                    $cmd .= "echo 'DELETE FROM list_options WHERE list_id = \"" . add_escape_custom($listid) . "\";' >> " . escapeshellarg($EXPORT_FILE) . ";";
-                    $cmd .= "echo 'DELETE FROM list_options WHERE list_id = \"lists\" AND option_id = \"" . add_escape_custom($listid) . "\";' >> " . escapeshellarg($EXPORT_FILE) . ";";
-                }
-                if (IS_WINDOWS) {
                     # windows uses the & to join statements.
                     $cmd .= $dumppfx . " --where=\"list_id = 'lists' AND option_id = '$listid' OR list_id = '$listid' " .
                         "ORDER BY list_id != 'lists', seq, title\" " .
                         escapeshellarg($sqlconf["dbase"]) . " list_options";
                     $cmd .=  " >> " . escapeshellarg($EXPORT_FILE) . " & ";
                 } else {
-                    $cmd .= $dumppfx . " --where='list_id = \"lists\" AND option_id = \"" .
+                    $cmdarr[] = "echo 'DELETE FROM list_options WHERE list_id = \"" .
+                        add_escape_custom($listid) . "\";' >> " . escapeshellarg($EXPORT_FILE) . ";" .
+                        "echo 'DELETE FROM list_options WHERE list_id = \"lists\" AND option_id = \"" .
+                        add_escape_custom($listid) . "\";' >> " . escapeshellarg($EXPORT_FILE) . ";" .
+                        $dumppfx . " --where='list_id = \"lists\" AND option_id = \"" .
                         add_escape_custom($listid) . "\" OR list_id = \"" .
                         add_escape_custom($listid) . "\" " . "ORDER BY list_id != \"lists\", seq, title' " .
-                        escapeshellarg($sqlconf["dbase"]) . " list_options";
-                    $cmd .=  " >> " . escapeshellarg($EXPORT_FILE) . ";";
+                        escapeshellarg($sqlconf["dbase"]) . " list_options" .
+                        " >> " . escapeshellarg($EXPORT_FILE) . ";";
                 }
             }
         }
@@ -1060,6 +1063,15 @@ if ($cmd) {
     }
 
  //  ViSolve:  If the Eventlog is set, then clear the temporary table  -- Ends here
+}
+
+// $cmdarr exists because some commands may be too long for a single exec.
+// Note eventlog stuff does not apply here.
+foreach ($cmdarr as $acmd) {
+    $tmp0 = exec($acmd, $tmp1, $tmp2);
+    if ($tmp2) {
+        die("Error $tmp2 in: " . text($acmd));
+    }
 }
 
 // If a file was flagged to be gzip-compressed after this cmd, do it.

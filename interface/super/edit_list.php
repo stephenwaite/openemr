@@ -23,6 +23,7 @@ use OpenEMR\Common\Acl\AclExtended;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Logging\EventAuditLogger;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
 if (!empty($_POST)) {
@@ -44,7 +45,8 @@ if (empty($_REQUEST['list_id'])) {
 // Check authorization.
 $thisauth = AclMain::aclCheckCore('admin', 'super');
 if (!$thisauth) {
-    die(xlt('Not authorized'));
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("List Editor")]);
+    exit;
 }
 
 // Compute a current checksum of the data from the database for the given list.
@@ -1317,7 +1319,7 @@ function writeITLine($it_array)
             <?php } ?>
             <th><?php
             if ($list_id == 'language') {
-                echo xlt('ISO 639-2 Code');
+                echo xlt('ISO 639 Code');
             } elseif ($list_id == 'personal_relationship' || $list_id == 'religious_affiliation' || $list_id == 'ethnicity' || $list_id == 'race' || $list_id == 'drug_route') {
                 echo xlt('HL7-V3 Concept Code');
             } elseif ($list_id == 'Immunization_Completion_Status') {

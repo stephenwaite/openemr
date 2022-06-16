@@ -3,7 +3,7 @@
 {else}
 <tr>
 {/if}
-    <td class="graph" id="{$input|attr}">{$title|xlt}</td>
+    <td class="graph" id="{$input|attr}">{xlt t=$title} {if !empty($codes)}<small>({$codes|text})</small>{/if}</td>
     <td>{xlt t=$unit|xlt}</td>
 
     <td class='currentvalues p-2'>
@@ -19,7 +19,11 @@
     <td class="editonly">
         { include file='vitals_interpretation_selector.tpl' vitalDetails=$vitals->get_details_for_column($input) }
     </td>
+    <td class="editonly actions">
+        { include file='vitals_actions.tpl' }
+    </td>
 
     { include file='vitals_historical_values.tpl' useMetric=false vitalsValue=$vitalsValue results=$results
         vitalsStringFormat=$vitalsStringFormat }
 </tr>
+{ include file='vitals_reason_row.tpl' input=$input title=$title vitalDetails=$vitals->get_details_for_column($input)  }

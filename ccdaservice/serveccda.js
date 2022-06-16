@@ -8,6 +8,9 @@
  */
 
 "use strict";
+
+const enableDebug = true;
+
 const net = require('net');
 const server = net.createServer();
 const to_json = require('xmljson').to_json;
@@ -21,6 +24,7 @@ var npiProvider = "";
 var npiFacility = "";
 var webRoot = "";
 var authorDate = '';
+var documentLocation = '';
 
 function trim(s) {
     if (typeof s === 'string') return s.trim();
@@ -130,10 +134,11 @@ function populateDemographic(pd, g) {
             "type": "primary home"
         }]
     }];
-    let raceCode = pd.race == "White" ? "European" : "African";
     if (pd.race === 'Declined To Specify' || pd.race === '') {
-        raceCode = "null_flavor";
         pd.race = "null_flavor";
+    }
+    if (pd.race_group === 'Declined To Specify' || pd.race_group === '') {
+        pd.race_group = "null_flavor";
     }
     if (pd.ethnicity === 'Declined To Specify' || pd.ethnicity === '') {
         pd.ethnicity = "null_flavor";
@@ -184,8 +189,8 @@ function populateDemographic(pd, g) {
             }
         ],
         "ethnicity": pd.ethnicity || "",
-        "race": pd.race || "",
-        "race_additional": raceCode,
+        "race": pd.race || "null_flavor",
+        "race_additional": pd.race_group || "null_flavor",
         "languages": [{
             "language": pd.language === 'English' ? "en-US" : pd.language === 'Spanish' ? "sp-US" : 'en-US',
             "preferred": true,
@@ -236,6 +241,12 @@ function populateProvider(provider) {
     // primary care role. All other team members will id via taxonomy only and if not physicians.
     return {
         "function_code": provider.physician_type ? "PP" : "",
+        "time": {
+            "low": {
+                "date": provider.provider_since || fDate(""),
+                "precision": "second"
+            }
+        },
         "identity": [
             {
                 "root": provider.npi ? "2.16.840.1.113883.4.6" : oidFacility,
@@ -271,7 +282,6 @@ function populateProvider(provider) {
             {
                 "value": {
                     "number": all.encounter_provider.facility_phone || "",
-
                 }
             }
         ]
@@ -294,24 +304,24 @@ function populateProviders() {
     }
     return {
         "providers":
-        {
-            "code": {
-                "name": "",
-                "code": "",
-                "code_system_name": "SNOMED CT"
-            },
-            "date_time": {
-                "low": {
-                    "date": fDate(""),
-                    "precision": "day"
+            {
+                "code": {
+                    "name": "",
+                    "code": "",
+                    "code_system_name": "SNOMED CT"
                 },
-                "high": {
-                    "date": fDate(""),
-                    "precision": "day"
-                }
-            },
-            "provider": providerArray,
-        }
+                "date_time": {
+                    "low": {
+                        "date": all.time_start || fDate(""),
+                        "precision": "second"
+                    },
+                    "high": {
+                        "date": all.time_end || fDate(""),
+                        "precision": "second"
+                    }
+                },
+                "provider": providerArray,
+            }
     }
 }
 
@@ -966,7 +976,7 @@ function populateResult(pd) {
             icode = "";
             break;
     }
-    return {
+    let result = {
         "identifiers": [{
             "identifier": pd.subtest.root,
             "extension": pd.subtest.extension
@@ -990,13 +1000,18 @@ function populateResult(pd) {
             "type": type,
             "range_type": range_type
         },
-        "interpretations": [icode],
         "value": value + "",
         "unit": pd.subtest.unit,
         "type": type,
         "range": pd.subtest.range,
         "range_type": range_type
     };
+    // interpretation cannot be an empty value so we skip it if it is
+    // empty as Observation.interpretationCode is [0..*]
+    if (icode !== "") {
+        result["interpretations"] = [icode];
+    }
+    return result;
 }
 
 function getResultSet(results) {
@@ -2121,23 +2136,32 @@ function populateNote(pd) {
 }
 
 function populateHeader(pd) {
+    // default doc type ToC
+    let name = "Summarization of Episode Note";
+    let docCode = "34133-9";
+    let docOid = "2.16.840.1.113883.10.20.22.1.2";
+    if (pd.doc_type == 'referral') {
+        name = "Referral Note";
+        docCode = "57133-1";
+        docOid = "2.16.840.1.113883.10.20.22.1.14";
+    }
     const head = {
         "identifiers": [
             {
                 "identifier": oidFacility,
-                "extension": "TT988"
+                "extension": "123456"
             }
         ],
         "code": {
-            "name": "Continuity of Care Document", //change to toc w/code
-            "code": "34133-9",
+            "name": name,
+            "code": docCode,
             "code_system_name": "LOINC"
         },
-        "template": [
-            "2.16.840.1.113883.10.20.22.1.1",
-            "2.16.840.1.113883.10.20.22.1.2"
-        ],
-        "title": "OpenEMR Transitions of Care",
+        "template": {
+            "root": docOid,
+            "extension": "2015-08-01"
+        },
+        "title": name,
         "date_time": {
             "date": pd.created_time_timezone,
             "precision": "none"
@@ -2219,25 +2243,37 @@ function populateHeader(pd) {
                 }
             ],
             "name": [
-                pd.encounter_provider.facility_name
+                pd.custodian.organization || pd.custodian.name
             ],
             "address": [
                 {
                     "street_lines": [
-                        pd.encounter_provider.facility_street
+                        pd.custodian.streetAddressLine
                     ],
-                    "city": pd.encounter_provider.facility_city,
-                    "state": pd.encounter_provider.facility_state,
-                    "zip": pd.encounter_provider.facility_postal_code,
-                    "country": pd.encounter_provider.facility_country_code || "US"
+                    "city": pd.custodian.city,
+                    "state": pd.custodian.state,
+                    "zip": pd.custodian.postalCode,
+                    "country": pd.custodian.country || "US"
                 }
             ],
             "phone": [
                 {
-                    "number": pd.encounter_provider.facility_phone,
+                    "number": pd.custodian.telecom,
                     "type": "work primary"
                 }
             ]
+        },
+        "information_recipient": {
+            "name": {
+                "prefix": pd.information_recipient.prefix || "",
+                "suffix": pd.information_recipient.suffix || "",
+                "middle": [pd.information_recipient.mname] || "",
+                "last": pd.information_recipient.lname || "",
+                "first": pd.information_recipient.fname || ""
+            },
+            "organization": {
+                "name": pd.information_recipient.organization || "org"
+            },
         },
         /*"data_enterer": {
             "identifiers": [
@@ -2403,7 +2439,7 @@ function populateHeader(pd) {
 function getMeta(pd) {
     var meta = {};
     meta = {
-        "type": "CCDA",
+        "type": pd.doc_type,
         "identifiers": [
             {
                 "identifier": oidFacility || "",
@@ -2436,6 +2472,7 @@ function genCcda(pd) {
     oidFacility = all.encounter_provider.facility_oid ? all.encounter_provider.facility_oid : "2.16.840.1.113883.19.5.99999.1";
     npiFacility = all.encounter_provider.facility_npi;
     webRoot = all.serverRoot;
+    documentLocation = all.document_location;
 
     if (all.encounter_list.encounter.date) {
         authorDate = all.encounter_list.encounter.date;
@@ -2843,21 +2880,25 @@ function genCcda(pd) {
     // build to cda
     let xml = bbg.generateCCD(doc);
 
-    /* Debug
-        fs.writeFile("ccda.json", JSON.stringify(all, null, 4), function (err) {
-            if (err) {
-                return console.log(err);
-            }
-            console.log("Json saved!");
-        });
+    /* Debug */
+    if (enableDebug === true) {
+        let place = documentLocation + "/documents/temp/";
+        if (fs.existsSync(place)) {
+            fs.writeFile(place + "ccda.json", JSON.stringify(all, null, 4), function (err) {
+                if (err) {
+                    return console.log(err);
+                }
+                console.log("Json saved!");
+            });
 
-        fs.writeFile("ccda.xml", xml, function (err) {
-            if (err) {
-                return console.log(err);
-            }
-            console.log("Xml saved!");
-        });
-    */
+            fs.writeFile(place + "ccda.xml", xml, function (err) {
+                if (err) {
+                    return console.log(err);
+                }
+                console.log("Xml saved!");
+            });
+        }
+    }
 
     return xml;
 }
