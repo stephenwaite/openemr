@@ -242,7 +242,7 @@ function zip_content($source, $destination, $content = '', $create = true)
                 /******************************************************************/
                 // Setup Headers and Footers for mPDF only Download
                 // in HTML view it's just one line at the top of page 1
-                echo '<page_header class="custom-tag text-right"> ' . xlt("PATIENT") . ':&nbsp' . text($titleres['lname']) . ', ' . text($titleres['fname']) . ' - ' . text($titleres['DOB_TS']) . '</page_header>    ';
+                echo '<page_header class="custom-tag text-right"> ' . xlt("PATIENT") . ': ' . text($titleres['lname']) . ', ' . text($titleres['fname']) . ' - ' . text($titleres['DOB_TS']) . '</page_header>    ';
                 // echo '<page_footer class="custom-tag text-right">' . xlt('Generated on') . ' ' . text(oeFormatShortDate()) . ' - ' . text($facility['name']) . ' ' . text($facility['phone']) . '</page_footer>';
 
                 // Use logo if it exists as 'practice_logo.gif' in the site dir
@@ -841,8 +841,8 @@ function zip_content($source, $destination, $content = '', $create = true)
                 } // end if('include_')... else...
             } // end $ar loop
 
-            if ($printable && ! $PDF_OUTPUT) {// Patched out of pdf 04/20/2017 sjpadgett
-                //echo "<i>" . xlt('Electronically signed') . "<i/>";
+            if ($_SESSION['site_id'] == '2500') {// Patched out of pdf 04/20/2017 sjpadgett
+                echo "<i>" . xlt('Electronically signed') . "<i/>";
             }
             ?>
 
