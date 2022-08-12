@@ -357,7 +357,12 @@ class ParseERA
                     $svc = explode($delimiter3, $seg[1]);
                 }
 
-                if ($svc[0] != 'HC') {
+                if (
+                    !(
+                        $svc[0] != 'HC' ||
+                        $svc[0] != 'N4'
+                     )
+                    ) {
                     return 'SVC segment has unexpected qualifier';
                 }
 

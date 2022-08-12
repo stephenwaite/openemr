@@ -59,7 +59,7 @@ function endInsurance($insrow)
     
     $code_query = "SELECT code, encounter FROM billing WHERE encounter = ? and code_type = 'CPT4'";
     $temp = sqlStatement($code_query, array($insrow['encounter']));
-    while ($temp_array = sqlfetcharray($temp)){
+    while ($temp_array = sqlFetchArray($temp)){
         if ($temp_array['code'] == "NP150") {
             $charges['selfpay'] += 150;
             continue;
