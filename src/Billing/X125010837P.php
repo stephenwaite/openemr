@@ -697,17 +697,17 @@ class X125010837P
 
         $diabDlsRequired = false;
         if (
-            $claim->facilityTaxonomy() == "213E00000X" &&
+            $claim->billingFacilityNPI() == "1134268188" &&
             array_intersect($cpts, $routineFootCareCpts) &&
             array_intersect($da, $routineFootCareDxs)
         ) {
                 $diabDlsRequired = true;
         }
-
+        
         $xrayReferrerRequired = false;
 
         if (
-            $claim->facilityTaxonomy() == "213E00000X" &&
+            $claim->billingFacilityNPI() == "1134268188" &&
             array_intersect($cpts, ['73600', '73610', '73620', '73630', '73650', '73660'])
         ) {
                 $xrayReferrerRequired = true;
