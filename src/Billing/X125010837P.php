@@ -1328,7 +1328,7 @@ class X125010837P
                     } elseif (($claim->payerID($ins)) == "39026") {
                         $out .= "S02";
                     } else {
-                        $out .= "99999";
+                        $log .= "*** Missing other insco payer id with medicaid 2ndary?\n";
                     }
                 } elseif ($claim->payerID($ins)) {
                     $out .= $claim->payerID($ins);
