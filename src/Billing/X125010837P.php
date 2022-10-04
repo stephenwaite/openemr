@@ -956,8 +956,9 @@ class X125010837P
         // Segment HI*BG (Condition Information) omitted.
         // Segment HCP (Claim Pricing/Repricing Information) omitted.
         if (
-            $claim->billing_options['provider_id'] ||
-            ($claim->claimType() === 'MB' && ($diabDlsRequired || $xrayReferrerRequired) && $claim->referrerLastName())) {
+            $claim->billing_options['provider_id'] ?? null ||
+            ($claim->claimType() === 'MB' && ($diabDlsRequired || $xrayReferrerRequired) && $claim->referrerLastName())
+        ) {
             // Medicare requires referring provider's name and NPI.
             ++$edicount;
             $out .= "NM1" .     // Loop 2310A Referring Provider
@@ -1712,7 +1713,7 @@ class X125010837P
                 if (($claim->payerID($ins - 1) == "MCDVT" || $claim->payerID($ins - 1) == "822287119")) {
                     if ($claim->claimType($ins) === 'MB') {
                         $out .= "MDB";
-                    } else { 
+                    } else {
                         if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
                             if (($claim->payerName($ins)) == "BCBS NJ") {
                                 $out .= "H6";
