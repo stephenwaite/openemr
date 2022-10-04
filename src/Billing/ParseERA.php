@@ -39,7 +39,16 @@ class ParseERA
             foreach ($out['svc'] as $svc) {
                 $paytotal -= $svc['paid'];
                 foreach ($svc['adj'] as $adj) {
-                    if ($adj['group_code'] != 'PR') {
+                    if (
+                        (
+                            $adj['group_code'] == 'CO'
+                            && ($adj['reason_code'] == '45' ||
+                            $adj['reason_code'] == '253')
+                        ) ||
+                        (
+                            $adj['group_code'] == 'OA'
+                            && $adj['reason_code'] == '253')
+                        ) {
                         $adjtotal -= $adj['amount'];
                     }
                 }
@@ -47,7 +56,7 @@ class ParseERA
 
             $paytotal = round($paytotal, 2);
             $adjtotal = round($adjtotal, 2);
-            if ($paytotal != 0 || $adjtotal != 0) {
+            if (($paytotal != 0 || $adjtotal != 0) && $out['claim_status_code'] == '1') {
                 if ($out['svc'][0]['code'] != 'Claim') {
                     array_unshift($out['svc'], array());
                     $out['svc'][0]['code'] = 'Claim';
@@ -313,7 +322,7 @@ class ParseERA
             } elseif ($segid == 'NM1' && $out['loopid'] == '2100') { // PR = Corrected Payer
                 // $out['warnings'] .= "NM1 segment at claim level ignored.\n";
             } elseif ($segid == 'MOA' && $out['loopid'] == '2100') {
-                // $out['warnings'] .= "MOA segment at claim level ignored.\n";
+                $out['warnings'] .= "MOA segment at claim level ignored.\n";
             } elseif ($segid == 'REF' && $seg[1] == '1W' && $out['loopid'] == '2100') {
                 // REF segments may provide various identifying numbers, where REF02
                 // indicates the type of number.
@@ -357,7 +366,12 @@ class ParseERA
                     $svc = explode($delimiter3, $seg[1]);
                 }
 
-                if ($svc[0] != 'HC') {
+                if (
+                    !(
+                        $svc[0] != 'HC' ||
+                        $svc[0] != 'N4'
+                     )
+                    ) {
                     return 'SVC segment has unexpected qualifier';
                 }
 
@@ -395,11 +409,11 @@ class ParseERA
                     }
 
                     // removing inversion for CO*144 MIPS incentive adjustment to prevent claim balancing
-                    if ($seg[1] == 'CO' && $seg[$k + 1] < 0 && $seg[$k] !== '144') {
+                    /* if ($seg[1] == 'CO' && $seg[$k + 1] < 0 && $seg[$k] !== '144') {
                         $out['warnings'] .= "Negative Contractual Obligation adjustment " .
                             "seems wrong. Inverting, but should be checked!\n";
                         $seg[$k + 1] = 0 - $seg[$k + 1];
-                    }
+                    } */
 
                     $j = count($out['svc'][$i]['adj']);
                     $out['svc'][$i]['adj'][$j] = array();
