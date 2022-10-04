@@ -337,7 +337,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
             f.bn_process_ub04_support.disabled = !can_generate;
             <?php } ?>
             f.bn_hcfa_txt_file.disabled = !can_generate;
-            f.bn_reopen.disabled = !can_bill;
+            f.bn_reopen.disabled = !(can_bill || can_mark);
             <?php } ?>
             f.bn_mark.disabled = !can_mark;
         }
