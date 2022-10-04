@@ -829,7 +829,7 @@ class X125010837P
         }
 
         // Segment REF*F8 Payer Claim Control Number for claim re-submission.icn_resubmission_number
-        if (strlen(trim($claim->billing_options['icn_resubmission_number'])) > 3) {
+        if (strlen(trim($claim->billing_options['icn_resubmission_number'] ?? null)) > 3) {
             ++$edicount;
             error_log("Method 1: " . errorLogEscape($claim->billing_options['icn_resubmission_number']), 0);
             $out .= "REF" .
@@ -912,8 +912,9 @@ class X125010837P
         // Segment HI*BG (Condition Information) omitted.
         // Segment HCP (Claim Pricing/Repricing Information) omitted.
         if (
-            $claim->billing_options['provider_id'] ||
-            ($claim->claimType() === 'MB' && ($diabDlsRequired || $xrayReferrerRequired) && $claim->referrerLastName())) {
+            $claim->billing_options['provider_id'] ?? null ||
+            ($claim->claimType() === 'MB' && ($diabDlsRequired || $xrayReferrerRequired) && $claim->referrerLastName())
+        ) {
             // Medicare requires referring provider's name and NPI.
             ++$edicount;
             $out .= "NM1" .     // Loop 2310A Referring Provider
@@ -1290,57 +1291,44 @@ class X125010837P
                 ) { // for 2ndary gmc claims
                     if ($claim->claimType($ins) === 'MB') {
                         $out .= "MDB";
-                    } else { 
-                        if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
-                            if (($claim->payerName($ins)) == "BCBS NJ") {
-                                $out .= "H6";
-                            } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
-                                $out .= "MDB";
-                            } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
-                                $out .= "BV";
-                            } else {
-                                $out .= "EE";
-                            }
-                        }
-                        if (($claim->payerID($ins)) == "14512") {
+                    } elseif ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
+                        if (($claim->payerName($ins)) == "BCBS NJ") {
+                            $out .= "H6";
+                        } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
                             $out .= "MDB";
+                        } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
+                            $out .= "BV";
+                        } else {
+                            $out .= "EE";
                         }
-                        if (($claim->payerID($ins)) == "14212") {
+                    } elseif (($claim->payerID($ins)) == "14512") {
                             $out .= "MDB";
-                        }
-                        if (($claim->payerID($ins)) == "14163") {
+                    } elseif (($claim->payerID($ins)) == "14212") {
                             $out .= "MDB";
-                        }
-                        if (($claim->payerID($ins)) == "87726") {
-                            $out .= "MDC";
-                        }
-                        if (($claim->payerID($ins)) == "62308") {
+                    } elseif (($claim->payerID($ins)) == "14163") {
+                            $out .= "MDB";
+                    } elseif (($claim->payerID($ins)) == "87726") {
+                        $out .= "MDC";
+                    } elseif (($claim->payerID($ins)) == "62308") {
                             $out .= "FB6";
-                        }
-                        if (($claim->payerID($ins)) == "14165") {
-                            $out .= "Z2";
-                        }
-                        if (($claim->payerID($ins)) == "60054") {
-                            $out .= "92";
-                        }
-                        if (($claim->payerID($ins)) == "00010") {
-                            $out .= "42";
-                        }
-                        if (($claim->payerID($ins)) == "MPHC1") {
-                            $out .= "42";
-                        }
-                        if (($claim->payerID($ins)) == "EBSRM") {
-                            $out .= "AW1";
-                        }
-                        if (($claim->payerID($ins)) == "00882") {
-                            $out .= "MDB";
-                        }
-                        if (($claim->payerID($ins)) == "53275") {
-                            $out .= "AE7";
-                        }
-                        if (($claim->payerID($ins)) == "39026") {
-                            $out .= "S02";
-                        }
+                    } elseif (($claim->payerID($ins)) == "14165") {
+                        $out .= "Z2";
+                    } elseif (($claim->payerID($ins)) == "60054") {
+                        $out .= "92";
+                    } elseif (($claim->payerID($ins)) == "00010") {
+                        $out .= "42";
+                    } elseif (($claim->payerID($ins)) == "MPHC1") {
+                        $out .= "42";
+                    } elseif (($claim->payerID($ins)) == "EBSRM") {
+                        $out .= "AW1";
+                    } elseif (($claim->payerID($ins)) == "00882") {
+                        $out .= "MDB";
+                    } elseif (($claim->payerID($ins)) == "53275") {
+                        $out .= "AE7";
+                    } elseif (($claim->payerID($ins)) == "39026") {
+                        $out .= "S02";
+                    } else {
+                        $out .= "99999";
                     }
                 } elseif ($claim->payerID($ins)) {
                     $out .= $claim->payerID($ins);
@@ -1638,7 +1626,7 @@ class X125010837P
                 if (($claim->payerID($ins - 1) == "MCDVT" || $claim->payerID($ins - 1) == "822287119")) {
                     if ($claim->claimType($ins) === 'MB') {
                         $out .= "MDB";
-                    } else { 
+                    } else {
                         if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
                             if (($claim->payerName($ins)) == "BCBS NJ") {
                                 $out .= "H6";
