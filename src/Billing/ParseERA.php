@@ -359,9 +359,15 @@ class ParseERA
                     // We will not put their crap in our invoice, but rather log a note and
                     // treat it as adjustments to our originally submitted coding.
                     $svc = explode($delimiter3, $seg[6]);
-                    $tmp = explode($delimiter3, $seg[1]);
-                    $out['warnings'] .= "Payer is restating our procedure " . $svc[1] .
+                    // NDCs are stated here so we want to ignore and use the HC qualifier in $seg[6]
+                    if ($svc[0] == 'N4'){
+                        $out['warnings'] .= "SVC segment with N4 qualifier at service level ignored.\n";
+                        $svc = explode($delimiter3, $seg[1]);
+                    } else {
+                        $tmp = explode($delimiter3, $seg[1]);
+                        $out['warnings'] .= "Payer is restating our procedure " . $svc[1] . 
                         " as " . $tmp[1] . ".\n";
+                    }
                 } else {
                     $svc = explode($delimiter3, $seg[1]);
                 }
