@@ -832,7 +832,9 @@ function CheckVisible(MakeBlank) { //Displays and hides the check number text bo
     if (document.getElementById('form_method').options[document.getElementById(
             'form_method').selectedIndex].value == 'check_payment' || document.getElementById(
             'form_method').options[document.getElementById('form_method').selectedIndex]
-        .value == 'bank_draft') {
+        .value == 'bank_draft' || document.getElementById(
+            'form_method').options[document.getElementById('form_method').selectedIndex]
+        .value == 'credit_card') {
         document.getElementById('check_number').disabled = false;
     } else {
         document.getElementById('check_number').disabled = true;
