@@ -1312,8 +1312,7 @@ class X125010837P
                 "*" . "PI" .
                 "*";
                 if (
-                    $claim->payerID($ins - 1) == "MCDVT" ||
-                    $claim->payerID($ins - 1) ==  "822287119"
+                    $claim->payerID($ins - 1) == "MCDVT"
                 ) { // for 2ndary gmc claims
                     if ($claim->claimType($ins) === 'MB') {
                         $out .= "MDB";
@@ -1652,7 +1651,9 @@ class X125010837P
                 ++$edicount;
                 $out .= "SVD" . // Service line adjudication. Page 554.
                 "*";
-                if (($claim->payerID($ins - 1) == "MCDVT" || $claim->payerID($ins - 1) == "822287119")) {
+                if (
+                    $claim->payerID($ins - 1) == "MCDVT"
+                ) {
                     if ($claim->claimType($ins) === 'MB') {
                         $out .= "MDB";
                     } else {
