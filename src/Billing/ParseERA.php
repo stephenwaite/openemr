@@ -42,14 +42,26 @@ class ParseERA
                     if (
                         (
                             $adj['group_code'] == 'CO'
-                            && ($adj['reason_code'] == '45' ||
-                            $adj['reason_code'] == '253')
+                            && (
+                                $adj['reason_code'] == '45' 
+                                || $adj['reason_code'] == '253'
+                                || $adj['reason_code'] == '59'
+                            )
+
                         ) ||
                         (
                             $adj['group_code'] == 'OA'
-                            && $adj['reason_code'] == '253')
-                        ) {
-                        $adjtotal -= $adj['amount'];
+                            && $adj['reason_code'] == '253'
+                        ) ||
+                        (
+                            $adj['group_code'] == 'PI'
+                            && (
+                                $adj['reason_code'] == '253'
+                                || $adj['reason_code'] == '59'
+                            )
+                        )
+                       ) {
+                       $adjtotal -= $adj['amount'];
                     }
                 }
             }
