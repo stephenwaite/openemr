@@ -29,6 +29,13 @@ use OpenEMR\OeUI\RenderFormFieldHelper;
 
 $facilityService = new FacilityService();
 
+$date_label = "Onset/Hosp. Date";
+$facility_pbe = $facilityService->getPrimaryBusinessEntity();
+
+if ($facility_pbe['facility_taxonomy'] == "213E00000X") {
+    $date_label = "Date Last Seen";
+}
+
 if ($GLOBALS['enable_group_therapy']) {
     require_once("$srcdir/group.inc.php");
 }
@@ -518,7 +525,7 @@ $ires = sqlStatement("SELECT id, type, title, begdate FROM lists WHERE " .
                         <div class="col-sm <?php echo ($GLOBALS['gbl_visit_onset_date'] == 1) ?: 'd-none'; ?>">
                             <div class="form-group">
                                 <label for='form_onset_date' class="text-right"><?php echo xlt('Onset/hosp. date:'); ?> &nbsp;<i id='onset-tooltip' class="fa fa-info-circle text-primary" aria-hidden="true"></i></label>
-                                <input type='text' class='form-control datepicker' name='form_onset_date' id='form_onset_date' value='<?php echo $viewmode && $result['onset_date'] !== '0000-00-00 00:00:00' ? attr(oeFormatDateTime($result['onset_date'])) : ''; ?>' title='<?php echo xla('Date of onset or hospitalization'); ?>' />
+                                <input type='text' class='form-control datepicker' name='form_onset_date' id='form_onset_date' value='<?php echo $viewmode && $result['onset_date'] !== '0000-00-00 00:00:00' ? attr(oeFormatDateTime($result['onset_date'])) : ''; ?>' title='<?php $date_label; ?>' />
                             </div>
                         </div>
                         <div class="col-sm <?php echo ($GLOBALS['gbl_visit_referral_source'] == 1) ?: 'd-none';?>">

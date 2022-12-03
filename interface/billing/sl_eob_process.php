@@ -547,7 +547,14 @@ function era_callback(&$out)
                     writeMessageLine($bgcolor, $class, $description . ' ' .
                     sprintf("%.2f", $adj['amount']));
                 } else { // Other group codes for primary insurance are real adjustments.
-                    if (!$error && !$debug) {
+                    // except for those services where nothing paid and it wasn't deductible
+                    // we don't want to write off the amount which would force
+                    // the biller to manually delete and re-work so we post a zero-dollar adj
+                    // and save it as a comment
+                    if ($svc['paid'] == 0 && !($adj['group_code'] == "CO" && $adj['reason_code'] == '45')) {
+                        $class = 'errdetail';
+                        $error = true;
+                    } elseif (!$error && !$debug) {
                         SLEOB::arPostAdjustment(
                             $pid,
                             $encounter,
