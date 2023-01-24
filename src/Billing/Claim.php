@@ -174,7 +174,7 @@ class Claim
         "b.ndc_info, b.notecodes, b.revenue_code, ct.ct_diag " .
         "FROM billing as b " .
         "INNER JOIN code_types as ct ON b.code_type = ct.ct_key " .
-        "WHERE ct.ct_claim = '1' AND ct.ct_active = '1' AND b.encounter = ? AND b.pid = ? AND " .
+        "WHERE ct.ct_claim = '1' AND ct.ct_active = '1' AND b.code != 'Claim' AND b.encounter = ? AND b.pid = ? AND " .
         "b.activity = '1' ORDER BY b.date, b.id";
         $res = sqlStatement($sql, array($this->encounter_id, $this->pid));
         while ($row = sqlFetchArray($res)) {
