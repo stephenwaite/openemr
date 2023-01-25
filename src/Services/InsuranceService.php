@@ -290,9 +290,9 @@ class InsuranceService extends BaseService
 
     public function insert($pid, $type, $data)
     {
-        if ($this->doesInsuranceTypeHaveEntry($pid, $type)) {
-            return $this->update($pid, $type, $data);
-        }
+        //if ($this->doesInsuranceTypeHaveEntry($pid, $type)) {
+        //    return $this->update($pid, $type, $data);
+        //}
 
         $sql = " INSERT INTO insurance_data SET ";
         $sql .= "   type=?,";
