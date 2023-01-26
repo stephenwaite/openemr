@@ -1,13 +1,13 @@
 <?php
-
+exit();
 require __DIR__ . '/vendor/autoload.php';
 // collect parameters (need to do before globals)
 $_GET['site'] = $argv[1];
 $ignoreAuth = 1;
 require_once(__DIR__ . "/../../interface/globals.php");
 
-sqlStatement("truncate patient_data");
-sqlStatement("truncate insurance_data");
+//sqlStatement("truncate patient_data");
+//sqlStatement("truncate insurance_data");
 
 
 // CALL the underlying service that is used by the api
