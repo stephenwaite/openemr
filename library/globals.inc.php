@@ -1339,7 +1339,7 @@ $GLOBALS_METADATA = array(
             xl('Medicare Referrer Is Renderer'),
             'bool',                           // data type
             '0',                              // default = false
-            xl('For Medicare only, forces the referring provider to be the same as the rendering provider.')
+            xl('This feature will allow the default POS facility code to be overridden from the encounter.')
         ),
 
         'statement_logo' => array(
