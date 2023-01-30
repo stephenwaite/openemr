@@ -504,8 +504,9 @@ class X125010837P
         "*" .
         "*" . "PI" .
         "*" . ($encounter_claim ? $claim->payerAltID() : $claim->payerID());
-        if (!$claim->payerID()) {
-            $log .= "*** Payer ID is missing for payer '";
+        if (!$claim->payerID()
+            || $claim->payerID() == '99999') {
+            $log .= "*** Claim's payer ID is invalid.\n";
         }
         $out .= "~\n";
 
