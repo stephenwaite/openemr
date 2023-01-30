@@ -517,13 +517,14 @@ class X125010837P
             $log .= "*** Missing payer name.\n";
         }
         $out .= "*" .
-            "*" .
-            "*" .
-            "*" .
-            "*" . "PI" .
-            "*" . ($encounter_claim ? $claim->payerAltID() : $claim->payerID());
-        if (!$claim->payerID()) {
-            $log .= "*** Payer ID is missing for payer '";
+        "*" .
+        "*" .
+        "*" .
+        "*" . "PI" .
+        "*" . ($encounter_claim ? $claim->payerAltID() : $claim->payerID());
+        if (!$claim->payerID()
+            || $claim->payerID() == '99999') {
+            $log .= "*** Claim's payer ID is invalid.\n";
         }
         $out .= "~\n";
 
