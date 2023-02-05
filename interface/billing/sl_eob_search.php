@@ -650,7 +650,7 @@ if (
                 $stmt['to'][] = $row['street'];
             }
 
-            $stmt['to'][] = $row['city'] . ", " . $row['state'] . " " . $row['postal_code'];
+            $stmt['to'][] = $row['city'] . " " . $row['state'] . " " . $row['postal_code'];
             $stmt['lines'] = array();
             $stmt['amount'] = '0.00';
             $stmt['ins_paid'] = 0;
