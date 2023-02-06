@@ -186,6 +186,16 @@ $(function () {
   if (window.checkSkipConditions) {
     checkSkipConditions();
   }
+
+  // Hide swap ins button if insurance not primary
+  $('#INSURANCE .tabNav a').click(function(){
+    let text = $(this).text();
+    if ( text == 'Primary') {
+        $('.swapIns').show();
+    } else {
+        $('.swapIns').hide();
+    }
+  })
 });
 
 var mypcc = <?php echo js_escape($GLOBALS['phone_country_code']); ?>;
@@ -478,6 +488,7 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
 <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 <input type='hidden' name='mode' value='save' />
 <input type='hidden' name='db_id' value="<?php echo attr($result['id']); ?>" />
+<input type="hidden" name="isSwapClicked" value="" />
 
     <div class="container-fluid">
         <div class="row">
@@ -635,6 +646,10 @@ echo xlt($CapInstype); ?></a></li><?php } ?>
              <td>
               <input type='entry' class='form-control' size='20' name='i<?php echo attr($i); ?>plan_name' value="<?php echo attr($result3["plan_name"]); ?>" onchange="capitalizeMe(this);" />&nbsp;&nbsp;
              </td>
+             <td class="col-md-3 swapIns" <?php echo (empty($GLOBALS['enable_swap_secondary_insurance'])) ? " style='display:none'" : ""; ?>>
+                <a class="btn btn-secondary pb-1" href="#" role="button"
+                    onclick="document.forms[0].isSwapClicked.value='1'; document.forms[0].submit()"><?php echo xlt('Swap with Secondary') ?></a>
+                    </td>
             </tr>
 
             <tr>

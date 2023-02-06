@@ -75,9 +75,12 @@ updateEmployerData($pid, $newdata['employer_data']);
 $i1dob = DateToYYYYMMDD(filter_input(INPUT_POST, "i1subscriber_DOB"));
 $i1date = DateToYYYYMMDD(filter_input(INPUT_POST, "i1effective_date"));
 
+$swap_with_secondary = !empty($_POST['isSwapClicked']);
+$type = ($swap_with_secondary) ? 'secondary' : 'primary';
+
 newInsuranceData(
     $pid,
-    "primary",
+    $type,
     filter_input(INPUT_POST, "i1provider"),
     filter_input(INPUT_POST, "i1policy_number"),
     filter_input(INPUT_POST, "i1group_number"),
@@ -111,11 +114,13 @@ newInsuranceData(
 if (!$GLOBALS['insurance_only_one']) {
     $i2dob = DateToYYYYMMDD(filter_input(INPUT_POST, "i2subscriber_DOB"));
     $i2date = DateToYYYYMMDD(filter_input(INPUT_POST, "i2effective_date"));
-
+    
+    $swap_with_secondary = !empty($_POST['isSwapClicked']);
+    $type = ($swap_with_secondary) ? 'primary' : 'secondary';
 
     newInsuranceData(
         $pid,
-        "secondary",
+        $type,
         filter_input(INPUT_POST, "i2provider"),
         filter_input(INPUT_POST, "i2policy_number"),
         filter_input(INPUT_POST, "i2group_number"),

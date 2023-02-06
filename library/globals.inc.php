@@ -1371,7 +1371,14 @@ $GLOBALS_METADATA = array(
             'bool',                           // data type
             '0',                              // default
             xl('Enable percent-based price levels')
-        )
+        ),
+        
+        'enable_swap_secondary_insurance' => array(
+            xl('Enable Swap Secondary Insurance Editing Demographics'),
+            'bool',                           // data type
+            '0',                              // default
+            xl('Enable swap secondary insurance')
+        ),
     ),
 
     // E-Sign Tab
