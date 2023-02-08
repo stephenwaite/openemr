@@ -853,6 +853,7 @@ if (
         }
 
         function toEncSummary(pid) {
+            e.preventDefault();
             // Tabs only
             top.restoreSession();
             let encurl = 'patient_file/history/encounters.php?billing=1&issue=0&pagesize=20&pagestart=0';
