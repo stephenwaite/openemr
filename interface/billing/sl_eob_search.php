@@ -852,7 +852,7 @@ if (
             dlgopen(url, 'billnote', 'modal-sm', 275, '');
         }
 
-        function toEncSummary(pid) {
+        function toEncSummary(e, pid) {
             e.preventDefault();
             // Tabs only
             top.restoreSession();
