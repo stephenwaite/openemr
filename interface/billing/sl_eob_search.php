@@ -24,7 +24,7 @@
 require_once("../globals.php");
 require_once("$srcdir/patient.inc");
 require_once("$srcdir/appointments.inc.php");
-require_once("$rscdir/statement.inc.php");
+require_once("$srcdir/statement.inc.php");
 require_once("$srcdir/api.inc");
 require_once("$srcdir/forms.inc");
 require_once("$srcdir/../controllers/C_Document.class.php");
