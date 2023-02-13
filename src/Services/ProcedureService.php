@@ -62,6 +62,7 @@ class ProcedureService extends BaseService
                     ,porder.order_diagnosis
                     ,porder.order_encounter_id
                     ,porder.order_lab_id
+                    ,porder.order_account
      
                     ,preport.report_date
                     ,preport.procedure_report_id
@@ -151,6 +152,7 @@ class ProcedureService extends BaseService
                         ,procedure_order_id AS order_id
                         ,patient_id AS order_patient_id
                         ,provider_id
+                        ,account AS order_account
                     FROM
                         procedure_order
                 ) porder

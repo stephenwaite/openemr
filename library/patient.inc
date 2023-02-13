@@ -195,13 +195,14 @@ function getFacility($facid = 0)
 // Generate a report title including report name and facility name, address
 // and phone.
 //
-function genFacilityTitle($repname = '', $facid = 0, $logo = "")
+function genFacilityTitle($repname = '', $facid = 0, $logo = "", $DOB = '')
 {
     $s = '';
     $s .= "<table class='ftitletable' width='100%'>\n";
     $s .= " <tr>\n";
     if (empty($logo)) {
-        $s .= "  <td align='left' class='ftitlecell1'>" . text($repname) . "</td>\n";
+        $s .= "  <td align='left' class='ftitlecell1 font-weight-bold'>Patient: " . text(strtoupper($repname)) . 
+        "\n<br />DOB: " . text($DOB) . "</td>\n";
     } else {
         $s .= "  <td align='left' class='ftitlecell1'><img class='h-auto' style='max-height:8%;' src='" . attr($logo) . "' /></td>\n";
         $s .= "  <td align='left' class='ftitlecellm'><h2>" . text($repname) . "</h2></td>\n";

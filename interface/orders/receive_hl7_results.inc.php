@@ -897,6 +897,12 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
             $in_dob = rhl7Date($a[7]);
             // foreign MRN
             $in_pubpid = rhl7Text($a[3] ?? '');
+            // accession #
+            $in_accession = rhl7Text($a[18] ?? '');
+            if (!empty($in_accession)) {
+                $foo = sqlQuery("INSERT INTO `accession` (`accession`, `mrn`) VALUES (?, ?)", [$in_accession, $in_pubpid]);
+            }
+
             $tmp = explode($d2, $a[11]);
             $in_street = rhl7Text($tmp[0]) ?? '';
             $in_street1 = rhl7Text($tmp[1] ?? '');
@@ -1135,7 +1141,8 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
                                 "patient_id     = ?, " .
                                 "encounter_id   = ?, " .
                                 "control_id     = ?, " .
-                                "external_id    = ?",
+                                "external_id    = ?, " .
+                                "account        = ?",
                             array(
                                 $datetime_report,
                                 $provider_id,
@@ -1145,7 +1152,8 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
                                 $patient_id,
                                 $encounter_id,
                                 $external_order_id,
-                                $external_id
+                                $external_id,
+                                $in_accession
                             )
                         );
                         // If an encounter was identified then link the order to it.
