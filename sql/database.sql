@@ -2,6 +2,20 @@
 -- Database: `openemr`
 --
 
+
+--
+-- Table structure for table `accession`
+--
+DROP TABLE IF EXISTS `accession`;
+CREATE TABLE `accession` (
+  `id` BIGINT(20) NOT NULL auto_increment,
+  `accession` BIGINT(20) NOT NULL DEFAULT '0',
+  `mrn` BIGINT(20) NOT NULL DEFAULT '0',
+  PRIMARY KEY  (`id`),
+  KEY `accession` (`accession`),
+  KEY `mrn` (`mrn`)
+) ENGINE=InnoDB;
+
 --
 -- Table structure for table `addresses`
 --

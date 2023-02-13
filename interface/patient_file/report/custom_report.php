@@ -212,6 +212,10 @@ function zip_content($source, $destination, $content = '', $create = true)
       img {
         max-width: 700px;
       }
+
+      .text {
+        font-size: 1rem;
+      }
     </style>
 
     <?php if (!$PDF_OUTPUT) { ?>
@@ -253,19 +257,19 @@ function zip_content($source, $destination, $content = '', $create = true)
                 // Use logo if it exists as 'practice_logo.gif' in the site dir
                 // old code used the global custom dir which is no longer a valid
                 $practice_logo = "";
-                $plogo = glob("$OE_SITE_DIR/images/*");// let's give the user a little say in image format.
+                /* $plogo = glob("$OE_SITE_DIR/images/*");// let's give the user a little say in image format.
                 $plogo = preg_grep('~practice_logo\.(gif|png|jpg|jpeg)$~i', $plogo);
                 if (!empty($plogo)) {
                     $k = current(array_keys($plogo));
                     $practice_logo = $plogo[$k];
-                }
+                } */
 
                 $logo = "";
                 if (file_exists($practice_logo)) {
                     $logo = $GLOBALS['OE_SITE_WEBROOT'] . "/images/" . basename($practice_logo);
                 }
 
-                echo genFacilityTitle(getPatientName($pid), $_SESSION['pc_facility'], $logo); ?>
+                echo genFacilityTitle(getPatientName($pid), $_SESSION['pc_facility'], $logo, getPatientData($pid)['DOB_TS']);?>
 
             <?php } else { // not printable
                 ?>
@@ -786,22 +790,23 @@ function zip_content($source, $destination, $content = '', $create = true)
                             $dateres = getEncounterDateByEncounter($form_encounter);
                             $formId = getFormIdByFormdirAndFormid($res[1], $form_id);
 
-                            if ($res[1] == 'newpatient') {
+                            if (in_array($res[1], array('newpatient', 'dictation'))) {
                                 echo "<div class='text encounter'>\n";
-                                echo "<h4>" . xlt($formres["form_name"]) . "</h4>";
+                                //echo "<h4>" . xlt($formres["form_name"]) . "</h4>";
                             } else {
                                 echo "<div class='text encounter_form'>";
                                 echo "<h4>" . text(xl_form_title($formres["form_name"])) . "</h4>";
                             }
 
                             // show the encounter's date
-                            echo "(" . text(oeFormatSDFT(strtotime($dateres["date"]))) . ") ";
+                            //echo "(" . text(oeFormatSDFT(strtotime($dateres["date"]))) . ") ";
                             if ($res[1] == 'newpatient') {
                                 // display the provider info
+                                echo "Date of Service: (" . text(oeFormatSDFT(strtotime($dateres["date"]))) . ") ";
                                 echo ' ' . xlt('Provider') . ': ' . text(getProviderName(getProviderIdOfEncounter($form_encounter)));
                             }
 
-                            echo "<br />\n";
+                            //echo "<br />\n";
 
                             // call the report function for the form
                             ?>
@@ -818,7 +823,7 @@ function zip_content($source, $destination, $content = '', $create = true)
                                     } elseif (empty($GLOBALS['esign_report_show_only_signed'])) {
                                         if (substr($res[1], 0, 3) == 'LBF') {
                                             call_user_func('lbf_report', $pid, $form_encounter, $N, $form_id, $res[1]);
-                                        } else {
+                                        } elseif (!in_array($res[1], array('newpatient'))) {
                                             call_user_func($res[1] . '_report', $pid, $form_encounter, $N, $form_id);
                                         }
                                     } else {
@@ -847,8 +852,8 @@ function zip_content($source, $destination, $content = '', $create = true)
                                     array($pid, $form_encounter)
                                 );
                                 while ($brow = sqlFetchArray($bres)) {
-                                    echo "<div class='font-weight-bold d-inline-block'>&nbsp;" . xlt('Procedure') . ": </div><div class='text d-inline-block'>" .
-                                        text($brow['code']) . ":" . text($brow['modifier']) . " " . text($brow['code_text']) . "</div><br />\n";
+                                    //echo "<div class='font-weight-bold d-inline-block'>&nbsp;" . xlt('Procedure') . ": </div><div class='text d-inline-block'>" .
+                                    //    text($brow['code']) . ":" . text($brow['modifier']) . " " . text($brow['code_text']) . "</div><br />\n";
                                 }
                             }
 
@@ -858,8 +863,8 @@ function zip_content($source, $destination, $content = '', $create = true)
                 } // end if('include_')... else...
             } // end $ar loop
 
-            if ($printable && !$PDF_OUTPUT) {// Patched out of pdf 04/20/2017 sjpadgett
-                echo "<br /><br />" . xlt('Signature') . ": _______________________________<br />";
+            if ($_SESSION['site_id'] == '2500') {// Patched out of pdf 04/20/2017 sjpadgett
+                echo "<i>" . xlt('Electronically signed') . "<i/>";
             }
             ?>
 

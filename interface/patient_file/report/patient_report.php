@@ -225,7 +225,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                         <table class="includes mt-3">
                             <tr>
                                 <td class='text'>
-                                    <input type='checkbox' name='include_demographics' id='include_demographics' value="demographics" checked /><?php echo xlt('Demographics'); ?>
+                                    <input type='checkbox' name='include_demographics' id='include_demographics' value="demographics" /><?php echo xlt('Demographics'); ?>
                                     <br />
                                     <?php if (AclMain::aclCheckCore('patients', 'med')) : ?>
                                     <input type='checkbox' name='include_history' id='include_history' value="history" /><?php echo xlt('History'); ?>
@@ -239,7 +239,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                                     <input type='checkbox' name='include_billing' id='include_billing' value="billing"
                                     <?php
                                     if (!$GLOBALS['simplified_demographics']) {
-                                        echo 'checked';
+                                        echo '';
                                     } ?> /><?php echo xlt('Billing'); ?>
                                     <br />
                                 </td>
@@ -374,7 +374,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                                         "form_encounter.encounter = forms.encounter " .
                                         " AND forms.deleted=0 " . // --JRM--
                                         "ORDER BY form_encounter.encounter DESC, form_encounter.date DESC, fdate ASC", array($pid, $pid));
-                                        $res2 = sqlStatement("SELECT name FROM registry ORDER BY priority");
+                                        $res2 = sqlStatement("SELECT name FROM registry ORDER BY priority DESC");
                                         $html_strings = array();
                                         $registry_form_name = array();
                                         while ($result2 = sqlFetchArray($res2)) {
