@@ -206,7 +206,7 @@ class Claim
     // Handles date time stamp formats as well
     public function cleanDate($date_field)
     {
-        $cleandate = str_replace('-', '', substr($date_field, 0, 10));
+        $cleandate = str_replace('-', '', substr($date_field ?? '', 0, 10));
 
         if (substr_count($cleandate, '0') == 8) {
             $cleandate = '';
@@ -268,7 +268,7 @@ class Claim
         for ($i = 1; $i < count($this->payers); ++$i) {
             if (
                 $billrow['process_date'] &&
-                $this->payers[0]['data']['provider'] == $this->payers[$i]['data']['provider']
+                ($this->payers[0]['data']['provider'] ?? null) == $this->payers[$i]['data']['provider']
             ) {
                 $tmp = $this->payers[0];
                 $this->payers[0] = $this->payers[$i];
