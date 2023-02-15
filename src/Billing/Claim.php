@@ -209,7 +209,7 @@ class Claim
     // Handles date time stamp formats as well
     public function cleanDate($date_field)
     {
-        $cleandate = str_replace('-', '', substr($date_field, 0, 10));
+        $cleandate = str_replace('-', '', substr($date_field ?? '', 0, 10));
 
         if (substr_count($cleandate, '0') == 8) {
             $cleandate = '';
@@ -247,8 +247,11 @@ class Claim
 
             $ins = count($this->payers);
             if (
-                ($drow['provider'] == $billrow['payer_id'] || $billrow['payer_id'] == null) &&
-                empty($this->payers[0]['data'])
+                (
+                    $drow['provider'] == $billrow['payer_id']
+                    || empty($billrow['payer_id'])
+                )
+                && empty($this->payers[0]['data'])
             ) {
                 $ins = 0;
             }
@@ -268,7 +271,7 @@ class Claim
         for ($i = 1; $i < count($this->payers); ++$i) {
             if (
                 $billrow['process_date'] &&
-                $this->payers[0]['data']['provider'] == $this->payers[$i]['data']['provider']
+                ($this->payers[0]['data']['provider'] ?? null) == $this->payers[$i]['data']['provider']
             ) {
                 $tmp = $this->payers[0];
                 $this->payers[0] = $this->payers[$i];
@@ -617,7 +620,7 @@ class Claim
             return false;
         }
 
-        $tmp = $this->x12Clean(trim($this->x12_partner['x12_submitter_name'])) ?? false;
+        $tmp = $this->x12Clean(trim($this->x12_partner['x12_submitter_name'] ?? ''));
         return $tmp;
     }
 
