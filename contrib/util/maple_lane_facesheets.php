@@ -56,27 +56,153 @@ if ($file = fopen($filename, "r")) {
             if (strpos($textperline, 'FACILITY:') !== false) {
                 $facility = 7;
                 //$facility = getFacility()
+                continue;
             }
 
             if (strpos($textperline, 'IDENTIFIER:') !== false) {
                 $parts = preg_split('/\s+/', $textperline);
                 //var_dump($parts);
-                $pubpid = substr($parts[2], 1, 6);
+                //$pubpid = substr($parts[2], 1, 6);
                 $lname = str_replace(',', '', $parts[4]);
                 $fname = $parts[5];
-                //echo $pubpid . " " . $lname . ", " . $fname . "\n";
             }
 
             if (strpos($textperline, 'MED REC NO:') !== false) {
                 $parts = preg_split('/\s+/', $textperline);
-                var_dump($parts);
+                //var_dump($parts);
                 $pubpid = substr($parts[4], -5, 5);
-                echo $pubpid . " " . $lname . ", " . $fname . "\n";
+            }
+
+            if (strpos($textperline, 'SOC. SEC.') !== false) {
+                $parts = preg_split('/\s+/', $textperline);
+                //var_dump($parts);
+                $ssn = $parts[3];
+                //echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . "\n";
+            }
+
+            if (strpos($textperline, 'BIRTH DATE:') !== false) {
+                $parts = preg_split('/\s+/', $textperline);
+                //var_dump($parts);
+                $dob = (new \DateTimeImmutable($parts[6]))->format('Y-m-d');
+                //echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . " " . $dob . "\n";
+            }
+
+            if (strpos($textperline, 'GENDER  . :') !== false) {
+                $parts = preg_split('/\s+/', $textperline);
+                //var_dump($parts);
+                $sex = $parts[4];
+                //echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . " " . $dob . " " . $sex . "\n";
+            }
+
+            if (strpos($textperline, 'MEDICARE#') !== false) {
+                $parts = preg_split('/\s+/', $textperline);
+                //var_dump($parts);
+                $prins = $parts[5];
+                //echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . " " . $dob . " " . $sex . 
+                //  " " . $prins . "\n";
+            }
+
+            if (strpos($textperline, 'MEDICAID#') !== false) {
+                $parts = preg_split('/\s+/', $textperline);
+                //var_dump($parts);
+                foreach($parts as $key => $value) {
+                    if (strpos($value, 'MEDICAID#') !== false) {
+                        $secins = $parts[$key + 1];
+                    }
+                }
+                //echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . " " . $dob . " " . $sex . 
+                //  " " . $prins . " " . $secins . "\n";
+            }
+
+            if (!empty($payors)) {
+                $policy = x12Clean(substr($textperline, 50, 16));
+                if (
+                    !empty($policy)
+                    && (!strpos($textperline, '---------') !== false)
+                ) {
+                    $payor_name = substr($textperline, 19, 30);
+                    if (
+                        !empty($payor_name)
+                        && (
+                            !((stripos($textperline, 'Medicare') !== false)
+                            || (stripos($textperline, 'Medicaid') !== false))
+                        )
+                    ) {
+                        echo $payor_name . " " . $policy . "\n";
+                        //$payors[$pubpid] = [$parts[0] => $parts[1]];
+                    }
+                }
+            }
+
+            if (!empty($second_address_line)) {
+                $parts = explode(",", $textperline);
+                if (!empty($parts[1])) {
+                    $city = trim($parts[0]);
+                    $state_zip_parts = preg_split('/\s+/', $parts[1]);
+                    //var_dump($state_zip_parts);
+                    //$state = trim($state_zip_parts[0]);
+                    $state = trim($state_zip_parts[1]);
+                    $zip = trim($state_zip_parts[2]);
+                    $address .= " " . $city . " " . $state . " " . $zip;
+                    $second_address_line = false;
+                }
+                $second_address_line = false;
+                
+            }
+
+            if (!empty($primary_contact)) {
+                $parts = explode("(", $textperline);
+                $phone = '';
+                if (!empty($parts[1])) {
+                    $phone = "(" . $parts[1];
+                }
+                if (stripos($textperline, '60 MAPLE LANE') !== false) {
+                    $use_facility_address = true;
+                    $primary_contact = false;
+                    continue;
+                } elseif (stripos($textperline, 'LEGAL GUARDIAN') !== false) {
+                    $use_facility_address = true;
+                    $primary_contact = false;
+                    continue;
+                } else {
+                    //var_dump($parts);
+                    $street = trim($parts[0]);
+                    $address = $street;
+                    $primary_contact = false;
+                    $second_address_line = true;
+                }
+            }
+
+            if (strpos($textperline, 'PRIMARY CONTACT:') !== false) {
+                if (strpos($textperline, 'SELF') !== false) {
+                    $primary_contact = true;
+                    continue;
+                } else {
+                    $use_facility_address = true;
+                    $primary_contact = false;
+                }
+                //echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . " " . $dob . " " . $sex . "\n";
+            }
+
+            if (strpos($textperline, 'PAYORS:') !== false) {
+                if (
+                    (!strpos($textperline, 'MEDICARE') !== false)
+                    || (!strpos($textperline, 'MEDICARE') !== false)
+                    ) {
+                    $payors = true;
+                    continue;
+                } else {
+                    $payors = false;
+                }
             }
 
         } else {
             // write patient record
+            echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . " " . $dob . " " . $sex . 
+                      " " . $prins . " " . $secins . " " . ($address ?? '') . " " . ($phone ?? '') . "\n";
+            //var_dump($payors[$pubpid]);
             $new_facesheet = false;
+            $payors = false;
         }
      }
     fclose($file);
