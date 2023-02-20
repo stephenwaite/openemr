@@ -73,6 +73,7 @@ while ($frow = sqlFetchArray($fres)) {
     if ($data_type == 54) { // address list
         $addressFieldsToSave[$field_id] = get_layout_form_value($frow);
     } elseif (isset($_POST["form_$field_id"]) || $data_type == 21) {
+    } elseif (isset($_POST["form_$field_id"]) || $data_type == 21) {
         $newdata[$table][$colname] = get_layout_form_value($frow);
     }
 }
@@ -150,6 +151,13 @@ if (!$GLOBALS['insurance_only_one']) {
         $type = "secondary";
     }
 
+    if ($swap_value == '2') {
+        $type = "primary";
+    } elseif ($swap_value == '3') {
+        $type = "tertiary";
+    } else {
+        $type = "secondary";
+    }
     newInsuranceData(
         $pid,
         $type,
@@ -189,6 +197,11 @@ if (!$GLOBALS['insurance_only_one']) {
 
     $type = ($swap_value == '3') ? "secondary" : "tertiary";
 
+    if ($swap_value == '3') {
+        $type = "secondary";
+    } else {
+        $type = "tertiary";
+    }
     newInsuranceData(
         $pid,
         $type,

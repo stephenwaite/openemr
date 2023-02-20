@@ -90,6 +90,8 @@ $(function () {
 
     $('.swapIns').hide();
 
+    $('.swapIns').hide();
+
     $(".select-previous-names").select2({
         theme: "bootstrap4",
         dropdownAutoWidth: true,
