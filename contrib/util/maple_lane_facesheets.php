@@ -209,7 +209,7 @@ if ($file = fopen($filename, "r")) {
                 'city' => x12Clean($city),
                 'state' => x12Clean($state),
                 'postal_code' => x12Zip($zip),
-                'phone_home' => x12Clean($phone)
+                'phone_home' => x12Clean($phone ?? '')
             );
 
             if (empty($prins)) {
