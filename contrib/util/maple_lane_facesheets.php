@@ -4,11 +4,13 @@ $_GET['site'] = $argv[1];
 $ignoreAuth = 1;
 require_once(__DIR__ . "/../../interface/globals.php");
 
-use OpenEMR\Services\PatientService;
+use OpenEMR\Services\FacilityService;
 use OpenEMR\Services\InsuranceService;
+use OpenEMR\Services\PatientService;
 
 $patient_service = new PatientService();
 $insurance_service = new InsuranceService();
+$facility_service = new FacilityService();
 
 function x12Clean($str)
 {
@@ -47,9 +49,17 @@ if ($file = fopen($filename, "r")) {
             !$new_facesheet
         ) {
             if (strpos($textperline, 'FACILITY:') !== false) {
-                $facility = 7;
-                //$facility = getFacility()
-                
+                if (stripos($textperline, 'MAPLE LANE') !== false) {
+                    $facility_id = 7;
+                } elseif (stripos($textperline, 'PINES')) {
+                    $facility_id = 5;
+                } elseif (stripos($textperline, 'UNION')) {
+                    $facility_id = 4;
+                }
+                  
+                $care_team_facility = array('care_team_facility' => $facility_id);
+                $facility = $facility_service->getById($facility_id);
+                //var_dump($facility);
                 continue;
             }
 
@@ -85,19 +95,18 @@ if ($file = fopen($filename, "r")) {
             }
 
             if (strpos($textperline, 'MEDICARE#') !== false) {
-                $parts = preg_split('/\s+/', $textperline);
-                //var_dump($parts);
+                $parts = explode("MEDICARE#", $textperline);
                 $prins = 2; 
-                $pripol = $parts[5];
+                $pripol = trim(preg_replace('/\s+/','', $parts[1]));
             }
 
             if (strpos($textperline, 'MEDICAID#') !== false) {
-                $parts = preg_split('/\s+/', $textperline);
-                foreach($parts as $key => $value) {
-                    if (strpos($value, 'MEDICAID#') !== false) {
-                        $secins = 7;
-                        $secpol = $parts[$key + 1];
-                    }
+                $parts = explode("MEDICAID#", $textperline);
+                $secpol = trim(preg_replace('/\s+/','', $parts[1]));
+                if (!empty($secpol)) {
+                    $secins = 7; 
+                } else {
+                    $secins = null;
                 }
             }
 
@@ -188,10 +197,10 @@ if ($file = fopen($filename, "r")) {
 
         } else {
             if ($use_facility_address) {
-                $street = '60 MAPLE LANE';
-                $city = 'BARTON';
+                $street = $facility['street'];
+                $city = $facility['city'];
                 $state = 'VT';
-                $zip = '05822';
+                $zip = $facility['postal_code'];
             }
 
             $address = array(
@@ -221,7 +230,7 @@ if ($file = fopen($filename, "r")) {
                 )
             );
 
-            $data = array_merge(['pubpid' => $pubpid], $name, $address, $dob, $sex, $ssn, $insurance);
+            $data = array_merge(['pubpid' => $pubpid], $name, $address, $dob, $sex, $ssn, $insurance, $care_team_facility);
             //var_dump($data);
             if (!checkSsn($data['ss'])) {
                 $person_insert = $patient_service->insert($data);
@@ -232,11 +241,14 @@ if ($file = fopen($filename, "r")) {
                 $type =  'primary';
                 $date = '2022-10-01';
                 insInsert($type, $date, $data);
-                $type =  'secondary';
-                $date = '2022-10-01';
-                insInsert($type, $date, $data);
+                if (!empty($secins)) {
+                    $type =  'secondary';
+                    $date = '2022-10-01';
+                    insInsert($type, $date, $data);
+                }
+                
             } else {
-                echo "person with ssn " . $data['ss'] . " already exists \n";
+                //echo $data['fname'] . " " . $data['lname'] . " with ssn " . $data['ss'] . " already exists \n";
             }
             $new_facesheet = false;
             $payors = false;
