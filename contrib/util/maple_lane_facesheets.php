@@ -18,7 +18,7 @@ use OpenEMR\Services\InsuranceService;
 
 function x12Clean($str)
 {
-        return trim(preg_replace('/[^A-Z0-9!"\\&\'()+,\\-.\\/;?=@ ]/', '', strtoupper($str)));
+    return trim(preg_replace('/[^A-Z0-9!"\\&\'()+,\\-.\\/;?=@ ]/', '', strtoupper($str ?? '')));
 }
 
 function x12Zip($zip)
@@ -42,20 +42,24 @@ $path_to_mdf = '/tmp';
 //$bad_dirs = array('.', '..');
 $filename = '/tmp/maple_lane.txt';
 $new_facesheet = false;
+$facesheet_cntr = 0;
 if ($file = fopen($filename, "r")) {
     while(!feof($file)) {
         $textperline = fgets($file);
-        if (strpos($textperline, 'RESIDENT PROFILE') !== false) {
-            //echo $textperline;
+        if (
+            strpos($textperline, 'RESIDENT PROFILE') !== false
+        ) {
             $new_facesheet = true;
-            //$person = new Person();
         } else {
             $new_facesheet = false;
         }
-        if (!$new_facesheet) {
+        if (
+            !$new_facesheet
+        ) {
             if (strpos($textperline, 'FACILITY:') !== false) {
                 $facility = 7;
                 //$facility = getFacility()
+                
                 continue;
             }
 
@@ -65,6 +69,11 @@ if ($file = fopen($filename, "r")) {
                 //$pubpid = substr($parts[2], 1, 6);
                 $lname = str_replace(',', '', $parts[4]);
                 $fname = $parts[5];
+
+                $name = [
+                    'fname' => x12Clean($fname),
+                    'lname' => x12Clean($lname)
+                ];
             }
 
             if (strpos($textperline, 'MED REC NO:') !== false) {
@@ -76,28 +85,29 @@ if ($file = fopen($filename, "r")) {
             if (strpos($textperline, 'SOC. SEC.') !== false) {
                 $parts = preg_split('/\s+/', $textperline);
                 //var_dump($parts);
-                $ssn = $parts[3];
+                $ssn = array('ss' => $parts[3]);
                 //echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . "\n";
             }
 
             if (strpos($textperline, 'BIRTH DATE:') !== false) {
                 $parts = preg_split('/\s+/', $textperline);
                 //var_dump($parts);
-                $dob = (new \DateTimeImmutable($parts[6]))->format('Y-m-d');
+                $dob = array('DOB' => (new \DateTimeImmutable($parts[6]))->format('Y-m-d'));
                 //echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . " " . $dob . "\n";
             }
 
             if (strpos($textperline, 'GENDER  . :') !== false) {
                 $parts = preg_split('/\s+/', $textperline);
                 //var_dump($parts);
-                $sex = $parts[4];
+                $sex = array('sex' => $parts[4]);
                 //echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . " " . $dob . " " . $sex . "\n";
             }
 
             if (strpos($textperline, 'MEDICARE#') !== false) {
                 $parts = preg_split('/\s+/', $textperline);
                 //var_dump($parts);
-                $prins = $parts[5];
+                $prins = 2; 
+                $pripol = $parts[5];
                 //echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . " " . $dob . " " . $sex . 
                 //  " " . $prins . "\n";
             }
@@ -107,7 +117,8 @@ if ($file = fopen($filename, "r")) {
                 //var_dump($parts);
                 foreach($parts as $key => $value) {
                     if (strpos($value, 'MEDICAID#') !== false) {
-                        $secins = $parts[$key + 1];
+                        $secins = 7;
+                        $secpol = $parts[$key + 1];
                     }
                 }
                 //echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . " " . $dob . " " . $sex . 
@@ -128,27 +139,31 @@ if ($file = fopen($filename, "r")) {
                             || (stripos($textperline, 'Medicaid') !== false))
                         )
                     ) {
-                        echo $payor_name . " " . $policy . "\n";
+                        echo $fname . " " . $lname . " " . $payor_name . " " . $policy . "\n";
                         //$payors[$pubpid] = [$parts[0] => $parts[1]];
                     }
                 }
             }
 
+            if (strpos($textperline, 'SECONDARY CONTACT') !== false
+                || strIpos($textperline, 'GUARANTOR') !== false) {
+                $second_address_line = false;
+            }
+  
             if (!empty($second_address_line)) {
                 $parts = explode(",", $textperline);
                 if (!empty($parts[1])) {
                     $city = trim($parts[0]);
                     $state_zip_parts = preg_split('/\s+/', $parts[1]);
                     //var_dump($state_zip_parts);
-                    //$state = trim($state_zip_parts[0]);
                     $state = trim($state_zip_parts[1]);
                     $zip = trim($state_zip_parts[2]);
-                    $address .= " " . $city . " " . $state . " " . $zip;
                     $second_address_line = false;
+                } else {
+                    $street2 = trim($parts[0]);
                 }
-                $second_address_line = false;
-                
             }
+
 
             if (!empty($primary_contact)) {
                 $parts = explode("(", $textperline);
@@ -166,9 +181,11 @@ if ($file = fopen($filename, "r")) {
                     continue;
                 } else {
                     //var_dump($parts);
+                    $use_facility_address = false;
                     $street = trim($parts[0]);
                     $address = $street;
                     $primary_contact = false;
+                    $street2 = '';
                     $second_address_line = true;
                 }
             }
@@ -198,9 +215,51 @@ if ($file = fopen($filename, "r")) {
 
         } else {
             // write patient record
-            echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . " " . $dob . " " . $sex . 
-                      " " . $prins . " " . $secins . " " . ($address ?? '') . " " . ($phone ?? '') . "\n";
+            if ($facesheet_cntr == 0) {
+                $facesheet_cntr++;
+                continue;
+            }
+            if ($use_facility_address) {
+                $street = '60 MAPLE LANE';
+                $city = 'BARTON';
+                $state = 'VT';
+                $zip = '05822';
+            }
+
+            $address = array(
+                'street' => x12Clean($street),
+                'street_line_2' => x12Clean($street2 ?? ''),
+                'city' => x12Clean($city),
+                'state' => x12Clean($state),
+                'postal_code' => x12Zip($zip),
+                'phone_home' => x12Clean($phone)
+            );
+
+            if (empty($prins)) {
+                $secins = $prins;
+                $secins = null;
+            }
+
+            $insurance = array(
+                'insurance' => array(
+                    'primary' => array(
+                        'provider' => $prins,
+                        'policy_number' => $pripol
+                    ),
+                    'secondary' => array(
+                        'provider' => $secins,
+                        'policy_number' => $secpol
+                    )
+                )
+            );
+
+
+            /* echo $pubpid . " " . $lname . ", " . $fname . " " . $ssn . " " . $dob . " " . $sex . 
+                      " " . $prins . " " . $secins . " " . ($street ?? '') . " " . ($street2 ?? '') .
+                      " " . $city . " " . $state . " " . $zip . " " . ($phone ?? '') . "\n"; */
             //var_dump($payors[$pubpid]);
+            $data = array_merge(['pubpid' => $pubpid], $name, $address, $dob, $sex, $insurance);
+            //var_dump($data);
             $new_facesheet = false;
             $payors = false;
         }
