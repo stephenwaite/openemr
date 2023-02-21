@@ -91,6 +91,8 @@ var somethingChanged = false;
 $(function () {
     tabbify();
 
+    $('.swapIns').hide();
+
     $(".select-dropdown").select2({
         theme: "bootstrap4",
         <?php require($GLOBALS['srcdir'] . '/js/xl/select2.js.php'); ?>
@@ -187,10 +189,10 @@ $(function () {
     checkSkipConditions();
   }
 
-  // Hide swap ins button if insurance not primary
+  // Hide swap ins button if insurance primary
   $('#INSURANCE .tabNav a').click(function(){
     let text = $(this).text();
-    if ( text == 'Primary') {
+    if ( text != 'Primary') {
         $('.swapIns').show();
     } else {
         $('.swapIns').hide();
@@ -646,9 +648,9 @@ echo xlt($CapInstype); ?></a></li><?php } ?>
              <td>
               <input type='entry' class='form-control' size='20' name='i<?php echo attr($i); ?>plan_name' value="<?php echo attr($result3["plan_name"]); ?>" onchange="capitalizeMe(this);" />&nbsp;&nbsp;
              </td>
-             <td class="col-md-3 swapIns" <?php echo (empty($GLOBALS['enable_swap_secondary_insurance'])) ? " style='display:none'" : ""; ?>>
-                <a class="btn btn-secondary pb-1" href="#" role="button"
-                    onclick="document.forms[0].isSwapClicked.value='1'; document.forms[0].submit()"><?php echo xlt('Swap with Secondary') ?></a>
+             <td class="col-md-3 swapIns <?php echo (empty($GLOBALS['enable_swap_secondary_insurance'])) ? ' d-none"' : '"'; ?>>
+             <a class="btn btn-secondary pb-1" href="#" role="button"
+                    onclick="document.forms[0].isSwapClicked.value=<?php echo attr($i); ?>; document.forms[0].submit()"><?php echo ($i == '2') ? xlt('Swap with Primary') : xlt('Swap with Secondary'); ?></a>
                     </td>
             </tr>
 
