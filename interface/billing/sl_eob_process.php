@@ -184,7 +184,9 @@ function era_callback_check(&$out)
             $StringToEcho .= "</tr>";
         }
 
-        $StringToEcho .= "<tr class='table-light'><td colspan='4' align='center'><input type='submit' name='CheckSubmit' value='Submit'/></td></tr>";
+        $StringToEcho .= "<tr class='table-light'><td align='left'><button type='button' class='btn btn-secondary btn-save' name='Submit1' onclick='checkAll(true)'>" . xlt('Check All') . "</button></td>";
+        $StringToEcho .= "<td><input type='submit' name='CheckSubmit' value='Submit'/></td>";
+        $StringToEcho .= "</tr>";
         if ($WarningFlag == true) {
             $StringToEcho .= "<tr class='table-danger'><td colspan='4' align='center'>" . xlt('Warning, Check Number already exist in the database') . "</td></tr>";
         }
@@ -761,6 +763,14 @@ if ($alertmsg) {
     echo " alert(" . js_escape($alertmsg) . ");\n";
 }
 ?>
+function checkAll(checked) {
+    var f = document.forms[0];
+    for (var i = 0; i < f.elements.length; ++i) {
+        var etype = f.elements[i].type;
+        if (etype === 'checkbox')
+            f.elements[i].checked = checked;
+    }
+}
 </script>
 <input type="hidden" name="paydate" value="<?php echo attr(DateToYYYYMMDD($_REQUEST['paydate'])); ?>" />
 <input type="hidden" name="post_to_date" value="<?php echo attr(DateToYYYYMMDD($_REQUEST['post_to_date'] ?? '')); ?>" />
