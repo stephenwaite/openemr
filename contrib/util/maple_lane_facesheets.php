@@ -8,7 +8,6 @@ use OpenEMR\Services\FacilityService;
 use OpenEMR\Services\InsuranceService;
 use OpenEMR\Services\PatientService;
 
-$patient_service = new PatientService();
 $insurance_service = new InsuranceService();
 $facility_service = new FacilityService();
 
@@ -193,7 +192,6 @@ if ($file = fopen($filename, "r")) {
                     $payors = false;
                 }
             }
-
         } else {
             if ($use_facility_address) {
                 $street = $facility['street'];
@@ -232,28 +230,40 @@ if ($file = fopen($filename, "r")) {
             $data = array_merge(['pubpid' => $pubpid], $name, $address, $dob, $sex, $ssn, $insurance, $care_team_facility);
             //var_dump($data);
             if (!checkSsn($data['ss'])) {
-                $person_insert = $patient_service->insert($data);
-                $person_data = $person_insert->getData();
-                //var_dump($person_data[0]);
-                $pid = $person_data[0]['pid'];
-                //echo "$uuid \n";
-                $type =  'primary';
-                $date = '2022-10-01';
-                insInsert($type, $date, $data);
-                if (!empty($secins)) {
-                    $type =  'secondary';
-                    $date = '2022-10-01';
-                    insInsert($type, $date, $data);
-                }
-                
+                insertPerson($data);
             } else {
                 echo $data['fname'] . " " . $data['lname'] . " with ssn " . $data['ss'] . " already exists \n";
             }
             $new_facesheet = false;
             $payors = false;
         }
-     }
+    }
+    // get last person
+    $data = array_merge(['pubpid' => $pubpid], $name, $address, $dob, $sex, $ssn, $insurance, $care_team_facility);
+    if (!checkSsn($data['ss'])) {
+        insertPerson($data);
+    } else {
+        echo $data['fname'] . " " . $data['lname'] . " with ssn " . $data['ss'] . " already exists \n";
+    }
+    echo "end of file \n";
     fclose($file);
+}
+
+function insertPerson($data){
+    $patient_service = new PatientService();
+    $person_insert = $patient_service->insert($data);
+    $person_data = $person_insert->getData();
+    //var_dump($person_data[0]);
+    $pid = $person_data[0]['pid'];
+    //echo "$uuid \n";
+    $type =  'primary';
+    $date = '2022-10-01';
+    insInsert($type, $date, $data);
+    if (!empty($secins)) {
+        $type =  'secondary';
+        $date = '2022-10-01';
+        insInsert($type, $date, $data);
+    }
 }
 
 
