@@ -27,7 +27,7 @@ function x12Zip($zip)
 
 $path_to_mdf = '/tmp';
 
-$filename = '/tmp/maple_lane.txt';
+$filename = '/tmp/' . $argv[2];
 $new_facesheet = false;
 $facesheet_cntr = 0;
 if ($file = fopen($filename, "r")) {
@@ -59,7 +59,6 @@ if ($file = fopen($filename, "r")) {
                   
                 $care_team_facility = array('care_team_facility' => $facility_id);
                 $facility = $facility_service->getById($facility_id);
-                //var_dump($facility);
                 continue;
             }
 
@@ -124,7 +123,7 @@ if ($file = fopen($filename, "r")) {
                             || (stripos($textperline, 'Medicaid') !== false))
                         )
                     ) {
-                        echo $fname . " " . $lname . " " . $payor_name . " " . $policy . "\n";
+                        echo $fname . " " . $lname . " " . $payor_name . " " . $policy . " also has " . $prins . " and " . $secins . "\n";
                     }
                 } else {
                 }
@@ -248,7 +247,7 @@ if ($file = fopen($filename, "r")) {
                 }
                 
             } else {
-                //echo $data['fname'] . " " . $data['lname'] . " with ssn " . $data['ss'] . " already exists \n";
+                echo $data['fname'] . " " . $data['lname'] . " with ssn " . $data['ss'] . " already exists \n";
             }
             $new_facesheet = false;
             $payors = false;
