@@ -228,7 +228,6 @@ if ($file = fopen($filename, "r")) {
             );
 
             $data = array_merge(['pubpid' => $pubpid], $name, $address, $dob, $sex, $ssn, $insurance, $care_team_facility);
-            //var_dump($data);
             if (!checkSsn($data['ss'])) {
                 insertPerson($data);
             } else {
@@ -249,20 +248,23 @@ if ($file = fopen($filename, "r")) {
     fclose($file);
 }
 
-function insertPerson($data){
+function insertPerson($data) {
+    global $prins;
+    global $secins;
+    global $person_data;
     $patient_service = new PatientService();
     $person_insert = $patient_service->insert($data);
     $person_data = $person_insert->getData();
-    //var_dump($person_data[0]);
     $pid = $person_data[0]['pid'];
-    //echo "$uuid \n";
-    $type =  'primary';
-    $date = '2022-10-01';
-    insInsert($type, $date, $data);
+    if (!empty($prins)) {
+        $type =  'primary';
+        $date = '2022-10-01';
+        insInsert($type, $date, $data, $pid);
+    }
     if (!empty($secins)) {
         $type =  'secondary';
         $date = '2022-10-01';
-        insInsert($type, $date, $data);
+        insInsert($type, $date, $data, $pid);
     }
 }
 
@@ -284,9 +286,8 @@ function checkSsn($ssn) {
     return false;
 }
 
-function insInsert($type, $date, $data) {
+function insInsert($type, $date, $data, $pid) {
     global $insurance_service;
-    global $pid;
     $insurance_service->insert
     (
         $pid,
