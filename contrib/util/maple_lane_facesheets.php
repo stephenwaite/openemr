@@ -62,10 +62,11 @@ if ($file = fopen($filename, "r")) {
             }
 
             if (strpos($textperline, 'IDENTIFIER:') !== false) {
-                $parts = preg_split('/\s+/', $textperline);
-                $lname = str_replace(',', '', $parts[4]);
-                $fname = $parts[5];
-
+                $parts = explode("NAME:", $textperline);
+                $name_parts = preg_split('/\s+/', $parts[1]);
+                $lname = str_replace(',', '', x12Clean($name_parts[1]));
+                $fname = $name_parts[2];
+                $mname = $name_parts[3];
                 $name = [
                     'fname' => x12Clean($fname),
                     'lname' => x12Clean($lname)
