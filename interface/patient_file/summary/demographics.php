@@ -722,39 +722,40 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                 });
             });
 
-            $(".iframe1").on('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                dlgopen('', '', 350, 300, '', '', {
-                    buttons: [{
-                        text: <?php echo xlj('Close'); ?>,
-                        close: true,
-                        style: 'secondary btn-sm'
-                    }],
-                    allowResize: true,
-                    allowDrag: true,
-                    dialogId: '',
-                    type: 'iframe',
-                    url: $(this).attr('href')
-                });
+        $(".iframe1").on('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dlgopen('', '', 350, 300, '', '', {
+                buttons: [
+                    {text: <?php echo xlj('Close'); ?>, close: true, style: 'secondary btn-sm'}
+                ],
+                allowResize: true,
+                allowDrag: true,
+                dialogId: '',
+                type: 'iframe',
+                url: $(this).attr('href')
             });
-            // for patient portal
-            $(".small_modal").on('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                dlgopen('', '', 550, 550, '', '', {
-                    buttons: [{
-                        text: <?php echo xlj('Close'); ?>,
-                        close: true,
-                        style: 'secondary btn-sm'
-                    }],
-                    allowResize: true,
-                    allowDrag: true,
-                    dialogId: '',
-                    type: 'iframe',
-                    url: $(this).attr('href')
-                });
+        });
+// for patient portal
+        $(".small_modal").on('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dlgopen('', '', 380, 200, '', '', {
+                buttons: [
+                    {text: <?php echo xlj('Close'); ?>, close: true, style: 'secondary btn-sm'}
+                ],
+                allowResize: true,
+                allowDrag: true,
+                dialogId: '',
+                type: 'iframe',
+                url: $(this).attr('href')
             });
+        });
+
+        $("#text_ss").on('dblclick', function (e) {
+            let ssn_without_dashes = $(this).html().replace(/-/g, '');
+            $(this).html(ssn_without_dashes);
+        });
 
             function openReminderPopup() {
                 top.restoreSession()
