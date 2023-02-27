@@ -578,6 +578,11 @@ require_once("$srcdir/options.js.php");
             });
         });
 
+        $("#text_ss").on('dblclick', function (e) {
+            let ssn_without_dashes = $(this).html().replace(/-/g, '');
+            $(this).html(ssn_without_dashes);
+        });
+
         function openReminderPopup() {
             top.restoreSession()
             dlgopen('', 'reminders', 500, 250, '', '', {

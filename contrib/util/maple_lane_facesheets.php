@@ -74,8 +74,10 @@ if ($file = fopen($filename, "r")) {
             }
 
             if (strpos($textperline, 'MED REC NO:') !== false) {
-                $parts = preg_split('/\s+/', $textperline);
-                $pubpid = substr($parts[4], -5, 5);
+                $parts = explode("STATUS:", $textperline);
+                $med_rec = trim(str_replace('MED REC NO:', '', $parts[0]));
+                $length = strlen($med_rec);
+                $pubpid = substr($med_rec, -4, 4);
             }
 
             if (strpos($textperline, 'SOC. SEC.') !== false) {
