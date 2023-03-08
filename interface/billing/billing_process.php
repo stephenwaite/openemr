@@ -186,7 +186,7 @@ function process_form($ar)
             if (file_exists($GLOBALS['OE_SITE_DIR'] . "/documents/edi/process_bills.log")) {
                 $hlog = file_get_contents($GLOBALS['OE_SITE_DIR'] . "/documents/edi/process_bills.log");
             }
-            if ($cryptoGen->cryptCheckStandard($hlog)) {
+            if ($cryptoGen->cryptCheckStandard($hlog ?? null)) {
                 $hlog = $cryptoGen->decryptStandard($hlog, null, 'database');
             }
         } else { // ($GLOBALS['billing_log_option'] == 2)
