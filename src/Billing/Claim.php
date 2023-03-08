@@ -525,7 +525,7 @@ class Claim
                         $date = str_replace('-', '', trim(substr($key, 0, 10)));
                     }
 
-                    $paytotal += $value['pmt'];
+                    $paytotal += $value['pmt'] ?? null;
                 }
             }
 
