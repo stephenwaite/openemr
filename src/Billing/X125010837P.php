@@ -522,8 +522,10 @@ class X125010837P
         "*" .
         "*" . "PI" .
         "*" . ($encounter_claim ? $claim->payerAltID() : $claim->payerID());
-        if (!$claim->payerID()
-            || $claim->payerID() == '99999') {
+        if (
+            !$claim->payerID()
+            || $claim->payerID() == '99999'
+        ) {
             $log .= "*** Claim's payer ID is invalid.\n";
         }
         $out .= "~\n";
@@ -699,7 +701,7 @@ class X125010837P
         ) {
                 $diabDlsRequired = true;
         }
-        
+
         $xrayReferrerRequired = false;
 
         if (
@@ -1033,7 +1035,7 @@ class X125010837P
         if (
             $claim->facilityNPI() != $claim->billingFacilityNPI()
             || $claim->payerID() == '53275'
-            ) {
+        ) {
             ++$edicount;
             $out .= "NM1" .       // Loop 2310C Service Location
                 "*" . "77" .
