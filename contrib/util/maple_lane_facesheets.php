@@ -1,4 +1,5 @@
 <?php
+
 // collect parameters (need to do before globals)
 $_GET['site'] = $argv[1];
 $ignoreAuth = 1;
@@ -21,7 +22,6 @@ function x12Zip($zip)
         $zip = x12Clean($zip);
         // this will take out dashes and pad with trailing 9s if not 9 digits
         return preg_replace('/[^0-9]/', '', $zip);
-        
 }
 
 $path_to_mdf = '/tmp';
@@ -30,7 +30,7 @@ $filename = '/tmp/' . $argv[2];
 $new_facesheet = false;
 $facesheet_cntr = 0;
 if ($file = fopen($filename, "r")) {
-    while(!feof($file)) {
+    while (!feof($file)) {
         $textperline = fgets($file);
         if (
             strpos($textperline, 'RESIDENT PROFILE') !== false
@@ -55,7 +55,7 @@ if ($file = fopen($filename, "r")) {
                 } elseif (stripos($textperline, 'UNION')) {
                     $facility_id = 4;
                 }
-                  
+
                 $care_team_facility = array('care_team_facility' => $facility_id);
                 $facility = $facility_service->getById($facility_id);
                 continue;
@@ -97,15 +97,15 @@ if ($file = fopen($filename, "r")) {
 
             if (strpos($textperline, 'MEDICARE#') !== false) {
                 $parts = explode("MEDICARE#", $textperline);
-                $prins = 2; 
-                $pripol = trim(preg_replace('/\s+/','', $parts[1]));
+                $prins = 2;
+                $pripol = trim(preg_replace('/\s+/', '', $parts[1]));
             }
 
             if (strpos($textperline, 'MEDICAID#') !== false) {
                 $parts = explode("MEDICAID#", $textperline);
-                $secpol = trim(preg_replace('/\s+/','', $parts[1]));
+                $secpol = trim(preg_replace('/\s+/', '', $parts[1]));
                 if (!empty($secpol)) {
-                    $secins = 7; 
+                    $secins = 7;
                 } else {
                     $secins = null;
                 }
@@ -131,11 +131,13 @@ if ($file = fopen($filename, "r")) {
                 }
             }
 
-            if (strpos($textperline, 'SECONDARY CONTACT') !== false
-                || strIpos($textperline, 'GUARANTOR') !== false) {
+            if (
+                strpos($textperline, 'SECONDARY CONTACT') !== false
+                || strIpos($textperline, 'GUARANTOR') !== false
+            ) {
                 $second_address_line = false;
             }
-  
+
             if (!empty($second_address_line)) {
                 $parts = explode(",", $textperline);
                 if (!empty($parts[1])) {
@@ -152,6 +154,11 @@ if ($file = fopen($filename, "r")) {
 
             if (!empty($primary_contact)) {
                 $parts = explode("(", $textperline);
+                if (stripos($parts[0], 'SECONDARY CONTACT') !== false) {
+                    $use_facility_address = true;
+                    $primary_contact = false;
+                    continue;
+                }
                 $phone = '';
                 if (!empty($parts[1])) {
                     $phone = "(" . $parts[1];
@@ -188,7 +195,7 @@ if ($file = fopen($filename, "r")) {
                 if (
                     (!strpos($textperline, 'MEDICARE') !== false)
                     || (!strpos($textperline, 'MEDICARE') !== false)
-                    ) {
+                ) {
                     $payors = true;
                     continue;
                 } else {
@@ -251,7 +258,8 @@ if ($file = fopen($filename, "r")) {
     fclose($file);
 }
 
-function insertPerson($data) {
+function insertPerson($data)
+{
     global $prins;
     global $secins;
     global $person_data;
@@ -272,7 +280,8 @@ function insertPerson($data) {
 }
 
 
-function checkSsn($ssn) {
+function checkSsn($ssn)
+{
 
     $sql = sqlQuery("SELECT * FROM patient_data WHERE ss=?", array($ssn));
     if (!empty($sql['id'])) {
@@ -289,10 +298,10 @@ function checkSsn($ssn) {
     return false;
 }
 
-function insInsert($type, $date, $data, $pid) {
+function insInsert($type, $date, $data, $pid)
+{
     global $insurance_service;
-    $insurance_service->insert
-    (
+    $insurance_service->insert(
         $pid,
         $type,
         array(
@@ -324,5 +333,5 @@ function insInsert($type, $date, $data, $pid) {
             'accept_assignment' => 'TRUE',
             'policy_type' => 'FALSE'
         )
-        );
+    );
 }
