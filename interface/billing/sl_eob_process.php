@@ -106,9 +106,9 @@ function writeDetailLine(
 
     $dline =
     " <tr bgcolor='" . attr($bgcolor) . "'>\n" .
-    "  <td class='" . attr($class) . "'>" . text($ptname) . "</td>\n" .
-    "  <td class='" . attr($class) . "'>" . text($invnumber) . "</td>\n" .
-    "  <td class='" . attr($class) . "'>" . text($code) . "</td>\n" .
+    "  <td class='" . attr($class) . "'>" . (($ptname == '&nbsp;') ? '' : text($ptname)) . "</td>\n" .
+    "  <td class='" . attr($class) . "'>" . (($invnumber == '&nbsp;') ? '' : text($invnumber)) . "</td>\n" .
+    "  <td class='" . attr($class) . "'>" . (($code == '&nbsp;') ? '' : text($code)) . "</td>\n" .
     "  <td class='" . attr($class) . "'>" . text(oeFormatShortDate($date)) . "</td>\n" .
     "  <td class='" . attr($class) . "'>" . text($description) . "</td>\n" .
     "  <td class='" . attr($class) . "' align='right'>" . text(oeFormatMoney($amount)) . "</td>\n" .
@@ -469,7 +469,7 @@ function era_callback(&$out)
             // must be 25 characters or less in order to fit on patient statements.
             foreach ($svc['adj'] as $adj) {
                 $description = $adj['reason_code'] . ': ' .
-                    BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[$adj['reason_code'] ?? ''] ;
+                    BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[($adj['reason_code'] ?? '')] ;
                 if ($adj['group_code'] == 'PR' || !$primary) {
                     // Group code PR is Patient Responsibility.  Enter these as zero
                     // adjustments to retain the note without crediting the claim.
