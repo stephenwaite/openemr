@@ -69,7 +69,7 @@ class ParseERA
             $paytotal = round($paytotal, 2);
             $adjtotal = round($adjtotal, 2);
             if (($paytotal != 0 || $adjtotal != 0) && $out['claim_status_code'] == '1') {
-                if ($out['svc'][0]['code'] != 'Claim') {
+                /* if ($out['svc'][0]['code'] != 'Claim') {
                     array_unshift($out['svc'], array());
                     $out['svc'][0]['code'] = 'Claim';
                     $out['svc'][0]['mod'] = '';
@@ -80,14 +80,14 @@ class ParseERA
                         "force claim balancing.\n";
                 }
 
-                    $out['svc'][0]['paid'] += $paytotal;
-                    if ($adjtotal) {
-                        $j = count($out['svc'][0]['adj']);
-                        $out['svc'][0]['adj'][$j] = array();
-                        $out['svc'][0]['adj'][$j]['group_code'] = 'CR'; // presuming a correction or reversal
-                        $out['svc'][0]['adj'][$j]['reason_code'] = 'Balancing';
-                        $out['svc'][0]['adj'][$j]['amount'] = $adjtotal;
-                    }
+                $out['svc'][0]['paid'] += $paytotal;
+                if ($adjtotal) {
+                    $j = count($out['svc'][0]['adj']);
+                    $out['svc'][0]['adj'][$j] = array();
+                    $out['svc'][0]['adj'][$j]['group_code'] = 'CR'; // presuming a correction or reversal
+                    $out['svc'][0]['adj'][$j]['reason_code'] = 'Balancing';
+                    $out['svc'][0]['adj'][$j]['amount'] = $adjtotal;
+                } */
 
                     // if ($out['svc'][0]['code'] != 'Claim') {
                     //   $out['warnings'] .= "First service item payment amount " .
