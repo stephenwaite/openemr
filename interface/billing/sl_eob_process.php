@@ -521,7 +521,16 @@ function era_callback(&$out)
                     // we don't want to write off the amount which would force
                     // the biller to manually delete and re-work so we post a zero-dollar adj
                     // and save it as a comment
-                    if ($svc['paid'] == 0 && !($adj['group_code'] == "CO" && $adj['reason_code'] == '45')) {
+                    if (
+                        $svc['paid'] == 0
+                        && !(
+                            $adj['group_code'] == "CO"
+                            && (
+                                $adj['reason_code'] == '45'
+                                || $adj['reason_code'] == '59'
+                            )
+                        )
+                    ) {
                         $class = 'errdetail';
                         $error = true;
                     } elseif (!$error && !$debug) {
