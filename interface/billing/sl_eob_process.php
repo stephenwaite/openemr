@@ -106,9 +106,9 @@ function writeDetailLine(
 
     $dline =
     " <tr bgcolor='" . attr($bgcolor) . "'>\n" .
-    "  <td class='" . attr($class) . "'>" . text($ptname) . "</td>\n" .
-    "  <td class='" . attr($class) . "'>" . text($invnumber) . "</td>\n" .
-    "  <td class='" . attr($class) . "'>" . text($code) . "</td>\n" .
+    "  <td class='" . attr($class) . "'>" . (($ptname == '&nbsp;') ? '' : text($ptname)) . "</td>\n" .
+    "  <td class='" . attr($class) . "'>" . (($invnumber == '&nbsp;') ? '' : text($invnumber)) . "</td>\n" .
+    "  <td class='" . attr($class) . "'>" . (($code == '&nbsp;') ? '' : text($code)) . "</td>\n" .
     "  <td class='" . attr($class) . "'>" . text(oeFormatShortDate($date)) . "</td>\n" .
     "  <td class='" . attr($class) . "'>" . text($description) . "</td>\n" .
     "  <td class='" . attr($class) . "' align='right'>" . text(oeFormatMoney($amount)) . "</td>\n" .
