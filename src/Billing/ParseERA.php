@@ -43,25 +43,25 @@ class ParseERA
                         (
                             $adj['group_code'] == 'CO'
                             && (
-                                $adj['reason_code'] == '45' 
+                                $adj['reason_code'] == '45'
                                 || $adj['reason_code'] == '253'
                                 || $adj['reason_code'] == '59'
                             )
 
-                        ) ||
-                        (
+                        )
+                        || (
                             $adj['group_code'] == 'OA'
                             && $adj['reason_code'] == '253'
-                        ) ||
-                        (
+                        )
+                        || (
                             $adj['group_code'] == 'PI'
                             && (
                                 $adj['reason_code'] == '253'
                                 || $adj['reason_code'] == '59'
                             )
                         )
-                       ) {
-                       $adjtotal -= $adj['amount'];
+                    ) {
+                        $adjtotal -= $adj['amount'];
                     }
                 }
             }
@@ -334,7 +334,7 @@ class ParseERA
             } elseif ($segid == 'NM1' && $out['loopid'] == '2100') { // PR = Corrected Payer
                 // $out['warnings'] .= "NM1 segment at claim level ignored.\n";
             } elseif ($segid == 'MOA' && $out['loopid'] == '2100') {
-                $out['warnings'] .= "MOA segment at claim level ignored.\n";
+                //$out['warnings'] .= "MOA segment at claim level ignored.\n";
             } elseif ($segid == 'REF' && $seg[1] == '1W' && $out['loopid'] == '2100') {
                 // REF segments may provide various identifying numbers, where REF02
                 // indicates the type of number.
@@ -372,12 +372,18 @@ class ParseERA
                     // We will log a note and treat it as adjustments to our originally submitted coding.
                     $svc = explode($delimiter3, $seg[6]);
                     // NDCs are stated here so we want to ignore and use the HC qualifier in $seg[6]
-                    if ($svc[0] == 'N4'){
+                    if ($svc[0] == 'N4') {
                         $out['warnings'] .= "SVC segment with N4 qualifier at service level ignored.\n";
                         $svc = explode($delimiter3, $seg[1]);
+                    } elseif ($seg[1]) {
+                            $tmp = explode($delimiter3, $seg[1]);
+                        if (in_array('51', $tmp)) {
+                            array_pop($tmp);
+                            $svc = $tmp;
+                        }
                     } else {
                         $tmp = explode($delimiter3, $seg[1]);
-                        $out['warnings'] .= "Payer is restating our procedure " . $svc[1] . 
+                        $out['warnings'] .= "Payer is restating our procedure " . $svc[1] .
                         " as " . $tmp[1] . ".\n";
                     }
                 } else {
@@ -389,7 +395,7 @@ class ParseERA
                         $svc[0] != 'HC' ||
                         $svc[0] != 'N4'
                      )
-                    ) {
+                ) {
                     return 'SVC segment has unexpected qualifier';
                 }
 
