@@ -354,6 +354,7 @@ class Claim
             $date = '';
             $deductible  = 0;
             $coinsurance = 0;
+            $copay       = 0;
             $inslabel = ($this->payerSequence($ins) == 'S') ? 'Ins2' : 'Ins1';
             $insnumber = substr($inslabel, 3);
 
@@ -405,7 +406,7 @@ class Claim
                         $deductible = $ptresp; // from manual post
                         continue;
                     } elseif (preg_match("/copay: (\S+)/i", $rsn, $tmp) && !$chg) {
-                        $coinsurance = $tmp[1]; // from 835 as of 6/2007
+                        $copay = $tmp[1]; // from 835 as of 6/2007
                         continue;
                     } elseif (preg_match("/coins: (\S+)/i", $rsn, $tmp) && !$chg) {
                         $coinsurance = $tmp[1]; // from 835 and manual post as of 6/2007
@@ -473,14 +474,15 @@ class Claim
 
             // Allocate any unknown patient responsibility by guessing if the
             // deductible has been satisfied.
-            if ($thispaidanything) {
+            /*if ($thispaidanything) {
                 $coinsurance = $ptresp - $deductible;
             } else {
                 $deductible = $ptresp - $coinsurance;
-            }
+            }*/
 
             $deductible  = sprintf('%.2f', $deductible);
             $coinsurance = sprintf('%.2f', $coinsurance);
+            $copay       = sprintf('%.2f', $copay);
 
             if ($date && $deductible != 0) {
                 $aadj[] = array($date, 'PR', '1', $deductible, $msp);
@@ -489,6 +491,13 @@ class Claim
             if ($date && $coinsurance != 0) {
                 $aadj[] = array($date, 'PR', '2', $coinsurance, $msp);
             }
+            
+            if ($date && $copay != 0) {
+                $aadj[] = array($date, 'PR', '3', $copay, $msp);
+            }
+            
+            
+
         } // end if
 
         return $aadj;
