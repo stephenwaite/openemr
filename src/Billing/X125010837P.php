@@ -694,6 +694,7 @@ class X125010837P
             $claim->onsetDate() !== $claim->serviceDate() &&
             $claim->onsetDateValid() &&
             !$diabDlsRequired
+            && (strcmp($claim->facilityPOS(), '21') != 0)
         ) {
             ++$edicount;
             $out .= "DTP" .       // Date of Onset
@@ -1319,7 +1320,11 @@ class X125010837P
                     } elseif (($claim->payerID($ins)) == "14165") {
                         $out .= "Z2";
                     } elseif (($claim->payerID($ins)) == "60054") {
-                        $out .= "92";
+                        if (!empty($claim->groupNumber())) {
+                            $out .= $claim->groupNumber();
+                        } else {
+                          $out .= "92";
+                        }  
                     } elseif (($claim->payerID($ins)) == "00010") {
                         $out .= "42";
                     } elseif (($claim->payerID($ins)) == "MPHC1") {
@@ -1664,7 +1669,11 @@ class X125010837P
                             $out .= "Z2";
                         }
                         if (($claim->payerID($ins)) == "60054") {
-                            $out .= "92";
+                            if (!empty($claim->groupNumber())) {
+                                $out .= $claim->groupNumber();
+                            } else {
+                              $out .= "92";
+                            }  
                         }
                         if (($claim->payerID($ins)) == "00010") {
                             $out .= "42";
