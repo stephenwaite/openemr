@@ -240,6 +240,7 @@ if ($file = fopen($filename, "r")) {
             $data = array_merge(['pubpid' => $pubpid], $name, $address, $dob, $sex, $ssn, $insurance, $care_team_facility);
             if (!checkSsn($data['ss'])) {
                 insertPerson($data);
+                echo $data['fname'] . " " . $data['lname'] . " with ssn " . $data['ss'] . " added\n";
             } else {
                 echo $data['fname'] . " " . $data['lname'] . " with ssn " . $data['ss'] . " already exists \n";
             }
