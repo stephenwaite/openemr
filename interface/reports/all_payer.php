@@ -67,15 +67,14 @@ function getChargesByDateAndCategory($insrow)
         $enc_date,
         "primary"
     );
+
     $ins_id = $insurance['provider'];
     $insurance_company = (new InsuranceCompanyService())->getOne($ins_id);
     $ins_type_code = $insurance_company['ins_type_code'];
 
-
-
-    if ($ins_type_code = '2') {
+    if ($ins_type_code == '2') {
         $charges['medicare'] += $insrow['charges'];
-    } elseif ($ins_type_code = '3') {
+    } elseif ($ins_type_code == '3') {
         $charges['medicaid'] += $insrow['charges'];
     } elseif (in_array($ins_type_code, array('4', '5'))) {
         $charges['tricare'] += $insrow['charges'];
