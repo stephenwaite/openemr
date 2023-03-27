@@ -133,13 +133,20 @@ if ($file = fopen($filename, "r")) {
 
             if (
                 strpos($textperline, 'SECONDARY CONTACT') !== false
-                || strIpos($textperline, 'GUARANTOR') !== false
+                || stripos($textperline, 'GUARANTOR') !== false
             ) {
                 $second_address_line = false;
             }
 
             if (!empty($second_address_line)) {
-                $parts = explode(",", $textperline);
+                if (stripos($textperline, ',')) {
+                    $parts = explode(",", $textperline);
+                } else {
+                    $use_facility_address = true;
+                    $primary_contact = false;
+                    $second_address_line = false;
+                    continue;
+                }
                 if (!empty($parts[1])) {
                     $city = trim($parts[0]);
                     $state_zip_parts = preg_split('/\s+/', $parts[1]);
@@ -154,11 +161,13 @@ if ($file = fopen($filename, "r")) {
 
             if (!empty($primary_contact)) {
                 $parts = explode("(", $textperline);
+
                 if (stripos($parts[0], 'SECONDARY CONTACT') !== false) {
                     $use_facility_address = true;
                     $primary_contact = false;
                     continue;
                 }
+
                 $phone = '';
                 if (!empty($parts[1])) {
                     $phone = "(" . $parts[1];
@@ -249,6 +258,7 @@ if ($file = fopen($filename, "r")) {
         }
     }
     // get last person
+    //var_dump($address);
     $data = array_merge(['pubpid' => $pubpid], $name, $address, $dob, $sex, $ssn, $insurance, $care_team_facility);
     if (!checkSsn($data['ss'])) {
         insertPerson($data);

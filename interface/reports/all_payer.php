@@ -23,6 +23,7 @@
 
 require_once("../globals.php");
 require_once("../../library/patient.inc");
+require_once("$srcdir/classes/InsuranceCompany.class.php");
 require_once "$srcdir/options.inc.php";
 
 use OpenEMR\Billing\InvoiceSummary;
@@ -42,6 +43,10 @@ $alertmsg = '';
 $bgcolor = "#aaaaaa";
 $export_patient_count = 0;
 $export_dollars = 0;
+$grand_total_charges = 0;
+$grand_total_payments = 0;
+$charges['medicare'] = 0;
+$payments['medicare'] = 0;
 
 $form_date      = (isset($_POST['form_date'])) ? DateToYYYYMMDD($_POST['form_date']) : "";
 //$form_date = "2020-07-06";
@@ -51,79 +56,42 @@ $form_to_date   = (isset($_POST['form_to_date'])) ? DateToYYYYMMDD($_POST['form_
 
 function endInsurance($insrow)
 {
-    
     global $charges, $payments;
+    $pay_pid = $insrow['pid'];
+    $pay_enc = $insrow['encounter'];
+    $enc_date = $insrow['date'];
 
-    $insurance = (new InsuranceService)->getOne($insrow['pid'], "primary");
+    $insurance = (new InsuranceService())->getOne($insrow['pid'], "primary");
     $ins_id = $insurance['provider'];
-    
+    $insurance_company = (new InsuranceCompanyService())->getOne($ins_id);
+    $ins_type_code = $insurance_company['ins_type_code'];
+
     $code_query = "SELECT code, encounter FROM billing WHERE encounter = ? and code_type = 'CPT4'";
     $temp = sqlStatement($code_query, array($insrow['encounter']));
-    while ($temp_array = sqlFetchArray($temp)){
-        if ($temp_array['code'] == "NP150") {
-            $charges['selfpay'] += 150;
-            continue;
-        } 
-    }
 
     $pay_query = "SELECT sequence_no, payer_type, pay_amount FROM ar_activity WHERE pid = ? AND encounter = ? AND pay_amount != 0";
-    $pay_state = sqlStatement($pay_query, array($insrow['pid'], $insrow['encounter']));
+    $pay_state = sqlStatement($pay_query, array($pay_pid, $pay_enc));
 
-    if (in_array($ins_id, array('4', '8'))) {
+    if ($ins_type_code = '2') {
         $charges['medicare'] += $insrow['charges'];
-        error_log("medicare charges are now " . $charges['medicare']);
-        while ($pay_array = sqlFetchArray($pay_state)){
-            //var_dump($pay_array);
-            if ($pay_array['payer_type'] == "1") {
-                $payments['medicare'] += $pay_array['pay_amount'];
-                error_log("medicare payments are now " . $payments['medicare'] . " for encounter " . $insrow['encounter']);
-            } else {
-                $payments['selfpay'] += $pay_array['pay_amount'];
-                error_log("selfpay payments are now " . $payments['selfpay'] . " for encounter " . $insrow['encounter']);
-            }
-            //error_log("encounter $enc");
+        while ($pay_array = sqlFetchArray($pay_state)) {
+            getPaymentsByCategory($pay_array, $pay_pid, $enc_date);
         }
-    } elseif (in_array($ins_id, array('13'))) {
+    } elseif ($ins_type_code = '3') {
         $charges['medicaid'] += $insrow['charges'];
-        error_log("medicaid charges are now " . $charges['medicaid']);
-        while ($pay_array = sqlFetchArray($pay_state)){
-            //var_dump($pay_array);
-            if ($pay_array['payer_type'] == "1") {
-                $payments['medicaid'] += $pay_array['pay_amount'];
-                error_log("medicaid payments are now " . $payments['medicaid'] . " for encounter " . $insrow['encounter']);
-            } else {
-                $payments['selfpay'] += $pay_array['pay_amount'];
-                error_log("selfpay payments are now " . $payments['selfpay'] . " for encounter " . $insrow['encounter']);
-            }
-            //error_log("encounter $enc");
+        while ($pay_array = sqlFetchArray($pay_state)) {
+            getPaymentsByCategory($pay_array, $pay_pid, $enc_date);
         }
-    } elseif(in_array($ins_id, array('20', '86', '90'))) {
+    } elseif (in_array($ins_type_code, array('4', '5'))) {
         $charges['tricare'] += $insrow['charges'];
-        error_log("tricare charges are now " . $charges['tricare']);
-        while ($pay_array = sqlFetchArray($pay_state)){
-            //var_dump($pay_array);
-            if ($pay_array['payer_type'] == "1") {
-                $payments['tricare'] += $pay_array['pay_amount'];
-                error_log("tricare payments are now " . $payments['tricare'] . " for encounter " . $insrow['encounter']);
-            } else {
-                $payments['selfpay'] += $pay_array['pay_amount'];
-                error_log("selfpay payments are now " . $payments['selfpay'] . " for encounter " . $insrow['encounter']);
-            }
-            //error_log("encounter $enc");
+        while ($pay_array = sqlFetchArray($pay_state)) {
+            getPaymentsByCategory($pay_array, $pay_pid, $enc_date);
         }
     } else {
-            $charges['commercial'] += $insrow['charges'];
-            error_log("commercial charges are now " . $charges['commercial']);while ($pay_array = sqlFetchArray($pay_state)){
-                //var_dump($pay_array);
-                if ($pay_array['payer_type'] == "1") {
-                    $payments['commercial'] += $pay_array['pay_amount'];
-                    error_log("commercial payments are now " . $payments['commercial'] . " for encounter " . $insrow['encounter']);
-                } else {
-                    $payments['selfpay'] += $pay_array['pay_amount'];
-                    error_log("selfpay payments are now " . $payments['selfpay'] . " for encounter " . $insrow['encounter']);
-                }
-                //error_log("encounter $enc");
-            }
+        $charges['commercial'] += $insrow['charges'];
+        while ($pay_array = sqlFetchArray($pay_state)) {
+            getPaymentsByCategory($pay_array, $pay_pid, $enc_date);
+        }
     }
 }
 
@@ -134,18 +102,55 @@ function bucks($amount)
     }
 }
 
-
-
-
 function getInsName($payerid)
 {
     $tmp = sqlQuery("SELECT name FROM insurance_companies WHERE id = ? ", array($payerid));
     return $tmp['name'];
 }
 
+function getPaymentsByCategory($pay_array, $pay_pid, $enc_date)
+{
+    global $payments;
+
+    if ($pay_array['payer_type'] == '1') {
+        $type = 'primary';
+    } elseif ($pay_array['payer_type'] == '2') {
+        $type = 'secondary';
+    } elseif ($pay_array['payer_type'] == '3') {
+        $type = 'tertiary';
+    }
+        $pay_ins = getInsuranceDataByDate(
+            $pay_pid,
+            $enc_date,
+            $type
+        );
+        $pay_insco = (new InsuranceCompanyService())->getOne($pay_ins['provider']);
+        $pay_ins_type_code = $pay_insco['ins_type_code'];
+    switch ($pay_ins_type_code) {
+        case 0:
+            $payments['selfpay'] += $pay_array['pay_amount'];
+            break;
+        case 2:
+            $payments['medicare'] += $pay_array['pay_amount'];
+            break;
+        case 3:
+            $payments['medicaid'] += $pay_array['pay_amount'];
+            break;
+        case 4:
+            $payments['tricare'] += $pay_array['pay_amount'];
+            break;
+        case 5:
+            $payments['tricare'] += $pay_array['pay_amount'];
+            break;
+        default:
+            $payments['commercial'] += $pay_array['pay_amount'];
+    }
+}
+
+
 // In the case of CSV export only, a download will be forced.
 
-    ?>
+?>
 <html>
 <head>
 
@@ -254,7 +259,7 @@ function getInsName($payerid)
                     </a>
                         <?php if ($_POST['form_refresh']) { ?>
                     <a href='#' class='btn btn-secondary btn-print' onclick='window.print()'>
-                        <?php echo xlt('Print'); ?>
+                            <?php echo xlt('Print'); ?>
                     </a>
                     <?php } ?>
                 </div>
@@ -266,20 +271,22 @@ function getInsName($payerid)
 </div>
 
 
-    <?php    
+    <?php
         $sqlArray = [];
-        $where .= "f.date >= ? AND f.date <= ? ";
+        $where = "a.post_time >= ? AND a.post_time <= ? " .
+          "AND a.deleted IS NULL ";
+
         array_push($sqlArray, $form_date . ' 00:00:00', $form_to_date . ' 23:59:59');
-    
-    
-   
+
+
+
 
     # added provider from encounter to the query (TLH)
     $query = "SELECT f.id, f.date, f.pid, f.encounter, f.last_level_billed, " .
       "f.last_level_closed, f.last_stmt_date, f.stmt_count, f.invoice_refno, " .
       "p.fname, p.mname, p.lname, p.street, p.city, p.state, " .
       "p.postal_code, p.phone_home, p.ss, p.billing_note, " .
-      "p.pubpid, p.DOB, " .
+      "p.pubpid, p.DOB, a.post_time, " .
       "( SELECT bill_date FROM billing AS b WHERE " .
       "b.pid = f.pid AND b.encounter = f.encounter AND " .
       "b.activity = 1 AND b.code_type != 'COPAY' LIMIT 1) AS billdate, " .
@@ -297,6 +304,7 @@ function getInsName($payerid)
       "a.pid = f.pid AND a.encounter = f.encounter AND a.deleted IS NULL) AS adjustments " .
       "FROM form_encounter AS f " .
       "JOIN patient_data AS p ON p.pid = f.pid " .
+      "JOIN ar_activity AS a ON a.pid = f.pid " .
       "WHERE $where " .
       "ORDER BY f.pid, f.encounter";
 
@@ -311,21 +319,18 @@ function getInsName($payerid)
 
         endInsurance($erow);
         //var_dump($row);
-        
     } // end while
 
-    foreach($charges as $item) {
-
-        $grand_total_charges += $item; 
-        
+    foreach ($charges as $item) {
+        $grand_total_charges += $item;
     }
 
-    foreach($payments as $item) {
-        $grand_total_payments += $item; 
+    foreach ($payments as $item) {
+        $grand_total_payments += $item;
     }
 
 
-?>
+    ?>
     <div id="report_results">
     <table id='mymaintable'>
     <thead class='thead-light'>
@@ -343,29 +348,29 @@ function getInsName($payerid)
     echo "  <td>" .
     text('Medicare') . "</td>\n";
     echo "  <td class='detail' align='left'>&nbsp;" .
-    text(oeFormatMoney($charges['medicare'])) . "&nbsp;</td>\n";
+    text(oeFormatMoney($charges['medicare'] ?? null)) . "&nbsp;</td>\n";
     echo "  <td class='detail' align='left'>&nbsp;" .
-    text(oeFormatMoney($payments['medicare'])) . "&nbsp;</td>\n";
+    text(oeFormatMoney($payments['medicare'] ?? null)) . "&nbsp;</td>\n";
     echo "</tr>";
 
     echo " <tr class='bg-white'>\n";
     echo "  <td class='dehead' align='left'>&nbsp;" .
     text('Medicaid') . "&nbsp;</td>\n";
     echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($charges['medicaid'])) . "&nbsp;</td>\n";
+    text(oeFormatMoney($charges['medicaid'] ?? null)) . "&nbsp;</td>\n";
     echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($payments['medicaid'])) . "&nbsp;</td>\n";
+    text(oeFormatMoney($payments['medicaid'] ?? null)) . "&nbsp;</td>\n";
     echo "</tr>";
-   
+
     echo " <tr class='bg-white'>\n";
     echo "  <td class='dehead' align='left'>&nbsp;" .
     text('Tricare') . "&nbsp;</td>\n";
     echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($charges['tricare'])) . "&nbsp;</td>\n";
+    text(oeFormatMoney($charges['tricare'] ?? null)) . "&nbsp;</td>\n";
     echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($payments['tricare'])) . "&nbsp;</td>\n";
+    text(oeFormatMoney($payments['tricare'] ?? null)) . "&nbsp;</td>\n";
     echo "</tr>";
-       
+
     echo " <tr class='bg-white'>\n";
     echo "  <td class='dehead' align='left'>&nbsp;" .
     text('Commercial') . "&nbsp;</td>\n";
@@ -379,11 +384,11 @@ function getInsName($payerid)
     echo "  <td class='dehead' align='left'>&nbsp;" .
     text('Self pays') . "&nbsp;</td>\n";
     echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($charges['selfpay'])) . "&nbsp;</td>\n";
+    text(oeFormatMoney($charges['selfpay'] ?? null)) . "&nbsp;</td>\n";
     echo "  <td class='dehead' align='left'>&nbsp;" .
     text(oeFormatMoney($payments['selfpay'])) . "&nbsp;</td>\n";
     echo "</tr>";
-    
+
     echo " <tr class='bg-white'>\n";
     echo "  <td class='dehead' align='left'>&nbsp;" .
     text('Report totals') . "&nbsp;</td>\n";
@@ -392,7 +397,7 @@ function getInsName($payerid)
     echo "  <td class='dehead' align='left'>&nbsp;" .
     text(oeFormatMoney($grand_total_payments)) . "&nbsp;</td>\n";
     echo "</tr>";
-    
+
     echo "</tbody>";
     echo "</table>";
     echo "</div>";
@@ -400,5 +405,5 @@ function getInsName($payerid)
     echo "</html>";
 
 
-   
-?>
+
+    ?>
