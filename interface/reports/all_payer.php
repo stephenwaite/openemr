@@ -54,44 +54,33 @@ $form_to_date   = (isset($_POST['form_to_date'])) ? DateToYYYYMMDD($_POST['form_
 //$form_to_date = "2020-07-06";
 
 
-function endInsurance($insrow)
+function getChargesByDateAndCategory($insrow)
 {
-    global $charges, $payments;
+    global $charges;
+    global $form_date, $form_to_date;
     $pay_pid = $insrow['pid'];
     $pay_enc = $insrow['encounter'];
     $enc_date = $insrow['date'];
 
-    $insurance = (new InsuranceService())->getOne($insrow['pid'], "primary");
+    $insurance = getInsuranceDataByDate(
+        $pay_pid,
+        $enc_date,
+        "primary"
+    );
     $ins_id = $insurance['provider'];
     $insurance_company = (new InsuranceCompanyService())->getOne($ins_id);
     $ins_type_code = $insurance_company['ins_type_code'];
 
-    $code_query = "SELECT code, encounter FROM billing WHERE encounter = ? and code_type = 'CPT4'";
-    $temp = sqlStatement($code_query, array($insrow['encounter']));
 
-    $pay_query = "SELECT sequence_no, payer_type, pay_amount FROM ar_activity WHERE pid = ? AND encounter = ? AND pay_amount != 0";
-    $pay_state = sqlStatement($pay_query, array($pay_pid, $pay_enc));
 
     if ($ins_type_code = '2') {
         $charges['medicare'] += $insrow['charges'];
-        while ($pay_array = sqlFetchArray($pay_state)) {
-            getPaymentsByCategory($pay_array, $pay_pid, $enc_date);
-        }
     } elseif ($ins_type_code = '3') {
         $charges['medicaid'] += $insrow['charges'];
-        while ($pay_array = sqlFetchArray($pay_state)) {
-            getPaymentsByCategory($pay_array, $pay_pid, $enc_date);
-        }
     } elseif (in_array($ins_type_code, array('4', '5'))) {
         $charges['tricare'] += $insrow['charges'];
-        while ($pay_array = sqlFetchArray($pay_state)) {
-            getPaymentsByCategory($pay_array, $pay_pid, $enc_date);
-        }
     } else {
         $charges['commercial'] += $insrow['charges'];
-        while ($pay_array = sqlFetchArray($pay_state)) {
-            getPaymentsByCategory($pay_array, $pay_pid, $enc_date);
-        }
     }
 }
 
@@ -108,42 +97,47 @@ function getInsName($payerid)
     return $tmp['name'];
 }
 
-function getPaymentsByCategory($pay_array, $pay_pid, $enc_date)
+function getPaymentsByPayerType($pay_row)
 {
     global $payments;
 
-    if ($pay_array['payer_type'] == '1') {
+    $enc_date = sqlQuery(
+        "SELECT date FROM form_encounter WHERE encounter = ?",
+        array($pay_row['encounter'])
+    );
+
+    if ($pay_row['payer_type'] == '1') {
         $type = 'primary';
-    } elseif ($pay_array['payer_type'] == '2') {
+    } elseif ($pay_row['payer_type'] == '2') {
         $type = 'secondary';
-    } elseif ($pay_array['payer_type'] == '3') {
+    } elseif ($pay_row['payer_type'] == '3') {
         $type = 'tertiary';
     }
         $pay_ins = getInsuranceDataByDate(
-            $pay_pid,
-            $enc_date,
+            $pay_row['pid'],
+            $enc_date['date'],
             $type
         );
         $pay_insco = (new InsuranceCompanyService())->getOne($pay_ins['provider']);
         $pay_ins_type_code = $pay_insco['ins_type_code'];
     switch ($pay_ins_type_code) {
         case 0:
-            $payments['selfpay'] += $pay_array['pay_amount'];
+            $payments['selfpay'] += $pay_row['pay_amount'];
             break;
         case 2:
-            $payments['medicare'] += $pay_array['pay_amount'];
+            $payments['medicare'] += $pay_row['pay_amount'];
             break;
         case 3:
-            $payments['medicaid'] += $pay_array['pay_amount'];
+            $payments['medicaid'] += $pay_row['pay_amount'];
             break;
         case 4:
-            $payments['tricare'] += $pay_array['pay_amount'];
+            $payments['tricare'] += $pay_row['pay_amount'];
             break;
         case 5:
-            $payments['tricare'] += $pay_array['pay_amount'];
+            $payments['tricare'] += $pay_row['pay_amount'];
             break;
         default:
-            $payments['commercial'] += $pay_array['pay_amount'];
+            $payments['commercial'] += $pay_row['pay_amount'];
     }
 }
 
@@ -271,66 +265,52 @@ function getPaymentsByCategory($pay_array, $pay_pid, $enc_date)
 </div>
 
 
-    <?php
-        $sqlArray = [];
-        $where = "a.post_time >= ? AND a.post_time <= ? " .
-          "AND a.deleted IS NULL ";
+<?php
+    $sqlArray = [];
+    $where = "f.date >= ? AND f.date <= ? ";
+    array_push($sqlArray, $form_date . ' 00:00:00', $form_to_date . ' 23:59:59');
 
-        array_push($sqlArray, $form_date . ' 00:00:00', $form_to_date . ' 23:59:59');
-
-
-
-
-    # added provider from encounter to the query (TLH)
-    $query = "SELECT f.id, f.date, f.pid, f.encounter, f.last_level_billed, " .
-      "f.last_level_closed, f.last_stmt_date, f.stmt_count, f.invoice_refno, " .
-      "p.fname, p.mname, p.lname, p.street, p.city, p.state, " .
-      "p.postal_code, p.phone_home, p.ss, p.billing_note, " .
-      "p.pubpid, p.DOB, a.post_time, " .
-      "( SELECT bill_date FROM billing AS b WHERE " .
-      "b.pid = f.pid AND b.encounter = f.encounter AND " .
-      "b.activity = 1 AND b.code_type != 'COPAY' LIMIT 1) AS billdate, " .
+    $query = "SELECT f.id, f.date, f.pid, f.encounter, " .
       "( SELECT SUM(b.fee) FROM billing AS b WHERE " .
       "b.pid = f.pid AND b.encounter = f.encounter AND " .
-      "b.activity = 1 AND b.code_type != 'COPAY' ) AS charges, " .
-      "( SELECT SUM(b.fee) FROM billing AS b WHERE " .
-      "b.pid = f.pid AND b.encounter = f.encounter AND " .
-      "b.activity = 1 AND b.code_type = 'COPAY' ) AS copays, " .
-      "( SELECT SUM(s.fee) FROM drug_sales AS s WHERE " .
-      "s.pid = f.pid AND s.encounter = f.encounter ) AS sales, " .
-      "( SELECT SUM(a.pay_amount) FROM ar_activity AS a WHERE " .
-      "a.pid = f.pid AND a.encounter = f.encounter AND a.deleted IS NULL) AS payments, " .
-      "( SELECT SUM(a.adj_amount) FROM ar_activity AS a WHERE " .
-      "a.pid = f.pid AND a.encounter = f.encounter AND a.deleted IS NULL) AS adjustments " .
+      "b.activity = 1 AND b.code_type != 'COPAY' ) AS charges " .
       "FROM form_encounter AS f " .
       "JOIN patient_data AS p ON p.pid = f.pid " .
-      "JOIN ar_activity AS a ON a.pid = f.pid " .
       "WHERE $where " .
       "ORDER BY f.pid, f.encounter";
 
     $eres = sqlStatement($query, $sqlArray);
 
+while ($erow = sqlFetchArray($eres)) {
+    if ($erow['charges'] ==  0) {
+        continue;
+    }
+    getChargesByDateAndCategory($erow);
+}
 
-    while ($erow = sqlFetchArray($eres)) {
-        //var_dump($erow);
-        if ($erow['charges'] ==  0) {
-            continue;
+$ar_session_query = "SELECT session_id FROM ar_session WHERE deposit_date >= ? AND deposit_date <= ?";
+$ar_session_res = sqlStatement($ar_session_query, array($form_date, $form_to_date));
+
+while ($ar_row = sqlFetchArray($ar_session_res)) {
+    $ar_activity_query = "SELECT pid, encounter, payer_type, pay_amount FROM ar_activity WHERE session_id = ?";
+    $ar_activity_res = sqlStatement($ar_activity_query, array($ar_row['session_id']));
+    while ($ar_activity_row = sqlFetchArray($ar_activity_res)) {
+        if ($ar_activity_row['pay_amount'] != 0) {
+            getPaymentsByPayerType($ar_activity_row);
         }
-
-        endInsurance($erow);
-        //var_dump($row);
-    } // end while
-
-    foreach ($charges as $item) {
-        $grand_total_charges += $item;
     }
+}
 
-    foreach ($payments as $item) {
-        $grand_total_payments += $item;
-    }
+foreach ($charges as $item) {
+    $grand_total_charges += $item;
+}
+
+foreach ($payments as $item) {
+    $grand_total_payments += $item;
+}
 
 
-    ?>
+?>
     <div id="report_results">
     <table id='mymaintable'>
     <thead class='thead-light'>
