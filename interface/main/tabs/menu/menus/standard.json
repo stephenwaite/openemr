@@ -1675,7 +1675,7 @@
             ]
           },
           {
-            "label": "All Payer Revenue",
+            "label": "Payer Mix",
             "menu_id": "rep0",
             "target": "rep",
             "url": "/interface/reports/all_payer.php",
