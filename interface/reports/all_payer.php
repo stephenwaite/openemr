@@ -28,6 +28,7 @@ require_once "$srcdir/options.inc.php";
 
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
+use OpenEMR\OeUI\OemrUI;
 use OpenEMR\Services\InsuranceCompanyService;
 
 if (!empty($_POST)) {
@@ -143,6 +144,20 @@ function getPaymentsByPayerType($pay_row)
 
     <?php Header::setupHeader(['datetime-picker', 'report-helper']); ?>
 
+    <?php
+        $arrOeUiSettings = array(
+            'heading_title' => xl('Payer Mix'),
+            'include_patient_name' => false,
+            'expandable' => false,
+            'expandable_files' => array(),//all file names need suffix _xpd
+            'action' => "",//conceal, reveal, search, reset, link or back
+            'action_title' => "",
+            'action_href' => "",//only for actions - reset, link or back
+            'show_help_icon' => true,
+            'help_file_name' => "payer_mix_help.php"
+        );
+        $oemr_ui = new OemrUI($arrOeUiSettings);
+    ?>
     <style type="text/css" >
         @media print {
             #report_parameters {
@@ -191,6 +206,12 @@ function getPaymentsByPayerType($pay_row)
 </head>
 
 <body class="body_top">
+<div id="container_div" class="<?php echo attr($oemr_ui->oeContainer()); ?> mt-3">
+        <div class="row">
+            <div class="col-sm-12">
+                <?php echo $oemr_ui->pageHeading() . "\r\n"; ?>
+           </div>
+        </div>
 
 <span class='title'><?php echo xlt('Payer Mix Charges/Payments'); ?></span>
 
@@ -315,5 +336,7 @@ foreach ($payments as $item) {
         </tbody>
     </table>    
 </div>
+</div> <!-- end container ui help div -->
+<?php $oemr_ui->oeBelowContainerDiv(); ?>
 </body>
 </html>
