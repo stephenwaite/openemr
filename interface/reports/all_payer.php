@@ -26,12 +26,9 @@ require_once("../../library/patient.inc");
 require_once("$srcdir/classes/InsuranceCompany.class.php");
 require_once "$srcdir/options.inc.php";
 
-use OpenEMR\Billing\InvoiceSummary;
-use OpenEMR\Billing\SLEOB;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
 use OpenEMR\Services\InsuranceCompanyService;
-use OpenEMR\Services\InsuranceService;
 
 if (!empty($_POST)) {
     if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
@@ -49,10 +46,7 @@ $charges['medicare'] = 0;
 $payments['medicare'] = 0;
 
 $form_date      = (isset($_POST['form_date'])) ? DateToYYYYMMDD($_POST['form_date']) : "";
-//$form_date = "2020-07-06";
 $form_to_date   = (isset($_POST['form_to_date'])) ? DateToYYYYMMDD($_POST['form_to_date']) : "";
-//$form_to_date = "2020-07-06";
-
 
 function getChargesByDateAndCategory($insrow)
 {
@@ -141,8 +135,6 @@ function getPaymentsByPayerType($pay_row)
 }
 
 
-// In the case of CSV export only, a download will be forced.
-
 ?>
 <html>
 <head>
@@ -178,16 +170,7 @@ function getPaymentsByPayerType($pay_row)
     <script>
         function reSubmit() {
             $("#form_refresh").attr("value","true");
-            $("#form_csvexport").val("");
             $("#theform").submit();
-        }
-        // open dialog to edit an invoice w/o opening encounter.
-        function editInvoice(e, id) {
-            e.stopPropagation();
-            let url = './../billing/sl_eob_invoice.php?id=' + encodeURIComponent(id);
-            dlgopen(url,'','modal-lg',750,false,'', {
-                onClosed: 'reSubmit'
-            });
         }
 
         $(function () {
@@ -203,64 +186,43 @@ function getPaymentsByPayerType($pay_row)
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
         });
-
-        function checkAll(checked) {
-            var f = document.forms[0];
-            for (var i = 0; i < f.elements.length; ++i) {
-                var ename = f.elements[i].name;
-                if (ename.indexOf('form_cb[') == 0)
-                    f.elements[i].checked = checked;
-            }
-        }
     </script>
 
 </head>
 
 <body class="body_top">
 
-<span class='title'><?php echo xlt('Report'); ?> - <?php echo xlt('Revenue'); ?></span>
+<span class='title'><?php echo xlt('Payer Mix Charges/Payments'); ?></span>
 
 <form method='post' action='all_payer.php' enctype='multipart/form-data' id='theform' onsubmit='return top.restoreSession()'>
 <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
 <div id="report_parameters">
-<input type='hidden' name='form_refresh' id='form_refresh' value=''/>
-<input type='hidden' name='form_export' id='form_export' value=''/>
-<input type='hidden' name='form_csvexport' id='form_csvexport' value=''/>
-
-<table>
-   <tr>
-      <td class='col-form-label'>
-          <?php echo xlt('Service Date'); ?>:
-      </td>
-      <td>
-          <input type='text' class='datepicker form-control' name='form_date' id="form_date" size='10' value='<?php echo attr(oeFormatShortDate($form_date)); ?>'>
-      </td>
-      <td class='col-form-label'>
-          <?php echo xlt('To{{Range}}'); ?>:
-      </td>
-      <td>
-          <input type='text' class='datepicker form-control' name='form_to_date' id="form_to_date" size='10' value='<?php echo attr(oeFormatShortDate($form_to_date)); ?>'>
-      </td>                        
-  </tr>
-  <tr> 
-        <td align='left' valign='middle' height="100%">
-            <div class="text-center">
-                <div class="btn-group" role="group">
-                    <a href='#' class='btn btn-secondary btn-save' onclick='$("#form_refresh").attr("value","true"); $("#form_csvexport").val(""); $("#theform").submit();'>
-                        <?php echo xlt('Submit'); ?>
-                    </a>
-                        <?php if ($_POST['form_refresh']) { ?>
-                    <a href='#' class='btn btn-secondary btn-print' onclick='window.print()'>
-                            <?php echo xlt('Print'); ?>
-                    </a>
-                    <?php } ?>
-                </div>
-            </div>
-        </td>
- </tr>
- </table>
-
+    <input type='hidden' name='form_refresh' id='form_refresh' value=''/>
+    <div class="input-group">
+        <div class="form-group col-md-2">
+            <label for="form_date">
+                <?php echo xlt('From Date'); ?>:
+            </label>
+            <input type='text' class='datepicker form-control' name='form_date' id="form_date" size='10' value='<?php echo attr(oeFormatShortDate($form_date)); ?>'>
+        </div>
+        <div class="form-group col-md-2">
+            <label for="form_to_date">
+                <?php echo xlt('To{{Range}}'); ?>:
+            </label>
+            <input type='text' class='datepicker form-control' name='form_to_date' id="form_to_date" size='10' value='<?php echo attr(oeFormatShortDate($form_to_date)); ?>'>
+        </div>
+    </div>
+    <div class="btn-group m-3" role="group">
+        <a href='#' class='btn btn-primary btn-save' onclick='$("#form_refresh").attr("value","true"); $("#theform").submit();'>
+            <?php echo xlt('Submit'); ?>
+        </a>
+        <?php if ($_POST['form_refresh']) { ?>
+            <a href='#' class='btn btn-secondary btn-print' onclick='window.print()'>
+                <?php echo xlt('Print'); ?>
+            </a>
+        <?php } ?>
+    </div>
 </div>
 
 
@@ -308,81 +270,50 @@ foreach ($payments as $item) {
     $grand_total_payments += $item;
 }
 
-
 ?>
-    <div id="report_results">
-    <table id='mymaintable'>
-    <thead class='thead-light'>
-        <tr>
-            <th>Payer</th>
-            <th>Charges</th>
-            <th>Payments</th>
-        </tr>    
-    </thead>
-    <tbody>
 
-    
-    <?php
-    echo " <tr >\n";
-    echo "  <td>" .
-    text('Medicare') . "</td>\n";
-    echo "  <td class='detail' align='left'>&nbsp;" .
-    text(oeFormatMoney($charges['medicare'] ?? null)) . "&nbsp;</td>\n";
-    echo "  <td class='detail' align='left'>&nbsp;" .
-    text(oeFormatMoney($payments['medicare'] ?? null)) . "&nbsp;</td>\n";
-    echo "</tr>";
-
-    echo " <tr class='bg-white'>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text('Medicaid') . "&nbsp;</td>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($charges['medicaid'] ?? null)) . "&nbsp;</td>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($payments['medicaid'] ?? null)) . "&nbsp;</td>\n";
-    echo "</tr>";
-
-    echo " <tr class='bg-white'>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text('Tricare') . "&nbsp;</td>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($charges['tricare'] ?? null)) . "&nbsp;</td>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($payments['tricare'] ?? null)) . "&nbsp;</td>\n";
-    echo "</tr>";
-
-    echo " <tr class='bg-white'>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text('Commercial') . "&nbsp;</td>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($charges['commercial'])) . "&nbsp;</td>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($payments['commercial'])) . "&nbsp;</td>\n";
-    echo "</tr>";
-
-    echo " <tr class='bg-white'>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text('Self pays') . "&nbsp;</td>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($charges['selfpay'] ?? null)) . "&nbsp;</td>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($payments['selfpay'])) . "&nbsp;</td>\n";
-    echo "</tr>";
-
-    echo " <tr class='bg-white'>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text('Report totals') . "&nbsp;</td>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($grand_total_charges)) . "&nbsp;</td>\n";
-    echo "  <td class='dehead' align='left'>&nbsp;" .
-    text(oeFormatMoney($grand_total_payments)) . "&nbsp;</td>\n";
-    echo "</tr>";
-
-    echo "</tbody>";
-    echo "</table>";
-    echo "</div>";
-    echo "</body>";
-    echo "</html>";
-
-
-
-    ?>
+<div id="report_results">
+    <table id='mymaintable' class="table table-striped">
+        <thead>
+            <tr>
+                <th scope="col">Payer</th>
+                <th scope="col">Charges</th>
+                <th scope="col">Payments</th>
+            </tr>    
+        </thead>
+        <tbody>
+            <tr>
+                <th scope="row"><?php echo text('Medicare') ?></th>
+                <td><?php echo text(oeFormatMoney($charges['medicare'] ?? null)) ?></td>
+                <td><?php echo text(oeFormatMoney($payments['medicare'] ?? null)) ?> </td>
+            </tr>
+            <tr>
+                <th scope="row"><?php echo text('Medicaid') ?> </th>
+                <td><?php echo text(oeFormatMoney($charges['medicaid'] ?? null)) ?></td>
+                <td><?php echo text(oeFormatMoney($payments['medicaid'] ?? null)) ?></td>
+            </tr>
+            <tr>
+                <th scope="row"><?php echo text('Tricare') ?></th>
+                <td><?php echo text(oeFormatMoney($charges['tricare'] ?? null)) ?></td>
+                <td><?php echo text(oeFormatMoney($payments['tricare'] ?? null)) ?></td>
+            </tr>
+            <tr>
+                <th scope="row"><?php echo text('Commercial') ?></td>
+                <td><?php echo text(oeFormatMoney($charges['commercial'])) ?></td>
+                <td><?php echo text(oeFormatMoney($payments['commercial'])) ?></td>
+            </tr>
+            <tr>
+                <th scope="row"><?php echo text('Self pays') ?></td>
+                <td><?php echo text(oeFormatMoney($charges['selfpay'] ?? null)) ?></td>
+                <td><?php echo text(oeFormatMoney($payments['selfpay'])) ?></td>
+            </tr>
+            <tr>
+                <th scope="row"><?php echo text('Report totals') ?></th>
+                <td><?php echo text(oeFormatMoney($grand_total_charges)) ?></td>
+                <td><?php echo text(oeFormatMoney($grand_total_payments)) ?></td>
+            </tr>
+        </tbody>
+    </table>    
+</div>
+</body>
+</html>
