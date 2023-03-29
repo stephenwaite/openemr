@@ -157,7 +157,7 @@ function getPaymentsByPayerType($pay_row)
             'help_file_name' => "payer_mix_help.php"
         );
         $oemr_ui = new OemrUI($arrOeUiSettings);
-    ?>
+        ?>
     <style type="text/css" >
         @media print {
             #report_parameters {
@@ -270,8 +270,8 @@ while ($erow = sqlFetchArray($eres)) {
     getChargesByDateAndCategory($erow);
 }
 
-$ar_session_query = "SELECT session_id FROM ar_session WHERE deposit_date >= ? AND deposit_date <= ?";
-$ar_session_res = sqlStatement($ar_session_query, array($form_date, $form_to_date));
+$ar_session_query = "SELECT session_id FROM ar_session WHERE created_time >= ? AND created_time <= ?";
+$ar_session_res = sqlStatement($ar_session_query, array($form_date . " 00:00:00", $form_to_date . " 23:59:59"));
 
 while ($ar_row = sqlFetchArray($ar_session_res)) {
     $ar_activity_query = "SELECT pid, encounter, payer_type, pay_amount FROM ar_activity WHERE session_id = ?";
