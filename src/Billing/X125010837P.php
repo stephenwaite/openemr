@@ -693,8 +693,8 @@ class X125010837P
             $claim->onsetDate() &&
             $claim->onsetDate() !== $claim->serviceDate() &&
             $claim->onsetDateValid() &&
-            !$diabDlsRequired
-            && (strcmp($claim->facilityPOS(), '21') != 0)
+            !$diabDlsRequired &&
+            (strcmp($claim->facilityPOS(), '21') != 0)
         ) {
             ++$edicount;
             $out .= "DTP" .       // Date of Onset
@@ -1293,7 +1293,7 @@ class X125010837P
                 "*" . "PI" .
                 "*";
                 if (
-                    $claim->payerID($ins - 1) == "MCDVT"
+                    $claim->payerID() == "MCDVT"
                 ) { // for 2ndary gmc claims
                     if ($claim->claimType($ins) === 'MB') {
                         $out .= "MDB";
@@ -1323,8 +1323,8 @@ class X125010837P
                         if (!empty($claim->groupNumber())) {
                             $out .= $claim->groupNumber();
                         } else {
-                          $out .= "92";
-                        }  
+                            $out .= "92";
+                        }
                     } elseif (($claim->payerID($ins)) == "00010") {
                         $out .= "42";
                     } elseif (($claim->payerID($ins)) == "MPHC1") {
@@ -1634,7 +1634,7 @@ class X125010837P
                 $out .= "SVD" . // Service line adjudication. Page 554.
                 "*";
                 if (
-                    $claim->payerID($ins - 1) == "MCDVT"
+                    $claim->payerID() == "MCDVT"
                 ) {
                     if ($claim->claimType($ins) === 'MB') {
                         $out .= "MDB";
@@ -1672,8 +1672,8 @@ class X125010837P
                             if (!empty($claim->groupNumber())) {
                                 $out .= $claim->groupNumber();
                             } else {
-                              $out .= "92";
-                            }  
+                                $out .= "92";
+                            }
                         }
                         if (($claim->payerID($ins)) == "00010") {
                             $out .= "42";
@@ -1708,7 +1708,23 @@ class X125010837P
 
                 $cas = $claim->getLineItemAdjustments($aarr);
 
-                // $key is the group code or payer_paid_date
+                // if tertiary claim need to hard code adjustments
+                if (
+                    ($claim->payerSequence() == 'T')
+                    && ($claim->payerSequence($ins) == 'S')
+                ) {
+                    $primary_paid = $claim->payerTotals(1, $claim->cptKey($prockey));
+                    if ($primary_paid != 0) {
+                        $out .= "CAS" .
+                            "*" .
+                            "OA" . "*" .
+                            "23" . "*" .
+                            $primary_paid[1];
+                        $out .= "~\n";
+                        ++$edicount;
+                    }
+                }
+                    // $key is the group code or payer_paid_date
                 foreach ($cas as $key => $value) {
                     if ($key == 'payer_paid_date') {
                         if (!$tmpdate) {
@@ -1737,7 +1753,6 @@ class X125010837P
                     $out .= "~\n";
                     ++$edicount;
                 }
-
                 if ($tmpdate) {
                     ++$edicount;
                     $out .= "DTP" . // Previous payer's line adjustment date. Page 493/566.

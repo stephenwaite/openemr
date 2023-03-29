@@ -616,7 +616,7 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
                                   <?php
                                     foreach ($insurancei as $iid => $iname) {
                                         echo "<option value='" . attr($iid) . "'";
-                                        if (strtolower($iid) ?? null == strtolower($result3["provider"])) {
+                                        if ((strtolower($iid) ?? null) == strtolower($result3["provider"])) {
                                             echo " selected";
                                         }
                                         echo ">" . text($iname) . "</option>\n";

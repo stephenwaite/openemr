@@ -370,7 +370,10 @@ class Claim
                     $date = $tmp;
                 }
 
-                if ($tmp && (($value['pmt'] ?? null) == 0)) { // not original charge and not a payment
+                if (
+                    $tmp
+                    && (($value['pmt'] ?? null) == 0)
+                ) { // not original charge and not a payment
                     $rsn = $value['rsn'];
                     $chg = 0 - $value['chg']; // adjustments are negative charges
 
@@ -471,13 +474,10 @@ class Claim
             if ($date && $coinsurance != 0) {
                 $aadj[] = array($date, 'PR', '2', $coinsurance, $msp);
             }
-            
+
             if ($date && $copay != 0) {
                 $aadj[] = array($date, 'PR', '3', $copay, $msp);
             }
-            
-            
-
         } // end if
 
         return $aadj;
@@ -509,7 +509,7 @@ class Claim
             foreach ($codeval['dtl'] as $key => $value) {
                 // plv (from ar_activity.payer_type) exists to
                 // indicate the payer level.
-                if ($value['plv'] ?? null == $insnumber) {
+                if (($value['plv'] ?? null) == $insnumber) {
                     if (!$date) {
                         $date = str_replace('-', '', trim(substr($key, 0, 10)));
                     }
