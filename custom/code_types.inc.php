@@ -47,7 +47,7 @@
  * @author    Jerry Padgett <sjpadgett@gmail.com>
  * @copyright Copyright (c) 2006-2010 Rod Roark <rod@sunsetsystems.com>
  * @copyright Copyright (c) 2019 Brady Miller <brady.g.miller@gmail.com>
- * @copyright Copyright (c) 2021-2022 Robert Down <robertdown@live.com>
+ * @copyright Copyright (c) 2021-2023 Robert Down <robertdown@live.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -171,6 +171,7 @@ define_external_table($code_external_tables, 6, 'icd10_pcs_order_code', 'pcs_cod
 //**** End ICD 10 Definitions
 
 define_external_table($code_external_tables, 13, 'valueset', 'code', 'description', 'description', array(), '');
+define_external_table($code_external_tables, 14, 'valueset_oid', 'code', 'description', 'description', array(), '');
 
 /**
  * This array stores the external table options. See above for $code_types array
@@ -190,7 +191,8 @@ $ct_external_options = array(
   '10' => xl('SNOMED (RF2) Diagnosis'),
   '11' => xl('SNOMED (RF2) Clinical Term'),
   '12' => xl('SNOMED (RF2) Procedure'),
-  '13' => xl('CQM (Mixed Types) Value Set')
+  '13' => xl('CQM (Mixed Types) Value Set'),
+  '14' => xl('CQM OID Value Set')
 );
 
 /**

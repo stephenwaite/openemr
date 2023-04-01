@@ -29,8 +29,8 @@ use OpenEMR\Validators\EncounterValidator;
 use OpenEMR\Validators\ProcessingResult;
 use Particle\Validator\Validator;
 
-require_once dirname(__FILE__) . "/../../library/forms.inc";
-require_once dirname(__FILE__) . "/../../library/encounter.inc";
+require_once dirname(__FILE__) . "/../../library/forms.inc.php";
+require_once dirname(__FILE__) . "/../../library/encounter.inc.php";
 
 class EncounterService extends BaseService
 {
@@ -107,7 +107,7 @@ class EncounterService extends BaseService
     public function getUuidFields(): array
     {
         return ['provider_uuid', 'facility_uuid', 'euuid', 'puuid', 'billing_facility_uuid'
-            , 'facility_location_uuid', 'billing_location_uuid'];
+            , 'facility_location_uuid', 'billing_location_uuid', 'referrer_uuid'];
     }
 
     /**
@@ -208,13 +208,16 @@ class EncounterService extends BaseService
                        fa.billing_facility_uuid,
                        fa.billing_facility_name,
                        fa.billing_location_uuid,
-                
+
                        fe.provider_id,
+                       fe.referring_provider_id,
                        providers.provider_uuid,
                        providers.provider_username,
+                       referrers.referrer_uuid,
+                       referrers.referrer_username,
                        fe.discharge_disposition,
                        discharge_list.discharge_disposition_text
-                       
+
 
                        FROM (
                            select
@@ -240,7 +243,8 @@ class EncounterService extends BaseService
                                class_code,
                                facility_id,
                                discharge_disposition,
-                               pid as encounter_pid
+                               pid as encounter_pid,
+                               referring_provider_id
                            FROM form_encounter
                        ) fe
                        LEFT JOIN openemr_postcalendar_categories as opc
@@ -253,7 +257,7 @@ class EncounterService extends BaseService
                                 ,facility.`name` AS billing_facility_name
                                 ,locations.uuid AS billing_location_uuid
                            from facility
-                           LEFT JOIN uuid_mapping AS locations 
+                           LEFT JOIN uuid_mapping AS locations
                                ON locations.target_uuid = facility.uuid AND locations.resource='Location'
                        ) fa ON fa.billing_facility_id = fe.billing_facility
                        LEFT JOIN (
@@ -273,12 +277,21 @@ class EncounterService extends BaseService
                        ) providers ON fe.provider_id = providers.provider_provider_id
                        LEFT JOIN (
                            select
+                                id AS referring_provider_id
+                                ,uuid AS referrer_uuid
+                                ,`username` AS referrer_username
+                            FROM users
+                            WHERE
+                                npi IS NOT NULL and npi != ''
+                       ) referrers ON fe.referring_provider_id = referrers.referring_provider_id
+                       LEFT JOIN (
+                           select
                                 facility.id AS facility_id
                                 ,facility.uuid AS facility_uuid
                                 ,facility.`name` AS facility_name
                                 ,`locations`.`uuid` AS facility_location_uuid
                            from facility
-                           LEFT JOIN uuid_mapping AS locations 
+                           LEFT JOIN uuid_mapping AS locations
                                ON locations.target_uuid = facility.uuid AND locations.resource='Location'
                        ) facilities ON facilities.facility_id = fe.facility_id
                        LEFT JOIN (
@@ -346,7 +359,9 @@ class EncounterService extends BaseService
         $encounter = generate_id();
         $data['encounter'] = $encounter;
         $data['uuid'] = UuidRegistry::getRegistryForTable(self::ENCOUNTER_TABLE)->createUuid();
-        $data['date'] = date("Y-m-d");
+        if (empty($data['date'])) {
+            $data['date'] = date("Y-m-d");
+        }
         $puuidBytes = UuidRegistry::uuidToBytes($puuid);
         $data['pid'] = $this->getIdByUuid($puuidBytes, self::PATIENT_TABLE, "pid");
         $query = $this->buildInsertColumns($data);
@@ -367,7 +382,8 @@ class EncounterService extends BaseService
             $data["provider_id"],
             $data["date"],
             $data['user'],
-            $data['group']
+            $data['group'],
+            $data['referring_provider_id']
         );
 
         if ($results) {

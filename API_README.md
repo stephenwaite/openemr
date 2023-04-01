@@ -24,6 +24,13 @@
         - [System Export (in FHIR_README.md)](FHIR_README.md#bulk-fhir-exports)
         - [Patient Export (in FHIR_README.md)](FHIR_README.md#bulk-fhir-exports)
         - [Group Export (in FHIR_README.md)](FHIR_README.md#bulk-fhir-exports)
+    - [3rd Party SMART Apps (in FHIR_README.md)](FHIR_README.md#3rd-party-smart-apps)
+    - [Native Applications (in FHIR_README.md)](FHIR_README.md#native-applications)
+    - [Carecoordination Summary of Care (CCD) Generation (in FHIR_README.md)](FHIR_README.md#carecoordination-summary-of-care-docref-operation)
+        - [Overview Docref (in FHIR_README.md)](FHIR_README.md#overview-docref)
+        - [Generate CCDA (in FHIR_README.md)](FHIR_README.md#generate-ccda)
+        - [Details Docref (in FHIR_README.md)](FHIR_README.md#details-docref)
+- [Security Settings](API_README.md#security)
 - [For Developers](API_README.md#for-developers)
 
 ## Overview
@@ -59,6 +66,8 @@ This is a listing of scopes:
 - `launch/patient`
 - `api:fhir` (fhir which are the /fhir/ endpoints)
   - `patient/AllergyIntolerance.read`
+  - `patient/Appointment.read`
+  - `patient/Binary.read`
   - `patient/CarePlan.read`
   - `patient/CareTeam.read`
   - `patient/Condition.read`
@@ -66,6 +75,7 @@ This is a listing of scopes:
   - `patient/Device.read`
   - `patient/DiagnosticReport.read`
   - `patient/DocumentReference.read`
+  - `patient/DocumentReference.$docref`
   - `patient/Encounter.read`
   - `patient/Goal.read`
   - `patient/Immunization.read`
@@ -80,18 +90,19 @@ This is a listing of scopes:
   - `patient/Procedure.read`
   - `patient/Provenance.read`
   - `system/AllergyIntolerance.read`
+  - `system/Binary.read`
   - `system/CarePlan.read`
   - `system/CareTeam.read`
   - `system/Condition.read`
   - `system/Coverage.read`
   - `system/Device.read`
   - `system/DiagnosticReport.read`
-  - `system/Document.read` (used for Bulk FHIR export downloads)
   - `system/DocumentReference.read`
+  - `system/DocumentReference.$docref`
   - `system/Encounter.read`
   - `system/Goal.read`
   - `system/Group.read`
-  - `system/Group.$export` (???)
+  - `system/Group.$export`
   - `system/Immunization.read`
   - `system/Location.read`
   - `system/MedicationRequest.read`
@@ -99,15 +110,16 @@ This is a listing of scopes:
   - `system/Observation.read`
   - `system/Organization.read`
   - `system/Patient.read`
-  - `system/Patient.$export` (???)
+  - `system/Patient.$export`
   - `system/Person.read`
   - `system/Practitioner.read`
   - `system/PractitionerRole.read`
   - `system/Procedure.read`
   - `system/Provenance.read`
-  - `system/*.$bulkdata-status` (???)
-  - `system/*.$export` (???)
+  - `system/*.$bulkdata-status`
+  - `system/*.$export`
   - `user/AllergyIntolerance.read`
+  - `user/Binary.read`
   - `user/CarePlan.read`
   - `user/CareTeam.read`
   - `user/Condition.read`
@@ -115,6 +127,7 @@ This is a listing of scopes:
   - `user/Device.read`
   - `user/DiagnosticReport.read`
   - `user/DocumentReference.read`
+  - `user/DocumentReference.$docref`
   - `user/Encounter.read`
   - `user/Goal.read`
   - `user/Immunization.read`
@@ -175,6 +188,7 @@ This is a listing of scopes:
 - `api:port` (patient api which are the /portal/ endpoints) (EXPERIMENTAL)
   - `patient/encounter.read`
   - `patient/patient.read`
+  - `patient/appointment.read`
 
 ### Registration
 
@@ -239,13 +253,21 @@ Example GET (this must be done in a browser):
 GET /oauth2/default/authorize?client_id=yi4mnmVadpnqnJiOigkcGshuG-Kayiq6kmLqCJsYrk4&response_type=code&scope=launch%2Fpatient%20openid%20fhirUser%20offline_access%20patient%2FAllergyIntolerance.read%20patient%2FCarePlan.read%20patient%2FCareTeam.read%20patient%2FCondition.read%20patient%2FDevice.read%20patient%2FDiagnosticReport.read%20patient%2FDocumentReference.read%20patient%2FEncounter.read%20patient%2FGoal.read%20patient%2FImmunization.read%20patient%2FLocation.read%20patient%2FMedication.read%20patient%2FMedicationRequest.read%20patient%2FObservation.read%20patient%2FOrganization.read%20patient%2FPatient.read%20patient%2FPractitioner.read%20patient%2FProcedure.read%20patient%2FProvenance.read&redirect_uri=https%3A%2F%2Fclient.example.org%2Fcallback&state=9512151b-e5ca-cb4b-1ddc-aaf4cd8c6ecc
 ```
 
-The client application must then make a request for an access token by hitting the /token endpoint.  Note the redirect_uri MUST match what what was sent in /authorize endpoint.
+The client application must then make a request for an access token by hitting the /token endpoint.  Note the redirect_uri MUST match what what was sent in /authorize endpoint.  If your application is registered as a public application you must include the client_id in the POST request.  If you are registered as a confidential app you must use HTTP Basic Authentication where the client_id is your username and the password is your client_secret.  HTTP Basic Authentication follows the algorithm of base64_encode(username:client_secret).  In PHP this would be base64_encode($client_id . ':' . $client_secret);  Note that this mechanism should ONLY be used over an encrypted protocol such as TLS to prevent leaking your client_secret.
 
-Example POST
+Example Public Application POST
 ```
 curl -X POST -k -H 'Content-Type: application/x-www-form-urlencoded'
 'https://localhost:9300/oauth2/default/token'
---data 'grant_type=authorization_code&redirect_uri=https%3A%2F%2Fclient.example.org%2Fcallback&code=def50...'
+--data 'grant_type=authorization_code&client_id=yi4mnmVadpnqnJiOigkcGshuG-Kayiq6kmLqCJsYrk4redirect_uri=https%3A%2F%2Fclient.example.org%2Fcallback&code=def50...'
+```
+
+Example Private Application POST
+```
+curl -X POST -k -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Authorization: Basic c3Z2TThFX1hISEhYUmtoZzUyeWoyNjdIOEYwQnpmT09pRmE4aUZBT290WTptbzZpZEFPaEU0UVYxb0lacUR5YTFHR1JHVGU5VDQzNWpzeTlRbWYxV2NiVFQ4NXhuZW5VdUpaUFR0bUZGT1QxVkhmYjZiclVvWWZ2Znd2NTFQejFldw==' \
+    'https://localhost:9300/oauth2/default/token' \
+    --data 'grant_type=authorization_code&client_id=yi4mnmVadpnqnJiOigkcGshuG-Kayiq6kmLqCJsYrk4redirect_uri=https%3A%2F%2Fclient.example.org%2Fcallback&code=def50...'
 ```
 ### Refresh Token Grant
 
@@ -377,6 +399,12 @@ Request:
 curl -X GET 'https://localhost:9300/apis/default/portal/patient' \
   -H 'Authorization: Bearer eyJ0b2tlbiI6IjAwNmZ4TWpsNWhsZmNPelZicXBEdEZVUlNPQUY5KzdzR1Jjejc4WGZyeGFjUjY2QlhaaEs4eThkU3cxbTd5VXFBeTVyeEZpck9mVzBQNWc5dUlidERLZ0trUElCME5wRDVtTVk5bE9WaE5DTHF5RnRnT0Q0OHVuaHRvbXZ6OTEyNmZGUmVPUllSYVJORGoyZTkzTDA5OWZSb0ZRVGViTUtWUFd4ZW5cL1piSzhIWFpJZUxsV3VNcUdjQXR5dmlLQXRXNDAiLCJzaXRlX2lkIjoiZGVmYXVsdCIsImFwaSI6Im9lbXIifQ=='
 ```
+
+## Security
+- OpenEMR adminstrators / installers should ensure that the API is protected using an end to end encryption protocol such as TLS
+- Password Grant SHOULD be turned off for any kind of production use as it has a number of security problems
+- Setting the Admin -> Globals -> OAuth2 App Manual Approval Settings to be 'Manual Approval' prevents any OAuth2 application from accessing the API without manual approval from an administrator.  This is the most secure setting.  However, in the USA jurisdiction that must comply with CEHRT rules for ONC 2015 Cures Update, patient standalone apps must be approved within 48 hours of a patient requesting access in order to avoid pentalities under the Information Blocking Provisions from ONC.  EHR administrators are not allowed to vet a patient's choice of an app as long as the app complies with OpenEMR's OAuth2 security requirements.  If an app requests user/* or system/* scopes, administrators can vet an application and request additional information / security on an app by app basis.  Leaving the setting at the default will auto-approve any patient standalone app.
+- Public apps (ones that can't securely store a secret) MUST implement the PKCE standard specified in [RFC 7636](https://www.rfc-editor.org/rfc/rfc7636).  Confidential apps are still highly encouraged to implement PKCE to mitigate forms of MITM attacks such as multiple native app devices registering for the same custom url scheme used as the OAUTH2 redirect_uri in the authorization_code grant.
 
 ## For Developers
 

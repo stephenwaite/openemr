@@ -5,7 +5,9 @@
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    Ken Chapple <ken@mi-squared.com>
+ * @author    Ian Jardine <https://github.com/epsdky>
  * @copyright Copyright (c) 2011 Ken Chapple <ken@mi-squared.com>
+ * @copyright Copyright (c) 2023 Ian Jardine <https://github.com/epsdky>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
 */
 
@@ -134,7 +136,7 @@ function fetchEvents($from_date, $to_date, $where_param = null, $orderby_param =
 
         // Filter out appointments based on a custom module filter
         $apptFilterEvent = new AppointmentsFilterEvent(new BoundFilter());
-        $apptFilterEvent = $GLOBALS["kernel"]->getEventDispatcher()->dispatch(AppointmentsFilterEvent::EVENT_HANDLE, $apptFilterEvent, 10);
+        $apptFilterEvent = $GLOBALS["kernel"]->getEventDispatcher()->dispatch($apptFilterEvent, AppointmentsFilterEvent::EVENT_HANDLE, 10);
         $boundFilter = $apptFilterEvent->getBoundFilter();
         $sqlBindArray = array_merge($sqlBindArray, $boundFilter->getBoundValues());
         $where .= " AND " . $boundFilter->getFilterClause();
@@ -159,7 +161,7 @@ function fetchEvents($from_date, $to_date, $where_param = null, $orderby_param =
         $query = "SELECT " .
         "e.pc_eventDate, e.pc_endDate, e.pc_startTime, e.pc_endTime, e.pc_duration, e.pc_recurrtype, e.pc_recurrspec, e.pc_recurrfreq, e.pc_catid, e.pc_eid, e.pc_gid, " .
         "e.pc_title, e.pc_hometext, e.pc_apptstatus, " .
-        "p.fname, p.mname, p.lname, p.pid, p.pubpid, p.phone_home, p.phone_cell, " .
+        "p.fname, p.mname, p.lname, p.DOB, p.pid, p.pubpid, p.phone_home, p.phone_cell, " .
         "p.hipaa_allowsms, p.phone_home, p.phone_cell, p.hipaa_voice, p.hipaa_allowemail, p.email, " .
         "u.fname AS ufname, u.mname AS umname, u.lname AS ulname, u.id AS uprovider_id, " .
         "f.name, " .
@@ -433,6 +435,46 @@ function fetchNextXAppts($from_date, $patient_id, $nextX = 1, $group_id = null)
     }
 
     return $nextXAppts;
+}
+
+function fetchXPastAppts($pid2, $pastApptsNumber, $orderOfAppts = '1')
+{
+
+    $currentDate = date("Y-m-d");
+    $totalAppts = [];
+    $res2 = sqlStatement("SELECT MIN(pc_eventDate) as minDate " .
+        "FROM openemr_postcalendar_events " .
+        "WHERE pc_pid = ? " .
+        "AND pc_eventDate < ? ;", array($pid2, $currentDate));
+    $row2 = sqlFetchArray($res2);
+
+    if ($row2['minDate']) {
+        $periodOf = '26';
+        $limitRight = date("Y-m-d", strtotime("$currentDate -1 day"));
+        $limitLeft = date("Y-m-d", strtotime("$limitRight -$periodOf weeks"));
+        $apptRangeLeft = $row2['minDate'];
+        $count2 = 0;
+
+        while (($limitRight >= $apptRangeLeft) && ($count2 < $pastApptsNumber)) {
+            $appts2 = fetchAppointments($limitLeft, $limitRight, $pid2);
+            $totalAppts = array_merge($appts2, $totalAppts);
+            $limitRight = date("Y-m-d", strtotime("$limitLeft -1 day"));
+            $limitLeft = date("Y-m-d", strtotime("$limitRight -$periodOf weeks"));
+            $count2 = count($totalAppts);
+        }
+        if ($orderOfAppts == '1') {
+            $eventDate  = array_column($totalAppts, 'pc_eventDate');
+            $eventTime  = array_column($totalAppts, 'pc_startTime');
+            array_multisort($eventDate, SORT_ASC, $eventTime, SORT_ASC, $totalAppts);
+            $totalAppts = array_slice($totalAppts, -$pastApptsNumber, $pastApptsNumber);
+        } else if ($orderOfAppts == '2') {
+            $eventDate  = array_column($totalAppts, 'pc_eventDate');
+            $eventTime  = array_column($totalAppts, 'pc_startTime');
+            array_multisort($eventDate, SORT_DESC, $eventTime, SORT_ASC, $totalAppts);
+            $totalAppts = array_slice($totalAppts, 0, $pastApptsNumber);
+        }
+    }
+    return $totalAppts;
 }
 
 // get the event slot size in seconds

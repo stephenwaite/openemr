@@ -9,6 +9,9 @@
 namespace OpenEMR\Core;
 
 use OpenEMR\Common\Logging\SystemLogger;
+use OpenEMR\Events\Core\ScriptFilterEvent;
+use OpenEMR\Events\Core\StyleFilterEvent;
+use OpenEMR\Services\LogoService;
 use Symfony\Component\Yaml\Yaml;
 use Symfony\Component\Yaml\Exception\ParseException;
 
@@ -78,6 +81,8 @@ class Header
      */
     public static function setupHeader($assets = [], $echoOutput = true)
     {
+        $favicon = self::getFavIcon();
+
         // Required tag
         $output = "\n<meta charset=\"utf-8\" />\n";
         // Makes only compatible with MS Edge
@@ -85,13 +90,52 @@ class Header
         // BS4 required tag
         $output .= "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\" />\n";
         // Favicon
-        $output .= "<link rel=\"shortcut icon\" href=\"" . $GLOBALS['images_static_relative'] . "/favicon.ico\" />\n";
+        $output .= "<link rel=\"shortcut icon\" href=\"$favicon\" />\n";
         $output .= self::setupAssets($assets, true, false);
+
+        // we need to grab the script
+        $scriptName = $_SERVER['SCRIPT_NAME'];
+
+        // we fire off events to grab any additional module scripts or css files that desire to adjust the currently executed script
+        $scriptFilterEvent = new ScriptFilterEvent(basename($scriptName));
+        $scriptFilterEvent->setContextArgument(ScriptFilterEvent::CONTEXT_ARGUMENT_SCRIPT_NAME, $scriptName);
+        $apptScripts = $GLOBALS['kernel']->getEventDispatcher()->dispatch($scriptFilterEvent, ScriptFilterEvent::EVENT_NAME);
+
+        $styleFilterEvent = new StyleFilterEvent($scriptName);
+        $styleFilterEvent->setContextArgument(StyleFilterEvent::CONTEXT_ARGUMENT_SCRIPT_NAME, $scriptName);
+        $apptStyles = $GLOBALS['kernel']->getEventDispatcher()->dispatch($styleFilterEvent, StyleFilterEvent::EVENT_NAME);
+        // note these scripts have been filtered to be in the same origin as the current site in pnadmin.php & pnuserapi.php {
+
+        if (!empty($apptScripts->getScripts())) {
+            $output .= "<!-- Module Scripts Started -->";
+            foreach ($apptScripts->getScripts() as $script) {
+                // we want versions appended
+                $output .= Header::createElement($script, 'script', false);
+            }
+            $output .= "<!-- Module Scripts Ended -->";
+        }
+
+        if (!empty($apptStyles->getStyles())) {
+            $output .= "<!-- Module Styles Started -->";
+            foreach ($apptStyles->getStyles() as $cssSrc) {
+                // we want version appended
+                $output .= Header::createElement($cssSrc, 'style', false);
+            }
+            $output .= "<!-- Module Styles Ended -->";
+        }
+
         if ($echoOutput) {
             echo $output;
         } else {
             return $output;
         }
+    }
+
+    public static function getFavIcon()
+    {
+        $logoService = new LogoService();
+        $icon = $logoService->getLogo("core/favicon/", "favicon.ico");
+        return $icon;
     }
 
     /**
@@ -171,6 +215,7 @@ class Header
     private static function parseConfigFile($map, $selectedAssets = array())
     {
         $foundAssets = [];
+        $excludedCount = 0;
         foreach ($map as $k => $opts) {
             $autoload = (isset($opts['autoload'])) ? $opts['autoload'] : false;
             $allowNoLoad = (isset($opts['allowNoLoad'])) ? $opts['allowNoLoad'] : false;
@@ -181,6 +226,7 @@ class Header
             if ((self::$isHeader === true && $autoload === true) || in_array($k, $selectedAssets) || ($loadInFile && $loadInFile === self::getCurrentFile())) {
                 if ($allowNoLoad === true) {
                     if (in_array("no_" . $k, $selectedAssets)) {
+                        $excludedCount++;
                         continue;
                     }
                 }
@@ -219,9 +265,10 @@ class Header
             }
         }
 
-        if (count(array_diff($selectedAssets, $foundAssets)) > 0) {
-            (new SystemLogger())->error("Not all selected assets were included in header", ['selectedAssets' => $selectedAssets, 'foundAssets' => $foundAssets]);
-        }
+        if (($thisCnt = count(array_diff($selectedAssets, $foundAssets))) > 0) {
+            if ($thisCnt !== $excludedCount) {
+                (new SystemLogger())->error("Not all selected assets were included in header", ['selectedAssets' => $selectedAssets, 'foundAssets' => $foundAssets]);
+            }}
     }
 
     /**
@@ -325,7 +372,12 @@ class Header
         $template = ($type == 'script') ? $script : $link;
         if (!$alreadyBuilt) {
             $v = $GLOBALS['v_js_includes'];
-            $path = $path . "?v={$v}";
+            // need to handle header elements that may already have a ? in the parameter.
+            if (strrpos($path, "?") !== false) {
+                $path = $path . "&v={$v}";
+            } else {
+                $path = $path . "?v={$v}";
+            }
         }
         return str_replace("%path%", $path, $template);
     }

@@ -184,7 +184,7 @@ class RestConfig
                 if (strpos($_SERVER['REQUEST_URI'], '?') > 0) {
                     $resource = strstr($_SERVER['REQUEST_URI'], '?', true);
                 } else {
-                    $resource = str_replace(self::$ROOT_URL, '', $_SERVER['REQUEST_URI']);
+                    $resource = str_replace(self::$ROOT_URL ?? '', '', $_SERVER['REQUEST_URI']);
                 }
             }
         }
@@ -373,9 +373,15 @@ class RestConfig
             exit();
         }
         // let the capability statement for FHIR or the SMART-on-FHIR through
+        $resource = str_replace('/' . self::$SITE, '', $resource);
         if (
-            $resource === ("/" . self::$SITE . "/fhir/metadata") ||
-            $resource === ("/" . self::$SITE . "/fhir/.well-known/smart-configuration")
+            // TODO: @adunsulag we need to centralize our auth skipping logic... as we have this duplicated in HttpRestRouteHandler
+            // however, at the point of this method we don't have the resource identified and haven't gone through our parsing
+            // routine to handle that logic...
+            $resource === ("/fhir/metadata") ||
+            $resource === ("/fhir/.well-known/smart-configuration") ||
+            // skip list and single instance routes
+            0 === strpos("/fhir/OperationDefinition", $resource)
         ) {
             return true;
         } else {
@@ -522,10 +528,13 @@ class RestConfig
             // we only set the bound patient access if the underlying user can still access the patient
             if ($this->checkUserHasAccessToPatient($restRequest->getRequestUserId(), $patientUuid)) {
                 $restRequest->setPatientUuidString($patientUuid);
+            } else {
+                (new SystemLogger())->error("OpenEMR Error: api had patient launch scope but user did not have access to patient uuid."
+                . " Resources restricted with patient scopes will not return results");
             }
         } else {
-            (new SystemLogger())->error(("OpenEMR Error: api had patient launch scope but no patient was set in the "
-            . " session cache.  Resources restricted with patient scopes will not return results"));
+            (new SystemLogger())->error("OpenEMR Error: api had patient launch scope but no patient was set in the "
+            . " session cache.  Resources restricted with patient scopes will not return results");
         }
         return $restRequest;
     }
@@ -556,7 +565,7 @@ class RestConfig
     private function checkUserHasAccessToPatient($userId, $patientUuid)
     {
         // TODO: the session should never be populated with the pid from the access token unless the user had access to
-        // it.  However, if we wanted an additional check or if we anted to fire off any kind of event that does
+        // it.  However, if we wanted an additional check or if we wanted to fire off any kind of event that does
         // patient filtering by provider / clinic we would handle that here.
         return true;
     }

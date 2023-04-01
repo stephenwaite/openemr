@@ -17,15 +17,16 @@
  */
 
 require_once('verify_session.php');
-require_once("$srcdir/patient.inc");
+require_once("$srcdir/patient.inc.php");
 require_once("$srcdir/options.inc.php");
-require_once('lib/portal_mail.inc');
+require_once('lib/portal_mail.inc.php');
 require_once(__DIR__ . '/../library/appointments.inc.php');
 
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Events\PatientPortal\RenderEvent;
 use OpenEMR\Events\PatientPortal\AppointmentFilterEvent;
+use OpenEMR\Services\LogoService;
 
 if (isset($_SESSION['register']) && $_SESSION['register'] === true) {
     require_once(__DIR__ . '/../src/Common/Session/SessionUtil.php');
@@ -37,6 +38,9 @@ if (isset($_SESSION['register']) && $_SESSION['register'] === true) {
 if (!isset($_SESSION['portal_init'])) {
     $_SESSION['portal_init'] = true;
 }
+
+$logoService = new LogoService();
+
 
 // Get language definitions for js
 $language = $_SESSION['language_choice'] ?? '1'; // defaults english
@@ -198,6 +202,16 @@ function buildNav($newcnt, $pid, $result)
         }
     }
 
+    if ($GLOBALS['easipro_enable'] && !empty($GLOBALS['easipro_server']) && !empty($GLOBALS['easipro_name'])) {
+        $navItems[] = [
+            'url' => '#procard',
+            'label' => xl('My Assessments'),
+            'icon' => 'fas fa-file-medical',
+            'dataToggle' => 'collapse',
+            'dataType' => 'cardgroup'
+        ];
+    }
+
     // Build sub nav items
 
     if (!empty($GLOBALS['allow_portal_chat'])) {
@@ -276,6 +290,7 @@ echo $twig->render('portal/home.html.twig', [
     'msgs' => $msgs,
     'msgcnt' => $msgcnt,
     'newcnt' => $newcnt,
+    'menuLogo' => $logoService->getLogo('portal/menu/primary'),
     'allow_portal_appointments' => $GLOBALS['allow_portal_appointments'],
     'web_root' => $GLOBALS['web_root'],
     'payment_gateway' => $GLOBALS['payment_gateway'],
@@ -296,7 +311,7 @@ echo $twig->render('portal/home.html.twig', [
     'appointments' => $appointments,
     'appts' => $appts,
     'appointmentLimit' => $apptLimit,
-    'appointmentCount' => $count,
+    'appointmentCount' => $count ?? null,
     'displayLimitLabel' => xl('Display limit reached'),
     'site_id' => $_SESSION['site_id'] ?? ($_GET['site'] ?? 'default'), // one way or another, we will have a site_id.
     'portal_timeout' => $GLOBALS['portal_timeout'] ?? 1800, // timeout is in seconds

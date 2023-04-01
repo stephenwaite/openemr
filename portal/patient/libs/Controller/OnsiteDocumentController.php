@@ -214,7 +214,7 @@ class OnsiteDocumentController extends AppBasePortalController
 
             // only allow patient to see themself
             if (!empty($GLOBALS['bootstrap_pid'])) {
-                if ($GLOBALS['bootstrap_pid'] !== $onsitedocument->Pid) {
+                if ($GLOBALS['bootstrap_pid'] != $onsitedocument->Pid) {
                     $error = 'Unauthorized';
                     throw new Exception($error);
                 }
@@ -301,7 +301,7 @@ class OnsiteDocumentController extends AppBasePortalController
 
             // only allow patient to update themself (part 1)
             if (!empty($GLOBALS['bootstrap_pid'])) {
-                if ($GLOBALS['bootstrap_pid'] !== $onsitedocument->Pid) {
+                if ($GLOBALS['bootstrap_pid'] != $onsitedocument->Pid) {
                     $error = 'Unauthorized';
                     throw new Exception($error);
                 }
@@ -362,9 +362,9 @@ class OnsiteDocumentController extends AppBasePortalController
             $pk = $this->GetRouter()->GetUrlParam('id');
             $onsitedocument = $this->Phreezer->Get('OnsiteDocument', $pk);
 
-            // only allow patient to delete themself
+            // only allow patient to delete themselves
             if (!empty($GLOBALS['bootstrap_pid'])) {
-                if ($GLOBALS['bootstrap_pid'] !== $onsitedocument->Pid) {
+                if ((int)$GLOBALS['bootstrap_pid'] !== (int)$onsitedocument->Pid) {
                     $error = 'Unauthorized';
                     throw new Exception($error);
                 }

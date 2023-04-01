@@ -10,12 +10,12 @@
  * @author    Robert Down <robertdown@live.com>
  * @copyright Copyright (c) 2007-2022 Rod Roark <rod@sunsetsystems.com>
  * @copyright Copyright (c) 2017-2018 Brady Miller <brady.g.miller@gmail.com>
- * @copyright Copyright (c) 2022 Robert Down <robertdown@live.com>
+ * @copyright Copyright (c) 2022-2023 Robert Down <robertdown@live.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
 require_once("../globals.php");
-require_once("$srcdir/lists.inc");
+require_once("$srcdir/lists.inc.php");
 require_once("../../custom/code_types.inc.php");
 require_once("$srcdir/options.inc.php");
 
@@ -23,6 +23,7 @@ use OpenEMR\Common\Acl\AclExtended;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Logging\EventAuditLogger;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
 if (!empty($_POST)) {
@@ -34,7 +35,7 @@ if (!empty($_POST)) {
 // Below allows the list to default to the first item on the list
 //   when list_id is blank.
 $blank_list_id = '';
-if (empty($_REQUEST['list_id'])) {
+if (empty($_REQUEST['list_id'] ?? null) && empty($_REQUEST['list_id_container'] ?? null)) {
     $list_id = 'language';
     $blank_list_id = true;
 } else {
@@ -44,7 +45,8 @@ if (empty($_REQUEST['list_id'])) {
 // Check authorization.
 $thisauth = AclMain::aclCheckCore('admin', 'super');
 if (!$thisauth) {
-    die(xlt('Not authorized'));
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("List Editor")]);
+    exit;
 }
 
 // Compute a current checksum of the data from the database for the given list.

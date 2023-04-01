@@ -10,7 +10,7 @@
   * @author    Robert Down <robertdown@live.com>
   * @copyright Copyright (c) 2018 Ranganath Pathak <pathak@scrs1.org>
   * @copyright Copyright (c) 2018-2020 Brady Miller <brady.g.miller@gmail.com>
-  * @copyright Copyright (c) 2022 Robert Down <robertdown@live.com>
+  * @copyright Copyright (c) 2022-2023 Robert Down <robertdown@live.com>
   * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
   */
 
@@ -20,15 +20,11 @@ use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Twig\TwigContainer;
 
-$url_webroot = $GLOBALS['webroot'];
-$portal_login_href = $GLOBALS['webroot'] . "/interface/patient_file/summary/create_portallogin.php";
-
 $twigContainer = new TwigContainer();
 $t = $twigContainer->getTwig();
 
 $viewArgs = [
     'pageHeading' => $oemr_ui->pageHeading(),
-    'urlWebRoot' => $url_webroot,
     'pid' => $pid,
     'csrf' => CsrfUtils::collectCsrfToken(),
 ];

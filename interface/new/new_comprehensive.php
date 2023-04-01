@@ -16,17 +16,19 @@
 
 require_once("../globals.php");
 require_once("$srcdir/options.inc.php");
-require_once("$srcdir/patient.inc");
+require_once("$srcdir/patient.inc.php");
 require_once("$srcdir/validation/LBF_Validation.php");
 require_once("$srcdir/patientvalidation.inc.php");
 
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
 // Check authorization.
 if (!AclMain::aclCheckCore('patients', 'demo', '', array('write','addonly'))) {
-    die(xlt("Adding demographics is not authorized."));
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Search or Add Patient")]);
+    exit;
 }
 
 $CPR = 4; // cells per row
@@ -82,9 +84,8 @@ $fres = getLayoutRes();
 <!DOCTYPE html>
 <html>
 <head>
-<?php Header::setupHeader(['common','datetime-picker','select2']); ?>
+<?php Header::setupHeader(['common','datetime-picker','select2', 'erx']); ?>
 <title><?php echo xlt("Search or Add Patient"); ?></title>
-<?php require_once("$srcdir/erx_javascript.inc.php"); ?>
 <style>
 .form-group {
     margin-bottom: 0.25rem;
@@ -405,7 +406,7 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
                       <td class="text-left align-top">
                     <?php
                     if ($SHORT_FORM) {
-                        echo "  <div class='mx-auto'>\n";
+                        echo "<div class='mx-auto'>";
                     } ?>
                     <?php
 
@@ -488,6 +489,10 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
                                 $checked = ($display_style == 'block') ? "show" : "";
                                 $group_name_xl = text(xl_layout_label($group_name));
                                 $onclick = attr_js("div_" . $group_seq);
+                                $init_open = $grparr[$this_group]['grp_init_open'];
+                                if ($checked != "show") {
+                                    $checked = ($init_open == 1) ? $checked . " show" : $checked;
+                                }
                                 echo <<<HTML
                                 <div class="card">
                                     <div class="card-header p-0 bg-secondary" id="header_{$group_seq_attr}">
@@ -509,7 +514,7 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
                       // Handle starting of a new row.
                         if (($titlecols > 0 && $cell_count >= $CPR) || $cell_count == 0) {
                             end_row();
-                            echo "  <div class='form-group row'>";
+                            echo "<div class='form-group row'>";
                         }
 
                         if ($item_count == 0 && $titlecols == 0) {
@@ -541,8 +546,6 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
                         // Modified 6-09 by BM - Translate if applicable
                         if ($frow['title']) {
                             echo (text(xl_layout_label($frow['title'])) . ":");
-                        } else {
-                            echo "&nbsp;";
                         }
 
                         // Handle starting of a new data cell.
@@ -564,6 +567,16 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
 
                         // 'smallform' can be used to add arbitrary CSS classes. Note the leading space.
                         $frow['smallform'] = ' form-control-sm mw-100' . ($datacols ? '' : ' mb-1');
+
+                        // set flag so we don't bring in session pid data for a new pt form
+                        $frow['blank_form'] = false;
+                        if (
+                            $frow['data_type'] == "52"
+                            || $frow['data_type'] == "53"
+                            || $frow['data_type'] == "54"
+                        ) {
+                            $frow['blank_form'] = true;
+                        }
                         generate_form_field($frow, $currvalue);
 
                         if ($datacols == 0) {
@@ -622,7 +635,7 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
                                     ?>
                               </select>
                               <div class="input-group-append">
-                                <a class='btn btn-primary text-white medium_modal' href='../practice/ins_search.php' onclick='ins_search(<?php echo attr($i); ?>)'><?php echo xlt('Search/Add Insurer'); ?></a>
+                                <a class='btn btn-primary text-white medium_modal' href='../practice/ins_search.php' onclick='ins_search(<?php echo attr_js($i); ?>)'><?php echo xlt('Search/Add Insurer'); ?></a>
                               </div>
                             </div>
                           </div>
@@ -795,7 +808,7 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
         </div>
     </div> <!--end of container div -->
 <!-- include support for the list-add selectbox feature -->
-<?php include($GLOBALS['fileroot'] . "/library/options_listadd.inc"); ?>
+<?php require($GLOBALS['fileroot'] . "/library/options_listadd.inc.php"); ?>
 <script>
 
 // hard code validation for old validation, in the new validation possible to add match rules

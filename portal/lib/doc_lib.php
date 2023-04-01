@@ -7,7 +7,7 @@
  * @link      https://www.open-emr.org
  * @author    Jerry Padgett <sjpadgett@gmail.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
- * @copyright Copyright (c) 2016-2021 Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2016-2022 Jerry Padgett <sjpadgett@gmail.com>
  * @copyright Copyright (c) 2019 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
@@ -17,9 +17,23 @@ require_once(__DIR__ . "/../../src/Common/Session/SessionUtil.php");
 OpenEMR\Common\Session\SessionUtil::portalSessionStart();
 
 if (isset($_SESSION['pid']) && isset($_SESSION['patient_portal_onsite_two'])) {
+    // ensure patient is bootstrapped (if sent)
+    if (!empty($_POST['cpid'])) {
+        if ($_POST['cpid'] != $_SESSION['pid']) {
+            echo "illegal Action";
+            OpenEMR\Common\Session\SessionUtil::portalSessionCookieDestroy();
+            exit;
+        }
+    }
     $pid = $_SESSION['pid'];
     $ignoreAuth_onsite_portal = true;
     require_once(__DIR__ . "/../../interface/globals.php");
+    // only support download handler from patient portal
+    if ($_POST['handler'] != 'download' && $_POST['handler'] != 'fetch_pdf') {
+        echo xlt("Not authorized");
+        OpenEMR\Common\Session\SessionUtil::portalSessionCookieDestroy();
+        exit;
+    }
 } else {
     OpenEMR\Common\Session\SessionUtil::portalSessionCookieDestroy();
     $ignoreAuth = false;
@@ -36,10 +50,20 @@ require_once("$srcdir/classes/Note.class.php");
 require_once(__DIR__ . "/appsql.class.php");
 
 use Mpdf\Mpdf;
+use OpenEMR\Common\Csrf\CsrfUtils;
+
+if (!(isset($GLOBALS['portal_onsite_two_enable'])) || !($GLOBALS['portal_onsite_two_enable'])) {
+    echo xlt('Patient Portal is turned off');
+    exit;
+}
+// confirm csrf (from both portal and core)
+if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"], 'doc-lib')) {
+    CsrfUtils::csrfNotVerified();
+}
 
 $logit = new ApplicationTable();
-$htmlin = $_POST['content'];
-$dispose = $_POST['handler'];
+$htmlin = $_POST['content'] ?? null;
+$dispose = $_POST['handler'] ?? null;
 $cpid = $_POST['cpid'] ?: $GLOBALS['pid'];
 $category = $_POST['catid'] ?? 0;
 
@@ -49,9 +73,6 @@ try {
         $category = $result['id'] ?: 3;
     }
     $form_filename = convert_safe_file_dir_name($_REQUEST['docid']) . '_' . convert_safe_file_dir_name($cpid) . '.pdf';
-    $templatedir = $GLOBALS['OE_SITE_DIR'] . "/documents/onsite_portal_documents/patient_documents";
-    $templatepath = "$templatedir/$form_filename";
-    $htmlout = '';
     $config_mpdf = array(
         'tempDir' => $GLOBALS['MPDF_WRITE_DIR'],
         'mode' => $GLOBALS['pdf_language'],
@@ -100,8 +121,26 @@ try {
         $pdf->SetDirectionality('rtl');
     }
 
-    $htmlin = "<html><body>$htmlin</body></html>";
-    // need custom stylesheet for templates
+    // snatch style tags content to insert after content purified
+    $style_flag = preg_match('#<\s*?style\b[^>]*>(.*?)</style\b[^>]*>#s', $htmlin, $style_matches);
+    $style = str_replace('<style type="text/css">', '<style>', $style_matches);
+    $pos = stripos($htmlin, "<style>");
+    $pos1 = stripos($htmlin, "</style>");
+
+    // purify html
+    $config = HTMLPurifier_Config::createDefault();
+    $config->set('URI.AllowedSchemes', array('data' => true, 'http' => true, 'https' => true));
+    $purify = new \HTMLPurifier($config);
+    $htmlin = $purify->purify($htmlin);
+    // need to create custom stylesheet for templates
+    // also our styles_pdf.scss isn't being compiled!!!
+    // replace existing style tag in template after purifies removes! why!!!
+    // e,g this scheme gets removed <html><head><body> etc
+    $stylesheet = "<style>.signature {vertical-align: middle;max-height:65px; height:65px !important;width:auto !important;}</style>";
+    if ($pos !== false && $pos1 !== false && !empty($style[0] ?? '')) {
+        $stylesheet = str_replace('</style>', $stylesheet, $style[0]);
+    }
+    $htmlin = "<!DOCTYPE html><html><head>" . $stylesheet . "</head><body>$htmlin</body></html>";
     $pdf->writeHtml($htmlin);
 
     if ($dispose == 'download') {
@@ -109,12 +148,6 @@ try {
         header("Content-Disposition: attachment; filename=$form_filename");
         $pdf->Output($form_filename, 'D');
         $logit->portalLog('download document', $cpid, ('document:' . $form_filename));
-        exit();
-    }
-
-    if ($dispose == 'view') {
-        Header("Content-type: application/pdf");
-        $pdf->Output($templatepath, 'I');
         exit();
     }
 
@@ -128,7 +161,19 @@ try {
         $rc = $d->createDocument($cpid, $category, $form_filename, 'application/pdf', $data);
         $logit->portalLog('chart document', $cpid, ('document:' . $form_filename));
         exit();
-    };
+    }
+
+    if ($dispose == 'fetch_pdf') {
+        try {
+            $file = $pdf->Output($form_filename, 'S');
+            $file = base64_encode($file);
+            echo $file;
+            $logit->portalLog('fetched PDF', $cpid, ('document:' . $form_filename));
+            exit;
+        } catch (Exception $e) {
+            die(text($e->getMessage()));
+        }
+    }
 } catch (Exception $e) {
-    die($e->getMessage());
+    die(text($e->getMessage()));
 }

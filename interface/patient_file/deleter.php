@@ -169,6 +169,8 @@ function form_delete($formdir, $formid, $patient_id, $encounter_id)
         }
         row_delete("form_eye_mag_impplan", "form_id = '" . add_escape_custom($formid) . "'");
         row_delete("form_eye_mag_wearing", "FORM_ID = '" . add_escape_custom($formid) . "'");
+    } elseif ($formdir == 'form_HIS') {
+        // when history form is entered in portal, just ignore...
     } else {
         row_delete("form_$formdir", "id = '" . add_escape_custom($formid) . "'");
     }
@@ -435,8 +437,14 @@ function popup_close() {
                     echo "let message = " . js_escape($info_msg) . ";
                     (async (message, time) => {
                     await asyncAlertMsg(message, time, 'success', 'lg');
-                    })(message, 5000)
-                    .then(res => {});";
+                    })(message, 2000)
+                    .then(res => {";
+                    // auto close on msg timeout with just enough time to show success or errors.
+                    if ($GLOBALS['sql_string_no_show_screen']) {
+                        echo "dlgclose();";
+                    }
+                    echo "});"; // close function.
+                    // any close will call below.
                     echo " opener.dlgSetCallBack('imdeleted', false);\n";
                 } else {
                     echo " dlgclose('imdeleted', false);\n";

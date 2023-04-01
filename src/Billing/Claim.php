@@ -6,7 +6,7 @@
  * @author Rod Roark <rod@sunsetsystems.com>
  * @author Stephen Waite <stephen.waite@cmsvt.com>
  * @copyright Copyright (c) 2009-2020 Rod Roark <rod@sunsetsystems.com>
- * @copyright Copyright (c) 2017 Stephen Waite <stephen.waite@cmsvt.com>
+ * @copyright Copyright (c) 2017-2023 Stephen Waite <stephen.waite@cmsvt.com>
  * @link https://github.com/openemr/openemr/tree/master
  * @license https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
@@ -47,6 +47,8 @@ class Claim
     public $facilityService;   // via matthew.vita orm work :)
     public $pay_to_provider;   // to be implemented in facility ui
     private $encounterService;
+    public $billing_prov_id;
+    public $line_item_adjs;    // adjustment array with key of [group code][reason code] needed for secondary claims
 
     public function __construct($pid, $encounter_id)
     {
@@ -192,17 +194,10 @@ class Claim
         return preg_replace('/[^A-Z0-9!"\\&\'()+,\\-.\\/;?=@ ]/', '', strtoupper($str));
     }
 
-    // X12 likes 9 digit zip codes also moving this from X125010837P to pursue PSR-0 and PSR-4
     public function x12Zip($zip)
     {
-        $zip = $this->x12Clean($zip);
-        // this will take out dashes and pad with trailing 9s if not 9 digits
-        return str_pad(
-            preg_replace('/[^0-9]/', '', $zip),
-            9,
-            9,
-            STR_PAD_RIGHT
-        );
+        // this will take out anything non-numeric
+        return preg_replace('/[^0-9]/', '', $zip);
     }
 
     // Make sure dates have no formatting and zero filled becomes blank
@@ -247,8 +242,11 @@ class Claim
 
             $ins = count($this->payers);
             if (
-                ($drow['provider'] == $billrow['payer_id'] || $billrow['payer_id'] == null) &&
-                empty($this->payers[0]['data'])
+                (
+                    $drow['provider'] == $billrow['payer_id']
+                    || empty($billrow['payer_id'])
+                )
+                && empty($this->payers[0]['data'])
             ) {
                 $ins = 0;
             }
@@ -368,33 +366,33 @@ class Claim
                     $date = $tmp;
                 }
 
-                if ($tmp && $value['pmt'] == 0) { // not original charge and not a payment
+                if ($tmp && (($value['pmt'] ?? null) == 0)) { // not original charge and not a payment
                     $rsn = $value['rsn'];
                     $chg = 0 - $value['chg']; // adjustments are negative charges
 
                     $gcode = 'CO'; // default group code = contractual obligation
                     $rcode = '45'; // default reason code = max fee exceeded (code 42 is obsolete)
 
-                    if (preg_match("/Ins adjust $inslabel/i", $rsn, $tmp)) {
+                    if (preg_match("/Ins adjust/i", $rsn, $tmp)) {
                         // From manual post. Take the defaults.
-                    } elseif (preg_match("/To copay $inslabel/i", $rsn, $tmp) && !$chg) {
+                    } elseif (preg_match("/To copay/i", $rsn, $tmp) && !$chg) {
                         $coinsurance = $ptresp; // from manual post
                         continue;
-                    } elseif (preg_match("/To ded'ble $inslabel/i", $rsn, $tmp) && !$chg) {
+                    } elseif (preg_match("/To ded'ble/i", $rsn, $tmp) && !$chg) {
                         $deductible = $ptresp; // from manual post
                         continue;
-                    } elseif (preg_match("/$inslabel copay: (\S+)/i", $rsn, $tmp) && !$chg) {
+                    } elseif (preg_match("/copay: (\S+)/i", $rsn, $tmp) && !$chg) {
                         $coinsurance = $tmp[1]; // from 835 as of 6/2007
                         continue;
-                    } elseif (preg_match("/$inslabel coins: (\S+)/i", $rsn, $tmp) && !$chg) {
+                    } elseif (preg_match("/coins: (\S+)/i", $rsn, $tmp) && !$chg) {
                         $coinsurance = $tmp[1]; // from 835 and manual post as of 6/2007
                         continue;
-                    } elseif (preg_match("/$inslabel dedbl: (\S+)/i", $rsn, $tmp) && !$chg) {
+                    } elseif (preg_match("/dedbl: (\S+)/i", $rsn, $tmp) && !$chg) {
                         $deductible = $tmp[1]; // from 835 and manual post as of 6/2007
                         continue;
-                    } elseif (preg_match("/$inslabel ptresp: (\S+)/i", $rsn, $tmp) && !$chg) {
+                    } elseif (preg_match("/ptresp: (\S+)/i", $rsn, $tmp) && !$chg) {
                         continue; // from 835 as of 6/2007
-                    } elseif (preg_match("/$inslabel adjust code (\S+)/i", $rsn, $tmp)) {
+                    } elseif (preg_match("/adjust code (\S+)/i", $rsn, $tmp)) {
                         $rcode = $tmp[1]; // from 835
                     } elseif (preg_match("/$inslabel/i", $rsn, $tmp)) {
                         // Take the defaults.
@@ -407,7 +405,7 @@ class Claim
                             // Other adjustments default to Ins1.
                         } elseif (
                             preg_match("/Co-pay: (\S+)/i", $rsn, $tmp) ||
-                            preg_match("/Coinsurance: (\S+)/i", $rsn, $tmp)
+                            preg_match("/Coins: (\S+)/i", $rsn, $tmp)
                         ) {
                             $coinsurance = 0 + $tmp[1]; // from 835 before 6/2007
                             continue;
@@ -617,7 +615,7 @@ class Claim
             return false;
         }
 
-        $tmp = $this->x12Clean(trim($this->x12_partner['x12_submitter_name'])) ?? false;
+        $tmp = $this->x12Clean(trim($this->x12_partner['x12_submitter_name'] ?? ''));
         return $tmp;
     }
 
@@ -712,7 +710,7 @@ class Claim
 
     public function billingFacilityZip()
     {
-        return $this->x12Clean(trim($this->billing_facility['postal_code']));
+        return $this->x12Zip($this->billing_facility['postal_code']);
     }
 
     public function billingFacilityETIN()
@@ -782,7 +780,7 @@ class Claim
     public function billingContactEmail()
     {
         if (!$this->x12_submitter_name()) {
-            return $this->x12Clean(trim($this->billing_facility['email']));
+            return $this->x12Clean(trim($this->billing_facility['email'] ?? ''));
         } else {
             $query = "SELECT email FROM users WHERE federaltaxid = ?";
             $ores = sqlQuery($query, array($this->x12_partner['id_number'] ?? ''));
@@ -812,7 +810,7 @@ class Claim
 
     public function facilityZip()
     {
-        return $this->x12Clean(trim($this->facility['postal_code']));
+        return $this->x12Zip($this->facility['postal_code']);
     }
 
     public function facilityETIN()
@@ -1017,7 +1015,7 @@ class Claim
 
     public function insuredZip($ins = 0)
     {
-        return $this->x12Clean(trim($this->payers[$ins]['data']['subscriber_postal_code'] ?? ''));
+        return $this->x12Zip($this->payers[$ins]['data']['subscriber_postal_code'] ?? '');
     }
 
     public function insuredPhone($ins = 0)
@@ -1096,7 +1094,7 @@ class Claim
 
         $tmp = $this->payers[$ins]['object'];
         $tmp = $tmp->get_address();
-        return $this->x12Clean(trim($tmp->get_zip()));
+        return $this->x12Zip($tmp->get_zip());
     }
 
     public function payerID($ins = 0)
@@ -1141,7 +1139,7 @@ class Claim
 
     public function patientZip()
     {
-        return $this->x12Clean(trim($this->patient_data['postal_code']));
+        return $this->x12Zip($this->patient_data['postal_code']);
     }
 
     public function patientPhone()
@@ -1389,10 +1387,16 @@ class Claim
 
     public function frequencyTypeCode()
     {
-        $tmp = (
-            !empty($this->billing_options['replacement_claim']) &&
-            ($this->billing_options['replacement_claim'] == 1)
-        ) ? '7' : '1';
+        if (!empty($this->billing_options['replacement_claim'])) {
+            if ($this->billing_options['replacement_claim'] == 1) {
+                $tmp = '7';
+            } elseif ($this->billing_options['replacement_claim'] == 2) {
+                $tmp = '8';
+            }
+        } else {
+            $tmp = '1';
+        }
+
         return $tmp;
     }
 
@@ -1560,7 +1564,7 @@ class Claim
     {
         $tmp = ($prockey < 0 || empty($this->procs[$prockey]['provider_id'])) ?
         $this->provider : $this->procs[$prockey]['provider'];
-        return $this->x12Clean(trim($tmp['mname']));
+        return $this->x12Clean(trim($tmp['mname'] ?? ''));
     }
 
     public function providerSuffixName($prockey = -1)
@@ -1574,7 +1578,7 @@ class Claim
     {
         $tmp = ($prockey < 0 || empty($this->procs[$prockey]['provider_id'])) ?
         $this->provider : $this->procs[$prockey]['provider'];
-        return $this->x12Clean(trim($tmp['npi']));
+        return $this->x12Clean(trim($tmp['npi'] ?? ''));
     }
 
     public function NPIValid($npi)
@@ -1772,6 +1776,35 @@ class Claim
 
     public function billingProviderZip()
     {
-        return $this->x12Clean(trim($this->billing_prov_id['zip']));
+        return $this->x12Zip($this->billing_prov_id['zip']);
+    }
+
+    /**
+     * Group an array of adjustment group codes into a new array with the keys based on
+     * the group code $a[1] and the adjustment reason code $a[2].
+     * If there are multiple for the same group and reason combine and add
+     * the amount $a[3] and return the date of the payment $a[0].
+     *
+     * @param  array $aarr Payer adjustment array from the X12837 script with payer adjustments
+     * @return array       Returns a grouped array to the 837 for output in the CAS segment
+     */
+    public function getLineItemAdjustments($aarr)
+    {
+        $this->line_item_adjs = [];
+        foreach ($aarr as $a) {
+            if (!array_key_exists($a[1], $this->line_item_adjs)) {
+                $this->line_item_adjs[$a[1]] = [];
+            }
+
+            if (!array_key_exists($a[2] ?? null, $this->line_item_adjs[$a[1]])) {
+                $this->line_item_adjs[$a[1]][$a[2]] = $a[3];
+            } else {
+                $this->line_item_adjs[$a[1]][$a[2]] += $a[3];
+                $this->line_item_adjs[$a[1]][$a[2]] = number_format($this->line_item_adjs[$a[1]][$a[2]], 2, '.', '');
+            }
+            $this->line_item_adjs['payer_paid_date'] = $a[0];
+        }
+
+        return $this->line_item_adjs;
     }
 }

@@ -33,6 +33,7 @@ class CodeTypesService
     const CODE_TYPE_ICD10PCS = 'ICD10PCS';
     const CODE_TYPE_CPT = 'CPT';
     const CODE_TYPE_CVX = 'CVX';
+    const CODE_TYPE_OID_HEALTHCARE_PROVIDER_TAXONOMY = "2.16.840.1.114222.4.11.1066";
     const CODE_TYPE_OID = array(
         '2.16.840.1.113883.6.96' => self::CODE_TYPE_SNOMED_CT,
         '2.16.840.1.113883.6.12' => self::CODE_TYPE_CPT4,
@@ -66,7 +67,8 @@ class CodeTypesService
         '2.16.840.1.113883.3.221.5' => "Source of Payment Typology",
         '2.16.840.1.113883.6.13' => 'CDT',
         '2.16.840.1.113883.18.2' => 'AdministrativeSex',
-        '2.16.840.1.113883.5.1' => 'AdministrativeGender'
+        '2.16.840.1.113883.5.1' => 'AdministrativeGender',
+        self::CODE_TYPE_OID_HEALTHCARE_PROVIDER_TAXONOMY => 'HealthCareProviderTaxonomy'
     );
     /**
      * @var array
@@ -187,6 +189,15 @@ class CodeTypesService
     {
         if (empty($type) || empty($code)) {
             return "";
+        }
+        $tmp = explode(':', $code);
+        if (is_array($tmp) && count($tmp ?? []) === 2) {
+            if (!$oe_format) {
+                return $code;
+            }
+            // rebuild when code type format flag is set
+            $type = $tmp[0];
+            $code = $tmp[1];
         }
         if ($oe_format) {
             $type = $this->formatCodeType($type ?? "");
@@ -344,14 +355,14 @@ class CodeTypesService
                 $codeType = "";
             }
             $value = $this->lookupFromValueset($code, $formatted_type, $oid);
-            $formatted_type = $value['code_type'] ?: $formatted_type;
+            $formatted_type = ($value['code_type'] ?? null) ?: $formatted_type;
             if (!empty($code) && !empty($formatted_type)) {
                 $formatted_code = $formatted_type . ':' . $code;
             }
-            $oid = $value['code_system'];
-            $currentCodeText = $value['description'];
-            $valueset_name = $value['valueset_name'];
-            $valueset = $value['valueset'];
+            $oid = $value['code_system'] ?? '';
+            $currentCodeText = $value['description'] ?? '';
+            $valueset_name = $value['valueset_name'] ?? '';
+            $valueset = $value['valueset'] ?? '';
         }
 
         return array(
@@ -390,12 +401,32 @@ class CodeTypesService
     {
         $listService = new ListService();
         $ret = $listService->getOptionsByListName('discharge-disposition', ['codes' => $formatted_code]) ?? '';
-        return $ret[0]['option_id'];
+        return $ret[0]['option_id'] ?? '';
     }
 
     public function dischargeCodeFromOptionId($option_id)
     {
         $listService = new ListService();
         return $listService->getListOption('discharge-disposition', $option_id)['codes'] ?? '';
+    }
+
+    public function parseCodesIntoCodeableConcepts($codes)
+    {
+        $codes = explode(";", $codes);
+        $codeableConcepts = array();
+        foreach ($codes as $codeItem) {
+            $parsedCode = $this->parseCode($codeItem);
+            $codeType = $parsedCode['code_type'];
+            $code = $parsedCode['code'];
+            $system = $this->getSystemForCodeType($codeType);
+            $codedesc = $this->lookup_code_description($codeItem);
+            $codeableConcepts[$code] = [
+                'code' => $code
+                , 'description' => $codedesc
+                , 'code_type' => $codeType
+                , 'system' => $system
+            ];
+        }
+        return $codeableConcepts;
     }
 }

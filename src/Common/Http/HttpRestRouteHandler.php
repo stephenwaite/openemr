@@ -258,10 +258,7 @@ class HttpRestRouteHandler
 
         if ($restRequest->isFhir()) {
             // don't do any checks on our open fhir resources
-            if (
-                $restRequest->getResource() == 'metadata'
-                || $restRequest->getResource() == '.well-known'
-            ) {
+            if (self::fhirRestRequestSkipSecurityCheck($restRequest)) {
                 return;
             }
             // we do NOT want logged in patients writing data at this point so we fail
@@ -278,6 +275,7 @@ class HttpRestRouteHandler
             if (
                 $restRequest->getResource() == 'version'
                 || $restRequest->getResource() == 'product'
+                || $restRequest->isLocalApi() // skip security check if its a local api
             ) {
                 return;
             }
@@ -304,5 +302,19 @@ class HttpRestRouteHandler
 
         // handle our scope checks
         $config::scope_check($scopeType, $resource, $permission);
+    }
+
+    public static function fhirRestRequestSkipSecurityCheck(HttpRestRequest $restRequest): bool
+    {
+        // if someone is hitting the local api and have a valid CSRF token we skip the security check.
+        // TODO: @adunsulag need to verify this assumption is correct
+        if ($restRequest->isLocalApi()) {
+            return true;
+        }
+
+        $resource = $restRequest->getResource();
+        // capability statement, smart well knowns, and operation definitions are skipped.
+        $skippedChecks = ['metadata', '.well-known', 'OperationDefinition'];
+        return array_search($resource, $skippedChecks) !== false;
     }
 }

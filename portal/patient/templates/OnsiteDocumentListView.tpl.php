@@ -12,6 +12,8 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Forms\CoreFormToPortalUtility;
 use OpenEMR\Core\Header;
 use OpenEMR\Services\DocumentTemplates\DocumentTemplateService;
 
@@ -74,13 +76,15 @@ $templateService = new DocumentTemplateService();
         ";var catid=" . js_escape($category) . ";var catname=" . js_escape($catname) . ";</script>";
     echo "<script>var recid=" . js_escape($recid) . ";var docid=" . js_escape($docid) . ";var isNewDoc=" . js_escape($isnew) . ";var newFilename=" . js_escape($new_filename) . ";var help_id=" . js_escape($help_id) . ";</script>";
     echo "<script>var isPortal=" . js_escape($is_portal) . ";var isModule=" . js_escape($is_module) . ";var webRoot=" . js_escape($webroot) . ";var webroot_url = webRoot;</script>";
+    echo "<script>var csrfTokenDoclib=" . js_escape(CsrfUtils::collectCsrfToken('doc-lib')) . ";</script>";
     // translations
     echo "<script>var alertMsg1='" . xlt("Saved to Patient Documents") . '->' . xlt("Category") . ": " . attr($catname) . "';</script>";
     echo "<script>var msgSuccess='" . xlt("Updates Successful") . "';</script>";
     echo "<script>var msgDelete='" . xlt("Delete Successful") . "';</script>";
+    // list of encounter form directories/names (that are patient portal compliant) that use for whitelisting (security)
+    echo "<script>var formNamesWhitelist=" . json_encode(CoreFormToPortalUtility::getListPortalCompliantEncounterForms()) . ";</script>";
 
-    Header::setupHeader(['no_main-theme', 'patientportal-style', 'datetime-picker', 'jspdf']);
-
+    Header::setupHeader(['no_main-theme', 'patientportal-style', 'datetime-picker']);
     ?>
     <link href="<?php echo $GLOBALS['web_root']; ?>/portal/sign/css/signer_modal.css?v=<?php echo $GLOBALS['v_js_includes']; ?>" rel="stylesheet">
     <script src="<?php echo $GLOBALS['web_root']; ?>/portal/sign/assets/signature_pad.umd.js?v=<?php echo $GLOBALS['v_js_includes']; ?>"></script>
@@ -140,8 +144,9 @@ $templateService = new DocumentTemplateService();
             }, 2000);
         });
 
-        function printaDoc(divName) {
-            flattenDocument();
+        function printaDocHtml(divName) {
+            page.updateModel();
+            setTimeout("flattenDocument();", 4000);
             divName = 'templatediv';
             let printContents = document.getElementById(divName).innerHTML;
             let originalContents = document.body.innerHTML;
@@ -149,6 +154,86 @@ $templateService = new DocumentTemplateService();
             window.print();
             document.body.innerHTML = originalContents;
             location.reload();
+        }
+
+        function printaDoc(divName) {
+            // We'll return to the same editing state as before print
+            // In dashboard document is already flatten to prevent
+            // auditor from changing patient entries!
+            if (page.isQuestionnaire && !isPortal) {
+                url = webroot_url +
+                    "/interface/forms/questionnaire_assessments/patient_portal.php" +
+                    "?formid=" + encodeURIComponent(page.encounterFormId);
+                fetch(url).then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network Error.');
+                    }
+                    return response.json()
+                }).then(content => {
+                    if (content) {
+                        let docid = document.getElementById('docid').value;
+                        fetchPdf(divName, docid, content);
+                    }
+                }).catch(error => {
+                    console.error('Error:', error);
+                    alert(error);
+                });
+            } else {
+                let docid = document.getElementById('docid').value;
+                fetchPdf(divName, docid);
+            }
+        }
+
+        function fetchPdf(divName, docid, printContents = null) {
+            let csrf_token_js = <?php echo js_escape(CsrfUtils::collectCsrfToken('doc-lib')); ?>;
+            top.restoreSession();
+            if (document.getElementById('tempFrame')) {
+                let killFrame = document.getElementById('tempFrame');
+                killFrame.parentNode.removeChild(killFrame);
+            }
+            if (!printContents) {
+                printContents = document.getElementById(divName).innerHTML;
+            }
+            request = new FormData;
+            request.append("handler", "fetch_pdf");
+            request.append("docid", docid);
+            request.append("content", printContents);
+            request.append("csrf_token_form", csrf_token_js);
+            fetch(webroot_url + "/portal/lib/doc_lib.php", {
+                method: 'POST',
+                credentials: 'same-origin',
+                body: request
+            }).then((response) => {
+                if (response.status !== 200) {
+                    console.log('Background Service start failed. Status Code: ' + response.status);
+                }
+                return response.text();
+            }).then((base64) => {
+                const binary = atob(base64.replace(/\s/g, ''));
+                const len = binary.length;
+                const buffer = new ArrayBuffer(len);
+                const view = new Uint8Array(buffer);
+                for (let i = 0; i < len; i++) {
+                    view[i] = binary.charCodeAt(i);
+                }
+                const blob = new Blob([view], {type: "application/pdf"});
+                const url = URL.createObjectURL(blob);
+                let iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.width = '0';
+                iframe.height = '0';
+                iframe.id = 'tempFrame';
+                document.body.appendChild(iframe);
+                iframe.onload = function() {
+                    iframe.contentWindow.focus();
+                    iframe.contentWindow.print();
+                }
+                // write the content
+                iframe.src = url;
+            }).catch(function(error) {
+                console.log('PHP PDF Background Service Request failed: ', error);
+                return false;
+            });
         }
 
         function templateText(el) {
@@ -187,7 +272,7 @@ $templateService = new DocumentTemplateService();
         function replaceTextInputs() {
             $('.templateInput').each(function () {
                 var rv = $(this).data('textvalue');
-                $(this).replaceWith(rv);
+                $(this).replaceWith(jsText(rv));
             });
         }
 
@@ -195,14 +280,14 @@ $templateService = new DocumentTemplateService();
             $('.ynuGroup').each(function () {
                 var gid = $(this).data('id');
                 var grpid = $(this).prop('id');
-                var rv = $('input:radio[name="ynradio' + gid + '"]:checked').val();
+                var rv = $('input:radio[name="ynradio' + jsAttr(gid) + '"]:checked').val();
                 $(this).replaceWith(rv);
             });
 
             $('.tfuGroup').each(function () {
                 var gid = $(this).data('id');
                 var grpid = $(this).prop('id');
-                var rv = $('input:radio[name="tfradio' + gid + '"]:checked').val();
+                var rv = $('input:radio[name="tfradio' + jsAttr(gid) + '"]:checked').val();
                 $(this).replaceWith(rv);
             });
         }
@@ -290,7 +375,7 @@ $templateService = new DocumentTemplateService();
                         <ul class="navbar-nav">
                             <li class="nav-item"><a class="nav-link btn btn-outline-primary" id="signTemplate" href="#openSignModal" data-toggle="modal" data-backdrop="true" data-target="#openSignModal" data-type="patient-signature"><?php echo xlt('Edit Signature'); ?></a></li>
                             <li class="nav-item"><a class="nav-link btn btn-outline-primary" id="saveTemplate" href="#"><?php echo xlt('Save'); ?></a></li>
-                            <li class="nav-item"><a class="nav-link btn btn-outline-primary" id="printTemplate" href="javascript:;" onclick="printaDoc('templatecontent');"><?php echo xlt('Print'); ?></a></li>
+                            <li class="nav-item"><a class="nav-link btn btn-outline-primary" id="printTemplate" href="javascript:" onclick="printaDoc('templatecontent');"><?php echo xlt('Print'); ?></a></li>
                             <li class="nav-item"><a class="nav-link btn btn-outline-primary" id="submitTemplate" href="#"><?php echo xlt('Download'); ?></a></li>
                             <li class="nav-item"><a class="nav-link btn btn-outline-primary" id="sendTemplate" href="#"><?php echo xlt('Submit Document'); ?></a></li>
                             <li class="nav-item"><a class="nav-link btn btn-outline-primary" id="chartTemplate" href="#"><?php echo xlt('Chart to') . ' ' . text($catname); ?></a></li>
@@ -351,6 +436,7 @@ $templateService = new DocumentTemplateService();
                                     <div class="text-center overflow-hidden"><i class="fa fa-circle-notch fa-spin fa-2x ml-auto"></i></div>
                                 </div>
                             </div>
+                            <input type="hidden" name="csrf_token_form" id="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken('doc-lib')); ?>" />
                             <input type="hidden" name="content" id="content" value="" />
                             <input type="hidden" name="cpid" id="cpid" value="" />
                             <input type="hidden" name="docid" id="docid" value="" />

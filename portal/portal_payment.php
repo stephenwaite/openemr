@@ -37,15 +37,16 @@ if (isset($_SESSION['pid']) && isset($_SESSION['patient_portal_onsite_two'])) {
 }
 
 require_once(__DIR__ . "/lib/appsql.class.php");
-require_once("$srcdir/patient.inc");
+require_once("$srcdir/patient.inc.php");
 require_once("$srcdir/payment.inc.php");
-require_once("$srcdir/forms.inc");
+require_once("$srcdir/forms.inc.php");
 require_once("../custom/code_types.inc.php");
 require_once("$srcdir/options.inc.php");
 require_once("$srcdir/encounter_events.inc.php");
 
 use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Common\Crypto\CryptoGen;
+use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\PaymentProcessing\Sphere\SpherePayment;
 
 $cryptoGen = new CryptoGen();
@@ -457,8 +458,8 @@ if ($_POST['form_save'] || $_REQUEST['receipt']) {
                 url: formURL,
                 type: "POST",
                 data: {
+                    'csrf_token_form': <?php echo js_escape(CsrfUtils::collectCsrfToken('messages-portal')); ?>,
                     'task': 'add',
-                    'owner': owner,
                     'pid': pid,
                     'inputBody': note,
                     'title': 'Bill/Collect',

@@ -11,9 +11,8 @@
  */
 
 require_once("../../globals.php");
-require_once("$srcdir/lists.inc");
+require_once("$srcdir/lists.inc.php");
 require_once("$srcdir/options.inc.php");
-require_once("$srcdir/sql.inc");
 
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
@@ -35,10 +34,21 @@ $t = $twigContainer->getTwig();
  */
 function getListData($pid, $type)
 {
-    $sqlArr = [
-        "SELECT * FROM lists WHERE pid = ? AND type = ? AND",
-        dateEmptySql('enddate')
-    ];
+    if ($type == "medication") {
+        $sqlArr = [
+            "SELECT lists.*, medications.list_id, medications.drug_dosage_instructions FROM lists",
+            "LEFT JOIN ( SELECT id AS lists_medication_id, list_id, drug_dosage_instructions FROM lists_medication )",
+            "medications ON medications.list_id = id",
+            "WHERE pid = ? AND type = ? AND",
+            dateEmptySql('enddate')
+        ];
+    } else {
+        $sqlArr = [
+            "SELECT * FROM lists WHERE pid = ? AND type = ? AND",
+            dateEmptySql('enddate')
+        ];
+    }
+
 
     if ($GLOBALS['erx_enable'] && $GLOBALS['erx_medication_display'] && $type == 'medication') {
         $sqlArr[] = "and erx_uploaded != '1'";
@@ -202,7 +212,11 @@ foreach ($ISSUE_TYPES as $key => $arr) {
             $viewArgs['listTouched'] = (getListTouch($pid, $key)) ? true : false;
         }
 
-        echo $t->render('patient/card/medical_problems.html.twig', $viewArgs);
+        if ($id == "medication_ps_expand") {
+            echo $t->render('patient/card/medication.html.twig', $viewArgs);
+        } else {
+            echo $t->render('patient/card/medical_problems.html.twig', $viewArgs);
+        }
     }
 }
 
@@ -374,7 +388,7 @@ if ($erx_upload_complete == 1) {
         'label' => $id,
         'initiallyCollapsed' => (getUserSetting($id) == 0) ? false : true,
         'btnLabel' => 'Edit',
-        'btnLink' => "return load_location(\"${GLOBALS['webroot']}/interface/patient_file/summary/stats_full.php?active=all&category=medication\")",
+        'btnLink' => "return load_location(\"{$GLOBALS['webroot']}/interface/patient_file/summary/stats_full.php?active=all&category=medication\")",
         'linkMethod' => 'javascript',
         'auth' => true,
         'list' => $rxList,

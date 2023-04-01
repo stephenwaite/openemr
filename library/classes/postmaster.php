@@ -24,9 +24,39 @@ class MyMailer extends PHPMailer
     var $Port;
     var $CharSet;
 
-    function __construct()
+    function __construct($throwExceptions = false)
     {
+        // make sure we initiate our constructor here...
+        parent::__construct($throwExceptions);
+
         $this->emailMethod();
+    }
+
+    /**
+     * Checks if the MyMailer service is configured for mail with all of the host parameters defined
+     * @return bool
+     */
+    public static function isConfigured()
+    {
+        switch ($GLOBALS['EMAIL_METHOD']) {
+            case "SMTP":
+                $requiredKeys = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_SECURE'];
+                if ($GLOBALS['SMTP_Auth']) {
+                    $requiredKeys[] = 'SMTP_USER';
+                    $requiredKeys[] = 'SMTP_PASS';
+                }
+                break;
+            default:
+                $requiredKeys = [];
+                break;
+        }
+
+        foreach ($requiredKeys as $key) {
+            if (empty($GLOBALS[$key])) {
+                return false;
+            }
+        }
+        return true;
     }
 
     function emailMethod()

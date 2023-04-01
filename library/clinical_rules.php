@@ -14,10 +14,10 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-require_once(dirname(__FILE__) . "/patient.inc");
-require_once(dirname(__FILE__) . "/forms.inc");
+require_once(dirname(__FILE__) . "/patient.inc.php");
+require_once(dirname(__FILE__) . "/forms.inc.php");
 require_once(dirname(__FILE__) . "/options.inc.php");
-require_once(dirname(__FILE__) . "/report_database.inc");
+require_once(dirname(__FILE__) . "/report_database.inc.php");
 
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\ClinicialDecisionRules\AMC\CertificationReportTypes;
@@ -1192,7 +1192,7 @@ function test_rules_clinic($provider = '', $type = '', $dateTarget = '', $mode =
                             // increment pass target counter
                             $pass_target++;
                             // If report itemization is turned on, then record the "passed" item and set the flag
-                            if ($GLOBALS['report_itemizing_temp_flag_and_id']) {
+                            if ($GLOBALS['report_itemizing_temp_flag_and_id'] ?? null) {
                                 insertItemReportTracker($GLOBALS['report_itemizing_temp_flag_and_id'], $GLOBALS['report_itemized_test_id_iterator'], 1, $rowPatient['pid']);
                                 $temp_track_pass = 1;
                             }
@@ -1703,7 +1703,7 @@ function resolve_plans_sql($type = '', $patient_id = '0', $configurableOnly = fa
 
         // Use the chosen plan if set
         if (!empty($type)) {
-            if ($goPlan["${type}_flag"] == 1) {
+            if ($goPlan["{$type}_flag"] == 1) {
                 // active, so use the plan
                 $newReturnArray[] = $goPlan;
             }
@@ -1869,7 +1869,7 @@ function resolve_rules_sql($type = '', $patient_id = '0', $configurableOnly = fa
 
         // Use the chosen rule if set
         if (!empty($type)) {
-            if ($goRule["${type}_flag"] == 1) {
+            if ($goRule["{$type}_flag"] == 1) {
                 // active, so use the rule
                 $newReturnArray[] = $goRule;
             }
