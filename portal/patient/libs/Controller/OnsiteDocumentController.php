@@ -239,7 +239,6 @@ class OnsiteDocumentController extends AppBasePortalController
             }
 
             $onsitedocument = new OnsiteDocument($this->Phreezer);
-            error_log("going to create onsite document");
 
             // TODO: any fields that should not be inserted by the user should be commented out
 
@@ -278,7 +277,6 @@ class OnsiteDocumentController extends AppBasePortalController
                 $this->RenderErrorJSON('Please check the form for errors', $errors);
             } else {
                 $new_data = $onsitedocument->FullDocument;
-                error_log("going to update onsite document");
                 $onsitedocument->FullDocument = $this->htmlDiff($json->fullDocument, $new_data);
 
                 $onsitedocument->Save();
