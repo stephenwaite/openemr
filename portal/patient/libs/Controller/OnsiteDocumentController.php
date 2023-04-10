@@ -276,6 +276,7 @@ class OnsiteDocumentController extends AppBasePortalController
             if (count($errors) > 0) {
                 $this->RenderErrorJSON('Please check the form for errors', $errors);
             } else {
+                // use a custom diff function to look for changing of the html tags
                 $new_data = $onsitedocument->FullDocument;
                 $onsitedocument->FullDocument = $this->htmlDiff($json->fullDocument, $new_data);
 
@@ -347,8 +348,8 @@ class OnsiteDocumentController extends AppBasePortalController
             if (count($errors) > 0) {
                 $this->RenderErrorJSON('Please check the form for errors', $errors);
             } else {
+                // use a custom diff function to look for changing of the html tags
                 $new_data = $onsitedocument->FullDocument;
-                error_log("going to update onsite document");
                 $onsitedocument->FullDocument = $this->htmlDiff($old_data, $new_data);
 
                 $onsitedocument->Save();
@@ -388,7 +389,7 @@ class OnsiteDocumentController extends AppBasePortalController
         }
     }
 
-    function diff($old, $new)
+    private function diff($old, $new): string
     {
         $matrix = array();
         $maxlen = 0;
@@ -414,7 +415,7 @@ class OnsiteDocumentController extends AppBasePortalController
         );
     }
 
-    function htmlDiff($old, $new)
+    private function htmlDiff($old, $new): string
     {
         $ret = '';
         $diff = $this->diff(preg_split("/[\s]+/", $old), preg_split("/[\s]+/", $new));
