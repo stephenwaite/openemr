@@ -239,6 +239,7 @@ class OnsiteDocumentController extends AppBasePortalController
             }
 
             $onsitedocument = new OnsiteDocument($this->Phreezer);
+            error_log("going to create onsite document");
 
             // TODO: any fields that should not be inserted by the user should be commented out
 
@@ -276,6 +277,10 @@ class OnsiteDocumentController extends AppBasePortalController
             if (count($errors) > 0) {
                 $this->RenderErrorJSON('Please check the form for errors', $errors);
             } else {
+                $new_data = $onsitedocument->FullDocument;
+                error_log("going to update onsite document");
+                $onsitedocument->FullDocument = $this->htmlDiff($json->fullDocument, $new_data);
+
                 $onsitedocument->Save();
                 $this->RenderJSON($onsitedocument, $this->JSONPCallback(), true, $this->SimpleObjectParams());
             }
@@ -298,6 +303,7 @@ class OnsiteDocumentController extends AppBasePortalController
 
             $pk = $this->GetRouter()->GetUrlParam('id');
             $onsitedocument = $this->Phreezer->Get('OnsiteDocument', $pk);
+            $old_data = $onsitedocument->FullDocument;
 
             // only allow patient to update themself (part 1)
             if (!empty($GLOBALS['bootstrap_pid'])) {
@@ -343,6 +349,10 @@ class OnsiteDocumentController extends AppBasePortalController
             if (count($errors) > 0) {
                 $this->RenderErrorJSON('Please check the form for errors', $errors);
             } else {
+                $new_data = $onsitedocument->FullDocument;
+                error_log("going to update onsite document");
+                $onsitedocument->FullDocument = $this->htmlDiff($old_data, $new_data);
+
                 $onsitedocument->Save();
                 $this->RenderJSON($onsitedocument, $this->JSONPCallback(), true, $this->SimpleObjectParams());
             }
@@ -378,5 +388,45 @@ class OnsiteDocumentController extends AppBasePortalController
         } catch (Exception $ex) {
             $this->RenderExceptionJSON($ex);
         }
+    }
+
+    function diff($old, $new)
+    {
+        $matrix = array();
+        $maxlen = 0;
+        foreach ($old as $oindex => $ovalue) {
+            $nkeys = array_keys($new, $ovalue);
+            foreach ($nkeys as $nindex) {
+                $matrix[$oindex][$nindex] = isset($matrix[$oindex - 1][$nindex - 1]) ?
+                    $matrix[$oindex - 1][$nindex - 1] + 1 : 1;
+                if ($matrix[$oindex][$nindex] > $maxlen) {
+                    $maxlen = $matrix[$oindex][$nindex];
+                    $omax = $oindex + 1 - $maxlen;
+                    $nmax = $nindex + 1 - $maxlen;
+                }
+            }
+        }
+        if ($maxlen == 0) {
+            return array(array('d' => $old, 'i' => $new));
+        }
+        return array_merge(
+            $this->diff(array_slice($old, 0, $omax), array_slice($new, 0, $nmax)),
+            array_slice($new, $nmax, $maxlen),
+            $this->diff(array_slice($old, $omax + $maxlen), array_slice($new, $nmax + $maxlen))
+        );
+    }
+
+    function htmlDiff($old, $new)
+    {
+        $ret = '';
+        $diff = $this->diff(preg_split("/[\s]+/", $old), preg_split("/[\s]+/", $new));
+        foreach ($diff as $k) {
+            if (is_array($k)) {
+                $ret .= (!empty($k['i']) ? text(implode(' ', $k['i'])) : '');
+            } else {
+                $ret .= $k . ' ';
+            }
+        }
+        return $ret;
     }
 }
