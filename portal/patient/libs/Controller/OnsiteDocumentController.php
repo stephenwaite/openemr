@@ -278,7 +278,8 @@ class OnsiteDocumentController extends AppBasePortalController
             } else {
                 // use a custom diff function to look for changing of the html tags
                 $new_data = $onsitedocument->FullDocument;
-                $onsitedocument->FullDocument = $this->htmlDiff($json->fullDocument, $new_data);
+                $old_data = $json->fullDocument;
+                $onsitedocument->FullDocument = $this->htmlDiff($old_data, $new_data);
 
                 $onsitedocument->Save();
                 $this->RenderJSON($onsitedocument, $this->JSONPCallback(), true, $this->SimpleObjectParams());
