@@ -1790,13 +1790,20 @@ class X125010837P
                     ($claim->payerSequence() == 'T')
                     && ($claim->payerSequence($ins) == 'S')
                 ) {
+                    // $payerTotals() returns date index 0, pay total index 1, adj total, index 2
                     $primary_paid = $claim->payerTotals(1, $claim->cptKey($prockey));
-                    if ($primary_paid != 0) {
+                    if (
+                        (
+                        $primary_paid[1] != 0
+                        || $primary_paid[2] != 0
+                        )
+                    ) {
+                        $primary_paid_oa = $primary_paid[1] + $primary_paid[2];
                         $out .= "CAS" .
                             "*" .
                             "OA" . "*" .
                             "23" . "*" .
-                            $primary_paid[1];
+                            $primary_paid_oa;
                         $out .= "~\n";
                         ++$edicount;
                     }
@@ -1808,6 +1815,11 @@ class X125010837P
                             $tmpdate = $value;
                         }
                         continue;
+                    } elseif (
+                        ($primary_paid_oa ?? null)
+                        && $key == 'CO'
+                    ) {
+                            continue;
                     }
 
                     $out .= "CAS" .
