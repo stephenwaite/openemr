@@ -1709,11 +1709,14 @@ class X125010837P
                 ++$edicount;
                 $out .= "SVD" . // Service line adjudication. Page 554.
                 "*";
+
+                $pr_3_flag = false;
                 if (
                     $claim->payerID() == "MCDVT"
                 ) {
                     if ($claim->claimType($ins) === 'MB') {
                         $out .= "MDB";
+                        $pr_3_flag = true;
                     } else {
                         if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
                             if (($claim->payerName($ins)) == "BCBS NJ") {
@@ -1829,6 +1832,14 @@ class X125010837P
                     // $v is the amount
                     foreach ($value as $k => $v) {
                         $cntr++;
+                        if (
+                            ($k == 3)
+                            && ($key == 'PR')
+                            && ($pr_3_flag == true)
+                        ) {
+                            $k = 2;
+                        }
+
                         $out .= $k .
                             "*" .
                             $v;
