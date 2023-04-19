@@ -119,11 +119,11 @@ class X125010837P
             }
         } elseif ($claim->federalIdType() == "EI") {
             if (
-                ($claim->x12_partner['x12_sender_id'] == '701100357') ||
-                ($claim->x12_partner['x12_sender_id'] == '030353360') ||
-                ($claim->x12_partner['x12_sender_id'] == '7111') ||
-                ($claim->x12_partner['x12_sender_id'] == 'N532') ||
-                ($claim->x12_partner['x12_sender_id'] == 'RR6355')
+                (($claim->x12_partner['x12_sender_id'] ?? null) == '701100357') ||
+                (($claim->x12_partner['x12_sender_id'] ?? null) == '030353360') ||
+                (($claim->x12_partner['x12_sender_id'] ?? null) == '7111') ||
+                (($claim->x12_partner['x12_sender_id'] ?? null) == 'N532') ||
+                (($claim->x12_partner['x12_sender_id'] ?? null) == 'RR6355')
             ) {
                 $out .= "NM1" .
                 "*41" .
@@ -158,11 +158,11 @@ class X125010837P
 
         $out .= "PER"; // Loop 1000A, Submitter EDI contact information
         if (
-            ($claim->x12_partner['x12_sender_id'] == '701100357') ||
-            ($claim->x12_partner['x12_sender_id'] == '030353360') ||
-            ($claim->x12_partner['x12_sender_id'] == '7111') ||
-            ($claim->x12_partner['x12_sender_id'] == 'N532') ||
-            ($claim->x12_partner['x12_sender_id'] == 'RR6355')
+            ($claim->x12_partner['x12_sender_id'] ?? null == '701100357') ||
+            (($claim->x12_partner['x12_sender_id'] ?? null) == '030353360') ||
+            (($claim->x12_partner['x12_sender_id'] ?? null) == '7111') ||
+            (($claim->x12_partner['x12_sender_id'] ?? null) == 'N532') ||
+            (($claim->x12_partner['x12_sender_id'] ?? null) == 'RR6355')
         ) {
             $out .= "*" . "IC" .
             "*" . "S WAITE" .
@@ -1713,13 +1713,20 @@ class X125010837P
                     ($claim->payerSequence() == 'T')
                     && ($claim->payerSequence($ins) == 'S')
                 ) {
+                    // $payerTotals() returns date index 0, pay total index 1, adj total, index 2
                     $primary_paid = $claim->payerTotals(1, $claim->cptKey($prockey));
-                    if ($primary_paid != 0) {
+                    if (
+                        (
+                        $primary_paid[1] != 0
+                        || $primary_paid[2] != 0
+                        )
+                    ) {
+                        $primary_paid_oa = $primary_paid[1] + $primary_paid[2];
                         $out .= "CAS" .
                             "*" .
                             "OA" . "*" .
                             "23" . "*" .
-                            $primary_paid[1];
+                            $primary_paid_oa;
                         $out .= "~\n";
                         ++$edicount;
                     }
@@ -1731,6 +1738,11 @@ class X125010837P
                             $tmpdate = $value;
                         }
                         continue;
+                    } elseif (
+                        ($primary_paid_oa ?? null)
+                        && $key == 'CO'
+                    ) {
+                            continue;
                     }
 
                     $out .= "CAS" .
