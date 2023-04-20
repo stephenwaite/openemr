@@ -22,6 +22,7 @@ use OpenEMR\Common\Database\SqlQueryException;
 use OpenEMR\Common\Logging\SystemLogger;
 use OpenEMR\Common\Uuid\UuidRegistry;
 use OpenEMR\Services\Search\FhirSearchWhereClauseBuilder;
+use OpenEMR\Services\Search\DateSearchField;
 use OpenEMR\Services\Search\SearchFieldException;
 use OpenEMR\Services\Search\TokenSearchField;
 use OpenEMR\Services\Search\TokenSearchValue;
@@ -701,6 +702,17 @@ class EncounterService extends BaseService
         $encounterResult = $this->search(['pid' => $pid, 'eid' => $encounter_id], $options = ['limit' => '1']);
         if ($encounterResult->hasData()) {
             return $encounterResult->getData()[0]['referring_provider_id'] ?? '';
+        }
+        return [];
+    }
+
+    public function getEncountersByDateRange($startDate, $endDate)
+    {
+        $dateField = new DateSearchField('date', ['ge' . $startDate, 'le' . $endDate], DateSearchField::DATE_TYPE_DATE, $isAnd = true);
+        $encounterResult = $this->search(['date' => $dateField]);
+        if ($encounterResult->hasData()) {
+            $result = $encounterResult->getData();
+            return $result;
         }
         return [];
     }

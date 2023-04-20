@@ -159,11 +159,15 @@ class RestConfig
     {
         // Get site from endpoint if available. Unsure about this though!
         // Will fail during sql init otherwise.
-        $endPointParts = self::parseEndPoint(self::getRequestEndPoint());
-        if (count($endPointParts) > 1) {
-            $site_id = $endPointParts[0] ?? '';
-            if ($site_id) {
-                self::$SITE = $site_id;
+        if (!strpos($_SERVER['REQUEST_URI'], '?') > 0) {
+            self::$SITE = 'default';
+        } else {
+            $endPointParts = self::parseEndPoint(self::getRequestEndPoint());
+            if (count($endPointParts) > 1) {
+                $site_id = $endPointParts[0] ?? '';
+                if ($site_id) {
+                    self::$SITE = $site_id;
+                }
             }
         }
     }
