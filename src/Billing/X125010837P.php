@@ -1013,6 +1013,12 @@ class X125010837P
             $claim->facilityNPI() != $claim->billingFacilityNPI()
             || $claim->payerID() == '53275'
         ) {
+            if (
+                ($_SESSION['site_id'] == '1300')
+                && ($claim->facilityNPI() == '1043429418')
+            ) {
+                $log .= "*** Newport Care is closed, fix encounter and choices if appropriate please.\n";
+            }    
             ++$edicount;
             $out .= "NM1" .       // Loop 2310C Service Location
             "*" . "77" .

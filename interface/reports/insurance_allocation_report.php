@@ -212,6 +212,7 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_csvexport'])) {
             ++$patcount;
             $insarr[$plan]['patients'] =  $insarr[$plan]['patients'] ?? null;
             $insarr[$plan]['patients'] += 1;
+            $insarr[$plan]['pids'][] = $patient_id;
             $prev_pid = $patient_id;
         }
     }
@@ -245,6 +246,19 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_csvexport'])) {
   </td>
  </tr>
             <?php
+            $with_details = true;
+            if ($with_details) {
+                if (
+                    !(                
+                        (trim($key) == "MEDICARE MA")
+                        || (trim($key) == "MEDICARE VT")
+                    )    
+                ) {   
+                    foreach($val['pids'] as $k => $v) {
+                        echo "<tr><td> Pid: " . $v . "<td/></tr>";
+                    }
+                }    
+            }        
         } // end not export
     } // end while
 } // end if
