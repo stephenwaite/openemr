@@ -1462,7 +1462,6 @@ class X125010837P
                 // Segment REF (Other Payer Supervising Provider Secondary Identification) omitted.
                 // Segment NM1 (Other Payer Billing Provider) omitted.
                 // Segment REF (Other Payer Billing Provider Secondary Identification) omitted.
-            }
         } // End loops 2320/2330*.
 
         $loopcount = 0;
