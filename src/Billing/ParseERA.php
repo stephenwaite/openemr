@@ -94,7 +94,7 @@ class ParseERA
                     //   "adjusted by $paytotal due to payment imbalance. " .
                     //   "This should not happen!\n";
                     // }
-                }
+                //}
             }
             $cb($out);
         }
