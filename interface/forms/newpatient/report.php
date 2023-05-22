@@ -26,7 +26,13 @@ function newpatient_report($pid, $encounter, $cols, $id)
         $referringProvider = $userService->getUser($result["referring_provider_id"]);
         $calendar_category = (new AppointmentService())->getOneCalendarCategory($result['pc_catid']);
         print "<span class=bold>" . xlt('Facility') . ": </span><span class=text>" . text($result["facility_name"]) . "</span><br />\n";
-        if (empty($result['sensitivity']) || AclMain::aclCheckCore('sensitivities', $result['sensitivity'])) {
+        if (
+            (
+                empty($result['sensitivity']) 
+                || AclMain::aclCheckCore('sensitivities', $result['sensitivity'])
+            )
+            && $_SESSION['site_id'] != 'default'
+        ) {
             print "<span class=bold>" . xlt('Category') . ": </span><span class=text>" . text($calendar_category[0]['pc_catname']) . "</span><br />\n";
             print "<span class=bold>" . xlt('Reason') . ": </span><span class=text>" . nl2br(text($result["reason"])) . "</span><br />\n";
             print "<span>" . xlt('Provider') . ": </span><span class=text>" . text($provider['lname'] . ", " . $provider['fname']) . "</span><br />\n";
