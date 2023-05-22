@@ -254,7 +254,12 @@ function zip_content($source, $destination, $content = '', $create = true)
                     $logo = $GLOBALS['OE_SITE_WEBROOT'] . "/images/" . basename($practice_logo);
                 }
 
-                echo genFacilityTitle(getPatientName($pid), $_SESSION['pc_facility'], $logo); ?>
+                echo genFacilityTitle(
+                    getPatientName($pid) . ' - ' . oeFormatDateTime(getPatientData($pid, "DOB")['DOB']),
+                    $_SESSION['pc_facility'],
+                    $logo
+                ); ?>
+
 
             <?php } else { // not printable
                 ?>
@@ -777,7 +782,7 @@ function zip_content($source, $destination, $content = '', $create = true)
 
                             if (in_array($res[1], array('newpatient', 'dictation'))) {
                                 echo "<div class='text encounter'>\n";
-                                echo "<h4>" . xlt($formres["form_name"]) . "</h4>";
+                                //echo "<h4>" . xlt($formres["form_name"]) . "</h4>";
                             } else {
                                 echo "<div class='text encounter_form'>";
                                 echo "<h4>" . text(xl_form_title($formres["form_name"])) . "</h4>";
@@ -847,9 +852,9 @@ function zip_content($source, $destination, $content = '', $create = true)
                 } // end if('include_')... else...
             } // end $ar loop
 
-            if ($printable && !$PDF_OUTPUT) {// Patched out of pdf 04/20/2017 sjpadgett
+            /*if ($printable && !$PDF_OUTPUT) {// Patched out of pdf 04/20/2017 sjpadgett
                 echo "<br /><br />" . xlt('Signature') . ": _______________________________<br />";
-            }
+            }*/
             ?>
 
         </div> <!-- end of report_custom DIV -->
