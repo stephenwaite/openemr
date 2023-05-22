@@ -822,7 +822,11 @@ if (
                 dlgopen(url,'','modal-full',700,false,'', {
                 sizeHeight: 'full',
                 onClosed: ''
-            });
+            });<?php } else { // keep era page up so can check on other remits ?>
+                dlgopen(url,'','modal-full',700,false,'', {
+                sizeHeight: 'full',
+                onClosed: ''
+            }); <?php } ?>
         }
 
         function checkAll(checked) {
