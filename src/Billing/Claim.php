@@ -883,6 +883,7 @@ class Claim
 
     public function clearingHouseName()
     {
+        var_dump($this->x12_partner);
         return $this->x12Clean(trim($this->x12_partner['name'] ?? ''));
     }
 
