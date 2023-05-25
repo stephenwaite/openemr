@@ -182,11 +182,7 @@ function edih_disp_archive()
  * @return string  html format
  */
 function edih_disp_file_process()
-<<<<<<< HEAD
-{
-=======
 {    
->>>>>>> edi_history
     // debug
     if (isset($_GET)) {
         $dbg_str = 'GET vars ';
