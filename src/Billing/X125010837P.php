@@ -180,7 +180,6 @@ class X125010837P
             $out .= "~\n";
 
             ++$edicount;
-
             $billing_contact_name = $claim->billingContactName();
             if (empty($billing_contact_name)) {
                 $log .= "*** billing contact name in 1000A loop is empty.\n";
@@ -372,12 +371,6 @@ class X125010837P
             // Loop 2010AC Pay-To Plan Name omitted.  Includes:
             // NM1*PE, N3, N4, REF*2U, REF*EI
         }
-
-        if (!empty($GLOBALS['gen_x12_based_on_ins_co'])) {
-            $HLcount += $patSegmentCount;
-        }
-
-        $HLcount++;
 
         $PatientHL = $claim->isSelfOfInsured() ? 0 : 1;
         $HLSubscriber = $HLcount++;
@@ -1063,7 +1056,7 @@ class X125010837P
                 && ($claim->facilityNPI() == '1043429418')
             ) {
                 $log .= "*** Newport Care is closed, fix encounter and choices if appropriate please.\n";
-            }    
+            }
             ++$edicount;
             $out .= "NM1" .       // Loop 2310C Service Location
                 "*" . "77" .
@@ -1341,70 +1334,70 @@ class X125010837P
                 "*" . "PR" .
                 "*" . "2" .
                 "*";
-                if ($payerName) {
-                    $out .= $payerName;
-                } else {
-                    $log .= "*** Missing other insco payer name.\n";
-                }
+            if ($payerName) {
+                $out .= $payerName;
+            } else {
+                $log .= "*** Missing other insco payer name.\n";
+            }
                 $out .= "*" .
                 "*" .
                 "*" .
                 "*" .
                 "*" . "PI" .
                 "*";
-                if (
+            if (
                     $claim->payerID() == "MCDVT"
-                ) { // for 2ndary gmc claims
-                    if ($claim->claimType($ins) === 'MB') {
+            ) { // for 2ndary gmc claims
+                if ($claim->claimType($ins) === 'MB') {
+                    $out .= "MDB";
+                } elseif ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
+                    if (($claim->payerName($ins)) == "BCBS NJ") {
+                        $out .= "H6";
+                    } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
                         $out .= "MDB";
-                    } elseif ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
-                        if (($claim->payerName($ins)) == "BCBS NJ") {
-                            $out .= "H6";
-                        } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
-                            $out .= "MDB";
-                        } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
-                            $out .= "BV";
-                        } else {
-                            $out .= "EE";
-                        }
-                    } elseif (($claim->payerID($ins)) == "14512") {
-                            $out .= "MDB";
-                    } elseif (($claim->payerID($ins)) == "14212") {
-                            $out .= "MDB";
-                    } elseif (($claim->payerID($ins)) == "14163") {
-                            $out .= "MDB";
-                    } elseif (($claim->payerID($ins)) == "87726") {
-                        $out .= "MDC";
-                    } elseif (($claim->payerID($ins)) == "62308") {
-                            $out .= "FB6";
-                    } elseif (($claim->payerID($ins)) == "14165") {
-                        $out .= "Z2";
-                    } elseif (($claim->payerID($ins)) == "60054") {
-                        if (!empty($claim->groupNumber())) {
-                            $out .= $claim->groupNumber();
-                        } else {
-                            $out .= "92";
-                        }
-                    } elseif (($claim->payerID($ins)) == "00010") {
-                        $out .= "42";
-                    } elseif (($claim->payerID($ins)) == "MPHC1") {
-                        $out .= "42";
-                    } elseif (($claim->payerID($ins)) == "EBSRM") {
-                        $out .= "AW1";
-                    } elseif (($claim->payerID($ins)) == "00882") {
-                        $out .= "MDB";
-                    } elseif (($claim->payerID($ins)) == "53275") {
-                        $out .= "AE7";
-                    } elseif (($claim->payerID($ins)) == "39026") {
-                        $out .= "S02";
+                    } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
+                        $out .= "BV";
                     } else {
-                        $log .= "*** Missing other insco payer id with medicaid 2ndary?\n";
+                        $out .= "EE";
                     }
-                } elseif ($claim->payerID($ins)) {
-                    $out .= $claim->payerID($ins);
+                } elseif (($claim->payerID($ins)) == "14512") {
+                        $out .= "MDB";
+                } elseif (($claim->payerID($ins)) == "14212") {
+                        $out .= "MDB";
+                } elseif (($claim->payerID($ins)) == "14163") {
+                        $out .= "MDB";
+                } elseif (($claim->payerID($ins)) == "87726") {
+                    $out .= "MDC";
+                } elseif (($claim->payerID($ins)) == "62308") {
+                        $out .= "FB6";
+                } elseif (($claim->payerID($ins)) == "14165") {
+                    $out .= "Z2";
+                } elseif (($claim->payerID($ins)) == "60054") {
+                    if (!empty($claim->groupNumber())) {
+                        $out .= $claim->groupNumber();
+                    } else {
+                        $out .= "92";
+                    }
+                } elseif (($claim->payerID($ins)) == "00010") {
+                    $out .= "42";
+                } elseif (($claim->payerID($ins)) == "MPHC1") {
+                    $out .= "42";
+                } elseif (($claim->payerID($ins)) == "EBSRM") {
+                    $out .= "AW1";
+                } elseif (($claim->payerID($ins)) == "00882") {
+                    $out .= "MDB";
+                } elseif (($claim->payerID($ins)) == "53275") {
+                    $out .= "AE7";
+                } elseif (($claim->payerID($ins)) == "39026") {
+                    $out .= "S02";
                 } else {
-                    $log .= "*** Missing other insco payer id.\n";
+                    $log .= "*** Missing other insco payer id with medicaid 2ndary?\n";
                 }
+            } elseif ($claim->payerID($ins)) {
+                $out .= $claim->payerID($ins);
+            } else {
+                $log .= "*** Missing other insco payer id.\n";
+            }
                 $out .= "~\n";
 
             ++$edicount;
