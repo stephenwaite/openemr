@@ -1033,8 +1033,6 @@ class X125010837P
             } else {
                 $log .= "*** Performing provider has no taxonomy code.\n";
             }
-        } else {
-            $log .= "*** Rendering provider is billing under a group.\n";
         }
 
         if (!$claim->providerNPIValid()) {
