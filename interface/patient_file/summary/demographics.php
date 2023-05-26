@@ -417,7 +417,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
         function newEvt() {
             let title = <?php echo xlj('Appointments'); ?>;
             let url = '../../main/calendar/add_edit_event.php?patientid=' + <?php echo js_url($pid); ?>;
-            dlgopen(url, '_blank', 800, 500, '', title);
+            dlgopen(url, '_blank', 800, 875, '', title);
             return false;
         }
 
