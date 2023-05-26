@@ -9,7 +9,7 @@
                 <a href="#" onclick="return oldEvt({{ a.jsEvent }})">
                     {% endif %}
                     {{ a.pc_catname|xlt }}
-                    {% if a.pc_hometext %}&nbsp;<i class="far fa-fw fa-comment-dots"></i>{% endif %}
+                    {% if a.pc_hometext %}&nbsp;<i class="far fa-fw fa-comment-dots" title="{{ a.pc_hometext }}"></i>{% endif %}
                     {% if a.pc_recurrtype %}&nbsp;<i class="fa fa-retweet"></i>{% endif %}
                     {% if a.pc_catid not in therapyGroupCategories %}
                 </a>
