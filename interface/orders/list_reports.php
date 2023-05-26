@@ -40,9 +40,15 @@ if (!$thisauth) {
 $form_patient = !empty($_POST['form_patient']);
 $processing_lab = $_REQUEST['form_lab_id'] ?? '';
 $start_form = false;
-if (!isset($_REQUEST['form_refresh']) && !isset($_REQUEST['form_process_labs']) && !isset($_REQUEST['form_manual'])) {
+if (
+    !isset($_REQUEST['form_refresh']) 
+    && !isset($_REQUEST['form_process_labs']) 
+    && !isset($_REQUEST['form_manual'])
+    && !isset($_REQUEST['stayHere'])
+) {
     $start_form = true;
 }
+
 
 /**
  * Get a list item title, translating if required.
@@ -195,6 +201,7 @@ function doWait(e){
         <h2><?php echo xlt('Procedure Orders and Reports'); ?></h2>
     </div>
 <form class="form-inline" method='post' action='list_reports.php' enctype='multipart/form-data'>
+    <input type="hidden" name="stayHere" value="0">
     <div class="container">
     <!-- This might be set by the results window: -->
     <input class="d-none row" type='text' name='form_external_refresh' value='' />
