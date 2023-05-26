@@ -61,18 +61,24 @@ class SpreadSheetService extends Spreadsheet
             $this->fields = array_keys($this->arrayData[0]);
         }
 
-        $this->header = array_filter(array_keys($this->arrayData[0]), function ($v) {
+        /* $this->header = array_filter(array_keys($this->arrayData[0]), function ($v) {
             if (in_array($v, $this->fields)) {
                 return csvEscape($v);
             }
-        });
+        }); */
+
+        $this->header = ['Contact', 'Phone', 'Start Time'];
 
         foreach ($this->arrayData as $item) {
-            $this->row[] = array_filter($item, function ($v, $k) {
+            /* $this->row[] = array_filter($item, function ($v, $k) {
                 if (in_array($k, $this->fields)) {
                     return csvEscape($v);
                 }
-            }, ARRAY_FILTER_USE_BOTH);
+            }, ARRAY_FILTER_USE_BOTH); */
+            $this->row[] = [
+                $item['fname'] . " " . substr($item['lname'], 0, 1),
+                $item['phone_home'],
+                (new \DateTimeImmutable($item['pc_eventDate']))->format('m/d/Y') . ' ' . $item['pc_startTime']];
         }
 
         return true;
