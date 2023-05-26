@@ -1158,7 +1158,7 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
                             " with lab result file " .
                             "creation date on $datetime_report and specimen collections on $txdate has been created. " .
                             "Please review these items to ensure proper resolution of order results.";
-                        $dumb = labNotice($patient_id, $ptext, ($provider_username ?? ''), '', $in_message_lab_name);
+                        //$dumb = labNotice($patient_id, $ptext, ($provider_username ?? ''), '', $in_message_lab_name);
                     }
                 } // end no $porow
             } // end results-only
