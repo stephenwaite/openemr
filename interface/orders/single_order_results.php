@@ -116,6 +116,7 @@ body {
         var f = opener.document.forms[0];
         if (f.form_external_refresh) {
             f.form_external_refresh.value = '1';
+            f.stayHere.value = '1';
             f.submit();
         }
         window.close();
