@@ -1221,7 +1221,7 @@ class X125010837P
                 "*" .
                 "*" .
                 "*" .
-                "*" . $claim->claimType($ins) .
+                "*" . $tmp2 .
                 "~\n";
 
             // Things that apply only to previous payers, not future payers.
