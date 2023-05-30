@@ -294,6 +294,9 @@ function edih_837_csv_data($obj837)
             $stsegs = array_slice($seg_ar, $st['start'], $st['count']);
             $stacct = array_values(array_unique($st['acct']));
             $clmct = count($stacct);
+            if (!empty($GLOBALS['gen_x12_based_on_ins_co'])) {
+                $clmct = 1;
+            }
             // $st['icn'] is the ISA control number for the ISA envelope containing the ST--SE
             $date = $env_ar['ISA'][$st['icn']]['date'];
             $stn = $st['stn'];
@@ -311,9 +314,17 @@ function edih_837_csv_data($obj837)
 
                     //'f837': $hdr = array('PtName', 'SvcDate', 'CLM01', 'InsLevel', 'Control', 'FileName', 'Fee', 'PtPaid', 'Provider' )
                     foreach ($trans as $seg) {
-                        if (strncmp($seg, 'BHT' . $de, 4) === 0) {
+                        $sar = explode($de, $seg);
+                        if (
+                            empty($GLOBALS['gen_x12_based_on_ins_co'])
+                            && (strncmp($seg, 'BHT' . $de, 4) === 0)
+                            || (
+                                !empty($GLOBALS['gen_x12_based_on_ins_co'])
+                                && (strncmp($seg, 'HL' . $de, 3) === 0)
+                                && (strncmp($sar[3], 22, 2) === 0)
+                            )
+                        ) {
                             $cdx = count($ret_ar[$icn]['claim']);
-                            $sar = explode($de, $seg);
                             $bht03 = $sar[3];
                             $hl = '';
                             $clm_ct++;
@@ -332,14 +343,12 @@ function edih_837_csv_data($obj837)
                         }
 
                         if (strncmp($seg, 'HL' . $de, 3) === 0) {
-                            $sar = explode($de, $seg);
                             $hl = $sar[3];
                             continue;
                         }
 
                         if (intval($hl) == 20) {
                             if (strncmp($seg, 'NM1' . $de, 4) === 0) {
-                                $sar = explode($de, $seg);
                                 if ($sar[2] == '82' || $sar[2] == '85') {
                                     $ret_ar[$icn]['claim'][$cdx]['Provider'] = $sar[9];
                                 }
@@ -350,25 +359,21 @@ function edih_837_csv_data($obj837)
 
                         if (intval($hl) >= 22) {
                             if (strncmp($seg, 'SBR' . $de, 4) === 0) {
-                                $sar = explode($de, $seg);
                                 $ret_ar[$icn]['claim'][$cdx]['InsLevel'] = $sar[1];
                             }
 
                             if (strncmp($seg, 'CLM' . $de, 4) === 0) {
-                                $sar = explode($de, $seg);
                                 $ret_ar[$icn]['claim'][$cdx]['CLM01'] = $sar[1];
                                 $ret_ar[$icn]['claim'][$cdx]['Fee'] = $sar[2];
                                 continue;
                             }
 
                             if (strncmp($seg, 'AMT' . $de . 'F5' . $de, 7) === 0) {
-                                $sar = explode($de, $seg);
                                 $ret_ar[$icn]['claim'][$cdx]['PtPaid'] = $sar[2];
                                 continue;
                             }
 
                             if (strncmp($seg, 'NM1' . $de, 4) === 0) {
-                                $sar = explode($de, $seg);
                                 if (strpos('|IL|QC', $sar[1])) {
                                     $midn = ( isset($sar[5]) && strlen($sar[5]) ) ? ', ' . $sar[5] : '';
                                     $ret_ar[$icn]['claim'][$cdx]['PtName'] = $sar[3] . ', ' . $sar[4] . $midn;
@@ -382,7 +387,6 @@ function edih_837_csv_data($obj837)
                             }
 
                             if (strncmp($seg, 'DTP' . $de . '472' . $de, 8) === 0) {
-                                $sar = explode($de, $seg);
                                 $ret_ar[$icn]['claim'][$cdx]['SvcDate'] = $sar[3];
                                 continue;
                             }
