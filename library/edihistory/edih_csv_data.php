@@ -326,6 +326,7 @@ function edih_claim_history($encounter)
                 $ch_html .= "<td><a class='seg' href='edih_main.php?gtbl=claim&fname=" . attr_url($ch['FileName']) . "&ftype=" . attr_url($tp) . "&pid=" . attr_url($ch['CLM01']) . "&fmt=seg&csrf_token_form=" . attr_url(CsrfUtils::collectCsrfToken()) . "'>" . text($ch['CLM01']) . "</a></td>" . PHP_EOL;
                 $ch_html .= "<td title='" . attr($ch['Control']) . "'><a  class='seg' href='edih_main.php?gtbl=file&fname=" . attr_url($ch['FileName']) . "&ftype=" . attr_url($tp) . "&fmt=seg&csrf_token_form=" . attr_url(CsrfUtils::collectCsrfToken()) . "'>" . text($ch['FileName']) . "</a></td>" . PHP_EOL;
                 //
+                error_log($ch_html);
                 $ch_html .= "</tr>" . PHP_EOL;
             }
         } else {
