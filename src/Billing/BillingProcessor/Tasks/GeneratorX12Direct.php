@@ -115,8 +115,6 @@ class GeneratorX12Direct extends AbstractGenerator implements GeneratorInterface
             // Only set the batch file directory if we have a valid directory
             if ($has_dir) {
                 $batch->setBatFiledir($row['x12_sftp_local_dir']);
-            } else {
-                $batch->write_batch_file();
             }
 
             // Store the x-12 partner's data in case we need to reference it (like need the Name or something)
