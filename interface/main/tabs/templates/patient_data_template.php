@@ -145,7 +145,7 @@ switch ($search_any_type) {
             </div>
                 <a class="btn btn-sm btn-secondary" data-bind="click: clickNewEncounter" href="#"
                     title="<?php echo xla("New Encounter"); ?>">
-                    <i class="fa fa-plus"></i>
+                    <i class="fas fa-pizza-slice"></i>
                 </a>
             </div>
 
