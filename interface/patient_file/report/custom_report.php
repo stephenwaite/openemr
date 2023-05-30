@@ -201,6 +201,10 @@ function zip_content($source, $destination, $content = '', $create = true)
       img {
         max-width: 700px;
       }
+
+      .text {
+        font-size: 1rem;
+      }
     </style>
 
     <?php if (!$PDF_OUTPUT) { ?>

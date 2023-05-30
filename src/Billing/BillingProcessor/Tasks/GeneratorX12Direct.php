@@ -151,6 +151,19 @@ class GeneratorX12Direct extends AbstractGenerator implements GeneratorInterface
      */
     public function validateOnly(BillingClaim $claim)
     {
+        $return = BillingUtilities::updateClaim(
+            true,
+            $claim->getPid(),
+            $claim->getEncounter(),
+            $claim->getPayorId(),
+            $claim->getPayorType(),
+            BillingClaim::STATUS_LEAVE_UNBILLED,
+            BillingClaim::BILL_PROCESS_LEAVE_UNCHANGED, // bill_process == 1 means??
+            '', // process_file
+            $claim->getTarget(),
+            $claim->getPartner()
+        );
+
         $this->updateBatchFile($claim);
         $this->printToScreen(xl("Successfully validated claim") . ": " . $claim->getId());
     }
