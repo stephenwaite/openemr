@@ -328,7 +328,7 @@ function popup_close() {
                         "adj_amount = 0.00 " .
                         "GROUP BY session_id ORDER BY session_id DESC", array($patient_id, $payrow['encounter']));
                         while ($serow = sqlFetchArray($seres)) {
-                            if (sprintf("%01.2f", $serow['adj_amount']) != 0.00) {
+                            if (sprintf("%01.2f", $serow['adj_amount'] ?? '') != 0.00) {
                                 continue;
                             }
 

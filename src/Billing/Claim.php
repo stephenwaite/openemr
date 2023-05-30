@@ -361,7 +361,7 @@ class Claim
             // Compute this procedure's patient responsibility amount as of this
             // prior payer, which is the original charge minus all insurance
             // payments and "hard" adjustments up to this payer.
-            $ptresp = $this->invoice[$code]['chg'] + $this->invoice[$code]['adj'] ?? '';
+            $ptresp = $this->invoice[$code]['chg'] + $this->invoice[$code]['adj'] ?? null;
             foreach ($this->invoice[$code]['dtl'] as $key => $value) {
                 // plv (from ar_activity.payer_type) exists to
                 // indicate the payer level.
@@ -461,6 +461,14 @@ class Claim
 
             if ($deductible  > $ptresp) {
                 $deductible  = $ptresp;
+            }
+
+            if (
+                $coinsurance == 0
+                && $deductible == 0
+                && $ptresp != 0
+            ) {
+                $copay = $ptresp;
             }
 
             // Find out if this payer paid anything at all on this claim.  This will
