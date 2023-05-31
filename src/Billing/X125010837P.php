@@ -160,7 +160,7 @@ class X125010837P
                     "*" .
                     "*" .
                     "*" . "46" .
-                    "*" . $claim->billingIdCode();
+                    "*" . $claim->x12_sender_id();
                 // else use provider's group name
                 } else {
                     $billingFacilityName = substr($claim->billingFacilityName(), 0, 60);
