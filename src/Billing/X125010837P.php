@@ -1114,7 +1114,6 @@ class X125010837P
             if (strlen($claim->facilityZip()) != 9) {
                 $log .= "*** Service facility zip is not 9 digits.\n";
             }
-            $out .= $claim->facilityZip();
             $out .= "~\n";
         }
         // Segment REF (Service Facility Location Secondary Identification) omitted.
