@@ -459,7 +459,7 @@
       {
         "label": "EDI History",
         "menu_id": "edi0",
-        "target": "edi",
+        "target": "edih",
         "url": "/interface/billing/edih_view.php",
         "children": [],
         "requirement": 0,
