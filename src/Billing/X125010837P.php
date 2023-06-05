@@ -163,7 +163,7 @@ class X125010837P
                     "*" .
                     "*" .
                     "*" . "46" .
-                    "*" . $claim->billingIdCode();
+                    "*" . $claim->x12_sender_id();
                 // else use provider's group name
                 } else {
                     $billingFacilityName = substr($claim->billingFacilityName(), 0, 60);
@@ -1100,11 +1100,11 @@ class X125010837P
                 $log .= "*** Missing service facility state.\n";
             }
             $out .= "*";
-            if (strlen($claim->facilityZip()) == 9) {
-                $out .= $claim->facilityZip();
-            } else {
-                $log .= "*** Service facility zip is not 9 digits.\n";
+            if (strlen($claim->facilityZip()) != 9) {
+                $log .= "*** Billing facility zip is not 9 digits.\n";
             }
+
+            $out .= $claim->facilityZip();
             $out .= "~\n";
         }
         // Segment REF (Service Facility Location Secondary Identification) omitted.
