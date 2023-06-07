@@ -1115,14 +1115,14 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
 
                     if (!$dryrun) {
                         // create an encounter. I mean, why not...
-                        if (empty($encrow) && !$encounter_id) {
+                        /* if (empty($encrow) && !$encounter_id) {
                             $encounter_id = create_encounter(
                                 $patient_id,
                                 $provider_id,
                                 $datetime_report,
                                 $in_message_lab_name
                             );
-                        }
+                        } */
                         // Now create the procedure order.
                         $in_orderid = sqlInsert(
                             "INSERT INTO procedure_order SET " .
