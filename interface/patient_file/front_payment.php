@@ -628,7 +628,9 @@ function toencounter(enc, datestr, topframe) {
 
                     </div>
                     <div class="section-1">
+                    <?php if (file_exists($GLOBALS['OE_SITE_WEBROOT'] . "/images/logo_1.png")) { ?>
                         <img src=<?php echo $GLOBALS['OE_SITE_WEBROOT'] . "/images/logo_1.png" ?> alt="facility_logo" class="img-fluid">
+                    <?php } ?>
 
                         <table class="mini_table text-center">
                             <tr>
@@ -696,7 +698,7 @@ function toencounter(enc, datestr, topframe) {
                             <td style="border-right-color:white !important;"></td>
                             <td ></td>
                             <td class="text-right bg-color-w"><?php echo text("Total"); ?></td>
-                            <td class="text-left bg-color-w"><?php echo text(oeFormatMoney($payrow['amount1'])); ?></td>
+                            <td class="text-left bg-color-w"><?php echo text(oeFormatMoney($payrow['amount1'] + $payrow['amount2'])); ?></td>
                         </tr>
 
                     </table>
