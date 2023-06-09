@@ -467,6 +467,12 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
 
         $cntr = 1; // column labels above start at 1
         foreach ($appointments as $appointment) {
+            if (
+                ($appointment['pc_apptstatus'] == "x")
+                && ($_SESSION["site_id"] == '200')
+            ) {
+                continue;
+            }
             $cntr++;
             array_push($pid_list, $appointment['pid']);
             array_push($apptdate_list, $appointment['pc_eventDate']);
