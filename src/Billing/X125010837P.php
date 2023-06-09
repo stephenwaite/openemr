@@ -1190,6 +1190,11 @@ class X125010837P
                 continue;
             }
 
+            // if the claim payer being billed is vaccn then don't send any other ins
+            if (($claim->payerID(0)) == "VACCN") {
+                continue;
+            }
+
             $tmp2 = 'C1'; // Here a kludge. See page 321.
             if ($tmp1 === 'CI') {
                 $tmp2 = 'C1';
