@@ -953,7 +953,7 @@ class X125010837P
         // Segment HI*BG (Condition Information) omitted.
         // Segment HCP (Claim Pricing/Repricing Information) omitted.
         if (
-            $claim->billing_options['provider_id'] ?? null ||
+            $claim->referrer ?? null ||
             ($claim->claimType() === 'MB' && ($diabDlsRequired || $xrayReferrerRequired) && $claim->referrerLastName())
         ) {
             // Medicare requires referring provider's name and NPI.
