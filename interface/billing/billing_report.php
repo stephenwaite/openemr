@@ -710,7 +710,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                         $TPSCriteriaIncludeMaster[1] = "OpenEMR\Billing\BillingReport::insuranceCompanyDisplay";
                         if (!isset($_REQUEST['mode'])) {// default case
                             if ($_SESSION['site_id'] == '200') {
-                                $_REQUEST['final_this_page_criteria'][0] = "form_encounter.date|between|" . date('Y-m-d', mktime(0, 0, 0, date("m")-2, date("d"),   date("Y"))) . "|" . date("Y-m-d 23:59:59");
+                                $_REQUEST['final_this_page_criteria'][0] = "form_encounter.date|between|" . date('Y-m-d', mktime(0, 0, 0, date("m") - 2, date("d"), date("Y"))) . "|" . date("Y-m-d 23:59:59");
                                 $_REQUEST['final_this_page_criteria_text'][0] = xl("Date of Service = Last 2 months");
                                 $_REQUEST['final_this_page_criteria'][1] = "billing.billed|=|0";
                                 $_REQUEST['final_this_page_criteria_text'][1] = xl("Billing Status = Unbilled");
