@@ -151,19 +151,6 @@ class GeneratorX12Direct extends AbstractGenerator implements GeneratorInterface
      */
     public function validateOnly(BillingClaim $claim)
     {
-        $return = BillingUtilities::updateClaim(
-            true,
-            $claim->getPid(),
-            $claim->getEncounter(),
-            $claim->getPayorId(),
-            $claim->getPayorType(),
-            BillingClaim::STATUS_LEAVE_UNBILLED,
-            BillingClaim::BILL_PROCESS_LEAVE_UNCHANGED, // bill_process == 1 means??
-            '', // process_file
-            $claim->getTarget(),
-            $claim->getPartner()
-        );
-
         $this->updateBatchFile($claim);
     }
 
@@ -233,8 +220,7 @@ class GeneratorX12Direct extends AbstractGenerator implements GeneratorInterface
         // Tell our batch that we've processed this claim
         $batch->addClaim($claim);
 
-        // Use the tr3 format to output for direct-submission to insurance companies
-        $log = '';
+        $log = 'X12Direct ' . $claim->action . ' ';
         $is_last_claim = $claim->getIsLast();
         $HLCount = count($batch->getClaims());
         if ($HLCount > 1) {

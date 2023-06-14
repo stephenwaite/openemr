@@ -1210,6 +1210,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                                             array(
                                             $iter['enc_pid'],
                                             $crow['payer_id'],
+                                            $raw_encounter_date,
                                             $raw_encounter_date
                                             )
                                         );
