@@ -101,7 +101,7 @@ class BillingClaim implements \JsonSerializable
      * processing task action
      * @var string
      */
-    protected $action;
+    public $action;
 
     public function __construct($claimId, $partner_and_payor, $processing_task_action)
     {
