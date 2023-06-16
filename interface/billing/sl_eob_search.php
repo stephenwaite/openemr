@@ -725,8 +725,7 @@ if (
                 } else {
                     $tmp = make_statement($stmt);
                     if (empty($tmp)) {
-                        $tmp = xlt("This EOB item does not meet minimum print requirements setup in Globals or there is an unknown error.") . " " . xlt("EOB Id") . ":" . text($inv_pid[$inv_count]) . " " . xlt("Encounter") . ":" . text($stmt['encounter']) . "\n";
-                        $tmp .= "<br />\n\014<br /><br />";
+                        error_log("This EOB item does not meet minimum print requirements setup in Globals or there is an unknown error. EOB Id " . $inv_pid[$inv_count]. "Encounter: " . $stmt['encounter']);
                     }
                     fwrite($fhprint, $tmp);
                     // now save it to pt documents
