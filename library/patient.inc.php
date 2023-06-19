@@ -383,6 +383,19 @@ function getInsuranceData($pid, $type = "primary", $given = "insd.*, ic.name as 
     return sqlQuery($sql, array($pid, $type));
 }
 
+function getInsuranceDataNew($pid, $type = "primary", $given = "insd.*, ic.name as provider_name")
+{
+    $sql = "select $given from insurance_data as insd " .
+    "left join insurance_companies as ic on ic.id = insd.provider " .
+    "where pid = ? and type = ? order by date DESC";
+    $sql_res = sqlStatement($sql, array($pid, $type));
+    while ($row = sqlFetchArray($sql_res)) {
+        $insarr[] = $row;
+    };
+
+    return $insarr;
+}
+
 // To prevent sql injection on this function, if a variable is used for $given parameter, then
 // it needs to be escaped via whitelisting prior to using this function.
 function getInsuranceDataByDate(
@@ -1342,8 +1355,8 @@ function newInsuranceData(
         $effective_date_end = null;
     }
 
-    $idres = sqlStatement("SELECT * FROM insurance_data WHERE " .
-    "pid = ? AND type = ? ORDER BY date DESC", array($pid,$type));
+    /* $idres = sqlStatement("SELECT * FROM insurance_data WHERE " .
+    "pid = ? AND type = ? ORDER BY date DESC", array($pid, $type));
     $idrow = sqlFetchArray($idres);
 
     // Replace the most recent entry in any of the following cases:
@@ -1421,7 +1434,7 @@ function newInsuranceData(
         $data['date_end'] = $effective_date_end;
         updateInsuranceData($idrow['id'], $data);
         return $idrow['id'];
-    } else {
+    } else { */
         return sqlInsert(
             "INSERT INTO `insurance_data` SET `type` = ?,
             `provider` = ?,
@@ -1486,7 +1499,7 @@ function newInsuranceData(
                 $effective_date_end
             ]
         );
-    }
+    //}
 }
 
 // This is used internally only.
