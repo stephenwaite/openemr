@@ -551,7 +551,7 @@ if (!($_REQUEST['flb_table'] ?? null)) {
                                 }
                                 //these are additional icons if present
                                 if (($row['msg_reply'] == "CALL") && (!$CALLED)) {
-                                    $icon_here = '';
+                                    $icon_here[$row['msg_type']] = '';
                                     $icon_4_CALL = $icons[$row['msg_type']]['CALL']['html'];
                                     $icon_CALL = "<span onclick=\"doCALLback(" . attr_js($date_squash) . "," . attr_js($appointment['eid']) . "," . attr_js($appointment['pc_cattype']) . ")\">" . $icon_4_CALL . "</span>
                                     <span class='hidden' name='progCALLback_" . attr($appointment['eid']) . "' id='progCALLback_" . attr($appointment['eid']) . "'>
