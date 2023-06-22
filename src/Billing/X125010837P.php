@@ -1327,8 +1327,6 @@ class X125010837P
             ) {
                 $log .= "*** Other insco insured zip is not 5 or 9 digits.\n";
             }
-
-            $out .= $claim->x12Zip($claim->insuredZip($ins));
             $out .= "~\n";
 
             // Segment REF (Other Subscriber Secondary Identification) omitted.
