@@ -1124,6 +1124,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                         $params = array_merge($params, $insurance_array);
                         $res = sqlStatement($sql, $params);
                         $prior_ins_type = '';
+                        $prior_effective_date = '';
 
                         while ($row = sqlFetchArray($res)) {
                             if ($row['provider']) {
@@ -1151,9 +1152,13 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                                 $row['dispFromDate'] = $row['date'] ? true : false;
                                 $mname = ($row['subscriber_mname'] != "") ? $row['subscriber_mname'] : "";
                                 $row['subscriber_full_name'] = str_replace("%mname%", $mname, "{$row['subscriber_fname']} %mname% {$row['subscriber_lname']}");
-                                $row['until_date'] = $row['isOld'] ? $row['isOld'] : xlt('Present');
+                                if ($row['type'] == $prior_ins_type && empty($row['date_end'])) {
+                                    $row['date_end'] = $prior_effective_date;
+                                }
+                                
                                 $insArr[] = $row;
                                 $prior_ins_type = $row['type'];
+                                $prior_effective_date = $row['date'];
                             } else {
                                 $row['isOld'] = (strcmp($row['type'], $prior_ins_type) == 0) ? true : false;
                                 $row['dispFromDate'] = $row['date'] ? true : false;
@@ -1171,8 +1176,8 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                                 $row['policy_type'] = false;
                                 $mname = ''; //($row['subscriber_mname'] != "") ? $row['subscriber_mname'] : "";
                                 $row['subscriber_full_name'] = ' '; // str_replace("%mname%", $mname, "{$row['subscriber_fname']} %mname% {$row['subscriber_lname']}");
-                                $row['until_date'] = ($row['isOld']) ? $row['isOld'] : xlt("Present");
                                 $prior_ins_type = $row['type'];
+                                $prior_effective_date = $row['date'];
                                 if ($row['type'] != 'primary') {
                                     continue;
                                 }
