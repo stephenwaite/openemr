@@ -1658,9 +1658,8 @@ function poll_hl7_results(&$info, $labs = 0)
                 }
 
                 if (!match_lab($hl7, $send_account, $recv_account, $lab_app, $lab_npi)) {
-                    // for Porter labs
-                    $log .= "Ignoring No Lab Account Matched for File #$filecount: Account: $send_account\n";
-                    //continue;
+                    $log .= "No Lab Account Matched for File #$filecount: Account: $send_account\n";
+                    continue;
                 }
                 if ($filecount > $maxdl) {
                     break;
