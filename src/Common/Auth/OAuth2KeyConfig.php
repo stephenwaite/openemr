@@ -40,6 +40,11 @@ class OAuth2KeyConfig
      */
     private $publicKey;
 
+    /**
+     * @var object a crypto object that will be used for for encryption/decryption
+     */
+    private $cryptoGen;
+
     public function __construct($siteDir = null)
     {
         if (empty($siteDir)) {
@@ -47,7 +52,6 @@ class OAuth2KeyConfig
             $siteDir = $GLOBALS['OE_SITE_DIR'];
         }
 
-        // Create a crypto object that will be used for for encryption/decryption
         $this->cryptoGen = new CryptoGen();
         // verify and/or setup our key pairs.
         $this->privateKey = $siteDir . '/documents/certificates/oaprivate.key';

@@ -23,6 +23,7 @@ use OpenEMR\FHIR\SMART\SMARTLaunchToken;
 class SMARTSessionTokenContextBuilder
 {
     private $sessionArray;
+    private $logger;
     public function __construct($sessionArray = array())
     {
         $this->sessionArray = !empty($sessionArray) ? $sessionArray : $_SESSION ?? [];

@@ -556,13 +556,13 @@ class AuthorizationController
         if ($this->grantType === 'authorization_code') {
             $this->logger->debug(
                 "logging global params",
-                ['site_addr_oath' => $GLOBALS['site_addr_oath'], 'web_root' => $GLOBALS['web_root'], 'site_id' => $_SESSION['site_id']]
+                ['site_addr_oath' => $GLOBALS['site_addr_oath'], 'web_root' => ($GLOBALS['web_root'] ?? ''), 'site_id' => $_SESSION['site_id']]
             );
             $fhirServiceConfig = new ServerConfig();
             $expectedAudience = [
                 $fhirServiceConfig->getFhirUrl(),
-                $GLOBALS['site_addr_oath'] . $GLOBALS['web_root'] . '/apis/' . $_SESSION['site_id'] . "/api",
-                $GLOBALS['site_addr_oath'] . $GLOBALS['web_root'] . '/apis/' . $_SESSION['site_id'] . "/portal",
+                $GLOBALS['site_addr_oath'] . ($GLOBALS['web_root'] ?? '') . '/apis/' . $_SESSION['site_id'] . "/api",
+                $GLOBALS['site_addr_oath'] . ($GLOBALS['web_root'] ?? '') . '/apis/' . $_SESSION['site_id'] . "/portal",
             ];
             $grant = new CustomAuthCodeGrant(
                 new AuthCodeRepository(),
@@ -997,7 +997,7 @@ class AuthorizationController
         if ($this->grantType === 'authorization_code') {
             // re-populate from saved session cache populated in authorizeUser().
             $ssbc = $this->sessionUserByCode($code);
-            $_SESSION = json_decode($ssbc['session_cache'], true);
+            $_SESSION = json_decode($ssbc['session_cache'] ?? '', true);
             $this->logger->debug("AuthorizationController->oauthAuthorizeToken() restored session user from code ", ['session' => $_SESSION]);
         }
         // TODO: explore why we create the request again...
