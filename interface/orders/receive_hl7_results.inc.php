@@ -904,6 +904,7 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
             $in_state = rhl7Text($tmp[3] ?? '');
             $in_zip = rhl7Text($tmp[4] ?? '');
             $in_phone = rhl7Text($a[13]) ?? '';
+            $in_external_visit_no = rhl7Text($a[18]) ?? '';
             switch (strtoupper($a[8])) {
                 case 'M':
                     $in_sex = 'Male';
@@ -1092,7 +1093,7 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
                     $date_report = substr($datetime_report, 0, 10) . ' 00:00:00';
                     $encounter_id = 0;
                     $provider_id = 0;
-                    $external_id = rhl7Text($a[3]) ?? null;
+                    $external_id = $in_external_visit_no ?? null;
                     // Look for the most recent encounter within 30 days of the report date.
                     $encrow = sqlQuery(
                         "SELECT encounter FROM form_encounter WHERE " .
@@ -1531,7 +1532,7 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
  *
  * @return string  Error text, or empty if no errors.
  */
-function poll_hl7_results(&$info, $labs = 0)
+function poll_hl7_results(&$info = [], $labs = 0)
 {
     global $srcdir, $orphanLog, $lab_npi;
     $labs = (int)$labs + 0;
@@ -1796,7 +1797,7 @@ function poll_hl7_results(&$info, $labs = 0)
                 $tmp = receive_hl7_results($hl7, $info['match'], $ppid, $pprow['direction'], true, $info['select']);
                 if (!empty($tmp['mssgs'])) {
                     $log .= "Lab matched account $send_account. Results Dry Run Parse for Errors: " .
-                        $tmp['mssgs'] ? print_r($tmp['mssgs'][0], true) : "None" . "\n";
+                        $tmp['mssgs'][0] ? print_r($tmp['mssgs'][0], true) : "None" . "\n";
                 }
 
                 $info["$lab_name/$ppid/$file"]['mssgs'] = $tmp['mssgs'];
