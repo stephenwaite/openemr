@@ -377,7 +377,7 @@
       {
         "label": "Payment",
         "menu_id": "pay1",
-        "target": "enc",
+        "target": "pay",
         "url": "/interface/patient_file/front_payment.php",
         "children": [],
         "requirement": 1,
