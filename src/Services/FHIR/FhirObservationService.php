@@ -59,8 +59,8 @@ class FhirObservationService extends FhirServiceBase implements IResourceSearcha
     {
         parent::__construct();
         $this->innerServices = [];
-        $this->addMappedService(new FhirObservationSocialHistoryService());
-        $this->addMappedService(new FhirObservationVitalsService());
+        //$this->addMappedService(new FhirObservationSocialHistoryService());
+        //$this->addMappedService(new FhirObservationVitalsService());
         $this->addMappedService(new FhirObservationLaboratoryService());
         $this->logger = new SystemLogger();
     }
@@ -76,6 +76,7 @@ class FhirObservationService extends FhirServiceBase implements IResourceSearcha
             'category' => new FhirSearchParameterDefinition('category', SearchFieldType::TOKEN, ['category']),
             'date' => new FhirSearchParameterDefinition('date', SearchFieldType::DATETIME, ['date']),
             '_id' => new FhirSearchParameterDefinition('_id', SearchFieldType::TOKEN, ['uuid']),
+            'external_id' => new FhirSearchParameterDefinition('external_id', SearchFieldType::TOKEN, ['external_id']),
             '_lastUpdated' => $this->getLastModifiedSearchField()
         ];
     }
@@ -118,10 +119,21 @@ class FhirObservationService extends FhirServiceBase implements IResourceSearcha
                     'vital-signs'
                 );
                 $fhirSearchResult = $service->getAll($fhirSearchParameters, $puuidBind);
-            } else if (isset($fhirSearchParameters['code'])) {
+            } elseif (isset($fhirSearchParameters['code'])) {
                 $service = $this->getServiceForCode(
                     new TokenSearchField('code', $fhirSearchParameters['code']),
                     FhirObservationVitalsService::VITALS_PANEL_LOINC_CODE
+                );
+                // if we have a service let's search on that
+                if (isset($service)) {
+                    $fhirSearchResult = $service->getAll($fhirSearchParameters, $puuidBind);
+                } else {
+                    $fhirSearchResult = $this->searchAllServices($fhirSearchParameters, $puuidBind);
+                }
+            } elseif (isset($fhirSearchParameters['external_id'])) {
+                $service = $this->getServiceForExternalId(
+                    new TokenSearchField('external_id', $fhirSearchParameters['external_id']),
+                    FhirObservationLaboratoryService::DEFAULT_OBSERVATION_STATUS
                 );
                 // if we have a service let's search on that
                 if (isset($service)) {

@@ -151,6 +151,7 @@ class ProcedureService extends BaseService
                         ,procedure_order_id AS order_id
                         ,patient_id AS order_patient_id
                         ,provider_id
+                        ,external_id
                     FROM
                         procedure_order
                 ) porder
