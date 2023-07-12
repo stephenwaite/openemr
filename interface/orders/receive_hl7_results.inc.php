@@ -1525,7 +1525,7 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
  *
  * @return string  Error text, or empty if no errors.
  */
-function poll_hl7_results(&$info, $labs = 0)
+function poll_hl7_results(&$info = [], $labs = 0)
 {
     global $srcdir, $orphanLog, $lab_npi;
     $labs = (int)$labs + 0;
