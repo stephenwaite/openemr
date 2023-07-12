@@ -904,6 +904,7 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
             $in_state = rhl7Text($tmp[3] ?? '');
             $in_zip = rhl7Text($tmp[4] ?? '');
             $in_phone = rhl7Text($a[13]) ?? '';
+            $in_external_visit_no = rhl7Text($a[18]) ?? '';
             switch (strtoupper($a[8])) {
                 case 'M':
                     $in_sex = 'Male';
@@ -1091,7 +1092,7 @@ function receive_hl7_results(&$hl7, &$matchreq, $lab_id = 0, $direction = 'B', $
                     $datetime_report = rhl7DateTime($a[22]);
                     $encounter_id = 0;
                     $provider_id = 0;
-                    $external_id = rhl7Text($a[3]) ?? null;
+                    $external_id = $in_external_visit_no ?? null;
                     // Look for the most recent encounter within 30 days of the report date.
                     $encrow = sqlQuery(
                         "SELECT encounter FROM form_encounter WHERE " .
