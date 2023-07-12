@@ -1790,7 +1790,7 @@ function poll_hl7_results(&$info = [], $labs = 0)
                 $tmp = receive_hl7_results($hl7, $info['match'], $ppid, $pprow['direction'], true, $info['select']);
                 if (!empty($tmp['mssgs'])) {
                     $log .= "Lab matched account $send_account. Results Dry Run Parse for Errors: " .
-                        $tmp['mssgs'] ? print_r($tmp['mssgs'][0], true) : "None" . "\n";
+                        $tmp['mssgs'][0] ? print_r($tmp['mssgs'][0], true) : "None" . "\n";
                 }
 
                 $info["$lab_name/$ppid/$file"]['mssgs'] = $tmp['mssgs'];
