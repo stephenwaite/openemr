@@ -75,4 +75,18 @@ trait MappedServiceCodeTrait
         }
         throw new SearchFieldException("category", "Invalid or unsupported category");
     }
+    public function getServiceForExternalId(TokenSearchField $field, $defaultCode)
+    {
+        // shouldn't ever hit the default but we have it there just in case.
+        $values = $field->getValues() ?? [new TokenSearchValue($defaultCode)];
+        $searchCode = $values[0]->getCode();
+
+        // we only grab the first one as we assume each service only supports a single LOINC observation code
+        foreach ($this->getMappedServices() as $service) {
+            if ($service->supportsExternalId($searchCode)) {
+                return $service;
+            }
+        }
+        throw new SearchFieldException($field->getField(), "Invalid or unsupported code");
+    }
 }
