@@ -151,6 +151,7 @@ class ProcedureService extends BaseService
                         ,procedure_order_id AS order_id
                         ,patient_id AS order_patient_id
                         ,provider_id
+                        ,external_id
                     FROM
                         procedure_order
                 ) porder
@@ -366,7 +367,7 @@ class ProcedureService extends BaseService
                     , 'range' => $record['result_range']
                     , 'abnormal' => $record['result_abnormal']
                     , 'comments' => $record['result_comments']
-                    , 'document_id' => $record['result_document_id']
+                    , 'document_id' => $record['result_document_id'] ?? ''
                     , 'status' => $record['result_status']
                 ];
                 $report['results'][] = $result;
