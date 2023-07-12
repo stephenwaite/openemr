@@ -101,6 +101,10 @@ class FhirObservationSocialHistoryService extends FhirServiceBase implements IPa
         return array_search($code, array_keys(self::COLUMN_MAPPINGS)) !== false;
     }
 
+    public function supportsExternalId($external_id)
+    {
+        return false;
+    }
 
     /**
      * Returns an array mapping FHIR Resource search parameters to OpenEMR search parameters

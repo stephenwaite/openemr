@@ -83,6 +83,11 @@ class FhirObservationLaboratoryService extends FhirServiceBase implements IPatie
         return true;
     }
 
+    public function supportsExternalId($external_id)
+    {
+        return true;
+    }
+
 
     /**
      * Returns an array mapping FHIR Resource search parameters to OpenEMR search parameters
@@ -95,6 +100,7 @@ class FhirObservationLaboratoryService extends FhirServiceBase implements IPatie
             'category' => new FhirSearchParameterDefinition('category', SearchFieldType::TOKEN, ['category']),
             'date' => new FhirSearchParameterDefinition('date', SearchFieldType::DATETIME, ['report_date']),
             '_id' => new FhirSearchParameterDefinition('_id', SearchFieldType::TOKEN, [new ServiceField('result_uuid', ServiceField::TYPE_UUID)]),
+            'external_id' => new FhirSearchParameterDefinition('external_id', SearchFieldType::TOKEN, ['external_id']),
         ];
     }
 
@@ -214,7 +220,7 @@ class FhirObservationLaboratoryService extends FhirServiceBase implements IPatie
                 if (!empty($unit)) {
                     if ($unit === 'in') {
                         $unit = 'in_i';
-                    } else if ($unit === 'lb') {
+                    } elseif ($unit === 'lb') {
                         $unit = 'lb_av';
                     }
                     $quantity->setUnit($unit);
