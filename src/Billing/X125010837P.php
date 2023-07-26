@@ -1369,7 +1369,7 @@ class X125010837P
                 } elseif (($claim->payerID($ins)) == "14163") {
                         $out .= "MDB";
                 } elseif (($claim->payerID($ins)) == "87726") {
-                    $out .= "MDC";
+                    $out .= "MDB";
                 } elseif (($claim->payerID($ins)) == "62308") {
                         $out .= "FB6";
                 } elseif (($claim->payerID($ins)) == "14165") {
@@ -1739,7 +1739,7 @@ class X125010837P
                             $out .= "MDB";
                         }
                         if (($claim->payerID($ins)) == "87726") {
-                            $out .= "MDC";
+                            $out .= "MDB";
                         }
                         if (($claim->payerID($ins)) == "62308") {
                             $out .= "FB6";
