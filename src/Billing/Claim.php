@@ -1262,7 +1262,7 @@ class Claim
     public function cptNDCID($prockey)
     {
         $ndcinfo = $this->procs[$prockey]['ndc_info'];
-        if (preg_match('/^N4(\S+)\s+(\S\S)(.*)/', $ndcinfo, $tmp)) {
+        if (preg_match('/^N4(\S+)\s+(\S\S)(.*)/', $ndcinfo ?? '', $tmp)) {
             $ndc = $tmp[1];
             if (preg_match('/^(\d+)-(\d+)-(\d+)$/', $ndc, $tmp)) {
                 return sprintf('%05d%04d%02d', $tmp[1], $tmp[2], $tmp[3]);
