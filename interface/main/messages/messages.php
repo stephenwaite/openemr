@@ -548,7 +548,7 @@ if (!empty($_REQUEST['go'])) { ?>
                                             $body = preg_replace('/(:\d{2}\s\()' . $result['pid'] . '(\sto\s)/', '${1}' . $patientname . '${2}', $body);
                                             $body = preg_replace('/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}\s\([^)(]+\s)(to)(\s[^)(]+\))/', '${1}' . xl('to{{Destination}}') . '${3}', $body);
                                             $body = pnoteConvertLinks(nl2br(text(oeFormatPatientNote($body))));
-                                            echo "<div style='height: 120px; resize: vertical;' class='border overflow-auto text text-light bg-secondary oe-margin-t-3 p-2 mb-2 w-100'>" . $body . "</div>";
+                                            echo "<div style='height: 120px; resize: vertical;' class='border overflow-auto text oe-margin-t-3 p-2 mb-2 w-100'>" . $body . "</div>";
                                         }
                                         ?>
                                         <textarea name='note' id='note' class='form-control oe-margin-t-3 p-1 text-dark bg-light' rows="5"><?php echo nl2br(text($note)); ?></textarea>
