@@ -508,7 +508,7 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
                 <td class="font-weight-bold text-nowrap"><?php echo xlt('Order Status'); ?></td>
                 <td><?php echo $orow['order_status'] ? myCellText($orow['order_status']) : xlt('Pending'); ?></td>
                 <td class="font-weight-bold text-nowrap"><?php echo xlt('Encounter Date'); ?></td>
-                <td><?php echo myCellText(oeFormatShortDate(substr($orow['date'], 0, 10))); ?></td>
+                <td><?php echo myCellText(oeFormatShortDate(substr(($orow['date'] ?? ''), 0, 10))); ?></td>
             </tr>
             <tr>
                 <td class="font-weight-bold text-nowrap"><?php echo xlt('Lab'); ?></td>
