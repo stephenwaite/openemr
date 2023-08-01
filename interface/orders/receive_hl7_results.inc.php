@@ -452,21 +452,26 @@ function match_patient($ptarr)
     $in_lname = $ptarr['lname'];
     $in_dob = $ptarr['DOB'];
     $in_sex = strtoupper($ptarr['sex']) == 'M' ? 'Male' : 'Female'; // AND sex IS NOT NULL AND sex = ?
+    $in_mrn = $ptarr['pubpid'];
 
     $patient_id = 0;
-    $res = sqlStatement(
-        "SELECT pid FROM patient_data WHERE " .
-        "((ss IS NULL OR ss = '' OR '' = ?) AND " .
-        "fname IS NOT NULL AND fname != '' AND fname = ? AND " .
-        "lname IS NOT NULL AND lname != '' AND lname = ? AND " .
-        "DOB IS NOT NULL AND DOB = ?) OR " .
-        "(ss IS NOT NULL AND ss != '' AND REPLACE(ss, '-', '') = ? AND (" .
-        "fname IS NOT NULL AND fname != '' AND fname = ? OR " .
-        "lname IS NOT NULL AND lname != '' AND lname = ? OR " .
-        "DOB IS NOT NULL AND DOB = ?)) " .
-        "ORDER BY ss DESC, pid DESC LIMIT 2",
-        array($in_ss, $in_fname, $in_lname, $in_dob, $in_ss, $in_fname, $in_lname, $in_dob)
-    );
+    if ($_SESSION['site_id'] == '2400') {
+        $res = sqlStatement("SELECT pid FROM patient_data WHERE pubpid = ?", array($in_mrn));
+    } else {
+        $res = sqlStatement(
+            "SELECT pid FROM patient_data WHERE " .
+            "((ss IS NULL OR ss = '' OR '' = ?) AND " .
+            "fname IS NOT NULL AND fname != '' AND fname = ? AND " .
+            "lname IS NOT NULL AND lname != '' AND lname = ? AND " .
+            "DOB IS NOT NULL AND DOB = ?) OR " .
+            "(ss IS NOT NULL AND ss != '' AND REPLACE(ss, '-', '') = ? AND (" .
+            "fname IS NOT NULL AND fname != '' AND fname = ? OR " .
+            "lname IS NOT NULL AND lname != '' AND lname = ? OR " .
+            "DOB IS NOT NULL AND DOB = ?)) " .
+            "ORDER BY ss DESC, pid DESC LIMIT 2",
+            array($in_ss, $in_fname, $in_lname, $in_dob, $in_ss, $in_fname, $in_lname, $in_dob)
+        );
+    }
     if (sqlNumRows($res) > 1) {
         // Multiple matches, so ambiguous.
         $patient_id = -1;
@@ -476,17 +481,19 @@ function match_patient($ptarr)
         $patient_id = intval($tmp['pid']);
     } else {
         // No match good enough, figure out if there's enough ambiguity to ask the user.
-        $tmp = sqlQuery(
-            "SELECT pid FROM patient_data WHERE " .
-            "(ss IS NOT NULL AND ss != '' AND REPLACE(ss, '-', '') = ?) OR " .
-            "(fname IS NOT NULL AND fname != '' AND fname = ? AND " .
-            "lname IS NOT NULL AND lname != '' AND lname = ?) OR " .
-            "(DOB IS NOT NULL AND DOB = ?) " .
-            "LIMIT 1",
-            array($in_ss, $in_fname, $in_lname, $in_dob)
-        );
-        if (!empty($tmp['pid'])) {
-            $patient_id = -1;
+        if ($_SESSION['site_id'] != '2400') {
+            $tmp = sqlQuery(
+                "SELECT pid FROM patient_data WHERE " .
+                "(ss IS NOT NULL AND ss != '' AND REPLACE(ss, '-', '') = ?) OR " .
+                "(fname IS NOT NULL AND fname != '' AND fname = ? AND " .
+                "lname IS NOT NULL AND lname != '' AND lname = ?) OR " .
+                "(DOB IS NOT NULL AND DOB = ?) " .
+                "LIMIT 1",
+                array($in_ss, $in_fname, $in_lname, $in_dob)
+            );
+            if (!empty($tmp['pid'])) {
+                $patient_id = -1;
+            }
         }
     }
 
@@ -1663,7 +1670,7 @@ function poll_hl7_results(&$info = [], $labs = 0)
                 // Do a dry run of its contents and check for errors and match requests.
                 $tmp = receive_hl7_results($hl7, $info['match'], $ppid, $pprow['direction'], true, $info['select']);
                 $log .= "Lab matched account $send_account. Results Dry Run Parse for Errors: " .
-                    $tmp['mssgs'] ? print_r($tmp['mssgs'], true) : "None" . "\n";
+                    (!empty($tmp['mssgs'])) ? print_r($tmp['mssgs'], true) : "None" . "\n";
 
                 $info["$lab_name/$ppid/$file"]['mssgs'] = $tmp['mssgs'];
                 // $info["$lab_name/$ppid/$file"]['match'] = $tmp['match'];

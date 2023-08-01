@@ -41,8 +41,8 @@ $form_patient = !empty($_POST['form_patient']);
 $processing_lab = $_REQUEST['form_lab_id'] ?? '';
 $start_form = false;
 if (
-    !isset($_REQUEST['form_refresh']) 
-    && !isset($_REQUEST['form_process_labs']) 
+    !isset($_REQUEST['form_refresh'])
+    && !isset($_REQUEST['form_process_labs'])
     && !isset($_REQUEST['form_manual'])
     && !isset($_REQUEST['stayHere'])
 ) {
@@ -398,6 +398,9 @@ function doWait(e){
     $form_to_date = empty($_POST['form_to_date']) ? '' : trim($_POST['form_to_date']);
 
     $form_reviewed = empty($_POST['form_reviewed']) ? 3 : (int)$_POST['form_reviewed'];
+    if ($_SESSION['site_id'] == '2400') {
+        $form_reviewed = 2;
+    }
     $form_patient = !empty($_POST['form_patient']);
     $form_provider = empty($_POST['form_provider']) ? '' : (int)$_POST['form_provider'];
     $form_lab_search = empty($_POST['form_lab_search']) ? '' : (int)$_POST['form_lab_search'];
