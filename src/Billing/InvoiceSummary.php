@@ -120,10 +120,13 @@ class InvoiceSummary
         }
         // Get insurance data for stuff
         $ins_data = array();
+        $encounter = sqlQuery("SELECT * FROM `form_encounter` WHERE `encounter` = ?", array($encounter_id));
+        $encounter_date = $encounter['date'];
         $res = sqlStatement("SELECT insurance_data.type as type, insurance_companies.name as name " .
             "FROM insurance_data " .
             "INNER JOIN insurance_companies ON insurance_data.provider = insurance_companies.id " .
-            "WHERE insurance_data.pid = ?", array($patient_id));
+            "WHERE insurance_data.pid = ? AND (date <= ? OR date IS NULL) AND (date_end >= ? OR date_end IS NULL) " .
+            "ORDER BY date", array($patient_id, $encounter_date, $encounter_date));
         while ($row = sqlFetchArray($res)) {
             $ins_data[$row['type']] = $row['name'];
         }
