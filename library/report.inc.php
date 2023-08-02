@@ -458,7 +458,12 @@ function getRecInsuranceData($pid, $ins_type)
     //column name->dates->values
     //$return["lname"][0..n]["date"]
     //$return["lname"][0..n]["value"]
-    $res = sqlStatement("select *, ic.name as provider_name from insurance_data left join insurance_companies as ic on ic.id = provider where pid=? and type=? order by date", array($pid,$ins_type));
+    $res = sqlStatement(
+        "SELECT *, ic.name AS provider_name FROM `insurance_data`
+        LEFT JOIN `insurance_companies` AS ic on ic.id = `provider` WHERE `pid` = ?
+        AND `type` = ? AND (date_end >= NOW() OR date_end IS NULL) ORDER BY `date`",
+        array($pid, $ins_type)
+    );
 
     $retar = [];
     $arcount = [];
