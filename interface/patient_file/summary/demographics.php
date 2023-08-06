@@ -1412,7 +1412,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                             'title' => xl("Insurance"),
                             'id' => $id,
                             'btnLabel' => "Edit",
-                            'btnLink' => "demographics_full.php",
+                            'btnLink' => "insurance_edit.php",
                             'linkMethod' => 'html',
                             'initiallyCollapsed' => (getUserSetting($id) == 0) ? false : true,
                             'ins' => $insArr,
