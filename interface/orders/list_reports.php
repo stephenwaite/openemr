@@ -173,9 +173,12 @@ function openPtMatch(args) {
     dlgopen('patient_match_dialog.php?key=' + encodeURIComponent(args), '_blank', 850, 400, '', dlgtitle);
 }
 
-function openPatient(pid) {
+function openPatient(pid, pubpid, pname, dobstr, EncounterIdArray, EncounterDateArray, CalendarCategoryArray) {
     top.restoreSession();
-    document.location.href = "../patient_file/summary/demographics.php?set_pid=" + encodeURIComponent(pid);
+            paturl = 'patient_file/summary/demographics.php?pid=' + encodeURIComponent(pid);
+            parent.left_nav.setPatient(pname, pid, pubpid, '', dobstr);
+            parent.left_nav.loadFrame('dem1', 'pat', paturl);
+            parent.left_nav.setPatientEncounter(EncounterIdArray, EncounterDateArray, CalendarCategoryArray);
 }
 
 $(function () {
@@ -236,7 +239,8 @@ function doWait(e){
                         style="max-width:75px;margin-left:20px;"
                         type="number" title="<?php echo xla('Max number of results to process at a time per Lab') ?>"
                         step="1" min="0" max="50"
-                        value="<?php echo attr($_REQUEST['form_max_results'] ?? 10); ?>" />
+                        <?php $max_results = ($_SESSION['site_id'] == '4800' ? 999 : ($_REQUEST['form_max_results'] ?? 10)); ?>
+                        value="<?php echo attr($max_results); ?>" />
                         <span class="input-group-text"><?php echo xlt('Results Per Lab'); ?></span>
                     </div>
                     <div class="form-check form-check-inline ml-2">
@@ -537,7 +541,7 @@ function doWait(e){
             }
 
             $query = "SELECT " .
-                "pd.fname, pd.mname, pd.lname, pd.pubpid, $selects " .
+                "pd.fname, pd.mname, pd.lname, pd.pubpid, pd.dob, $selects " .
                 "FROM procedure_order AS po " .
                 "LEFT JOIN procedure_order_code AS pc ON pc.procedure_order_id = po.procedure_order_id " .
                 "LEFT JOIN procedure_providers AS pp ON po.lab_id = pp.ppid " .
@@ -588,7 +592,27 @@ function doWait(e){
                 // Generate patient columns.
                 if ($lastptid != $patient_id) {
                     $lastpoid = -1;
-                    echo "  <td class='text-primary' onclick='openPatient(" . attr_js($patient_id) . ")' style='cursor: pointer;'>";
+                    //Encounter details
+                    $result4 = sqlStatement("SELECT fe.encounter,fe.date,openemr_postcalendar_categories.pc_catname FROM form_encounter AS fe " .
+                        " left join openemr_postcalendar_categories on fe.pc_catid=openemr_postcalendar_categories.pc_catid  WHERE fe.pid = ? order by fe.date desc", array($patient_id ?? ''));
+                    if (sqlNumRows($result4) > 0) {
+                        $Count = 0;
+                        while ($rowresult4 = sqlFetchArray($result4)) {
+                            $EncounterIdArray[$Count] = $rowresult4['encounter'];
+                            $EncounterDateArray[$Count] = oeFormatShortDate(date("Y-m-d", strtotime($rowresult4['date'])));
+                            $CalendarCategoryArray[$Count] = xl_appt_category($rowresult4['pc_catname']);
+                            $Count++;
+                        }
+                    }
+                    echo "  <td class='text-primary' onclick='openPatient(" .
+                        attr_js($patient_id) .
+                        ", " . attr_js($row['pubpid']) .
+                        ", " . attr_js($ptname) .
+                        ", " . attr_js($row['dob']) .
+                        ", " . attr_js($EncounterIdArray ?? '[]') .
+                        ", " . attr_js($EncounterDateArray ?? '[]') .
+                        ", " . attr_js($CalendarCategoryArray ?? '[]') .
+                        ")' style='cursor: pointer;'>";
                     echo text($ptname);
                     echo "</td>\n";
                     echo "  <td>" . text($row['pubpid']) . "</td>\n";
