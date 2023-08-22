@@ -508,7 +508,7 @@ $_SESSION['frame1target'] = $frame1target;
 $_SESSION['frame1label'] = $frame1label;
 $_SESSION['frame2url'] = $frame2url;
 $_SESSION['frame2target'] = $frame2target;
-$_SESSION['frame2label'] = $frame2label;
+$_SESSION['frame2label'] = $frame2label ?? '';
 // mdsupport - Apps processing invoked for valid app selections from list
 if ((isset($_POST['appChoice'])) && ($_POST['appChoice'] !== '*OpenEMR')) {
     $_SESSION['app1'] = $_POST['appChoice'];
