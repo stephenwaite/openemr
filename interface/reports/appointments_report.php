@@ -499,7 +499,7 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
             $patient_id = $appointment['pid'];
             $patient_dob = getPatientData($patient_id, "dob");
             $patient_ins = getInsuranceData($patient_id, "primary");
-            $getIP = getInsuranceProvider($patient_ins['provider']);
+            $getIP = getInsuranceProvider($patient_ins['provider']) ?? '';
             $patientbalance = get_patient_balance($appointment['pid'], false);
             if ($patientbalance == "-0.00") {
                 $patientbalance = "0.00";
@@ -540,7 +540,7 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
             }
             echo text($appt_phone);
 
-             ?></td>
+            ?></td>
 
             <td class="detail">&nbsp;<?php echo "$" . text($patientbalance); ?></td>    
             <td class="detail"><?php echo text(xl_appt_category($appointment['pc_catname'])) ?></td>
@@ -569,6 +569,8 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
                     <?php
                     if ($getIP) {
                         echo ' <b>' . xlt('Primary Ins ') . '</b>: ' . $getIP . '&nbsp';
+                    } else {
+                        echo ' <b>' . xlt('Primary Ins ') . '</b>: ' . 'Unassigned' . '&nbsp';
                     }
                     if (trim($appointment['pc_hometext'])) {
                         echo '<strong>' . xlt('Comments') . '</strong>: ' . text($appointment['pc_hometext']);
