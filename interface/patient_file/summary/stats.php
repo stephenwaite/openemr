@@ -295,6 +295,7 @@ if (!$GLOBALS['disable_immunizations'] && !$GLOBALS['weight_loss_clinic']) :
         $imxList[] = $row;
     }
     $id = "immunizations_ps_expand";
+    $immauth = ($_SESSION['authUser'] != 'ciox-uhc') ? true : false;
     echo $t->render('patient/card/immunizations.html.twig', [
         'title' => xl('Immunizations'),
         'id' => $id,
@@ -302,7 +303,7 @@ if (!$GLOBALS['disable_immunizations'] && !$GLOBALS['weight_loss_clinic']) :
         'btnLabel' => 'Edit',
         'btnLink' => 'immunizations.php',
         'linkMethod' => 'html',
-        'auth' => true,
+        'auth' => $immauth,
         'imx' => $imxList,
     ]);
 endif; // End immunizations

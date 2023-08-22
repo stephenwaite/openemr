@@ -1633,7 +1633,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                     // Show current and upcoming appointments.
                     // Recurring appointment support and Appointment Display Sets
                     // added to Appointments by Ian Jardine ( epsdky ).
-                    if (isset($pid) && !$GLOBALS['disable_calendar'] && AclMain::aclCheckCore('patients', 'appt')) {
+                    if (isset($pid) && !$GLOBALS['disable_calendar'] && AclMain::aclCheckCore('patients', 'appt') && ($_SESSION['authUser'] != 'ciox-uhc')) {
                         $displayAppts = true;
                         $current_date2 = date('Y-m-d');
                         $events = array();
@@ -1837,7 +1837,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                         $showpast = $GLOBALS['num_past_appointments_to_show'];
                     }
 
-                    if (isset($pid) && !$GLOBALS['disable_calendar'] && $showpast > 0 && AclMain::aclCheckCore('patients', 'appt')) {
+                    if (isset($pid) && !$GLOBALS['disable_calendar'] && $showpast > 0 && AclMain::aclCheckCore('patients', 'appt') && ($_SESSION['authUser'] != 'ciox-uhc')) {
                         $displayPastAppts = true;
 
                         $pastAppts = fetchXPastAppts($pid, $showpast, $direction); // This line added by epsdky
@@ -1876,9 +1876,10 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                     // END of past appointments
 
                     // Display the Appt card
-                    $id = "appointments_ps_expand";
-                    $dispatchResult = $ed->dispatch(new CardRenderEvent('appointment'), CardRenderEvent::EVENT_HANDLE);
-                    echo $twig->getTwig()->render('patient/card/appointments.html.twig', [
+                    if ($_SESSION['authUser'] != 'ciox-uhc') {
+                        $id = "appointments_ps_expand";
+                        $dispatchResult = $ed->dispatch(new CardRenderEvent('appointment'), CardRenderEvent::EVENT_HANDLE);
+                        echo $twig->getTwig()->render('patient/card/appointments.html.twig', [
                         'title' => xl("Appointments"),
                         'id' => $id,
                         'initiallyCollapsed' => (getUserSetting($id) == 0) ? true : false,
@@ -1897,7 +1898,8 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                         'resNotNull' => $resNotNull,
                         'prependedInjection' => $dispatchResult->getPrependedInjection(),
                         'appendedInjection' => $dispatchResult->getAppendedInjection(),
-                    ]);
+                        ]);
+                    }
 
                     echo "<div id=\"stats_div\"></div>";
 
