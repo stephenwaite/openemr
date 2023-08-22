@@ -41,7 +41,8 @@ $cryptoGen = new CryptoGen();
 
 $userMode = (array_key_exists('mode', $_GET) && $_GET['mode'] == 'user');
 
-if (!$userMode) {
+
+if (!$userMode || ($_SESSION['authUser'] == 'ciox-uhc')) {
   // Check authorization.
     $thisauth = AclMain::aclCheckCore('admin', 'super');
     if (!$thisauth) {

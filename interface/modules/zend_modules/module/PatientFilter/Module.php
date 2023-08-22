@@ -92,7 +92,13 @@ class Module
         $pids = [];
         foreach ($blacklist as $item) {
             if ($username == $item['username']) {
-                $pids = array_merge($pids, $item['blacklist']);
+                //$patientData = (new PatientService())->getAll()->getData();
+                $patientPids = sqlStatement("SELECT pid from patient_data");
+                while ($row = sqlFetchArray($patientPids)) {
+                    $patientData[] = $row;
+                }
+                $blacklisted = array_diff(array_column($patientData, 'pid'), $item['blacklist']);
+                $pids = array_merge($pids, $blacklisted);
             }
         }
 
