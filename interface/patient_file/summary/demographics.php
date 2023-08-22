@@ -1097,13 +1097,14 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                     if (AclMain::aclCheckCore('patients', 'demo')) :
                         $dispatchResult = $ed->dispatch(new CardRenderEvent('demographic'), CardRenderEvent::EVENT_HANDLE);
                         // Render the Demographics box
+                        $demo_auth = ($_SESSION['authUser'] != 'ciox-uhc') ? ACLMain::aclCheckCore('patients', 'demo', '', 'write') : false;
                         $viewArgs = [
                             'title' => xl("Demographics"),
                             'id' => "demographics_ps_expand",
                             'btnLabel' => "Edit",
                             'btnLink' => "demographics_full.php",
                             'linkMethod' => "html",
-                            'auth' => ACLMain::aclCheckCore('patients', 'demo', '', 'write'),
+                            'auth' => $demo_auth,
                             'requireRestore' => (!isset($_SESSION['patient_portal_onsite_two'])) ? true : false,
                             'initiallyCollapsed' => getUserSetting("demographics_ps_expand") == true ? true : false,
                             'tabID' => "DEM",
@@ -1209,6 +1210,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
 
                         $id = "insurance_ps_expand";
                         $dispatchResult = $ed->dispatch(new CardRenderEvent('insurance'), CardRenderEvent::EVENT_HANDLE);
+                        $ins_auth = ($_SESSION['authUser'] != 'ciox-uhc') ? ACLMain::aclCheckCore('patients', 'demo', '', 'write') : false;
                         $viewArgs = [
                             'title' => xl("Insurance"),
                             'id' => $id,
@@ -1219,7 +1221,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                             'ins' => $insArr,
                             'eligibility' => $output,
                             'enable_oa' => $GLOBALS['enable_oa'],
-                            'auth' => AclMain::aclCheckCore('patients', 'demo', '', 'write'),
+                            'auth' => $ins_auth,
                             'prependedInjection' => $dispatchResult->getPrependedInjection(),
                             'appendedInjection' => $dispatchResult->getAppendedInjection(),
                         ];
