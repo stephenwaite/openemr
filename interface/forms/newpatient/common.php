@@ -31,7 +31,7 @@ $facilityService = new FacilityService();
 $date_label = "Onset/Hosp. Date";
 $facility_pbe = $facilityService->getPrimaryBusinessEntity();
 
-if ($facility_pbe['facility_taxonomy'] ?? null == "213E00000X") {
+if (($facility_pbe['facility_taxonomy'] ?? null) == "213E00000X") {
     $date_label = "Date Last Seen";
 }
 
