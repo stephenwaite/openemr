@@ -347,7 +347,7 @@ function edih_837_csv_data($obj837)
                             continue;
                         }
 
-                        if (intval($hl) == 20) {
+                        if (intval($hl ?? '') == 20) {
                             if (strncmp($seg, 'NM1' . $de, 4) === 0) {
                                 if ($sar[2] == '82' || $sar[2] == '85') {
                                     $ret_ar[$icn]['claim'][$cdx]['Provider'] = $sar[9];
@@ -357,7 +357,7 @@ function edih_837_csv_data($obj837)
                             }
                         } // end if $hl == '20'
 
-                        if (intval($hl) >= 22) {
+                        if (intval($hl ?? '') >= 22) {
                             if (strncmp($seg, 'SBR' . $de, 4) === 0) {
                                 $ret_ar[$icn]['claim'][$cdx]['InsLevel'] = $sar[1];
                             }
