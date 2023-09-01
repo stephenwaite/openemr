@@ -238,8 +238,8 @@ function doWait(e){
                     <input name='form_max_results' id='form_max_results' class='form-control'
                         style="max-width:75px;margin-left:20px;"
                         type="number" title="<?php echo xla('Max number of results to process at a time per Lab') ?>"
-                        step="1" min="0" max="999"
-                        <?php $max_results = ($_SESSION['site_id'] == '4800' ? 999 : ($_REQUEST['form_max_results'] ?? 10)); ?>
+                        step="1" min="0" max="50"
+                        <?php $max_results = ($_SESSION['site_id'] == '4800' ? 50 : ($_REQUEST['form_max_results'] ?? 10)); ?>
                         value="<?php echo attr($max_results); ?>" />
                         <span class="input-group-text"><?php echo xlt('Results Per Lab'); ?></span>
                     </div>
@@ -547,7 +547,7 @@ function doWait(e){
                 "LEFT JOIN procedure_providers AS pp ON po.lab_id = pp.ppid " .
                 "LEFT JOIN patient_data AS pd ON pd.pid = po.patient_id $joins " .
                 "WHERE $where " .
-                "ORDER BY pd.lname, pd.fname, pd.mname, po.patient_id, $orderby";
+                "ORDER BY pd.lname, pd.fname, pd.mname, po.patient_id, $orderby  LIMIT 500";
 
             $res = sqlStatement($query, $sqlBindArray);
 
