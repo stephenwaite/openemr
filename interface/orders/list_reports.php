@@ -607,7 +607,7 @@ function doWait(e){
                     echo "  <td class='text-primary' onclick='openPatient(" .
                         attr_js($patient_id) .
                         ", " . attr_js($row['pubpid']) .
-                        ", " . attr_js($ptname) .
+                        ", " . attr_js($row['fname'] . ' ' . $row['lname']) .
                         ", " . attr_js($row['dob']) .
                         ", " . attr_js($EncounterIdArray ?? '[]') .
                         ", " . attr_js($EncounterDateArray ?? '[]') .
