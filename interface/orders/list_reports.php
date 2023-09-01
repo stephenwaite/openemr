@@ -173,12 +173,11 @@ function openPtMatch(args) {
     dlgopen('patient_match_dialog.php?key=' + encodeURIComponent(args), '_blank', 850, 400, '', dlgtitle);
 }
 
-function openPatient(pid, pubpid, pname, dobstr, EncounterIdArray, EncounterDateArray, CalendarCategoryArray) {
+
+// Called to switch to the specified encounter having the specified DOS.
+function toEncounter(newpid, enc) {
     top.restoreSession();
-            paturl = 'patient_file/summary/demographics.php?pid=' + encodeURIComponent(pid);
-            parent.left_nav.setPatient(pname, pid, pubpid, '', dobstr);
-            parent.left_nav.loadFrame('dem1', 'pat', paturl);
-            parent.left_nav.setPatientEncounter(EncounterIdArray, EncounterDateArray, CalendarCategoryArray);
+    top.RTop.location = "<?php echo $GLOBALS['webroot']; ?>/interface/patient_file/summary/demographics.php?set_pid=" + encodeURIComponent(newpid) + "&set_encounterid=" + encodeURIComponent(enc);
 }
 
 $(function () {
@@ -604,15 +603,8 @@ function doWait(e){
                             $Count++;
                         }
                     }
-                    echo "  <td class='text-primary' onclick='openPatient(" .
-                        attr_js($patient_id) .
-                        ", " . attr_js($row['pubpid']) .
-                        ", " . attr_js($row['fname'] . ' ' . $row['lname']) .
-                        ", " . attr_js($row['dob']) .
-                        ", " . attr_js($EncounterIdArray ?? '[]') .
-                        ", " . attr_js($EncounterDateArray ?? '[]') .
-                        ", " . attr_js($CalendarCategoryArray ?? '[]') .
-                        ")' style='cursor: pointer;'>";
+                    echo "  <td class='text-primary' onClick='toEncounter(" . attr_js($patient_id) . ", " . attr_js($EncounterIdArray[0]) .
+                          ")' style='cursor: pointer;'>";
                     echo text($ptname);
                     echo "</td>\n";
                     echo "  <td>" . text($row['pubpid']) . "</td>\n";
