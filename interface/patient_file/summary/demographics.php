@@ -1418,7 +1418,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                     <!-- start right column div -->
                     <?php
                     // it's important enough to always show it
-                    if (isset($_SESSION['patient_portal_onsite_two'])) {
+                    if (!empty($GLOBALS['portal_onsite_two_enable'])) {
                         $portalCard = new PortalCard($GLOBALS);
                     }
 
