@@ -101,6 +101,7 @@ function bucks($amount)
         function validate(f) {
             let delcount = 0;
             let allempty = true;
+            let pfxFlag = false;
 
             for (let i = 0; i < f.elements.length; ++i) {
                 let ename = f.elements[i].name;
@@ -114,6 +115,8 @@ function bucks($amount)
                 let pfxlen = ename.indexOf('[pay]');
                 if (pfxlen < 0) {
                     continue
+                } else {
+                    pfxFlag = true;
                 };
                 let pfx = ename.substring(0, pfxlen);
                 let code = pfx.substring(pfx.indexOf('[') + 1, pfxlen - 1);
@@ -152,7 +155,11 @@ function bucks($amount)
                     .then(res => { });
                     return false;
                 }
+
             // TBD: validate the date format
+            }
+            if (pfxFlag == false ) {
+                allempty = false;
             }
             // Check if save is clicked with nothing to post.
             if (allempty && delcount === 0) {
@@ -561,14 +568,19 @@ $bnrow = sqlQuery("select billing_note from form_encounter where pid = ? AND enc
                                 <input <?php echo $last_level_closed === 0 ? attr('checked') : ''; ?> name='form_insurance' onclick='setins("Ins1")' type='radio'
                                     value='Ins1' /><?php echo xlt('Ins1') ?>
                             </label>
-                            <label class="radio-inline">
+                            <?php
+                            if (SLEOB::arGetPayerID($patient_id, $svcdate, 'secondary')) { ?>
+                                 <label class="radio-inline">
                                 <input <?php echo $last_level_closed === 1 ? attr('checked') : ''; ?> name='form_insurance' onclick='setins("Ins2")' type='radio'
                                     value='Ins2' /><?php echo xlt('Ins2') ?>
                             </label>
+                            <?php }
+                            if (SLEOB::arGetPayerID($patient_id, $svcdate, 'secondary')) { ?>
                             <label class="radio-inline">
                                 <input <?php echo $last_level_closed === 2 ? attr('checked') : ''; ?> name='form_insurance' onclick='setins("Ins3")' type='radio'
                                     value='Ins3' /><?php echo xlt('Ins3') ?>
                             </label>
+                            <?php } ?>
                             <label class="radio-inline">
                                 <input <?php echo $last_level_closed === 3 ? attr('checked') : ''; ?> name='form_insurance' onclick='setins("Pt")' type='radio'
                                     value='Pt' /><?php echo xlt('Patient') ?>
