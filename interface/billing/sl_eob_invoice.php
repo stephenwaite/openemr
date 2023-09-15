@@ -566,13 +566,13 @@ $bnrow = sqlQuery("select billing_note from form_encounter where pid = ? AND enc
                                     value='Ins1' /><?php echo xlt('Ins1') ?>
                             </label>
                             <?php
-                            if (SLEOB::arGetPayerID($patient_id, $svcdate, 'secondary')) { ?>
+                            if (SLEOB::arGetPayerID($patient_id, $svcdate, '2')) { ?>
                                  <label class="radio-inline">
                                 <input <?php echo $last_level_closed === 1 ? attr('checked') : ''; ?> name='form_insurance' onclick='setins("Ins2")' type='radio'
                                     value='Ins2' /><?php echo xlt('Ins2') ?>
                             </label>
                             <?php }
-                            if (SLEOB::arGetPayerID($patient_id, $svcdate, 'secondary')) { ?>
+                            if (SLEOB::arGetPayerID($patient_id, $svcdate, '3')) { ?>
                             <label class="radio-inline">
                                 <input <?php echo $last_level_closed === 2 ? attr('checked') : ''; ?> name='form_insurance' onclick='setins("Ins3")' type='radio'
                                     value='Ins3' /><?php echo xlt('Ins3') ?>
