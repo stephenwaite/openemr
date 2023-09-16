@@ -605,7 +605,7 @@ class Claim
             $tmp .= " ";
         }
 
-        return trim($tmp);
+        return $tmp;
     }
 
     public function x12gs03()

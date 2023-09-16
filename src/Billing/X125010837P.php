@@ -158,7 +158,7 @@ class X125010837P
                     "*" .
                     "*" .
                     "*" . "46" .
-                    "*" . $claim->x12_sender_id();
+                    "*" . trim($claim->x12_sender_id());
                 // else use provider's group name
                 } else {
                     $billingFacilityName = substr($claim->billingFacilityName(), 0, 60);
@@ -1309,7 +1309,7 @@ class X125010837P
                 !(
                     (strlen($claim->insuredZip($ins)) == 5)
                     || (strlen($claim->insuredZip($ins)) == 9)
-                )    
+                )
             ) {
                 $log .= "*** Other insco insured zip is not 5 or 9 digits.\n";
             }
