@@ -129,7 +129,7 @@ function getFacilityList()
     $facilities = $facilityService->getAllServiceLocations();
     $results = [];
     foreach ($facilities as $iter) {
-        $posCode = (($def_facility === intval($iter['id'])) && !$viewmode) ? $iter['pos_code'] : $posCode;
+        $posCode = (($def_facility === $iter['id']) && !$viewmode) ? $iter['pos_code'] : $posCode;
 
         $results[] = [
             'id' => $iter['id'],
@@ -650,7 +650,7 @@ $ires = sqlStatement("SELECT id, type, title, begdate FROM lists WHERE " .
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="form-row align-items-center">
                         <!-- Discharge Disposition -->
                         <div class="col-sm <?php displayOption('enc_enable_discharge_disposition'); ?>">
