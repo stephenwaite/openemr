@@ -109,7 +109,7 @@ function getDefinedFacility()
     } else {
         $def_facility = $user_facility['id'] ?? null;
     }
-    return $def_facility;
+    return intval($def_facility);
 }
 
 $posCode = '';
