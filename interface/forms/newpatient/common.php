@@ -115,7 +115,7 @@ function getDefinedFacility()
     } else {
         $def_facility = $user_facility['id'] ?? null;
     }
-    return $def_facility;
+    return intval($def_facility);
 }
 
 $posCode = '';
@@ -129,7 +129,7 @@ function getFacilityList()
     $facilities = $facilityService->getAllServiceLocations();
     $results = [];
     foreach ($facilities as $iter) {
-        $posCode = (($def_facility === $iter['id']) && !$viewmode) ? $iter['pos_code'] : $posCode;
+        $posCode = (($def_facility === intval($iter['id'])) && !$viewmode) ? $iter['pos_code'] : $posCode;
 
         $results[] = [
             'id' => $iter['id'],
