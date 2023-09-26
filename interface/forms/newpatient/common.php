@@ -374,7 +374,10 @@ $ires = sqlStatement("SELECT id, type, title, begdate FROM lists WHERE " .
                 <input type='hidden' name='id' value='<?php echo (isset($_GET["id"])) ? attr($_GET["id"]) : '' ?>' />
             <?php } else { ?>
                 <input type='hidden' name='mode' value='new' />
-            <?php } ?>
+                <?php if (empty($GLOBALS['set_pos_code_encounter'])) : ?>
+                    <input type='hidden' name='pos_code' value='<?php echo attr($posCode); ?>' />
+                <?php endif;
+            } ?>
             <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
             <?php if ($mode === "followup") { ?>
