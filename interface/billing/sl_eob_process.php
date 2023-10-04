@@ -17,7 +17,7 @@
 // Buffer all output so we can archive it to a file.
 ob_start();
 
-require_once("../globals.php");
+require_once(__DIR__ . "/../globals.php");
 
 use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Billing\InvoiceSummary;
@@ -159,7 +159,7 @@ function era_callback_check(&$out)
     global $InsertionId;
     global $StringToEcho,$debug;
 
-    if (!empty($_GET['original']) && $_GET['original'] == 'original') {
+    if (!empty($_GET['original']) && $_GET['original'] == 'original' && (php_sapi_name() !== 'cli')) {
         $StringToEcho .= "<table class='table'>";
         $StringToEcho .= "<thead>";
         $StringToEcho .= "<tr>";
@@ -207,14 +207,15 @@ function era_callback_check(&$out)
         $StringToEcho .= "</tbody>";
         $StringToEcho .= "</table>";
     } else {
+        var_dump($out);
         for ($check_count = 1; $check_count <= $out['check_count']; $check_count++) {
             $chk_num = $out['check_number' . $check_count];
             $chk_num = str_replace(' ', '_', $chk_num);
-            if (isset($_REQUEST['chk' . $chk_num])) {
+            if (isset($_REQUEST['chk' . $chk_num]) || (php_sapi_name() === 'cli')) {
                 $check_date = $out['check_date' . $check_count] ? $out['check_date' . $check_count] : $_REQUEST['paydate'];
                 $post_to_date = $_REQUEST['post_to_date'] != '' ? $_REQUEST['post_to_date'] : date('Y-m-d');
                 $deposit_date = $_REQUEST['deposit_date'] != '' ? $_REQUEST['deposit_date'] : date('Y-m-d');
-                $InsertionId[$out['check_number' . $check_count]] = SLEOB::arPostSession($_REQUEST['InsId'], $out['check_number' . $check_count], $out['check_date' . $check_count], $out['check_amount' . $check_count], $post_to_date, $deposit_date, $debug);
+                $InsertionId[$out['check_number' . $check_count]] = SLEOB::arPostSession($_REQUEST['InsId'] ?? 0, $out['check_number' . $check_count], $out['check_date' . $check_count], $out['check_amount' . $check_count], $post_to_date, $deposit_date, $debug);
             }
         }
     }
@@ -229,7 +230,9 @@ function era_callback(&$out)
     // Some heading information.
     $chk_123 = $out['check_number'];
     $chk_123 = str_replace(' ', '_', $chk_123);
-    if (isset($_REQUEST['chk' . $chk_123])) {
+    echo "chk_123 is $chk_123";
+    if (isset($_REQUEST['chk' . $chk_123]) || (php_sapi_name() === 'cli')) {
+        echo "lets post payments already \n";
         if ($encount == 0) {
             writeMessageLine(
                 'var(--white)',
@@ -459,6 +462,7 @@ function era_callback(&$out)
             // i.e. a payment reversal.
             if ($svc['paid'] ?? '') {
                 if (!$error && !$debug) {
+                    echo "going to post the payment \n";
                     SLEOB::arPostPayment(
                         $pid,
                         $encounter,
@@ -637,11 +641,13 @@ function era_callback(&$out)
 
 $info_msg = "";
 
-if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
+if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"]) && (php_sapi_name() !== 'cli')) {
     CsrfUtils::csrfNotVerified();
 }
 
-$eraname = $_GET['eraname'];
+if (php_sapi_name() !== 'cli') {
+    $eraname = $_GET['eraname'];
+}
 
 if (! $eraname) {
     die(xlt("You cannot access this page directly."));
@@ -711,7 +717,7 @@ if (!$debug) {
 <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
 <?php
-if (!empty($_GET['original']) && $_GET['original'] == 'original') {
+if (!empty($_GET['original']) && $_GET['original'] == 'original' && (php_sapi_name() !== 'cli')) {
     $alertmsg = ParseERA::parseERAForCheck($GLOBALS['OE_SITE_DIR'] . "/documents/era/$eraname.edi", 'era_callback');
     echo $StringToEcho;
 } else {
@@ -745,7 +751,9 @@ if (!empty($_GET['original']) && $_GET['original'] == 'original') {
     <?php
     global $InsertionId;
 
-    $eraname = $_REQUEST['eraname'];
+    if (php_sapi_name() !== 'cli') {
+        $eraname = $_REQUEST['eraname'];
+    }
     $alertmsg = ParseERA::parseERAForCheck($GLOBALS['OE_SITE_DIR'] . "/documents/era/$eraname.edi");
     $alertmsg = ParseERA::parseERA($GLOBALS['OE_SITE_DIR'] . "/documents/era/$eraname.edi", 'era_callback');
     if (!$debug) {

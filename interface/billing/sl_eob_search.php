@@ -21,7 +21,7 @@
 // Updated by Growlingflea Software.  now generates correct service and billing facility on statement.
 // any questions contact Daniel Pflieger at daniel@growlingflea.com
 
-require_once("../globals.php");
+require_once(__DIR__ . "/../globals.php");
 require_once("$srcdir/patient.inc.php");
 require_once("$srcdir/appointments.inc.php");
 require_once($GLOBALS['OE_SITE_DIR'] . "/statement.inc.php");
@@ -42,7 +42,7 @@ use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 use OpenEMR\OeUI\OemrUI;
 
-if (!AclMain::aclCheckCore('acct', 'eob', '', 'write')) {
+if (!AclMain::aclCheckCore('acct', 'eob', '', 'write') && (php_sapi_name() !== 'cli')) {
     echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("EOB Posting - Search")]);
     exit;
 }
