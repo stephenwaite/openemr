@@ -58,6 +58,7 @@ class ParseERA
                             && (
                                 $adj['reason_code'] == '253'
                                 || $adj['reason_code'] == '59'
+                                || $adj['reason_code'] == 'B10'
                             )
                         )
                     ) {
