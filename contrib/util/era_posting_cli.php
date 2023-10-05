@@ -49,8 +49,9 @@ function era_callback_cli(&$out)
     }
 }
 echo "checking tmp dir \n";
-$path = '/tmp/mdb';
+$path = '/tmp/era';
 if ($handle = opendir($path)) {
+    $alertmsg = '';
     while (false !== ($tmp_name = readdir($handle))) {
         if ($tmp_name != "." && $tmp_name != "..") {
             echo "$tmp_name\n";
@@ -67,7 +68,8 @@ if ($handle = opendir($path)) {
             }
             copy($path . '/' . $tmp_name, $erafullname);
             $_SESSION['authUserID'] = 1;
-            require_once(__DIR__ . '/../../interface/billing/sl_eob_process.php');
+            echo $alertmsg . "\n";
+            //require_once(__DIR__ . '/../../interface/billing/sl_eob_process.php');
         
         }
     }
