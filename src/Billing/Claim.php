@@ -1504,7 +1504,7 @@ class Claim
 
                         //code is in the second part of the $code_data array.
                         if ($strip_periods == true) {
-                                $diag = str_replace('.', '', $code_data[1]);
+                            $diag = str_replace('.', '', $code_data[1]);
                         } else {
                             $diag = $code_data[1];
                         }
@@ -1517,6 +1517,7 @@ class Claim
                         }
                     }
 
+                    $diag = trim($diag);
                     $da[$diag] = $diag;
                 }
             }
@@ -1554,6 +1555,7 @@ class Claim
         $da = $this->diagArray();
         $atmp = explode(':', $this->procs[$prockey]['justify']);
         foreach ($atmp as $tmp) {
+            $tmp = trim($tmp);
             if (!empty($tmp)) {
                 $code_data = explode('|', $tmp);
                 if (!empty($code_data[1])) {
