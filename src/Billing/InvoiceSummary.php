@@ -289,7 +289,7 @@ class InvoiceSummary
                 ?>
                 <tr>
                     <td class="detail" style="background:<?php echo $dispcode ? 'lightyellow' : ''; ?>"><?php echo text($dispcode); $dispcode = "" ?></td>
-                    <td class="detail"><?php echo text(FormatMoney::getFormattedMoney($tmpchg)); ?></td>
+                    <td class="detail"><?php echo text(FormatMoney::getBucks($tmpchg)); ?></td>
                     <td class="detail">&nbsp;</td>
                     <td class="detail">
                         <?php
@@ -304,8 +304,8 @@ class InvoiceSummary
                         ?>
                     </td>
                     <td class="detail"><?php echo text($ddate); ?></td>
-                    <td class="detail"><?php echo text(FormatMoney::getFormattedMoney($ddata['pmt'] ?? '')); ?></td>
-                    <td class="detail"><?php echo text(FormatMoney::getFormattedMoney($tmpadj)); ?></td>
+                    <td class="detail"><?php echo text(FormatMoney::getBucks($ddata['pmt'] ?? '')); ?></td>
+                    <td class="detail"><?php echo text(FormatMoney::getBucks($tmpadj)); ?></td>
                     <td class="detail">&nbsp;</td>
                     <td class="detail"><?php echo text($ddata['rsn'] ?? ''); ?></td>
                     <?php
@@ -331,7 +331,7 @@ class InvoiceSummary
                 <td class="last_detail">&nbsp;</td>
                 <td class="last_detail">
                     <input name="form_line[<?php echo attr($code); ?>][bal]" type="hidden"
-                        value="<?php echo attr(FormatMoney::getFormattedMoney($cdata['bal'])); ?>" />
+                        value="<?php echo attr(FormatMoney::getBucks($cdata['bal'])); ?>" />
                     <input name="form_line[<?php echo attr($code); ?>][ins]" type="hidden"
                         value="<?php echo attr($cdata['ins'] ?? ''); ?>" />
                     <input name="form_line[<?php echo attr($code); ?>][code_type]" type="hidden"
