@@ -44,11 +44,12 @@ class X125010837P
         $SEFLAG = false,
         $HLcount = 0,
         &$edicount = 0,
-        &$patSegmentCount = 0
+        &$patSegmentCount = 0,
+        $payor_id = 0
     ) {
         $today = time();
         $out = '';
-        $claim = new Claim($pid, $encounter, $x12_partner);
+        $claim = new Claim($pid, $encounter, $x12_partner, $payor_id);
 
         $log .= $claim->patientFirstName() . ' ' .
         $claim->patientMiddleName() . ' ' .

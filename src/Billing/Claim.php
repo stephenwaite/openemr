@@ -50,15 +50,17 @@ class Claim
     public $billing_prov_id;
     public $line_item_adjs;    // adjustment array with key of [group code][reason code] needed for secondary claims
     public $using_modifiers;
+    public $payer_id;
 
 
-    public function __construct($pid, $encounter_id, $x12_partner_id)
+    public function __construct($pid, $encounter_id, $x12_partner_id, $payer_id)
     {
         $this->pid = $pid;
         $this->encounter_id = $encounter_id;
         $this->encounterService = new EncounterService();
         $this->encounter = $this->encounterService->getOneByPidEid($this->pid, $this->encounter_id);
-        $this->getProcsAndDiags($this->pid, $this->encounter_id);
+        $this->payer_id = $payer_id;
+        $this->getProcsAndDiags($this->pid, $this->encounter_id, $this->payer_id);
         $this->copay = $this->getCopay($this->pid, $this->encounter_id);
         $this->facilityService = new FacilityService();
         $this->facility = $this->facilityService->getById($this->encounter['facility_id']);
@@ -225,11 +227,15 @@ class Claim
         // order starting at index 1.
         //
         $this->payers = array();
-        $this->payers[0] = array();
         $query = "SELECT * FROM insurance_data WHERE pid = ? AND 
             (date <= ? OR date IS NULL) AND (date_end >= ? OR date_end IS NULL) ORDER BY type ASC, date DESC";
         $dres = sqlStatement($query, array($this->pid, $encounter_date, $encounter_date));
         $prevtype = '';
+        if (!empty($this->payer_id)) {
+
+        } else {
+            $this->payers[0] = array();
+        }
         while ($drow = sqlFetchArray($dres)) {
             if (strcmp($prevtype, $drow['type']) == 0) {
                 continue;

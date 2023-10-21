@@ -231,7 +231,9 @@ class GeneratorX12Direct extends AbstractGenerator implements GeneratorInterface
                 new Claim(
                     $prior_claim->getPid(),
                     $prior_claim->getEncounter(),
-                    $prior_claim->getPartner()
+                    $prior_claim->getPartner(),
+                    $prior_claim->getPayorID(),
+                    $prior_claim->getPayorType()
                 )
                 )->isSelfOfInsured($prior_claim->getPayorType() - 1);
             if (!$priorX12ClaimSelfInsured) {
@@ -249,7 +251,8 @@ class GeneratorX12Direct extends AbstractGenerator implements GeneratorInterface
             $is_last_claim,
             $HLCount,
             $edicount,
-            $patSegmentCount
+            $patSegmentCount,
+            $claim->getPayorId()
         ));
         // edi count is passed by reference and incremented in the genX12837P function, and we need to set it back here
         $this->edi_counts[$claim->getPartner()] = $edicount;
