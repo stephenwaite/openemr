@@ -43,14 +43,9 @@
     </div>
     <div class="row"> 
         <div class="col">
-            <div class="card">
-                <h6><?php echo xlt("Support/Sales"); ?></h6>
-                <ul>
-                    <li> <?php echo xlt("Call"); ?>: <a href="tel:9189430020">1-918-943-0020<a>   </li>
-                    <li> <?php echo xlt("Email Support"); ?>: <a href = "support@claimrev.com">support@claimrev.com</a> </li>
-                    <li> <?php echo xlt("Email Sales"); ?>: <a href = "sales@claimrev.com">sales@claimrev.com</a> </li>
-                </ul>
-            </div>        
+        <?php
+                require '../templates/contact.php';
+        ?>
         </div>
     </div>
 </body>

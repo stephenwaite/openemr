@@ -87,12 +87,7 @@ class GlobalConfig
 
     public function getApiServer()
     {
-        if ($this->getGlobalSetting(self::CONFIG_OPTION_ENVIRONMENT) == "S") {
-            return "https://testapi.claimrev.com";
-        } elseif ($this->getGlobalSetting(self::CONFIG_OPTION_ENVIRONMENT) == "D") {
-            return "https://9a89-174-128-131-22.ngrok.io";
-        }
-        return "https://api.claimrev.com";
+        return $this->getGlobalSetting(self::CONFIG_OPTION_ENVIRONMENT);
     }
 
 
