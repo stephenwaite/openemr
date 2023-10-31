@@ -40,10 +40,14 @@
         if (isset($_POST['SubmitButton'])) { //check if form was submitted
             $saveData = CustomerPrimaryInfoView::loadByPost($_POST);
             echo($saveData->primaryPhone);
-            ClaimRevDornApiConector::SavePrimaryInfo($saveData);            
+            ClaimRevDornApiConector::SavePrimaryInfo($saveData);  
+            $npi = $_POST["form_npi"];          
         }
     }
-    $npi = $_REQUEST['npi'];
+    else {
+        $npi = $_REQUEST['npi'];
+    }
+
     if($npi){
         $data = ClaimRevDornApiConector::GetPrimaryInfoByNpi($npi);
     }
@@ -59,6 +63,16 @@
             <div class="row">
                 <div class="col-sm-6">
                     <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="clearfix">
+                        <div class="label-div">
+                            <label class="col-form-label" for="form_primaryId"><?php echo xlt('Primary ID'); ?>:</label> 
+                        </div>
+                        <input type='text' readonly name='form_primaryId' id='form_primaryId' value='<?php echo attr($data->primaryId ?? ''); ?>' class='form-control' />      
+                    </div>   
                 </div>
             </div>
             <div class="row">

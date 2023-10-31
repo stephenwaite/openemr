@@ -50,6 +50,12 @@ function doedclick_edit(npi) {
     let scriptTitle = 'primary_config_edit.php?npi=' + npi +'&csrf_token_form=' + <?php echo js_url(CsrfUtils::collectCsrfToken()); ?>;
     dlgopen(scriptTitle, '_blank', 800, 750, false, addTitle);
 }
+function doedclick_add() {
+    top.restoreSession();
+    var addTitle = '<i class="fa fa-plus" style="width:20px;" aria-hidden="true"></i> ' + <?php echo xlj("Edit Mode"); ?>;
+    let scriptTitle = 'primary_config_edit.php?csrf_token_form=' + <?php echo js_url(CsrfUtils::collectCsrfToken()); ?>;
+    dlgopen(scriptTitle, '_blank', 800, 750, false, addTitle);
+}
 </script>
 <body>
     <div class="row"> 
@@ -65,80 +71,106 @@ function doedclick_edit(npi) {
         </div>
     </div>
     <div class="row">
-        <div class="col">
+        <div class="col-md-12">
             <div class="card">
-                <p>
-                    The DORN network requires basic address setup for your clinic. This setup is based on NPI. The first and default entry will be your billing NPI. If there are other NPI's in your clinic that have their own account at a lab, 
-                    then more than 1 entry can be created here.
-                </p>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col">
-            <form method="post" action="primary_config.php">
-                <div class="card">
-                    <div class="row">
-                        <div class="col">
-                            <div class="form-group">
-                                <label for="npi"><?php echo xlt("NPI") ?>:</label>
-                                <input type="text" class="form-control" id="npi" name="npi" value="<?php echo isset($_POST['npi']) ? attr($_POST['npi']) : '' ?>"/>
-                            </div>     
-                        </div>
+                <div class="row">
+                    <div class="col">
+                        <p>
+                            The DORN network requires basic address setup for your clinic. This setup is based on NPI. The first and default entry will be your billing NPI. If there are other NPI's in your clinic that have their own account at a lab, 
+                            then more than 1 entry can be created here.
+                        </p>
                     </div>
-                    <div class="row">
-                        <div class="col">
-                            <button type="submit" name="SubmitButton" class="btn btn-primary"><?php echo xlt("Submit") ?></button>
-                        </div>
-                    </div>           
                 </div>
-            </form>
-        </div>    
-    </div>
-    <div class="row">
-        <div class="col">
-            <?php
-                if (empty($datas)) {
-                    echo xlt("No results found");
-                } else { ?>
-                  <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col"><?php echo xlt("NPI") ?></th>
-                            <th scope="col"><?php echo xlt("Name") ?></th>
-                            <th scope="col"><?php echo xlt("Phone") ?></th>
-                            <th scope="col"><?php echo xlt("Email") ?></th>
-                            <th scope="col"><?php echo xlt("Address") ?></th>
-                            <th scope="col"><?php echo xlt("Actions") ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php 
-                        foreach ($datas as $data) {                        
-                        ?>
-                        <tr>
-                            <td scope="row"><?php echo text($data->npi); ?></td>
-                            <td scope="row"><?php echo text($data->primaryName); ?></td>
-                            <td scope="row"><?php echo text($data->primaryPhone); ?></td>
-                            <td scope="row"><?php echo text($data->primaryEmail); ?></td>
-                            <td scope="row"><?php echo text($data->primaryAddress1); ?></td>
-                            <td scope="row">
-                                <button type="button" class="btn btn-primary btn-add" onclick="doedclick_edit(<?php echo text($data->npi); ?>)"><?php echo xlt('Edit');?></button>
-                            </td>
-                        </tr>
+                <div class="row">
+                    <div class="col">
+                        <form method="post" action="primary_config.php">
+                            <div class="card">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="npi"><?php echo xlt("NPI") ?>:</label>
+                                            <input type="text" class="form-control" id="npi" name="npi" value="<?php echo isset($_POST['npi']) ? attr($_POST['npi']) : '' ?>"/>
+                                        </div>     
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <button type="submit" name="SubmitButton" class="btn btn-primary"><?php echo xlt("Submit") ?></button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="button" class="btn btn-primary btn-add" onclick="doedclick_edit()"><?php echo xlt('Add New');?></button>
+                            
+                                    </div>
+                                </div>           
+                            </div>
+                        </form>
+                    </div>    
+                </div>
+                <div class="row">
+                    <div class="col">
                         <?php
-                        }//end foreach
+                            if (empty($datas)) {
+                                echo xlt("No results found");
+                            } else { ?>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col"><?php echo xlt("NPI") ?></th>
+                                        <th scope="col"><?php echo xlt("Name") ?></th>
+                                        <th scope="col"><?php echo xlt("Phone") ?></th>
+                                        <th scope="col"><?php echo xlt("Email") ?></th>
+                                        <th scope="col"><?php echo xlt("Address") ?></th>
+                                        <th scope="col"><?php echo xlt("Actions") ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php 
+                                    foreach ($datas as $data) {                        
+                                    ?>
+                                    <tr>
+                                        <td scope="row"><?php echo text($data->npi); ?></td>
+                                        <td scope="row"><?php echo text($data->primaryName); ?></td>
+                                        <td scope="row"><?php echo text($data->primaryPhone); ?></td>
+                                        <td scope="row"><?php echo text($data->primaryEmail); ?></td>
+                                        <td scope="row">
+                                            <div class="row">
+                                                <div class="col">
+                                                    <?php echo text($data->primaryAddress1); ?>
+                                                <div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col">
+                                                    <?php echo text($data->primaryAddress2); ?>
+                                                <div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col">
+                                                <?php echo text($data->primaryCity); ?> <?php echo text($data->primaryState); ?> <?php echo text($data->primaryZipCode); ?>
+                                                <div>
+                                            </div>
+                                        </td>
+                                        <td scope="row">
+                                            <button type="button" class="btn btn-primary btn-add" onclick="doedclick_edit(<?php echo text($data->npi); ?>)"><?php echo xlt('Edit');?></button>
+                                        </td>
+                                    </tr>
+                                    <?php
+                                    }//end foreach
+                                    ?>
+                                </tbody>
+                            </table>
+
+
+
+                        <?php 
+                            }//end empty data
                         ?>
-                    </tbody>
-                  </table>
-
-
-
-            <?php 
-                }//end empty data
-            ?>
+                    </div>
+                </div>                
+            </div> <!-- End Card -->
         </div>
     </div>
+
+
     <div class="row"> 
         <div class="col">
         <?php

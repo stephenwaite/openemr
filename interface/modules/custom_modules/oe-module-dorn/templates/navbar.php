@@ -28,10 +28,10 @@
                                 } ?>">
                 <a class="nav-link" href="primary_config.php"><?php echo xlt("Configure Primary"); ?></a>
             </li>
-            <li class="nav-item <?php if ($tab == "eras") {
+            <li class="nav-item <?php if ($tab == "lab setup") {
                 echo "active";
                                 } ?>">
-                <a class="nav-link" href="era.php"><?php echo xlt("ERAs"); ?></a>
+                <a class="nav-link" href="lab_setup.php"><?php echo xlt("Lab Setup"); ?></a>
             </li>
             <li class="nav-item <?php if ($tab == "x12") {
                 echo "active";
