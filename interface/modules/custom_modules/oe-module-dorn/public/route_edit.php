@@ -18,7 +18,8 @@
  use OpenEMR\Core\Header;
  use OpenEMR\Modules\Dorn\ClaimRevDornApiConector;
  use OpenEMR\Modules\Dorn\models\CreateRouteFromPrimaryViewModel;
-
+ use OpenEMR\Modules\Dorn\DisplayHelper;
+ use OpenEMR\Modules\Dorn\LabRouteSetup;
  $labGuid = "";
  if (!empty($_GET)) {
     if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
@@ -32,7 +33,11 @@ if (!empty($_POST)) {
     }
     $labGuid = $_POST["form_labGuid"];   
     $routeData = CreateRouteFromPrimaryViewModel::loadByPost($_POST);
-    ClaimRevDornApiConector::CreateRoute($routeData);
+    $apiResponse =  ClaimRevDornApiConector::CreateRoute($routeData);
+    $ppid = LabRouteSetup::CreateProcedureProviders($apiResponse->labName,$routeData->npi,$routeData->labGuid);
+    if($ppid > 0) {
+        $isLabSetup = LabRouteSetup::CreateDornRoute($apiResponse->labName,$apiResponse->routeGuid,$apiResponse->labGuid,$ppid);
+    }
 }
 else {
     if (!empty($_GET)) {
@@ -45,6 +50,7 @@ if (!AclMain::aclCheckCore('admin', 'users')) {
     exit;
 }
 $primaryInfos = ClaimRevDornApiConector::GetPrimaryInfos("");
+
 
 ?>
 <html>
@@ -69,7 +75,7 @@ $primaryInfos = ClaimRevDornApiConector::GetPrimaryInfos("");
                         <?php 
                         foreach($primaryInfos as $pInfo) {
                         ?>
-                            <option <?php echo isset($_POST['form_primaries']) ? attr($_POST['form_primaries'])== attr($pInfo->npi) ? ' selected ':'' : '' ?> value="<?php attr($pInfo->npi) ?>" ><?php echo text($pInfo->primaryName); ?> (<?php echo text($pInfo->npi); ?>)</option>
+                            <option <?php echo DisplayHelper::SelectOption(attr($_POST['form_primaries']),attr($pInfo->npi) ) ?>  value='<?php echo attr($pInfo->npi) ?>' ><?php echo text($pInfo->primaryName); ?> (<?php echo text($pInfo->npi); ?>)</option>
                         <?php
                         }
                         ?>
@@ -89,7 +95,9 @@ $primaryInfos = ClaimRevDornApiConector::GetPrimaryInfos("");
        <div class="row">
             <div class="col-sm-6">
                 <button type="submit" name="SubmitButton" class="btn btn-primary"><?php echo xlt("Save") ?></button>
-                        
+                <?php
+                    echo $apiResponse->responseMesssage;
+                ?>
             </div>
         </div>
      

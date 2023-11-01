@@ -15,27 +15,17 @@ use OpenEMR\Modules\Dorn\Bootstrap;
 
 class ClaimRevDornApiConector
 {
-    public static function CreateRoute($routeData)
+    public static function CreateRoute($data)
     {
-
+        $api_server = ClaimRevDornApiConector::GetServerInfo();
+        $url = $api_server . "/api/Route/v1/CreateRoute";
+        return ClaimRevDornApiConector::PostData($url,$data);   
     }
     public static function SearchLabs($labName, $phoneNumber, $faxNumber, $city, $state, $zipCode, $isActive, $isConnected)
     {
-        $token = "";
-        $content = 'content-type: application/json';
-        $bootstrap = new Bootstrap($GLOBALS['kernel']->getEventDispatcher());
-        $globalsConfig = $bootstrap->getGlobalConfig();        
-        $api_server = $globalsConfig->getApiServer();
-
+        $api_server = ClaimRevDornApiConector::GetServerInfo();    
         $url = $api_server . "/api/Labs/v1/SearchLabs";
-
-        $bearer = 'authorization: Bearer ' . $token;
-        $headers = [
-            $content,
-            $bearer
-         ];
-         
-         $params = []; // Initialize an empty params array
+        $params = []; // Initialize an empty params array
 
          if (!empty($labName)) {
              $params['labName'] = $labName;
@@ -74,6 +64,47 @@ class ClaimRevDornApiConector
        
         $url = $url . '?' . http_build_query($params);
 
+        $returnData = ClaimRevDornApiConector::GetData($url); 
+        return $returnData;
+    }
+    public static function SavePrimaryInfo($data)
+    {     
+        $api_server = ClaimRevDornApiConector::GetServerInfo();
+        $url = $api_server . "/api/Customer/v1/SaveCustomerPrimaryInfo";
+        return ClaimRevDornApiConector::PostData($url,$data);        
+    }
+
+    public static function GetPrimaryInfoByNpi($npi)
+    {
+        $api_server = ClaimRevDornApiConector::GetServerInfo(); 
+        $url = $api_server . "/api/Customer/v1/GetPrimaryInfoByNpi";
+            
+        if($npi){
+            $params = array('npi' => $npi);
+            $url = $url . '?' . http_build_query($params);
+        }
+       
+        $returnData = ClaimRevDornApiConector::GetData($url); 
+        return $returnData;
+    }
+    public static function GetPrimaryInfos($npi)
+    {
+        $api_server = ClaimRevDornApiConector::GetServerInfo();    
+        $url = $api_server . "/api/Customer/v1/SearchPrimaryInfo";
+
+        if($npi){
+            $params = array('npi' => $npi);
+            $url = $url . '?' . http_build_query($params);
+        }
+       
+        $returnData = ClaimRevDornApiConector::GetData($url); 
+        return $returnData;
+    }
+
+    public static function GetData($url)
+    {
+        $headers = ClaimRevDornApiConector::BuildHeader();
+         
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
@@ -82,30 +113,19 @@ class ClaimRevDornApiConector
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         curl_close($ch);
-        if ($httpcode != 200) {
-            return "";
+        if($httpcode == 200 || $httpcode == 400 ) {
+            $responseJsonData = json_decode($result);
+            return $responseJsonData;
         }
-        $data = json_decode($result);
-        return $data;
+        error_log("Error " . "Status Code". $httpcode . " sending in api " . $url . " Message " . $result);
+        return "";
+      
     }
-    public static function SavePrimaryInfo($data)
+    public static function PostData($url,$sendData)
     {
-        $token = "";
-        $content = 'content-type: application/json';
-        $bootstrap = new Bootstrap($GLOBALS['kernel']->getEventDispatcher());
-        $globalsConfig = $bootstrap->getGlobalConfig();        
-        $api_server = $globalsConfig->getApiServer();
-
-        $url = $api_server . "/api/Customer/v1/SaveCustomerPrimaryInfo";
-
-        $bearer = 'authorization: Bearer ' . $token;
-        $headers = [
-            $content,
-            $bearer
-         ];
+        $headers =ClaimRevDornApiConector::BuildHeader();        
+        $payload = json_encode($sendData, JSON_UNESCAPED_SLASHES);
         
-        $payload = json_encode($data, JSON_UNESCAPED_SLASHES);
-        error_log($payload);
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
@@ -116,81 +136,30 @@ class ClaimRevDornApiConector
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         curl_close($ch);
-        if ($httpcode != 200) {
-            return "";
+        if($httpcode == 200 || $httpcode == 400 ) {
+            $responseJsonData = json_decode($result);
+            return $responseJsonData;
         }
-        $data = json_decode($result);
-        return $data;
+        error_log("Error " . "Status Code". $httpcode . " sending in api " . $url . " Message " . $result);
+        return "";
     }
-    public static function GetPrimaryInfoByNpi($npi)
+    public static function GetServerInfo()
     {
-        $token = "";
-        $content = 'content-type: application/json';
         $bootstrap = new Bootstrap($GLOBALS['kernel']->getEventDispatcher());
         $globalsConfig = $bootstrap->getGlobalConfig();        
         $api_server = $globalsConfig->getApiServer();
-
-        $url = $api_server . "/api/Customer/v1/GetPrimaryInfoByNpi";
-
+        return $api_server;
+    }
+    public static function BuildHeader()
+    {
+        $token = "";
+        $content = 'content-type: application/json'; 
         $bearer = 'authorization: Bearer ' . $token;
         $headers = [
             $content,
             $bearer
          ];
-         
-        if($npi){
-            $params = array('npi' => $npi);
-            $url = $url . '?' . http_build_query($params);
-        }
-       
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $result = curl_exec($ch);
-        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        curl_close($ch);
-        if ($httpcode != 200) {
-            return "";
-        }
-        $data = json_decode($result);
-        return $data;
-    }
-    public static function GetPrimaryInfos($npi)
-    {
-        $token = "";
-        $content = 'content-type: application/json';
-        $bootstrap = new Bootstrap($GLOBALS['kernel']->getEventDispatcher());
-        $globalsConfig = $bootstrap->getGlobalConfig();        
-        $api_server = $globalsConfig->getApiServer();
-
-        $url = $api_server . "/api/Customer/v1/SearchPrimaryInfo";
-
-        $bearer = 'authorization: Bearer ' . $token;
-        $headers = [
-            $content,
-            $bearer
-         ];
-         
-        if($npi){
-            $params = array('npi' => $npi);
-            $url = $url . '?' . http_build_query($params);
-        }
-       
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $result = curl_exec($ch);
-        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        curl_close($ch);
-        if ($httpcode != 200) {
-            return "";
-        }
-        $data = json_decode($result);
-        return $data;
+         return $headers;
     }
 }
 
