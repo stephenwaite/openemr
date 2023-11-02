@@ -132,7 +132,7 @@ class GlobalConfig
                 ,'description' => 'Contact ClaimRev for this value'
                 ,'type' => GlobalSetting::DATA_TYPE_ENCRYPTED
                 ,'default' => ''
-            ]         
+            ]
             ,self::CONFIG_ENABLE_MENU => [
                 'title' => 'Add module menu item'
                 ,'description' => 'Adding a menu item to the system (requires logging out and logging in again)'

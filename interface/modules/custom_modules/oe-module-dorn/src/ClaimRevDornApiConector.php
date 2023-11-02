@@ -19,85 +19,83 @@ class ClaimRevDornApiConector
     {
         $api_server = ClaimRevDornApiConector::GetServerInfo();
         $url = $api_server . "/api/Route/v1/CreateRoute";
-        return ClaimRevDornApiConector::PostData($url,$data);   
+        return ClaimRevDornApiConector::PostData($url, $data);
     }
     public static function SearchLabs($labName, $phoneNumber, $faxNumber, $city, $state, $zipCode, $isActive, $isConnected)
     {
-        $api_server = ClaimRevDornApiConector::GetServerInfo();    
+        $api_server = ClaimRevDornApiConector::GetServerInfo();
         $url = $api_server . "/api/Labs/v1/SearchLabs";
         $params = []; // Initialize an empty params array
 
-         if (!empty($labName)) {
-             $params['labName'] = $labName;
-         }
-         if (!empty($phoneNumber)) {
-             $params['phoneNumber'] = $phoneNumber;
-         }
-         if (!empty($faxNumber)) {
-             $params['faxNumber'] = $faxNumber;
-         }
-         if (!empty($city)) {
-             $params['city'] = $city;
-         }
-         if (!empty($state)) {
-             $params['state'] = $state;
-         }
-         if (!empty($zipCode)) {
-             $params['zipCode'] = $zipCode;
-         }
-         if (!empty($isActive)) {
-            if($isActive == "yes"){
+        if (!empty($labName)) {
+            $params['labName'] = $labName;
+        }
+        if (!empty($phoneNumber)) {
+            $params['phoneNumber'] = $phoneNumber;
+        }
+        if (!empty($faxNumber)) {
+            $params['faxNumber'] = $faxNumber;
+        }
+        if (!empty($city)) {
+            $params['city'] = $city;
+        }
+        if (!empty($state)) {
+            $params['state'] = $state;
+        }
+        if (!empty($zipCode)) {
+            $params['zipCode'] = $zipCode;
+        }
+        if (!empty($isActive)) {
+            if ($isActive == "yes") {
                 $params['isActive'] = "true";
-            }
-            else if($isActive == "no") {
+            } elseif ($isActive == "no") {
                 $params['isActive'] = "false";
-            }  
-         }
-         if (!empty($isConnected)) {
-            if($isConnected == "yes"){
-                $params['isConnected'] = "true";
             }
-            else if($isConnected == "no") {
+        }
+        if (!empty($isConnected)) {
+            if ($isConnected == "yes") {
+                $params['isConnected'] = "true";
+            } elseif ($isConnected == "no") {
                 $params['isConnected'] = "false";
-            }            
-         }
+            }
+        }
        
         $url = $url . '?' . http_build_query($params);
 
-        $returnData = ClaimRevDornApiConector::GetData($url); 
+        $returnData = ClaimRevDornApiConector::GetData($url);
         return $returnData;
     }
     public static function SavePrimaryInfo($data)
-    {     
+    {
         $api_server = ClaimRevDornApiConector::GetServerInfo();
         $url = $api_server . "/api/Customer/v1/SaveCustomerPrimaryInfo";
-        return ClaimRevDornApiConector::PostData($url,$data);        
+        return ClaimRevDornApiConector::PostData($url, $data);
     }
 
     public static function GetPrimaryInfoByNpi($npi)
     {
-        $api_server = ClaimRevDornApiConector::GetServerInfo(); 
+        $api_server = ClaimRevDornApiConector::GetServerInfo();
         $url = $api_server . "/api/Customer/v1/GetPrimaryInfoByNpi";
             
-        if($npi){
+        if ($npi) {
             $params = array('npi' => $npi);
             $url = $url . '?' . http_build_query($params);
         }
        
-        $returnData = ClaimRevDornApiConector::GetData($url); 
+        $returnData = ClaimRevDornApiConector::GetData($url);
         return $returnData;
     }
     public static function GetPrimaryInfos($npi)
     {
-        $api_server = ClaimRevDornApiConector::GetServerInfo();    
+        $api_server = ClaimRevDornApiConector::GetServerInfo();
         $url = $api_server . "/api/Customer/v1/SearchPrimaryInfo";
 
-        if($npi){
+        if ($npi) {
             $params = array('npi' => $npi);
             $url = $url . '?' . http_build_query($params);
         }
        
-        $returnData = ClaimRevDornApiConector::GetData($url); 
+        $returnData = ClaimRevDornApiConector::GetData($url);
         return $returnData;
     }
 
@@ -113,17 +111,16 @@ class ClaimRevDornApiConector
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         curl_close($ch);
-        if($httpcode == 200 || $httpcode == 400 ) {
+        if ($httpcode == 200 || $httpcode == 400) {
             $responseJsonData = json_decode($result);
             return $responseJsonData;
         }
         error_log("Error " . "Status Code". $httpcode . " sending in api " . $url . " Message " . $result);
         return "";
-      
     }
-    public static function PostData($url,$sendData)
+    public static function PostData($url, $sendData)
     {
-        $headers =ClaimRevDornApiConector::BuildHeader();        
+        $headers =ClaimRevDornApiConector::BuildHeader();
         $payload = json_encode($sendData, JSON_UNESCAPED_SLASHES);
         
         $ch = curl_init();
@@ -136,7 +133,7 @@ class ClaimRevDornApiConector
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         curl_close($ch);
-        if($httpcode == 200 || $httpcode == 400 ) {
+        if ($httpcode == 200 || $httpcode == 400) {
             $responseJsonData = json_decode($result);
             return $responseJsonData;
         }
@@ -146,14 +143,14 @@ class ClaimRevDornApiConector
     public static function GetServerInfo()
     {
         $bootstrap = new Bootstrap($GLOBALS['kernel']->getEventDispatcher());
-        $globalsConfig = $bootstrap->getGlobalConfig();        
+        $globalsConfig = $bootstrap->getGlobalConfig();
         $api_server = $globalsConfig->getApiServer();
         return $api_server;
     }
     public static function BuildHeader()
     {
         $token = "";
-        $content = 'content-type: application/json'; 
+        $content = 'content-type: application/json';
         $bearer = 'authorization: Bearer ' . $token;
         $headers = [
             $content,
@@ -162,5 +159,3 @@ class ClaimRevDornApiConector
          return $headers;
     }
 }
-
-?>

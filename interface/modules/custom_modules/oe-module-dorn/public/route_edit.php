@@ -20,8 +20,9 @@
  use OpenEMR\Modules\Dorn\models\CreateRouteFromPrimaryViewModel;
  use OpenEMR\Modules\Dorn\DisplayHelper;
  use OpenEMR\Modules\Dorn\LabRouteSetup;
+
  $labGuid = "";
- if (!empty($_GET)) {
+if (!empty($_GET)) {
     if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
         CsrfUtils::csrfNotVerified();
     }
@@ -31,15 +32,14 @@ if (!empty($_POST)) {
     if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
         CsrfUtils::csrfNotVerified();
     }
-    $labGuid = $_POST["form_labGuid"];   
+    $labGuid = $_POST["form_labGuid"];
     $routeData = CreateRouteFromPrimaryViewModel::loadByPost($_POST);
     $apiResponse =  ClaimRevDornApiConector::CreateRoute($routeData);
-    $ppid = LabRouteSetup::CreateProcedureProviders($apiResponse->labName,$routeData->npi,$routeData->labGuid);
-    if($ppid > 0) {
-        $isLabSetup = LabRouteSetup::CreateDornRoute($apiResponse->labName,$apiResponse->routeGuid,$apiResponse->labGuid,$ppid);
+    $ppid = LabRouteSetup::createProcedureProviders($apiResponse->labName, $routeData->npi, $routeData->labGuid);
+    if ($ppid > 0) {
+        $isLabSetup = LabRouteSetup::CreateDornRoute($apiResponse->labName, $apiResponse->routeGuid, $apiResponse->labGuid, $ppid);
     }
-}
-else {
+} else {
     if (!empty($_GET)) {
         $labGuid = $_REQUEST['labGuid'];
     }
@@ -71,11 +71,11 @@ $primaryInfos = ClaimRevDornApiConector::GetPrimaryInfos("");
                 <div class="form-group">
                     <label for="form_primaries"><?php echo xlt("Select NPI") ?>:</label>
                     <select id="form_primaries" name="form_primaries">
-                        <?php 
-                        foreach($primaryInfos as $pInfo) {
-                        ?>
-                            <option <?php echo DisplayHelper::SelectOption(attr($_POST['form_primaries']),attr($pInfo->npi) ) ?>  value='<?php echo attr($pInfo->npi) ?>' ><?php echo text($pInfo->primaryName); ?> (<?php echo text($pInfo->npi); ?>)</option>
                         <?php
+                        foreach ($primaryInfos as $pInfo) {
+                            ?>
+                            <option <?php echo DisplayHelper::SelectOption(attr($_POST['form_primaries']), attr($pInfo->npi)) ?>  value='<?php echo attr($pInfo->npi) ?>' ><?php echo text($pInfo->primaryName); ?> (<?php echo text($pInfo->npi); ?>)</option>
+                            <?php
                         }
                         ?>
                     </select>

@@ -12,21 +12,21 @@
  require_once "../../../../globals.php";
 
  use OpenEMR\Common\Acl\AclMain;
- use OpenEMR\Common\Csrf\CsrfUtils;   
+ use OpenEMR\Common\Csrf\CsrfUtils;
  use OpenEMR\Common\Twig\TwigContainer;
  use OpenEMR\Modules\Dorn\ClaimRevDornApiConector;
  use OpenEMR\Core\Header; //this is needed along with setupHeader() to get the pop up to appear
 
  $tab = "lab setup";
 
- if (!AclMain::aclCheckCore('admin', 'users')) {
+if (!AclMain::aclCheckCore('admin', 'users')) {
     echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Edit/Add Procedure Provider")]);
     exit;
 }
 
 if (!empty($_POST)) {
     if (isset($_POST['SubmitButton'])) { //check if form was submitted
-        $datas = ClaimRevDornApiConector::SearchLabs($_POST['form_labName'],$_POST['form_phone'],$_POST['form_fax'],$_POST['form_city'],$_POST['form_state'],$_POST['form_zip'],$_POST['form_active'],$_POST['form_connected']);
+        $datas = ClaimRevDornApiConector::SearchLabs($_POST['form_labName'], $_POST['form_phone'], $_POST['form_fax'], $_POST['form_city'], $_POST['form_state'], $_POST['form_zip'], $_POST['form_active'], $_POST['form_connected']);
         if ($datas == null) {
             $datas = [];
         }
@@ -170,9 +170,9 @@ function installCompendiumClick(labGuid) {
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php 
-                                foreach ($datas as $data) {                        
-                                ?>
+                                <?php
+                                foreach ($datas as $data) {
+                                    ?>
                                     <tr>
                                         <td scope="row"><?php echo text($data->name); ?></td>
                                         <td scope="row"><?php echo text($data->labTypeName); ?></td>

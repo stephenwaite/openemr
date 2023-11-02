@@ -12,8 +12,8 @@
 
  namespace OpenEMR\Modules\Dorn\models;
 
- class CustomerPrimaryInfoView
- {
+class CustomerPrimaryInfoView
+{
     public $accountNumber = "";
     public $npi = "";
     public $primaryId;
@@ -43,13 +43,11 @@
         $model->primaryCity = $postData["form_city"];
         $model->primaryState = $postData["form_state"];
         $model->primaryZipCode = $postData["form_zip"];
-        if($model->primaryId == "") {
+        if ($model->primaryId == "") {
             $model->primaryId = null;
         }
 
 
         return $model;
     }
-
- }
-?>
+}

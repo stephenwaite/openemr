@@ -13,17 +13,17 @@
     require_once "../../../../globals.php";
 
     use OpenEMR\Common\Acl\AclMain;
-    use OpenEMR\Common\Csrf\CsrfUtils;   
+    use OpenEMR\Common\Csrf\CsrfUtils;
     use OpenEMR\Common\Twig\TwigContainer;
     use OpenEMR\Modules\Dorn\ClaimRevDornApiConector;
     use OpenEMR\Core\Header; //this is needed along with setupHeader() to get the pop up to appear
 
     $tab = "Configure Primary";
 
-    if (!AclMain::aclCheckCore('admin', 'users')) {
-        echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Edit/Add Procedure Provider")]);
-        exit;
-    }
+if (!AclMain::aclCheckCore('admin', 'users')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Edit/Add Procedure Provider")]);
+    exit;
+}
 
 if (!empty($_POST)) {
     if (isset($_POST['SubmitButton'])) { //check if form was submitted
@@ -109,9 +109,9 @@ function doedclick_add() {
                 <div class="row">
                     <div class="col">
                         <?php
-                            if (empty($datas)) {
-                                echo xlt("No results found");
-                            } else { ?>
+                        if (empty($datas)) {
+                            echo xlt("No results found");
+                        } else { ?>
                             <table class="table">
                                 <thead>
                                     <tr>
@@ -124,9 +124,9 @@ function doedclick_add() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php 
-                                    foreach ($datas as $data) {                        
-                                    ?>
+                                    <?php
+                                    foreach ($datas as $data) {
+                                        ?>
                                     <tr>
                                         <td scope="row"><?php echo text($data->npi); ?></td>
                                         <td scope="row"><?php echo text($data->primaryName); ?></td>
@@ -153,7 +153,7 @@ function doedclick_add() {
                                             <button type="button" class="btn btn-primary btn-add" onclick="doedclick_edit(<?php echo text($data->npi); ?>)"><?php echo xlt('Edit');?></button>
                                         </td>
                                     </tr>
-                                    <?php
+                                        <?php
                                     }//end foreach
                                     ?>
                                 </tbody>
@@ -161,8 +161,8 @@ function doedclick_add() {
 
 
 
-                        <?php 
-                            }//end empty data
+                            <?php
+                        }//end empty data
                         ?>
                     </div>
                 </div>                

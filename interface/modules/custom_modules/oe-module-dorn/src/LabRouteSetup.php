@@ -14,7 +14,7 @@ namespace OpenEMR\Modules\Dorn;
 
 class LabRouteSetup
 {
-    public static function CreateProcedureProviders($labName, $npi, $labGuid)
+    public static function createProcedureProviders($labName, $npi, $labGuid)
     {
         $send_app_id = "";
         $send_fac_id = "";

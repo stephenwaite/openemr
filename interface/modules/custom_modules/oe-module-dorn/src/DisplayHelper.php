@@ -14,15 +14,11 @@ use OpenEMR\Modules\Dorn\Bootstrap;
 
 class DisplayHelper
 {
-    public static function SelectOption($compareA,$compareB)
+    public static function SelectOption($compareA, $compareB)
     {
-        if($compareA==$compareB)
-        {
+        if ($compareA==$compareB) {
             return 'selected';
         }
         return ' ';
     }
 }
-
-
-?>

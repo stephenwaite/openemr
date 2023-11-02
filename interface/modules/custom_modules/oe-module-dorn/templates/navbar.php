@@ -28,7 +28,7 @@
                                 } ?>">
                 <a class="nav-link" href="primary_config.php"><?php echo xlt("Configure Primary"); ?></a>
             </li>
-            <li class="nav-item <?php if ($tab == "lab setup") { 
+            <li class="nav-item <?php if ($tab == "lab setup") {
                 echo "active";
                                 } ?>">
                 <a class="nav-link" href="lab_setup.php"><?php echo xlt("Lab Setup"); ?></a>
