@@ -37,13 +37,15 @@ class LabRouteSetup
         VALUES (?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         $sql_pp_insert_sqlarr = array(
-            $labName, $npi, $send_app_id, $send_fac_id, $recv_app_id, $recv_fac_id, $DorP, $direction, $protocol, $remote_host, $orders_path, $results_path, $notes, $lab_director, $active, $type
+            $labName, $npi, $send_app_id, $send_fac_id, $recv_app_id, $recv_fac_id, $DorP, $direction, $protocol,
+            $remote_host, $orders_path, $results_path, $notes, $lab_director, $active, $type
         );
 
         $result = sqlStatement($sql_pp_insert, $sql_pp_insert_sqlarr);
 
         if (sqlNumRows($result) <= 0) {
-            $sql_pp_search = "SELECT ppid FROM procedure_providers WHERE npi = ? AND active = ? AND notes LIKE CONCAT('%', ?, '%') LIMIT 1";
+            $sql_pp_search = "SELECT ppid FROM procedure_providers 
+            WHERE npi = ? AND active = ? AND notes LIKE CONCAT('%', ?, '%') LIMIT 1";
 
             $sql_pp_search_sqlarr = array($npi, $active, $notes);
             $ppDataResult = sqlStatement($sql_pp_search, $sql_pp_search_sqlarr);
@@ -58,14 +60,19 @@ class LabRouteSetup
         }
         return $ppid;
     }
-    public static function CreateDornRoute($labName, $routeGuid, $labGuid, $ppid)
+    public static function createDornRoute($labName, $routeGuid, $labGuid, $ppid, $uid, $lineBreakChar)
     {
-        $sql = "INSERT INTO mod_dorn_routes (lab_guid,lab_name,ppid,route_guid) VALUES (?,?,?,?)";
-        $sqlarr = array($labGuid, $labName, $ppid, $routeGuid);
+        $sql = "INSERT INTO mod_dorn_routes (lab_guid, lab_name, ppid, route_guid, uid, text_line_break_character) 
+                VALUES (?,?,?,?,?,?)
+                ON DUPLICATE KEY UPDATE lab_name = VALUES(lab_name), ppid = VALUES(ppid), uid = VALUES(uid), text_line_break_character = VALUES(text_line_break_character)";
+    
+        $sqlarr = array($labGuid, $labName, $ppid, $routeGuid, $uid, $lineBreakChar);
         $result = sqlStatement($sql, $sqlarr);
+    
         if (sqlNumRows($result) <= 0) {
             return false;
         }
+    
         return true;
     }
 }

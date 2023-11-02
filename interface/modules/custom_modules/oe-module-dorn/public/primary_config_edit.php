@@ -16,7 +16,7 @@
     use OpenEMR\Common\Csrf\CsrfUtils;
     use OpenEMR\Common\Twig\TwigContainer;
     use OpenEMR\Core\Header;
-    use OpenEMR\Modules\Dorn\ClaimRevDornApiConector;
+    use OpenEMR\Modules\Dorn\ClaimRevDornApiConnector;
     use OpenEMR\Modules\Dorn\models\CustomerPrimaryInfoView;
 
 if (!empty($_GET)) {
@@ -40,7 +40,7 @@ if (!empty($_POST)) {
     if (isset($_POST['SubmitButton'])) { //check if form was submitted
         $saveData = CustomerPrimaryInfoView::loadByPost($_POST);
         echo($saveData->primaryPhone);
-        ClaimRevDornApiConector::SavePrimaryInfo($saveData);
+        ClaimRevDornApiConnector::savePrimaryInfo($saveData);
         $npi = $_POST["form_npi"];
     }
 } else {
@@ -48,7 +48,7 @@ if (!empty($_POST)) {
 }
 
 if ($npi) {
-    $data = ClaimRevDornApiConector::GetPrimaryInfoByNpi($npi);
+    $data = ClaimRevDornApiConnector::getPrimaryInfoByNpi($npi);
 }
     
 ?>

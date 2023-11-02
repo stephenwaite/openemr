@@ -13,17 +13,24 @@ namespace OpenEMR\Modules\Dorn;
 use OpenEMR\Common\Http\HttpRestRequest;
 use OpenEMR\Modules\Dorn\Bootstrap;
 
-class ClaimRevDornApiConector
+class ClaimRevDornApiConnector
 {
-    public static function CreateRoute($data)
+    public static function createRoute($data)
     {
-        $api_server = ClaimRevDornApiConector::GetServerInfo();
+        $api_server = ClaimRevDornApiConnector::getServerInfo();
         $url = $api_server . "/api/Route/v1/CreateRoute";
-        return ClaimRevDornApiConector::PostData($url, $data);
+        return ClaimRevDornApiConnector::postData($url, $data);
     }
-    public static function SearchLabs($labName, $phoneNumber, $faxNumber, $city, $state, $zipCode, $isActive, $isConnected)
+    public static function getLab($labGuid)
     {
-        $api_server = ClaimRevDornApiConector::GetServerInfo();
+        $api_server = ClaimRevDornApiConnector::getServerInfo();
+        $url = $api_server . "/api/Labs/v1/" . $labGuid;
+        $returnData = ClaimRevDornApiConnector::getData($url);
+        return $returnData;
+    }
+    public static function searchLabs($labName, $phoneNumber, $faxNumber, $city, $state, $zipCode, $isActive, $isConnected)
+    {
+        $api_server = ClaimRevDornApiConnector::getServerInfo();
         $url = $api_server . "/api/Labs/v1/SearchLabs";
         $params = []; // Initialize an empty params array
 
@@ -62,19 +69,19 @@ class ClaimRevDornApiConector
        
         $url = $url . '?' . http_build_query($params);
 
-        $returnData = ClaimRevDornApiConector::GetData($url);
+        $returnData = ClaimRevDornApiConnector::getData($url);
         return $returnData;
     }
-    public static function SavePrimaryInfo($data)
+    public static function savePrimaryInfo($data)
     {
-        $api_server = ClaimRevDornApiConector::GetServerInfo();
+        $api_server = ClaimRevDornApiConnector::getServerInfo();
         $url = $api_server . "/api/Customer/v1/SaveCustomerPrimaryInfo";
-        return ClaimRevDornApiConector::PostData($url, $data);
+        return ClaimRevDornApiConnector::postData($url, $data);
     }
 
-    public static function GetPrimaryInfoByNpi($npi)
+    public static function getPrimaryInfoByNpi($npi)
     {
-        $api_server = ClaimRevDornApiConector::GetServerInfo();
+        $api_server = ClaimRevDornApiConnector::getServerInfo();
         $url = $api_server . "/api/Customer/v1/GetPrimaryInfoByNpi";
             
         if ($npi) {
@@ -82,12 +89,12 @@ class ClaimRevDornApiConector
             $url = $url . '?' . http_build_query($params);
         }
        
-        $returnData = ClaimRevDornApiConector::GetData($url);
+        $returnData = ClaimRevDornApiConnector::getData($url);
         return $returnData;
     }
-    public static function GetPrimaryInfos($npi)
+    public static function getPrimaryInfos($npi)
     {
-        $api_server = ClaimRevDornApiConector::GetServerInfo();
+        $api_server = ClaimRevDornApiConnector::getServerInfo();
         $url = $api_server . "/api/Customer/v1/SearchPrimaryInfo";
 
         if ($npi) {
@@ -95,13 +102,13 @@ class ClaimRevDornApiConector
             $url = $url . '?' . http_build_query($params);
         }
        
-        $returnData = ClaimRevDornApiConector::GetData($url);
+        $returnData = ClaimRevDornApiConnector::getData($url);
         return $returnData;
     }
 
-    public static function GetData($url)
+    public static function getData($url)
     {
-        $headers = ClaimRevDornApiConector::BuildHeader();
+        $headers = ClaimRevDornApiConnector::buildHeader();
          
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -118,9 +125,9 @@ class ClaimRevDornApiConector
         error_log("Error " . "Status Code". $httpcode . " sending in api " . $url . " Message " . $result);
         return "";
     }
-    public static function PostData($url, $sendData)
+    public static function postData($url, $sendData)
     {
-        $headers =ClaimRevDornApiConector::BuildHeader();
+        $headers =ClaimRevDornApiConnector::buildHeader();
         $payload = json_encode($sendData, JSON_UNESCAPED_SLASHES);
         
         $ch = curl_init();
@@ -140,14 +147,14 @@ class ClaimRevDornApiConector
         error_log("Error " . "Status Code". $httpcode . " sending in api " . $url . " Message " . $result);
         return "";
     }
-    public static function GetServerInfo()
+    public static function getServerInfo()
     {
         $bootstrap = new Bootstrap($GLOBALS['kernel']->getEventDispatcher());
         $globalsConfig = $bootstrap->getGlobalConfig();
         $api_server = $globalsConfig->getApiServer();
         return $api_server;
     }
-    public static function BuildHeader()
+    public static function buildHeader()
     {
         $token = "";
         $content = 'content-type: application/json';

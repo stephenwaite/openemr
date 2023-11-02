@@ -14,7 +14,7 @@
  use OpenEMR\Common\Acl\AclMain;
  use OpenEMR\Common\Csrf\CsrfUtils;
  use OpenEMR\Common\Twig\TwigContainer;
- use OpenEMR\Modules\Dorn\ClaimRevDornApiConector;
+ use OpenEMR\Modules\Dorn\ClaimRevDornApiConnector;
  use OpenEMR\Core\Header; //this is needed along with setupHeader() to get the pop up to appear
 
  $tab = "lab setup";
@@ -26,7 +26,7 @@ if (!AclMain::aclCheckCore('admin', 'users')) {
 
 if (!empty($_POST)) {
     if (isset($_POST['SubmitButton'])) { //check if form was submitted
-        $datas = ClaimRevDornApiConector::SearchLabs($_POST['form_labName'], $_POST['form_phone'], $_POST['form_fax'], $_POST['form_city'], $_POST['form_state'], $_POST['form_zip'], $_POST['form_active'], $_POST['form_connected']);
+        $datas = ClaimRevDornApiConnector::searchLabs($_POST['form_labName'], $_POST['form_phone'], $_POST['form_fax'], $_POST['form_city'], $_POST['form_state'], $_POST['form_zip'], $_POST['form_active'], $_POST['form_connected']);
         if ($datas == null) {
             $datas = [];
         }

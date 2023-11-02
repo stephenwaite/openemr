@@ -16,12 +16,13 @@
  use OpenEMR\Common\Csrf\CsrfUtils;
  use OpenEMR\Common\Twig\TwigContainer;
  use OpenEMR\Core\Header;
- use OpenEMR\Modules\Dorn\ClaimRevDornApiConector;
+ use OpenEMR\Modules\Dorn\ClaimRevDornApiConnector;
  use OpenEMR\Modules\Dorn\models\CreateRouteFromPrimaryViewModel;
  use OpenEMR\Modules\Dorn\DisplayHelper;
  use OpenEMR\Modules\Dorn\LabRouteSetup;
+ use OpenEMR\Modules\Dorn\AddressBookAddEdit;
 
- $labGuid = "";
+$labGuid = "";
 if (!empty($_GET)) {
     if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
         CsrfUtils::csrfNotVerified();
@@ -33,11 +34,15 @@ if (!empty($_POST)) {
         CsrfUtils::csrfNotVerified();
     }
     $labGuid = $_POST["form_labGuid"];
+    $labData = ClaimRevDornApiConnector::getLab($labGuid);
+    $note = "labGuid:" . $labData->labGuid;
+    $uid = AddressBookAddEdit::createOrUpdateRecordInAddressBook(0, $labData->name, $labData->address1, $labData->address2, $labData->city, $labData->state, $labData->zipCode, $labData->Website, $labData->phoneNumber, $labData->faxNumber, $note);
+
     $routeData = CreateRouteFromPrimaryViewModel::loadByPost($_POST);
-    $apiResponse =  ClaimRevDornApiConector::CreateRoute($routeData);
+    $apiResponse =  ClaimRevDornApiConnector::createRoute($routeData);
     $ppid = LabRouteSetup::createProcedureProviders($apiResponse->labName, $routeData->npi, $routeData->labGuid);
     if ($ppid > 0) {
-        $isLabSetup = LabRouteSetup::CreateDornRoute($apiResponse->labName, $apiResponse->routeGuid, $apiResponse->labGuid, $ppid);
+        $isLabSetup = LabRouteSetup::createDornRoute($apiResponse->labName, $apiResponse->routeGuid, $apiResponse->labGuid, $ppid, $uid, $$labData->textLineBreakCharacter);
     }
 } else {
     if (!empty($_GET)) {
@@ -49,7 +54,7 @@ if (!AclMain::aclCheckCore('admin', 'users')) {
     echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Edit/Add Procedure Provider")]);
     exit;
 }
-$primaryInfos = ClaimRevDornApiConector::GetPrimaryInfos("");
+$primaryInfos = ClaimRevDornApiConnector::getPrimaryInfos("");
 
 ?>
 <html>
