@@ -51,7 +51,6 @@ if (!AclMain::aclCheckCore('admin', 'users')) {
 }
 $primaryInfos = ClaimRevDornApiConector::GetPrimaryInfos("");
 
-
 ?>
 <html>
 <head>
