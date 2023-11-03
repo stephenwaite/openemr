@@ -45,51 +45,48 @@ class AddressBookAddEdit
 
     public static function createRecordInAddressBook($organization, $street, $streetb, $city, $state, $zip, $url, $phone, $fax, $notes)
     {
-        $abook_type     = 'ord_lab';
+        $abook_type     = "ord_lab";
         $see_auth       = 0;
         $active         = 1;
         $authorized     = 0;
 
         $npi            = "";
-        $userName       = '';
-        $password       = '';
-        $fname          = '';
-        $mname          = '';
-        $lname          = '';
-        $suffix         = '';
-        $federaltaxid   = '';
-        $federaldrugid  = '';
-        $info           = '';
+        $userName       = "";
+        $password       = "";
+        $fname          = "";
+        $mname          = "";
+        $lname          = "";
+        $suffix         = "";
+        $federaltaxid   = "";
+        $federaldrugid  = "";
+        $info           = "";
         $source         = null;
-        $title          = '';
-        $upin           = '';
-        $facility       = '';
-        $billname       = '';
-        $taxonomy       = '';
-        $cpoe           = '';
-        $specialty      = '';
-        $valedictory    = '';
-        $assistant      = '';
-        $email          = '';
-        $email_direct   = '';
-        $street2        = '';
-        $streetb2       = '';
-        $city2          = '';
-        $state2         = '';
-        $zip2           = '';
-        $phonew1        = '';
-        $phonew2        = '';
-        $phonecell      = '';
-        $abook_type     = '';
+        $title          = "";
+        $upin           = "";
+        $facility       = "";
+        $billname       = "";
+        $taxonomy       = "";
+        $cpoe           = "";
+        $specialty      = "";
+        $valedictory    = "";
+        $assistant      = "";
+        $email          = "";
+        $email_direct   = "";
+        $street2        = "";
+        $streetb2       = "";
+        $city2          = "";
+        $state2         = "";
+        $zip2           = "";
+        $phonew1        = "";
+        $phonew2        = "";
+        $phonecell      = "";
         
-        $sqlArr = array(
-            $$userName, $password, $authorized, $info, $source
+        $sqlArr = array($$userName, $password, $authorized, $info, $source
             ,$title, $fname, $lname, $mname, $suffix
             ,$federaltaxid, $federaldrugid,$upin,$facility,$see_auth,$active,$npi,$taxonomy,$cpoe
             ,$specialty,$organization,$valedictory,$assistant,$billname,$email,$email_direct,$url
             ,$street,$streetb,$city,$state,$zip,$street2,$streetb2,$city2,$state2,$zip2,$phone,$phonew1
-            ,$phonew2,$phonecell,$fax,$notes,$abook_type
-        );
+            ,$phonew2,$phonecell,$fax,$notes,$abook_type);
 
 
         $userid = sqlInsert("INSERT INTO users ( 

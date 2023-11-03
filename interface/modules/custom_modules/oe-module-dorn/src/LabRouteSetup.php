@@ -14,7 +14,17 @@ namespace OpenEMR\Modules\Dorn;
 
 class LabRouteSetup
 {
-    public static function createProcedureProviders($labName, $npi, $labGuid)
+    public static function createUpdateProcedureProviders($ppid, $labName, $npi, $labGuid)
+    {
+        if ($ppid > 0) {
+            LabRouteSetup::updateProcedureProviders($ppid, $labName, $npi, $labGuid);
+        } else {
+            $ppid = LabRouteSetup::createProcedureProviders($labName, $npi, $labGuid);
+        }
+        return $ppid;
+    }
+
+    public static function updateProcedureProviders($ppid, $labName, $npi, $labGuid)
     {
         $send_app_id = "";
         $send_fac_id = "";
@@ -22,43 +32,93 @@ class LabRouteSetup
         $recv_fac_id = "";
         $DorP = "P";
         $direction = "B";
-        $protocol = "fs";
+        $protocol = "FS";
         $remote_host = "";
-        $orders_path = "/tmp/orders";
-        $results_path = "/tmp/hl7";
+        $orders_path = "/tmp/dorn/orders/" + $labName;
+        $results_path = "/tmp/hl7/dorn/"+ $labName;
         $notes = "created automatically - LabGuid:" . $labGuid;
         $lab_director = "5";
         $active = 1;
         $type = null;
 
+       // Update the existing procedure provider
+        $sql = "UPDATE procedure_providers SET 
+            name = ?, npi = ?, send_app_id = ?, send_fac_id = ?, recv_app_id = ?
+            ,recv_fac_id = ?, DorP = ?, direction = ?, protocol = ?, remote_host = ?,orders_path = ?,results_path = ?,notes = ?
+            ,lab_director = ?, active = ?,type = ?
+        WHERE ppid = ?";
+        $sqlarr = array(
+            $labName, $npi, $send_app_id, $send_fac_id, $recv_app_id,
+            $recv_fac_id, $DorP, $direction, $protocol, $remote_host, $orders_path, $results_path, $notes,
+            $lab_director, $active, $type, $ppid);
+        sqlStatement($sql, $sqlarr);
+    }
+    public static function createProcedureProviders($labName, $npi, $labGuid)
+    {
+        $ppid = null;
 
-        $sql_pp_insert = "INSERT INTO procedure_providers (name, npi, send_app_id, send_fac_id, recv_app_id
-        ,recv_fac_id, DorP, direction, protocol, remote_host,orders_path,results_path,notes,lab_director, active,type) 
-        VALUES (?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $send_app_id = "";
+        $send_fac_id = "";
+        $recv_app_id = "";
+        $recv_fac_id = "";
+        $DorP = "P";
+        $direction = "B";
+        $protocol = "FS";
+        $remote_host = "";
+        $orders_path = "/tmp/dorn/orders/" + $labName;
+        $results_path = "/tmp/hl7/dorn/" + $labName;
+        $notes = "created automatically - LabGuid:" . $labGuid;
+        $lab_director = "5";
+        $active = 1;
+        $type = null;
 
-        $sql_pp_insert_sqlarr = array(
-            $labName, $npi, $send_app_id, $send_fac_id, $recv_app_id, $recv_fac_id, $DorP, $direction, $protocol,
-            $remote_host, $orders_path, $results_path, $notes, $lab_director, $active, $type
-        );
-
-        $result = sqlStatement($sql_pp_insert, $sql_pp_insert_sqlarr);
-
-        if (sqlNumRows($result) <= 0) {
-            $sql_pp_search = "SELECT ppid FROM procedure_providers 
-            WHERE npi = ? AND active = ? AND notes LIKE CONCAT('%', ?, '%') LIMIT 1";
-
-            $sql_pp_search_sqlarr = array($npi, $active, $notes);
-            $ppDataResult = sqlStatement($sql_pp_search, $sql_pp_search_sqlarr);
-            $ppid = null; // Initialize the variable
-
-            if (sqlNumRows($ppDataResult) == 1) {
-                foreach ($ppDataResult as $row) {
-                    $ppid = $row['ppid']; // Assuming 'ppid' is the first column in your SELECT statement.
-                    break;
-                }
+        $ppid = LabRouteSetup::findProcedureProvider($npi, $active, $notes);
+        if ($ppid == null) {
+            $sql_pp_insert = "INSERT INTO procedure_providers (name, npi, send_app_id, send_fac_id, recv_app_id
+            ,recv_fac_id, DorP, direction, protocol, remote_host,orders_path,results_path,notes
+            ,lab_director, active,type) 
+            VALUES (?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    
+            $sql_pp_insert_sqlarr = array(
+                $labName, $npi, $send_app_id, $send_fac_id, $recv_app_id,
+                $recv_fac_id, $DorP, $direction, $protocol, $remote_host, $orders_path, $results_path, $notes,
+                $lab_director, $active, $type
+            );
+    
+            $result = sqlStatement($sql_pp_insert, $sql_pp_insert_sqlarr);
+          
+            if (sqlNumRows($result) <= 0) {
+                $ppid = LabRouteSetup::findProcedureProvider($npi, $active, $notes);
             }
         }
         return $ppid;
+    }
+    public static function getProcedureIdProviderByLabGuid($labGuid)
+    {
+        $sql = "SELECT DISTINCT dr.ppid
+                FROM `mod_dorn_routes` dr               
+            WHERE dr.lab_guid = ?";
+        $records = sqlStatement($sql, [$labGuid]);
+        return $records;
+    }
+    public static function getRouteSetup($labGuid, $routeGuid)
+    {
+        $sql = "SELECT dr.lab_guid, dr.route_guid, dr.ppid, dr.uid, dr.lab_name, dr.text_line_break_character 
+                FROM `mod_dorn_routes` dr 
+                INNER JOIN procedure_providers pp on
+                    pp.ppid = dr.ppid
+                INNER JOIN users u on
+                    u.id = dr.uid
+            WHERE dr.lab_guid = ? AND dr.route_guid = ?";
+        $record = sqlQuery($sql, [$labGuid, $routeGuid]);
+        return $record;
+    }
+    public static function findProcedureProvider($npi, $active, $notes)
+    {
+        $sql_pp_search = "SELECT ppid FROM procedure_providers 
+        WHERE npi = ? AND active = ? AND notes LIKE CONCAT('%', ?, '%') LIMIT 1";
+        $record = sqlQuery($sql_pp_search, [$npi, $active, $notes]);
+        return $record['ppid'];
     }
     public static function createDornRoute($labName, $routeGuid, $labGuid, $ppid, $uid, $lineBreakChar)
     {
@@ -70,9 +130,9 @@ class LabRouteSetup
         $result = sqlStatement($sql, $sqlarr);
     
         if (sqlNumRows($result) <= 0) {
-            return false;
+            return true;
         }
     
-        return true;
+        return false;
     }
 }

@@ -16,13 +16,15 @@
  use OpenEMR\Common\Csrf\CsrfUtils;
  use OpenEMR\Common\Twig\TwigContainer;
  use OpenEMR\Core\Header;
- use OpenEMR\Modules\Dorn\ClaimRevDornApiConnector;
+ use OpenEMR\Modules\Dorn\ConnectorApi;
  use OpenEMR\Modules\Dorn\models\CreateRouteFromPrimaryViewModel;
  use OpenEMR\Modules\Dorn\DisplayHelper;
  use OpenEMR\Modules\Dorn\LabRouteSetup;
  use OpenEMR\Modules\Dorn\AddressBookAddEdit;
 
 $labGuid = "";
+$message = "";
+
 if (!empty($_GET)) {
     if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
         CsrfUtils::csrfNotVerified();
@@ -33,16 +35,38 @@ if (!empty($_POST)) {
     if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
         CsrfUtils::csrfNotVerified();
     }
-    $labGuid = $_POST["form_labGuid"];
-    $labData = ClaimRevDornApiConnector::getLab($labGuid);
-    $note = "labGuid:" . $labData->labGuid;
-    $uid = AddressBookAddEdit::createOrUpdateRecordInAddressBook(0, $labData->name, $labData->address1, $labData->address2, $labData->city, $labData->state, $labData->zipCode, $labData->Website, $labData->phoneNumber, $labData->faxNumber, $note);
-
+    //lets lookup the lab information we want to add a route for!
     $routeData = CreateRouteFromPrimaryViewModel::loadByPost($_POST);
-    $apiResponse =  ClaimRevDornApiConnector::createRoute($routeData);
-    $ppid = LabRouteSetup::createProcedureProviders($apiResponse->labName, $routeData->npi, $routeData->labGuid);
-    if ($ppid > 0) {
-        $isLabSetup = LabRouteSetup::createDornRoute($apiResponse->labName, $apiResponse->routeGuid, $apiResponse->labGuid, $ppid, $uid, $$labData->textLineBreakCharacter);
+    $apiResponse =  ConnectorApi::createRoute($routeData);//create the route on dorn, we have all we need to do so
+    if ($apiResponse->isSuccess) {
+        $ppid = 0;
+        $uid = 0;
+        $labData = ConnectorApi::getLab($routeData->labGuid);
+        $note = "labGuid:" . $labData->labGuid;
+
+        $setupRouteInfo = LabRouteSetup::getRouteSetup($apiResponse->labGuid, $apiResponse->routeGuid);
+        if ($setupRouteInfo != null) {
+            $ppid = $setupRouteInfo["ppid"];
+            $uid =$setupRouteInfo["uid"];
+        }
+
+        //we've added this lab to the address book here.
+        $uid = AddressBookAddEdit::createOrUpdateRecordInAddressBook($uid, $labData->name, $labData->address1, $labData->address2, $labData->city, $labData->state, $labData->zipCode, $labData->Website, $labData->phoneNumber, $labData->faxNumber, $note);
+        $ppid = LabRouteSetup::createUpdateProcedureProviders($ppid, $apiResponse->labName, $routeData->npi, $apiResponse->labGuid);
+
+        //lets add/update to the new dorn route table
+        $isLabSetup = LabRouteSetup::createDornRoute($apiResponse->labName, $apiResponse->routeGuid, $apiResponse->labGuid, $ppid, $uid, $labData->textLineBreakCharacter);
+        if ($isLabSetup) {
+            $message = "Lab has been setup";
+        } else {
+            $message = "Failure creating route!";
+        }
+    } else {
+        if ($apiResponse->responseMessage) {
+            $message = $apiResponse->responseMessage;
+        } else {
+            $message = "Error creating route, no information came back though";
+        }
     }
 } else {
     if (!empty($_GET)) {
@@ -54,7 +78,7 @@ if (!AclMain::aclCheckCore('admin', 'users')) {
     echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Edit/Add Procedure Provider")]);
     exit;
 }
-$primaryInfos = ClaimRevDornApiConnector::getPrimaryInfos("");
+$primaryInfos = ConnectorApi::getPrimaryInfos("");
 
 ?>
 <html>
@@ -100,7 +124,7 @@ $primaryInfos = ClaimRevDornApiConnector::getPrimaryInfos("");
             <div class="col-sm-6">
                 <button type="submit" name="SubmitButton" class="btn btn-primary"><?php echo xlt("Save") ?></button>
                 <?php
-                    echo $apiResponse->responseMesssage;
+                    echo $message;
                 ?>
             </div>
         </div>

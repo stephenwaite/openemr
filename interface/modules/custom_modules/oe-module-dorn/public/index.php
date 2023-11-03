@@ -14,8 +14,9 @@
 
     use OpenEMR\Common\Acl\AclMain;
     use OpenEMR\Common\Twig\TwigContainer;
-
+    
     $tab = "home";
+
 
 //ensure user has proper access
 // if (!AclMain::aclCheckCore('acct', 'bill')) {
