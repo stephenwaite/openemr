@@ -11,9 +11,24 @@
 namespace OpenEMR\Modules\Dorn;
 
 use OpenEMR\Modules\Dorn\Bootstrap;
+use OpenEMR\Modules\Dorn\models\LabOrderViewModel;
 
 class ConnectorApi
 {
+    public static function sendOrder($labGuid, $labAccountNumber, $orderNumber, $patientId, $hl7)
+    {
+        $api_server = ConnectorApi::getServerInfo();
+        $url = $api_server . "/api/Orders/v1/SendLabOrder";
+        $base64 = base64_encode($hl7);
+        
+        $data = new LabOrderViewModel();
+        $data->labGuid = $labGuid . '';
+        $data->orderNumber = $orderNumber . '';
+        $data->patientId = $patientId . '';
+        $data->hl7Base64 = $base64;
+        $data->labAccountNumber = $labAccountNumber . '';
+        return ConnectorApi::postData($url, $data);
+    }
     public static function getCompendium($labGuid)
     {
         $api_server = ConnectorApi::getServerInfo();

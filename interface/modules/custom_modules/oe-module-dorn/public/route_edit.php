@@ -55,7 +55,7 @@ if (!empty($_POST)) {
         $ppid = LabRouteSetup::createUpdateProcedureProviders($ppid, $apiResponse->labName, $routeData->npi, $apiResponse->labGuid);
 
         //lets add/update to the new dorn route table
-        $isLabSetup = LabRouteSetup::createDornRoute($apiResponse->labName, $apiResponse->routeGuid, $apiResponse->labGuid, $ppid, $uid, $labData->textLineBreakCharacter);
+        $isLabSetup = LabRouteSetup::createDornRoute($apiResponse->labName, $apiResponse->routeGuid, $apiResponse->labGuid, $ppid, $uid, $labData->textLineBreakCharacter, $routeData->labAccountNumber);
         if ($isLabSetup) {
             $message = "Lab has been setup";
         } else {

@@ -65,8 +65,8 @@ class LabRouteSetup
         $direction = "B";
         $protocol = "FS";
         $remote_host = "";
-        $orders_path = "/tmp/dorn/orders/" + $labName;
-        $results_path = "/tmp/hl7/dorn/" + $labName;
+        $orders_path = "/tmp/dorn/orders/" . $labName;
+        $results_path = "/tmp/hl7/dorn/" . $labName;
         $notes = "created automatically - LabGuid:" . $labGuid;
         $lab_director = "5";
         $active = 1;
@@ -120,13 +120,14 @@ class LabRouteSetup
         $record = sqlQuery($sql_pp_search, [$npi, $active, $notes]);
         return $record['ppid'];
     }
-    public static function createDornRoute($labName, $routeGuid, $labGuid, $ppid, $uid, $lineBreakChar)
+    public static function createDornRoute($labName, $routeGuid, $labGuid, $ppid, $uid, $lineBreakChar, $labAccountNumber)
     {
-        $sql = "INSERT INTO mod_dorn_routes (lab_guid, lab_name, ppid, route_guid, uid, text_line_break_character) 
-                VALUES (?,?,?,?,?,?)
-                ON DUPLICATE KEY UPDATE lab_name = VALUES(lab_name), ppid = VALUES(ppid), uid = VALUES(uid), text_line_break_character = VALUES(text_line_break_character)";
+        $sql = "INSERT INTO mod_dorn_routes (lab_guid, lab_name, ppid, route_guid, uid, text_line_break_character, lab_account_number) 
+                VALUES (?,?,?,?,?,?,?)
+                ON DUPLICATE KEY UPDATE lab_name = VALUES(lab_name), ppid = VALUES(ppid),
+                uid = VALUES(uid), text_line_break_character = VALUES(text_line_break_character), lab_account_number = VALUES(lab_account_number)";
     
-        $sqlarr = array($labGuid, $labName, $ppid, $routeGuid, $uid, $lineBreakChar);
+        $sqlarr = array($labGuid, $labName, $ppid, $routeGuid, $uid, $lineBreakChar, $labAccountNumber);
         $result = sqlStatement($sql, $sqlarr);
     
         if (sqlNumRows($result) <= 0) {

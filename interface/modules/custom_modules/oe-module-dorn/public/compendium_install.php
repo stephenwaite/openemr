@@ -16,10 +16,13 @@
  use OpenEMR\Common\Csrf\CsrfUtils;
  use OpenEMR\Common\Twig\TwigContainer;
  use OpenEMR\Core\Header;
- use OpenEMR\Modules\Dorn\ConnectorApi;
+ use OpenEMR\Modules\Dorn\LabCompendiumInstall;
  
 if (!empty($_GET)) {
     if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
         CsrfUtils::csrfNotVerified();
     }
+    $labGuid = $_REQUEST['labGuid'];
+    LabCompendiumInstall::uninstall($labGuid);
+    LabCompendiumInstall::install($labGuid);
 }

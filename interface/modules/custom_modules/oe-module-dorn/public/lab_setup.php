@@ -49,7 +49,7 @@ function createRouteclick_edit(labGuid) {
 function installCompendiumClick(labGuid) {
     top.restoreSession();
     var addTitle = '<i class="fa fa-plus" style="width:20px;" aria-hidden="true"></i> ' + <?php echo xlj("Edit Mode"); ?>;
-    let scriptTitle = 'route_edit.php?labGuid=' + labGuid +'&csrf_token_form=' + <?php echo js_url(CsrfUtils::collectCsrfToken()); ?>;
+    let scriptTitle = 'compendium_install.php?labGuid=' + labGuid +'&csrf_token_form=' + <?php echo js_url(CsrfUtils::collectCsrfToken()); ?>;
     dlgopen(scriptTitle, '_blank', 800, 750, false, addTitle);
 }
 </script>
