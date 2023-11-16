@@ -52,7 +52,7 @@ if (!empty($_POST)) {
 
         //we've added this lab to the address book here.
         $uid = AddressBookAddEdit::createOrUpdateRecordInAddressBook($uid, $labData->name, $labData->address1, $labData->address2, $labData->city, $labData->state, $labData->zipCode, $labData->Website, $labData->phoneNumber, $labData->faxNumber, $note);
-        $ppid = LabRouteSetup::createUpdateProcedureProviders($ppid, $apiResponse->labName, $routeData->npi, $apiResponse->labGuid);
+        $ppid = LabRouteSetup::createUpdateProcedureProviders($ppid, $apiResponse->labName, $routeData->npi, $apiResponse->labGuid, $uid);
 
         //lets add/update to the new dorn route table
         $isLabSetup = LabRouteSetup::createDornRoute($apiResponse->labName, $apiResponse->routeGuid, $apiResponse->labGuid, $ppid, $uid, $labData->textLineBreakCharacter, $routeData->labAccountNumber);

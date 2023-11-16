@@ -11,8 +11,39 @@
 
 namespace OpenEMR\Common\ProcedureTools;
 
+use InsuranceCompany;
+
 class GenHl7OrderBase
 {
+    protected $lineBreakChar = "\r";
+    protected $fieldSeparator = '|';
+    protected $componentSeparator = '^';
+    protected $repetitionSeparator = '~';
+    protected $escapeSeparator = '\\';
+    protected $subComponentSeparator = '&';
+
+    public function buildHL7Field($data)
+    {
+        if (is_array($data) && count($data) > 1) {
+            // Run each element through $this->hl7Text()
+            $data = array_map(array($this, 'hl7Text'), $data);
+            return implode($this->componentSeparator, $data);
+        } else {
+            // Run the single element through $this->hl7Text()
+            $data = $this->hl7Text($data);
+            return $data;
+        }
+    }
+
+    public function buildHl7Segment($segmentName, $fields)
+    {
+        foreach ($fields as $field) {
+            $segment .= $this->fieldSeparator . $field;
+        }
+        $segment = $segmentName . $segment . $this->lineBreakChar;
+        return $segment;
+    }
+
     public function hl7Text($s)
     {
         // See http://www.interfaceware.com/hl7_escape_protocol.html:
@@ -27,7 +58,7 @@ class GenHl7OrderBase
 
     public function hl7Zip($s)
     {
-        return hl7Text(preg_replace('/[-\s]*/', '', $s));
+        return $this->hl7Text(preg_replace('/[-\s]*/', '', $s));
     }
     
     public function hl7Date($s)
@@ -102,7 +133,7 @@ class GenHl7OrderBase
     {
         $tmp = strtolower($s);
         if ($tmp == '') {
-            return 'X';
+            return '';
         } elseif ($tmp == 'asian') {
             return 'A';
         } elseif ($tmp == 'black_or_afri_amer') {
@@ -142,15 +173,16 @@ class GenHl7OrderBase
      * @param  date $encounter_date YYYY-MM-DD date.
      * @return array   Array containing an array of data for each payer.
      */
-    public function loadPayerInfo($pid, $date = '')
+    function loadPayerInfo($pid, $date = '')
     {
         if (empty($date)) {
             $date = date('Y-m-d');
         }
+    
         $payers = array();
         $dres = sqlStatement(
             "SELECT * FROM insurance_data WHERE " .
-            "pid = ? AND date <= ? ORDER BY type ASC, date DESC",
+            "pid = ? AND (date <= ? OR date IS NULL) ORDER BY type ASC, date DESC",
             array($pid, $date)
         );
         $prevtype = ''; // type is primary, secondary or tertiary
@@ -158,12 +190,14 @@ class GenHl7OrderBase
             if (strcmp($prevtype, $drow['type']) == 0) {
                 continue;
             }
+    
             $prevtype = $drow['type'];
             // Very important to check for a missing provider because
             // that indicates no insurance as of the given date.
             if (empty($drow['provider'])) {
                 continue;
             }
+    
             $ins = count($payers);
             $crow = sqlQuery(
                 "SELECT * FROM insurance_companies WHERE id = ?",
@@ -171,10 +205,11 @@ class GenHl7OrderBase
             );
             $orow = new InsuranceCompany($drow['provider']);
             $payers[$ins] = array();
-            $payers[$ins]['data'] = $drow;
+            $payers[$ins]['data']    = $drow;
             $payers[$ins]['company'] = $crow;
-            $payers[$ins]['object'] = $orow;
+            $payers[$ins]['object']  = $orow;
         }
+    
         return $payers;
     }
     public function loadGuarantorInfo($pid, $date = '')

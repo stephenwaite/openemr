@@ -10,11 +10,23 @@
  */
 namespace OpenEMR\Modules\Dorn;
 
+use DateTime;
 use OpenEMR\Modules\Dorn\Bootstrap;
+use OpenEMR\Modules\Dorn\models\ApiResponseViewModel;
+use OpenEMR\Modules\Dorn\models\CompendiumInstallDateViewModel;
 use OpenEMR\Modules\Dorn\models\LabOrderViewModel;
 
 class ConnectorApi
 {
+    public static function setCompendiumLastUpdate($labGuid)
+    {
+        $api_server = ConnectorApi::getServerInfo();
+        $url = $api_server . "/api/Labs/v1/SetCompendiumInstallDate";
+        $data = new CompendiumInstallDateViewModel();
+        $data->installDate = (new DateTime())->format('Y-m-d\TH:i:s');
+        $data->labGuid = $labGuid;
+        return ConnectorApi::putData($url, $data);
+    }
     public static function sendOrder($labGuid, $labAccountNumber, $orderNumber, $patientId, $hl7)
     {
         $api_server = ConnectorApi::getServerInfo();
@@ -148,9 +160,40 @@ class ConnectorApi
         error_log("Error " . "Status Code". $httpcode . " sending in api " . $url . " Message " . $result);
         return "";
     }
+    public static function putData($url, $sendData)
+    {
+        $headers = ConnectorApi::buildHeader();
+        $payload = json_encode($sendData, JSON_UNESCAPED_SLASHES);
+        error_log("putting");
+        error_log($payload);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT'); // Use PUT method
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        
+        $result = curl_exec($ch);
+        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        curl_close($ch);
+        
+        if ($httpcode == 200 || $httpcode == 400) {
+            $responseJsonData = json_decode($result);
+            return $responseJsonData;
+        }
+
+        error_log("Error " . "Status Code". $httpcode . " sending in API " . $url . " Message " . $result);
+        
+        $response = new ApiResponseViewModel();
+        $response->isSuccess = false;
+        $response->responseMessage = "Error Putting Data!";
+
+        return $response;
+    }
     public static function postData($url, $sendData)
     {
-        $headers =ConnectorApi::buildHeader();
+        $headers = ConnectorApi::buildHeader();
         $payload = json_encode($sendData, JSON_UNESCAPED_SLASHES);
         
         $ch = curl_init();
@@ -168,7 +211,11 @@ class ConnectorApi
             return $responseJsonData;
         }
         error_log("Error " . "Status Code". $httpcode . " sending in api " . $url . " Message " . $result);
-        return "";
+        $response = new ApiResponseViewModel();
+        $response->isSuccess = false;
+        $response->responseMessage = "Error Posting Data!";
+
+        return $response;
     }
     public static function getServerInfo()
     {

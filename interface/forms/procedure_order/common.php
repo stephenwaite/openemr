@@ -414,26 +414,30 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
             }
             file_put_contents($log_file, $order_log);
         } else { // drop through if no errors..
-            if ($gbl_lab === 'ammon' || $gbl_lab === 'clarity') {
-                require_once(__DIR__ . "/../../procedure_tools/gen_universal_hl7/gen_hl7_order.inc.php");
-                $alertmsg = gen_hl7_order($formid, $hl7);
-            } elseif ($gbl_lab === 'labcorp') {
-                require_once(__DIR__ . "/../../procedure_tools/labcorp/ereq_form.php");
-                require_once(__DIR__ . "/../../procedure_tools/labcorp/gen_hl7_order.inc.php");
-                $alertmsg = gen_hl7_order($formid, $hl7, $reqStr);
-            } elseif ($gbl_lab === 'quest') {
-                require_once(__DIR__ . "/../../procedure_tools/quest/gen_hl7_order.inc.php");
-                $alertmsg = gen_hl7_order($formid, $hl7, $reqStr);
-            } else { // Default lab. Add more labs here.
-                //lets validate this is a dorn lab!
-                if ($isDorn) {
-                    $alertmsg = "is dorn";
-                    $alertmsg = $dornConnector->genHl7Order($formid, $hl7, $reqStr);
+            if ($isDorn) {
+                error_log('I am here!!!!!!!!!!!');
+                $alertmsg = "is dorn";
+                $alertmsg = $dornConnector->genHl7Order($formid, $hl7, $reqStr);
+            } else {
+                if ($gbl_lab === 'ammon' || $gbl_lab === 'clarity') {
+                    require_once(__DIR__ . "/../../procedure_tools/gen_universal_hl7/gen_hl7_order.inc.php");
+                    $alertmsg = gen_hl7_order($formid, $hl7);
+                } elseif ($gbl_lab === 'labcorp') {
+                    error_log("in the labcorp");
+                    require_once(__DIR__ . "/../../procedure_tools/labcorp/ereq_form.php");
+                    require_once(__DIR__ . "/../../procedure_tools/labcorp/gen_hl7_order.inc.php");
+                    $alertmsg = gen_hl7_order($formid, $hl7, $reqStr);
+                } elseif ($gbl_lab === 'quest') {
+                    error_log("in the quest");
+                    require_once(__DIR__ . "/../../procedure_tools/quest/gen_hl7_order.inc.php");
+                    $alertmsg = gen_hl7_order($formid, $hl7, $reqStr);
                 } else {
+                    // Default lab. Add more labs here.
                     require_once(__DIR__ . "/../../orders/gen_hl7_order.inc.php");
                     $alertmsg = gen_hl7_order($formid, $hl7);
                 }
             }
+
             if (empty($alertmsg)) {
                 if (empty($_POST['bn_save_ereq'])) {
                     if ($isDorn == false) {

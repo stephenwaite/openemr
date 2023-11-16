@@ -29,6 +29,7 @@ class LabCompendiumInstall
                     LabCompendiumInstall::loadOrderableItem($item, $parentId, $lab_id);
                 }
             }
+            ConnectorApi::setCompendiumLastUpdate($labGuid);
             echo "Compendium has been updated for lab: " . $compendiumResponse->compendium->labName;
         } else {
             echo "Error Getting Compendium! " . $compendiumResponse->responseMessage;
@@ -88,6 +89,11 @@ class LabCompendiumInstall
         foreach ($item->components as $component) {
             LabCompendiumInstall::loadResult($component, $id, $lab_id);
         }
+        $aoeCount = 1;
+        foreach ($item->aoe as $aoe) {
+            LabCompendiumInstall::loadAoe($aoe, $lab_id, $aoeCount, $item->code);
+            $aoeCount++;
+        }
     }
     public static function loadResult($component, $parentId, $lab_id)
     {
@@ -96,6 +102,84 @@ class LabCompendiumInstall
         VALUES (?, ?, ?, ?, ?, ?)";
         $sqlArr = array($parentId, $component->name, $lab_id, 'res', $component->code, $component->loinc);
         $id = sqlInsert($sql, $sqlArr);
+    }
+    public static function loadAoe($aoe, $lab_id, $aoeCount, $pcode)
+    {
+        $fldtype = LabCompendiumInstall::getQuestionType($aoe->questionType);
+        $qcode = $aoe->originalQuestionCode;
+        $question = $aoe->question;
+        $required = $aoe->answerRequired;
+        $activity = 1;
+        $maxSize = 15;
+        $options = "+" . LabCompendiumInstall::formatAnswers($aoe->answers);
+
+        // check for existing record
+        $qrow = sqlQuery("SELECT * FROM procedure_questions WHERE lab_id = ? AND procedure_code = ? AND question_code = ?", array(
+            $lab_id,
+            $pcode,
+            $qcode
+        ));
+
+        
+        // new record
+        if (empty($qrow ['procedure_code'])) {
+            sqlStatement("INSERT INTO procedure_questions SET seq = ?, lab_id = ?, procedure_code = ?, question_code = ?, question_text = ?, fldtype = ?, required = ?, tips = ?, activity = ?, options = ?, maxsize = ?", array(
+                $aoeCount,
+                $lab_id,
+                $pcode,
+                $qcode,
+                $question,
+                $fldtype,
+                $required,
+                "",
+                $activity,
+                $options,
+                $maxSize
+            ));
+        } else { // update record
+            sqlStatement("UPDATE procedure_questions SET seq = ?, question_text = ?, fldtype = ?, required = ?, tips = ?, activity = ? WHERE lab_id = ? AND procedure_code = ? AND question_code = ?, options = ?, maxsize = ?", array(
+                $aoeCount,
+                $question,
+                $fldtype,
+                $required,
+                "",
+                $activity,
+                $lab_id,
+                $pcode,
+                $qcode,
+                $options,
+                $maxSize
+            ));
+        }
+    }
+    public static function formatAnswers($answers):string
+    {
+        $returnValue = "";
+        foreach ($answers as $answer) {
+            $value = $answer . ":" . $answer;
+            $returnValue .= ";" . $value;
+        }
+        return $returnValue;
+    }
+    public static function getQuestionType($questionType)
+    {
+        /*
+        text field = T
+        numeric field = N
+        Date feild = D
+        Gestational age in weeks and days. = G
+        List of Check boxes = M
+        Radio buttons or drop-list, depending on the number of choices. = anything else (maybe S) for a single select
+        */
+        switch ($questionType) {
+            case 'Free Text':
+                return 'T';
+            case 'List':
+                return 'S';
+            case 'Multi-Select List':
+                return 'M';
+        }
+        return 'T';
     }
     public static function uninstall($lab_id)
     {
