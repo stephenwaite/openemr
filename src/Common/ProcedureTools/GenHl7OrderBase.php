@@ -40,10 +40,19 @@ class GenHl7OrderBase
         foreach ($fields as $field) {
             $segment .= $this->fieldSeparator . $field;
         }
+        // Remove trailing '|' characters
+        $segment = rtrim($segment, $this->fieldSeparator);
         $segment = $segmentName . $segment . $this->lineBreakChar;
+
         return $segment;
     }
 
+    public function replaceNewLine($s):string
+    {
+        $s = str_replace("\r", ' ', $s);
+        $s = str_replace("\n", ' ', $s);
+        return trim($s);
+    }
     public function hl7Text($s)
     {
         // See http://www.interfaceware.com/hl7_escape_protocol.html:
@@ -53,6 +62,7 @@ class GenHl7OrderBase
         $s = str_replace('~', '\\R\\', $s);
         $s = str_replace('&', '\\T\\', $s);
         $s = str_replace("\r", '\\X0d\\', $s);
+        $s = str_replace("\n", '', $s);
         return $s;
     }
 
@@ -60,7 +70,47 @@ class GenHl7OrderBase
     {
         return $this->hl7Text(preg_replace('/[-\s]*/', '', $s));
     }
+    public function hl7DateTime($s)
+    {
+        // Attempt to create a DateTime object from the input value
+        $date = date_create($s);
     
+        // Check if the input is a valid date
+        if ($date !== false) {
+            // Format the date as "YYYYMMDD"
+            return date_format($date, 'YmdHisO');
+        } else {
+            return "";
+        }
+    }
+    public function formatTime($t)
+    {
+        // Attempt to create a DateTime object from the input value
+        $time = date_create($t);
+    
+        // Check if the input is a valid time
+        if ($time !== false) {
+            // Format the time as "HHmm" without seconds
+            return date_format($time, 'Hi');
+        } else {
+            return "";
+        }
+    }
+
+    public function formatDate($d)
+    {
+        // Attempt to create a DateTime object from the input value
+        $date = date_create($d);
+    
+        // Check if the input is a valid date
+        if ($date !== false) {
+            // Format the date as "YYYYMMDD"
+            return date_format($date, 'Ymd');
+        } else {
+            return "";
+        }
+    }
+
     public function hl7Date($s)
     {
         return preg_replace('/[^\d]/', '', $s);
@@ -173,7 +223,7 @@ class GenHl7OrderBase
      * @param  date $encounter_date YYYY-MM-DD date.
      * @return array   Array containing an array of data for each payer.
      */
-    function loadPayerInfo($pid, $date = '')
+    public function loadPayerInfo($pid, $date = '')
     {
         if (empty($date)) {
             $date = date('Y-m-d');

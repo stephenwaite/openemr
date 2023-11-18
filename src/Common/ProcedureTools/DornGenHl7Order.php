@@ -45,8 +45,6 @@ class DornGenHl7Order extends GenHl7OrderBase
      */
     public function genHl7Order($orderid, &$out, &$reqStr)
     {
-
-        error_log('here!!!!!!!!!!!!!!!!!!!!!');
         // Delimiters
         $d0 = "\r";
         $d1 = '|';
@@ -128,6 +126,7 @@ class DornGenHl7Order extends GenHl7OrderBase
             "u.id = po.provider_id",
             array($orderid)
         );
+        error_log("this is order id". $orderid);
         if (empty($porow)) {
             return "Procedure order, ordering provider or lab is missing for order ID '$orderid'";
         }
@@ -163,12 +162,6 @@ class DornGenHl7Order extends GenHl7OrderBase
         $P[88] = $vitals['bps'] . '^' . $vitals['bpd'];
         $P[89] = $vitals['waist_circ'];
         $C[17] = parent::hl7Date(date("Ymd", strtotime($porow['date_collected'])));
-
-        // if (empty($porow['account'])) {
-        //     return "ERROR! Missing this orders facility location account code (Facility Id) in Facility!";
-        // }
-
-        // Message Header
         
         $bill_type = strtoupper(substr($porow['billing_type'], 0, 1));
         $out .= $this->createMsh($porow['send_app_id'], $porow['send_fac_id'], $porow['recv_app_id'], $porow['recv_fac_id'], date('YmdHisO', $today), "", $orderid, "T", "", "", "AL", "NE", "", "", "", "");
@@ -210,6 +203,7 @@ class DornGenHl7Order extends GenHl7OrderBase
             // Insurance stuff.
         $payers = $this->loadPayerInfo($porow['pid'], $porow['date_ordered']);
         $setid = 0;
+
         if ($bill_type == 'T') {
             // only send primary and secondary insurance
             foreach ($payers as $payer) {
@@ -228,47 +222,32 @@ class DornGenHl7Order extends GenHl7OrderBase
                     $full_address .= "," . $payer_address->get_line2();
                 }
                 $out .= $this->createIn1(
-                    $setid, "", $payer['company']['cms_id'], $payer['company']['name'], $payer_address1, 
-                $payer_address2, $payer_addressCity, $payer_addressState, 
-                $payer_addressZip, $payer_addressPhone, $payer['data']['group_number'], "", "", $payer['data']['subscriber_fname'], $payer['data']['subscriber_lname'], 
-                $payer['data']['subscriber_mname'], $payer['data']['subscriber_relationship'], $payer['data']['subscriber_DOB'],
-                $payer['data']['subscriber_street'],"",$payer['data']['subscriber_city'], $payer['data']['subscriber_state'],$payer['data']['subscriber_postal_code'], $payer['data']['policy_number'] );
+                    ++$setid,
+                    $payer['data']['cms_id'], //this is a guess
+                    $payer['company']['cms_id'],
+                    $payer['company']['name'],
+                    $payer_address1,
+                    $payer_address2,
+                    $payer_addressCity,
+                    $payer_addressState,
+                    $payer_addressZip,
+                    $payer_addressPhone,
+                    $payer['data']['group_number'],
+                    "",
+                    "",
+                    $payer['data']['subscriber_fname'],
+                    $payer['data']['subscriber_lname'],
+                    $payer['data']['subscriber_mname'],
+                    $payer['data']['subscriber_relationship'],
+                    $payer['data']['subscriber_DOB'],
+                    $payer['data']['subscriber_street'],
+                    "",
+                    $payer['data']['subscriber_city'],
+                    $payer['data']['subscriber_state'],
+                    $payer['data']['subscriber_postal_code'],
+                    $payer['data']['policy_number']
+                );
 
-                // $out .= "IN1" .
-                //     $d1 . ++$setid .                                // Set ID
-                //     $d1 .                                           // Insurance Plan Identifier ??
-                //     $d1 . $this->hl7Text($payer['company']['id']) .        // Insurance Company ID
-                //     $d2 . $this->hl7Text($payer['company']['cms_id']) .        // Insurance Carrier code
-                //     $d1 . $this->hl7Text($payer['company']['name']) .    // Insurance Company Name
-                //     $d1 . $this->hl7Text($full_address) .    // Street Address
-                //     $d2 .
-                //     $d2 . $this->hl7Text($payer_address->get_city()) .   // City
-                //     $d2 . $this->hl7Text($payer_address->get_state()) .  // State
-                //     $d2 . $this->hl7Zip($payer_address->get_zip()) .     // Zip Code
-                //     $d1 .
-                //     $d1 . $this->hl7Phone($payer_object->get_phone()) .    // Phone Number
-                //     $d1 . $this->hl7Text($payer['data']['group_number']) . // Insurance Company Group Number
-                //     str_repeat($d1, 7) .                            // IN1 9-15 all empty
-                //     $d1 . $this->hl7Text($payer['data']['subscriber_lname']) .   // Insured last name
-                //     $d2 . $this->hl7Text($payer['data']['subscriber_fname']) . // Insured first name
-                //     $d2 . $this->hl7Text($payer['data']['subscriber_mname']) . // Insured middle name
-                //     $d1 . $this->hl7Relation($payer['data']['subscriber_relationship']) .        //JC this may need to be edited JP this is okay!
-                //     $d1 . $this->hl7Date($payer['data']['subscriber_DOB']) .     // Insured DOB
-                //     $d1 . $this->hl7Text($payer['data']['subscriber_street']) .  // Insured Street Address
-                //     $d2 .
-                //     $d2 . $this->hl7Text($payer['data']['subscriber_city']) .  // City
-                //     $d2 . $this->hl7Text($payer['data']['subscriber_state']) . // State
-                //     $d2 . $this->hl7Zip($payer['data']['subscriber_postal_code']) . // Zip
-                //     $d1 .
-                //     $d1 .
-                //     $d1 . $setid .                                  // 1=Primary, 2=Secondary, 3=Tertiary
-                //     str_repeat($d1, 8) .                           // IN1-23 to 30 all empty
-                //     $d1 . $this->hl7Workman($payer['data']['policy_type']) . // Policy Number
-                //     str_repeat($d1, 4) .                           // IN1-32 to 35 all empty
-                //     $d1 . $this->hl7Text($payer['data']['policy_number']) . // Policy Number
-                //     str_repeat($d1, 12) .                           // IN1-37 to 48 all empty
-                //     $d0;
-                
                 if ($payer_object->get_ins_type_code() === '2') { //medicare
                     $P[19] = $this->hl7Text($payer['data']['policy_number']);
                 } elseif ($payer_object->get_ins_type_code() === '3') { // medicaid
@@ -299,146 +278,128 @@ class DornGenHl7Order extends GenHl7OrderBase
             if ($setid === 0) {
                 return "\nInsurance is being billed but patient does not have any payers on record!";
             }
-        } else { // no insurance record
-            ++$setid;
-            $out .= "IN1|$setid||||||||||||||||||||||||||||||||||||||||||||||$bill_type" . $d0;
         }
 
-        $guarantors = $this->loadGuarantorInfo($porow['pid'], $porow['date_ordered']);
-        foreach ($guarantors as $guarantor) {
-            if (hl7Text($bill_type) != "C") {
-                if ($guarantor['data']['subscriber_lname'] != "") {
-                    // Guarantor. OpenEMR doesn't have these so use the patient.
-                    $out .= "GT1" .
-                        $d1 . "1" .                      // Set ID (always just 1 of these)
-                        $d1 .
-                        $d1 . $this->hl7Text($guarantor['data']['subscriber_lname']) .   // Insured last name
-                        $d2 . $this->hl7Text($guarantor['data']['subscriber_fname']) . // Insured first name
-                        $d2 . $this->hl7Text($guarantor['data']['subscriber_mname']); // Insured middle name
-                    $out .=
-                        $d1 .
-                        $d1 . $this->hl7Text($guarantor['data']['subscriber_street']) .  // Insured Street Address
-                        $d2 .
-                        $d2 . $this->hl7Text($guarantor['data']['subscriber_city']) .  // City
-                        $d2 . $this->hl7Text($guarantor['data']['subscriber_state']) . // State
-                        $d2 . $this->hl7Zip($guarantor['data']['subscriber_postal_code']) . // Zip
-                        $d1 . $this->hl7Phone($guarantor['data']['subscriber_phone']) .
-                        $d1 .
-                        $d1 . $this->hl7Date($guarantor['data']['subscriber_DOB']) .     // Insured DOB
-                        $d1 . $this->hl7Sex($guarantor['data']['subscriber_sex']) .   // Sex: M, F or U
-                        $d1 .
-                        $d1 . $this->hl7Relation($guarantor['data']['subscriber_relationship']) .        //JC this may need to be edited JP this is okay!
 
-                        $d1 . $this->hl7Date($guarantor['data']['subscriber_ss']) .     // Insured ssn
-                        $d0;
-                }
+        /*
+        bill_type is T = Third Party
+                     P = Self Pay
+                     C = Clinic
+        */
+        if ($bill_type == "T") {
+            $guarantors = $this->loadGuarantorInfo($porow['pid'], $porow['date_ordered']);
+            //this is returning an array but in the query we have a limit 1!
+            foreach ($guarantors as $guarantor) {
+                $out .= $this->createGt1(
+                    "1",
+                    $guarantor['data']['subscriber_fname'],
+                    $guarantor['data']['subscriber_lname'],
+                    $guarantor['data']['subscriber_mname'],
+                    $guarantor['data']['subscriber_street'],
+                    "",
+                    $guarantor['data']['subscriber_city'],
+                    $guarantor['data']['subscriber_state'],
+                    $guarantor['data']['subscriber_postal_code'],
+                    "P",
+                    $guarantor['data']['subscriber_relationship']
+                );
+                
+                $P[20] = $this->hl7Text($guarantor['data']['subscriber_lname']) . '^' . $this->hl7Text($guarantor['data']['subscriber_fname']) . '^';
+                $P[21] = $this->hl7Date($guarantor['data']['subscriber_ss']);
+                $P[22] = $this->hl7Text($guarantor['data']['subscriber_street']);
+                $P[23] = $this->hl7Text($guarantor['data']['subscriber_city']);
+                $P[24] = $this->hl7Text($guarantor['data']['subscriber_state']);
+                $P[25] = $this->hl7Zip($guarantor['data']['subscriber_postal_code']);
+                // $P[26] = // employer;
+                $P[27] = $this->hl7Relation($guarantor['data']['subscriber_relationship']);
+                $P[56] = $this->hl7Phone($guarantor['data']['subscriber_phone']);
             }
-            $P[20] = $this->hl7Text($guarantor['data']['subscriber_lname']) . '^' . $this->hl7Text($guarantor['data']['subscriber_fname']) . '^';
-            $P[21] = $this->hl7Date($guarantor['data']['subscriber_ss']);
-            $P[22] = $this->hl7Text($guarantor['data']['subscriber_street']);
-            $P[23] = $this->hl7Text($guarantor['data']['subscriber_city']);
-            $P[24] = $this->hl7Text($guarantor['data']['subscriber_state']);
-            $P[25] = $this->hl7Zip($guarantor['data']['subscriber_postal_code']);
-            // $P[26] = // employer;
-            $P[27] = $this->hl7Relation($guarantor['data']['subscriber_relationship']);
-            $P[56] = $this->hl7Phone($guarantor['data']['subscriber_phone']);
+        } elseif ($bill_type == "P") {
+            //need to figure out what data to pull here, I feel like this should pull patient info. rather than
+            //insurance info
+
+        } elseif ($bill_type == "C") {
+            //need to figure out what data to pull here
         }
+        
 
         $setid2 = 0;
-        // this gets the order default codes
-        $relcodes = explode(';', $porow['order_diagnosis']);
-        $relcodes = array_unique($relcodes);
-        foreach ($relcodes as $codestring) {
-            if ($codestring === '') {
-                continue;
+        
+        $D[1] = substr($D[1], 0, strlen($D[1]) - 1);
+        $vvalue = strtoupper($_REQUEST['form_specimen_fasting']) == 'YES' ? "Y" : "N";
+        $isFasting = strtoupper($_REQUEST['form_specimen_fasting']) == 'YES' ? "Y" : "N";
+//        $ht = str_pad(round($vitals['height']), 3, "0", STR_PAD_LEFT);
+        $lb = floor((float)$vitals['weight']);
+        $lb = str_pad($lb, 3, "0", STR_PAD_LEFT);
+
+
+        $setid = 0;
+        while ($pcrow = sqlFetchArray($pcres)) {
+            $out .= $this->createOrc(
+                "NW",
+                $orderid,
+                $orderid,
+                $porow['docnpi'],
+                $porow['docfname'],
+                $porow['doclname'],
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                ""
+            );
+            if ($this->hl7Priority($porow['order_priority']) == "S") {
+                $out .= $this->createTq1("", "");
             }
-            list($codetype, $code) = explode(':', $codestring);
-            $desc = lookup_code_descriptions($codestring);
-            $out .= "DG1" .
-            $d1 . ++$setid2;
-            $out .= $d1 . 'I10';
-            $out .= $d1 . $code .
-            $d1 . $this->hl7Text($desc) . $d0;
-            // req
-            if ($setid2 < 9) {
-                $D[1] .= $code . '^';
-            }
-        }
-        // now from each test order list
-        while ($pdrow = sqlFetchArray($pdres)) {
-            if (!empty($pdrow['diagnoses'])) {
-                $relcodes = explode(';', $pdrow['diagnoses']);
-                foreach ($relcodes as $codestring) {
-                    if ($codestring === '') {
-                        continue;
-                    }
-                    list($codetype, $code) = explode(':', $codestring);
-                    $desc = lookup_code_descriptions($codestring);
-                    $out .= "DG1" .
-                    $d1 . ++$setid2;             // Set ID
-                    $out .= $d1 . 'I10';         // Diagnosis Coding Method
-                    $out .= $d1 . $code .        // Diagnosis Code
-                    $d1 . $this->hl7Text($desc) . $d0;  // Diagnosis Description
-                    if ($setid2 < 9) {
-                        $D[1] .= $code . '^';
+
+            // Observation Request.
+            // this was origionally used $porow['clinical_hx'] and I want to look at what
+            // is there in teh database, I this note is a reminder to me to look.
+
+            $specprocedure = sqlQuery("SELECT specimen FROM procedure_type WHERE procedure_code=?", [$pcrow['procedure_code']]);
+            $out .= $this->createObr(
+                ++$setid,
+                $orderid,
+                $pcrow['procedure_code'],
+                $pcrow['procedure_name'],
+                $porow['date_collected'],
+                "",
+                "L",
+                $isFasting, //$porow['clinical_hx'],
+                "",
+                "",
+                "RO",
+                "",
+                ""
+            );
+
+            //this is where an NTE segment should be placed.
+
+            // now from each test order list
+            $hasDiagnosisSegment = false;
+            while ($pdrow = sqlFetchArray($pdres)) {
+                if (!empty($pdrow['diagnoses'])) {
+                    $relcodes = explode(';', $pdrow['diagnoses']);
+                    foreach ($relcodes as $codestring) {
+                        if ($codestring === '') {
+                            continue;
+                        }
+                        list($codetype, $code) = explode(':', $codestring);
+                        $desc = lookup_code_descriptions($codestring);
+
+                        $out .= $this->createDg1(++$setid2, $code, $desc, $codetype);
+                        $hasDiagnosisSegment = true;
+                        if ($setid2 < 9) {
+                            $D[1] .= $code . '^';
+                        }
                     }
                 }
             }
-        }
-        $D[1] = substr($D[1], 0, strlen($D[1]) - 1);
-        $vvalue = strtoupper($_REQUEST['form_specimen_fasting']) == 'YES' ? "Y" : "N";
-        $ht = str_pad(round($vitals['height']), 3, "0", STR_PAD_LEFT);
-        $lb = floor((float)$vitals['weight']);
-        $lb = str_pad($lb, 3, "0", STR_PAD_LEFT);
-        $oz = round(((float)$vitals['weight'] * 16) - ($lb * 16));
-
-        $out .= "ZCI|$ht|$lb^^$oz|0|$vvalue" . $d0;
-        $setid = 0;
-        while ($pcrow = sqlFetchArray($pcres)) {
-            // Common Order.
-            $out .= "ORC" .
-                $d1 . "NW" .                     // New Order
-                $d1 . $orderid .                 // Placer Order Number
-                str_repeat($d1, 6) .             // ORC 3-8 not used
-                $d1 . date('YmdHi') .           // Transaction date/time
-                $d1 . $d1 .
-                $d1 . $this->hl7Text($porow['docnpi']) .     // Ordering Provider
-                $d2 . $this->hl7Text($porow['doclname']) . // Last Name
-                $d2 . $this->hl7Text($porow['docfname']) . // First Name
-                str_repeat($d2, 4) .
-                $d2 . 'N' .
-                str_repeat($d1, 7) .             // ORC 13-19 not used
-                $d1 . "2" .                      // ABN Status: 2 = Notified & Signed, 4 = Unsigned
-                $d0;
-
-            // Observation Request.
-            $specprocedure = sqlQuery("SELECT specimen FROM procedure_type WHERE procedure_code=?", [$pcrow['procedure_code']]);
-            $out .= "OBR" .
-                $d1 . ++$setid .                              // Set ID
-                $d1 . $orderid .                              // Placer Order Number
-                $d1 .
-                $d1 . $this->hl7Text($pcrow['procedure_code']) .
-                $d2 . $this->hl7Text($pcrow['procedure_name']) .
-                $d2 . 'L' .
-                $d1 . $this->hl7Priority($porow['order_priority']) . // S=Stat, R=Routine
-                $d1 .
-                $d1 . $this->hl7Time($porow['date_collected']) .     // Observation Date/Time
-                str_repeat($d1, 3) .                          // OBR 8-15 not used
-                $d1 . 'N' .
-                str_repeat($d1, 1) .
-                $d1 . $this->hl7Text($porow['clinical_hx']) . //clinical info
-                $d1 .
-                $d1 . $specprocedure['specimen'] .          // was 4
-                $d1 . $this->hl7Text($porow['docnpi']) .           // Physician ID
-                $d2 . $this->hl7Text($porow['doclname']) .         // Last Name
-                $d2 . $this->hl7Text($porow['docfname']) .         // First Name
-                str_repeat($d2, 4) .
-                $d2 . 'N' .
-                $d1 .
-                $d1 . //(count($payers) ? 'I' : 'P') .          // I=Insurance, C=Client, P=Self Pay
-                str_repeat($d1, 8) .                          // OBR 19-26 not used
-                $d1 . '0' .                                   // ?
-                $d0;
+            if (!$hasDiagnosisSegment) {
+                return "No diagnosis present";
+            }
 
             // Order entry questions and answers.
             $qres = sqlStatement(
@@ -477,30 +438,36 @@ class DornGenHl7Order extends GenHl7OrderBase
                     $days = $answer % 7;
                     $answer = $weeks . 'wks ' . $days . 'days';
                 }
-                $out .= "OBX" .
-                $d1 . ++$setid2 .                           // Set ID
-                $d1 . $datatype .                           // Structure of observation value
-                $d1 . $qrow['tips'] .                       // Clinical question code
-                $d1 .
-                $d1 . $this->hl7Text($answer) .                    // Clinical question answer
-                $d1 .
-                $d1 .
-                $d1 .
-                $d1 .
-                $d1 . "N" .
-                $d1 . "F" .
-                $d0;
+                $out .= $this->createObx(
+                    ++$setid2,
+                    $datatype,
+                    $qrow['tips'],
+                    $answer,
+                    "",
+                    "",
+                    "F",
+                    "",
+                    "",
+                    ""
+                );
             }
+
             $vvalue = strtoupper($_REQUEST['form_specimen_fasting']) === 'YES' ? "Y" : "N";
             $C[24] = $vvalue === "Y" ? ($vvalue . '12') : $vvalue;
             $T[$setid] = $this->hl7Text($pcrow['procedure_code']);
             if ($vvalue === "Y" && $fastflag === false) {
-                $out .= "OBX" .
-                $d1 . ++$setid2 .
-                $d1 . "ST" .
-                $d1 . "FASTIN^FASTING^L" .
-                $d1 . $d1 . $vvalue . $d1 . $d1 . $d1 . $d1 . $d1 . "N" . $d1 . "F" .
-                $d0;
+                $out .= $this->createObx(
+                    ++$setid2,
+                    "ST",
+                    "FASTIN^FASTING^L",
+                    $vvalue,
+                    "",
+                    "",
+                    "F",
+                    "",
+                    "",
+                    ""
+                );
             }
         }
 
@@ -531,8 +498,271 @@ class DornGenHl7Order extends GenHl7OrderBase
         $reqStr = strtoupper($reqStr);
         return '';
     }
+ 
 
+    /*
+    The OBX segment is conditional and only required if/when AOE response information
+    or AUC data is available. Each AOE response or AUC determination will be included as
+    an individual OBX segment nested beneath the OBR segment of the corresponding
+    ordered test or imaging service.
+    */
+    private function createObx(
+        $setId,
+        $valueType,
+        $observationIdent,
+        $observationValue,
+        $units,
+        $interpretationCodes,
+        $observationResultStatus,
+        $producersReference,
+        $observationType,
+        $observationValueAbsentReason
+    ) {
+        $fields = [
+            $this->buildHL7Field($setId),
+            $this->buildHL7Field($valueType), //2
+            $this->buildHL7Field($observationIdent), //3
+            "", //4
+            $this->buildHL7Field($observationValue), //5
+            $this->buildHL7Field($units), //6
+            "", //7
+            $this->buildHL7Field($interpretationCodes), //8
+            "", //9
+            "",//10
+            $this->buildHL7Field($observationResultStatus),//11
+            "",//12
+            "", //13
+            "", //14
+            $this->buildHL7Field($producersReference), //15
+            "", //16
+            "", //17
+            "", //18
+            "", //19
+            "",//20
+            "",//21
+            "",//22
+            "",//23
+            "", //24
+            "", //25
+            "", //26
+            "", //27
+            "", //28
+            $this->buildHL7Field($observationType), //29
+            "",//30
+            "",//31
+            $this->buildHL7Field($observationValueAbsentReason),//32
+            "",//33
+        ];
+        $segment = $this->buildHl7Segment("OBX", $fields);
+        return $segment;
+    }
+ 
 
+    /*
+        The DG1 segment is used to communicate one or more diagnoses associated with an
+        ordered observation (test). Each diagnosis will be included as an individual DG1
+        segment nested beneath the OBR segment of the corresponding ordered test.
+        The DG1 segment is required and may appear one or more times for each OBR
+        segment.
+    */
+    private function createDg1(
+        $setId,
+        $diagCode,
+        $diagDesc,
+        $diagType
+    ) {
+        $diagDesc = $this->replaceNewLine($diagDesc);
+        $fields = [
+            $this->buildHL7Field($setId),//1
+            "",//2
+            $this->buildHL7Field([$diagCode, $diagDesc, "I10c"]), //3
+            "", //4
+            "", //5
+            $this->buildHL7Field($diagType) //6
+        ];
+        $segment = $this->buildHl7Segment("DG1", $fields);
+        error_log($segment);
+        return $segment;
+    }
+
+    /*
+    The OBR segment is used to transmit information about an order for a diagnostic study
+    or observation, physical exam, or assessment. Among other things it specifies details
+    such as order test identifier(s).
+    An OBR segment will appear once for each test placed in an individual order message.
+    An ORC segment will accompany each OBR segment in a message.
+    */
+    private function createObr(
+        $setId,
+        $placerOrderNumber,
+        $procedureCode,
+        $procedureName,
+        $observationStartDateTime,
+        $observationEndDateTime,
+        $specimenActionCode,
+        $fastingStatus,
+        $placerField1,
+        $placerField2,
+        $fillerField1,
+        $resultsCopiesTo,
+        $scheduledDateTime
+    ):string {
+        $fields = [
+            $this->buildHL7Field($setId),
+            $this->buildHL7Field($placerOrderNumber), //2
+            "", //3
+            $this->buildHL7Field([$procedureCode,$procedureName ]), //4
+            "", //5
+            "", //6
+            $this->hl7DateTime($observationStartDateTime), //7
+            $this->hl7DateTime($observationEndDateTime), //8
+            "", //9
+            "",//10
+            $this->buildHL7Field($specimenActionCode),//11
+            "",//12
+            $this->buildHL7Field($fastingStatus), //13
+            "", //14
+            "", //15
+            "", //16
+            "", //17
+            $this->buildHL7Field($placerField1), //18
+            $this->buildHL7Field($placerField2), //19
+            $this->buildHL7Field($fillerField1),//20
+            "",//21
+            "",//22
+            "",//23
+            "", //24
+            "", //25
+            "", //26
+            "", //27
+            $this->buildHL7Field($resultsCopiesTo), //28
+            "", //29
+            "",//30
+            "",//31
+            "",//32
+            "",//33
+            "", //34
+            "", //35
+            $this->buildHL7Field($scheduledDateTime), //36
+        ];
+        $segment = $this->buildHl7Segment("OBR", $fields);
+        return $segment;
+    }
+
+    /*
+        The TQ1 segment is used only to indicate when the order is a STAT order or a future
+        order.
+        The TQ1 segment is conditional and omitted if the order is not a STAT or a future order.
+    */
+    private function createTq1(
+        $startDateTime,
+        $endDateTime
+    ):string {
+        $fields = [
+            "1", //1
+            "", //2
+            "", //3
+            "", //4
+            "", //5
+            "", //6
+            $this->buildHL7Field($startDateTime), //7
+            $this->buildHL7Field($endDateTime), //8
+            "S", //9
+           ];
+        $segment = $this->buildHl7Segment("TQ1", $fields);
+        return $segment;
+    }
+    /**
+     * Order Common (ORC)
+     * The ORC segment contains data and information common to all the tests contained in
+     * the order message. One ORC segment will accompany each OBR segment contained
+     * in a message.
+     * An ORC segment will appear once for each test placed in an individual order message.
+     */
+    private function createOrc(
+        $orderControl,
+        $placerOrderNumber,
+        $placerGroupNumber,
+        $orderingProviderNpi,
+        $orderingProviderFirstName,
+        $orderingProviderLastName,
+        $orderingProviderMiddle,
+        $callBackPhoneNumber,
+        $orderingProviderAddress1,
+        $orderingProviderAddress2,
+        $orderingProviderCity,
+        $orderingProviderState,
+        $orderingProviderZip,
+    ) :string {
+        $fields = [
+            $this->buildHL7Field($orderControl), //1
+            $this->buildHL7Field($placerOrderNumber), //2
+            "", //3
+            $this->buildHL7Field($placerGroupNumber), //4
+            "", //5
+            "", //6
+            "", //7
+            "", //8
+            "", //9
+            "",//10
+            "",//11
+            $this->buildHL7Field([$orderingProviderNpi, $orderingProviderLastName, $orderingProviderFirstName, $orderingProviderMiddle, "", "", "", "", "", "", "", "", "", "NPI" ]),//12
+            "", //13
+            $this->buildHL7Field($callBackPhoneNumber), //14
+            "", //15
+            "", //16
+            "", //17
+            "", //18
+            "", //19
+            "",//20
+            "",//21
+            "",//22
+            "",//23
+            $this->buildHL7Field([$orderingProviderAddress1, $orderingProviderAddress2, $orderingProviderCity, $orderingProviderState, $orderingProviderZip]), //24
+        ];
+        $segment = $this->buildHl7Segment("ORC", $fields);
+        return $segment;
+    }
+
+    /*
+    The GT1 segment contains information about the person with financial responsibility for
+    payment of services.
+    The GT1 segment is required and may only appear once
+    */
+    private function createGt1(
+        $setId,
+        $subscriberFirstName,
+        $subscriberLastName,
+        $subscriberMiddleName,
+        $subscriberAddress1,
+        $subscriberAddress2,
+        $subscriberCity,
+        $subscriberState,
+        $subscriberZip,
+        $subscriberType,
+        $relationship
+    ): string {
+        $fields = [
+            $this->buildHL7Field($setId),
+            "",
+            $this->buildHL7Field([$subscriberLastName, $subscriberFirstName, $subscriberMiddleName]), //3
+            "",
+            $this->buildHL7Field([$subscriberAddress1, $subscriberAddress2, $subscriberCity, $subscriberState, $subscriberZip]), //5
+            "", //6
+            "", //7
+            "", //8
+            "", //9
+            $this->buildHL7Field($subscriberType),//10
+            $this->hl7Relation($relationship)        ];
+        $segment = $this->buildHl7Segment("GT1", $fields);
+        return $segment;
+    }
+    /*
+    The IN1 segment is used to communicate insurance policy coverage information to the
+    Order Filler when such information is relevant for a requisition.
+    The IN1 segment is conditional and should only be present if the value of PV1-20 is "T",
+    i.e. for third-party billing. Up to two IN1 segments may be included.
+    */
     private function createIn1(
         $setId,
         $insPlanId,
@@ -576,7 +806,7 @@ class DornGenHl7Order extends GenHl7OrderBase
             "",
             "",//15
             $this->buildHL7Field([$subscriberLastName, $subscriberFirstName, $subscriberMiddleName]),
-            $this->buildHL7Field($relationship),
+            $this->hl7Relation($relationship),
             $this->buildHL7Field($subscriberDob),
             $this->buildHL7Field([$subscriberAddress1, $subscriberAddress2, $subscriberCity, $subscriberState, $subscriberZip]),//19
             "",//20
@@ -606,26 +836,26 @@ class DornGenHl7Order extends GenHl7OrderBase
         $financialClass
     ):string {
         $fields = [
-            "1",
+            "1",//1
             $this->buildHL7Field($patientClass),
+            "",//3
+            "",//4
+            "",//5
             "",
+            "",//7
             "",
+            "",//9
+            "",//10
             "",
+            "",//12
             "",
+            "",//14
             "",
+            "",//16
             "",
+            "",//18
             "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            $this->buildHL7Field($financialClass)
+            $this->buildHL7Field($financialClass) //20
         ];
         $segment = $this->buildHl7Segment("PV1", $fields);
         return $segment;
@@ -664,11 +894,11 @@ class DornGenHl7Order extends GenHl7OrderBase
         $fields = [
             $this->buildHL7Field($setPid),
             $this->buildHL7Field($pid),
-            $this->buildHL7Field($patientIdentList),
+            $this->buildHL7Field([$patientIdentList,"","","","AN"]),
             $this->buildHL7Field($altPid),
             $this->buildHL7Field([$patientLastName, $patientFirstName, $patientMiddleName]),
             $this->buildHL7Field($mothersMaidenName),
-            $this->hl7Date($dob),
+            $this->formatDate($dob),
             $this->hl7Sex($adminSex),
             $this->buildHL7Field($patAlias),
             $this->hl7Race($race),
