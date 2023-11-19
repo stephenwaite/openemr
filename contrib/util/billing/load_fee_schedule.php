@@ -15,7 +15,7 @@ exit;
 
 if (php_sapi_name() !== 'cli') {
     echo "Only php cli can execute command\n";
-    echo "example use: php default feesched.txt 10 33 2023-10-01\n";
+    echo "example use: php default feesched.txt 0 2 2023-10-01\n";
     die;
 }
 
@@ -30,7 +30,7 @@ use League\Csv\Reader;
 $filename = DIRECTORY_SEPARATOR . $argv[2];
 $filepath = $GLOBALS['temporary_files_dir'];
 $reader = Reader::createFromPath($filepath . $filename);
-$reader->setDelimiter("\t");
+$reader->setDelimiter(",");
 
 $start_record = $argv[3];
 $reader->setHeaderOffset($start_record);
@@ -69,10 +69,9 @@ foreach ($records as $offset => $record) {
                 echo "*** existing fee " . sprintf("%7.2f", $our_fee) . " for $our_code:$our_mod " .
                     "is less than their fee of " . sprintf("%7.2f", $sched_fee) . "\n";
                 // uncomment below 3 lines to update prices accordingly
-                /*echo "update prices table for code $our_code:$our_mod from " . $our_fee .
+                echo "update prices table for code $our_code:$our_mod from " . $our_fee .
                     " to ". $ceil_fee . " with price id " . $price_id . "\n";
                 $update_prices = sqlQuery("UPDATE `prices` SET `pr_price` = ? WHERE `pr_id` = ?", [$ceil_fee, $price_id]);
-                */
             }
         }
     }
