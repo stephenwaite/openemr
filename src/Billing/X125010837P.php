@@ -1189,6 +1189,13 @@ class X125010837P
         for ($ins = 1; $ins < $claim->payerCount(); ++$ins) {
             $tmp1 = $claim->claimType($ins);
 
+            // for medicare don't include other insurance if payer type is MB
+            // that way claim can get processed and we can fix in demos
+            if ($tmp1 == 'MB' && $claim->claimType(0) == 'MB') {
+                $log .= "*** Skipping other insco loop since primary is also type MB.\n";
+                continue;
+            }
+
             // if the ins is unassigned don't include this SBR/OI loop
             if ($tmp1 === '09') {
                 continue;
