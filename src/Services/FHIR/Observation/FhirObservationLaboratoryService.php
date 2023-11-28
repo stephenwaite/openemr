@@ -146,6 +146,7 @@ class FhirObservationLaboratoryService extends FhirServiceBase implements IPatie
                     foreach ($report['results'] as $result) {
                         $result['patient'] = $patient;
                         $result['report_date'] = $report['date'];
+                        $result['order_date_transmitted'] = $record['order_date_transmitted'];
                         $processingResult->addData($result);
                     }
                 }
@@ -172,8 +173,9 @@ class FhirObservationLaboratoryService extends FhirServiceBase implements IPatie
         $id->setValue($dataRecord['uuid']);
         $observation->setId($id);
 
+        // fhir observation has no room for the actual order date aka charge date of service
         if (!empty($dataRecord['report_date'])) {
-            $observation->setEffectiveDateTime(UtilsService::getLocalDateAsUTC($dataRecord['report_date']));
+            $observation->setEffectiveDateTime(UtilsService::getLocalDateAsUTC($dataRecord['order_date_transmitted']));
         } else {
             $observation->setEffectiveDateTime(UtilsService::createDataMissingExtension());
         }
