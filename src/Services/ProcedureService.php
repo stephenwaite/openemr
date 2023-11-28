@@ -62,7 +62,8 @@ class ProcedureService extends BaseService
                     ,porder.order_diagnosis
                     ,porder.order_encounter_id
                     ,porder.order_lab_id
-     
+                    ,porder.order_date_transmitted
+
                     ,preport.report_date
                     ,preport.procedure_report_id
                     ,preport.report_uuid
@@ -152,6 +153,8 @@ class ProcedureService extends BaseService
                         ,patient_id AS order_patient_id
                         ,provider_id
                         ,external_id
+                        ,date_transmitted as order_date_transmitted
+
                     FROM
                         procedure_order
                 ) porder
@@ -292,7 +295,7 @@ class ProcedureService extends BaseService
                     , 'standard_code' => $record['standard_code']
                     , 'diagnosis' => $record['order_diagnosis']
                     , 'activity' => $record['order_activity']
-
+                    , 'order_date_transmitted' => $record['order_date_transmitted']
                     , 'reports' => []
                 ];
                 if (!empty($record['provider_id'])) {
