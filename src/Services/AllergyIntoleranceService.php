@@ -54,6 +54,7 @@ class AllergyIntoleranceService extends BaseService
         lists.title,
         lists.comments,
         practitioners.uuid as practitioner,
+        practitioners.practitioner_npi,
         practitioners.practitioner_uuid,
         organizations.uuid as organization,
         organizations.organization_uuid,
@@ -83,12 +84,10 @@ class AllergyIntoleranceService extends BaseService
             select
             users.uuid
             ,users.uuid AS practitioner_uuid
+            ,users.npi AS practitioner_npi
             ,users.username
             ,users.facility AS organization
             FROM users
-            -- US CORE only allows physicians or patients to be our allergy recorder
-            -- so we will filter out anyone who is not actually a practitioner (May 14th 2021)
-            WHERE users.npi IS NOT NULL -- we only want actual physicians here rather than all users
         ) practitioners ON practitioners.username = lists.user
         LEFT JOIN (
             select
@@ -100,6 +99,7 @@ class AllergyIntoleranceService extends BaseService
 
         // make sure we only search for allergy fields
         $search['type'] = new StringSearchField('type', ['allergy'], SearchModifier::EXACT);
+
         $whereClause = FhirSearchWhereClauseBuilder::build($search, $isAndCondition);
 
         $sql .= $whereClause->getFragment();
@@ -107,6 +107,9 @@ class AllergyIntoleranceService extends BaseService
         $statementResults =  QueryUtils::sqlStatementThrowException($sql, $sqlBindArray);
 
         $processingResult = new ProcessingResult();
+        // create temp allergy uuid array since sql returns duplicates if
+        // allergies do not have a user associated
+        $temp_uuid_array = [];
         while ($row = sqlFetchArray($statementResults)) {
             $row['uuid'] = UuidRegistry::uuidToString($row['allergy_uuid']);
             $row['puuid'] = UuidRegistry::uuidToString($row['puuid']);
@@ -125,7 +128,11 @@ class AllergyIntoleranceService extends BaseService
                 $row['reaction'] = $this->addCoding($row['reaction_codes']);
             }
             unset($row['allergy_uuid']);
-            $processingResult->addData($row);
+            // only add to processing result if unique
+            if (!in_array($row['uuid'], $temp_uuid_array)) {
+                $processingResult->addData($row);
+                array_push($temp_uuid_array, $row['uuid']);
+            }
         }
         return $processingResult;
     }
