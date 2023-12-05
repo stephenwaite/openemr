@@ -1828,6 +1828,7 @@ class X125010837P
                     } elseif (
                         ($primary_paid_oa ?? null)
                         && $key == 'CO'
+                        && $claim->payerSequence($ins) == 'S'
                     ) {
                             continue;
                     }
