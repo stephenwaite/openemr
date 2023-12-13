@@ -41,7 +41,7 @@ class GenHl7OrderBase
             $segment .= $this->fieldSeparator . $field;
         }
         // Remove trailing '|' characters
-        $segment = rtrim($segment, $this->fieldSeparator);
+        //$segment = rtrim($segment, $this->fieldSeparator);
         $segment = $segmentName . $segment . $this->lineBreakChar;
 
         return $segment;

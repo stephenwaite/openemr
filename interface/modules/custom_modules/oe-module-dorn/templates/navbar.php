@@ -33,11 +33,17 @@
                                 } ?>">
                 <a class="nav-link" href="lab_setup.php"><?php echo xlt("Lab Setup"); ?></a>
             </li>
-            <li class="nav-item <?php if ($tab == "x12") {
+            <li class="nav-item <?php if ($tab == "orders") {
                 echo "active";
                                 } ?>" >
-                <a class="nav-link" href="x12Tracker.php"><?php echo xlt("X12 Tracker"); ?></a>                            
+                <a class="nav-link" href="orders.php"><?php echo xlt("Orders"); ?></a>                            
             </li>
+            <li class="nav-item <?php if ($tab == "results") {
+                echo "active";
+                                } ?>" >
+                <a class="nav-link" href="results.php"><?php echo xlt("Results"); ?></a>                            
+            </li>
+
             <li class="nav-item <?php if ($tab == "setup") {
                 echo "active";
                                 } ?>" >

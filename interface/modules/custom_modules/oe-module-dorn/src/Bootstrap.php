@@ -93,7 +93,7 @@ class Bootstrap
         if ($this->globalsConfig->isConfigured()) {
             $this->registerMenuItems();
             $this->registerTemplateEvents();
-            $this->subscribeToApiEvents();
+            $this->subscribeToApiEvents();            
         }
     }
 
@@ -110,7 +110,6 @@ class Bootstrap
     {
         $this->eventDispatcher->addListener(GlobalsInitializedEvent::EVENT_HANDLE, [$this, 'addGlobalSettingsSection']);
     }
-
     public function addGlobalSettingsSection(GlobalsInitializedEvent $event)
     {
         global $GLOBALS;

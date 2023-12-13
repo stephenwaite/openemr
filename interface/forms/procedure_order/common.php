@@ -415,9 +415,8 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
             file_put_contents($log_file, $order_log);
         } else { // drop through if no errors..
             if ($isDorn) {
-                error_log('I am here!!!!!!!!!!!');
-                $alertmsg = "is dorn";
-                $alertmsg = $dornConnector->genHl7Order($formid, $hl7, $reqStr);
+                $alertmsg .= $dornConnector->genHl7Order($formid, $hl7);
+                $alertmsg .= $dornConnector->genHl7OrderBarCode($formid, $reqStr);
             } else {
                 if ($gbl_lab === 'ammon' || $gbl_lab === 'clarity') {
                     require_once(__DIR__ . "/../../procedure_tools/gen_universal_hl7/gen_hl7_order.inc.php");

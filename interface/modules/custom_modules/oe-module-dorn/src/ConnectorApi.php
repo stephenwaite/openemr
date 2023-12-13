@@ -15,9 +15,24 @@ use OpenEMR\Modules\Dorn\Bootstrap;
 use OpenEMR\Modules\Dorn\models\ApiResponseViewModel;
 use OpenEMR\Modules\Dorn\models\CompendiumInstallDateViewModel;
 use OpenEMR\Modules\Dorn\models\LabOrderViewModel;
+use OpenEMR\Modules\Dorn\models\AckViewModel;
 
 class ConnectorApi
 {
+    public static function sendAck($resultsGuid, $isRejected, $msgs)
+    {
+        $api_server = ConnectorApi::getServerInfo();
+        $url = $api_server . "/api/Orders/v1/AcknowledgeResult";
+
+        $data = new AckViewModel();
+        $data->resultsGuid = $resultsGuid;
+        $data->isRejected = $isRejected;
+        
+        if (is_array($msgs) && !empty($msgs)) {
+            $data->errorMessages = $msgs;
+        }
+        return ConnectorApi::postData($url, $data);
+    }
     public static function setCompendiumLastUpdate($labGuid)
     {
         $api_server = ConnectorApi::getServerInfo();
@@ -26,6 +41,36 @@ class ConnectorApi
         $data->installDate = (new DateTime())->format('Y-m-d\TH:i:s');
         $data->labGuid = $labGuid;
         return ConnectorApi::putData($url, $data);
+    }
+    public static function searchPendingLabResults($labAccountNumber, $startDateTime, $endDateTime)
+    {
+        $api_server = ConnectorApi::getServerInfo();
+        $url = $api_server . "/api/Orders/v1/GetPendingResults";
+
+        $params = []; // Initialize an empty params array
+
+        if (!empty($labAccountNumber)) {
+            $params['labAccountNumber'] = $labAccountNumber;
+        }
+        if (!empty($startDateTime)) {
+            $params['startDateTime'] = $startDateTime;
+        }
+        if (!empty($endDateTime)) {
+            $params['endDateTime'] = $endDateTime;
+        }
+
+        $url = $url . '?' . http_build_query($params);
+
+
+        $returnData = ConnectorApi::getData($url);
+        return $returnData;
+    }
+    public static function getLabResults($resultsGuid)
+    {
+        $api_server = ConnectorApi::getServerInfo();
+        $url = $api_server . "/api/Orders/v1/GetResults/" . $resultsGuid;
+        $returnData = ConnectorApi::getData($url);
+        return $returnData;
     }
     public static function sendOrder($labGuid, $labAccountNumber, $orderNumber, $patientId, $hl7)
     {
@@ -195,7 +240,7 @@ class ConnectorApi
     {
         $headers = ConnectorApi::buildHeader();
         $payload = json_encode($sendData, JSON_UNESCAPED_SLASHES);
-        
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
