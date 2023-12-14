@@ -19,6 +19,32 @@ use OpenEMR\Modules\Dorn\models\AckViewModel;
 
 class ConnectorApi
 {
+    public static function searchOrderStatus($originalOrderNumber, $primaryId, $startDateTime, $endDateTime )
+    {
+        $api_server = ConnectorApi::getServerInfo();
+        $url = $api_server . "/api/Orders/v1/SearchOrderStatus";
+
+        $params = []; // Initialize an empty params array
+
+        if (!empty($originalOrderNumber)) {
+            $params['originalOrderNumber'] = $originalOrderNumber;
+        }
+        if (!empty($primaryId)) {
+            $params['primaryId'] = $primaryId;
+        }        
+        if (!empty($startDateTime)) {
+            $params['startDateTime'] = $startDateTime;
+        }
+        if (!empty($endDateTime)) {
+            $params['endDateTime'] = $endDateTime;
+        }
+
+        $url = $url . '?' . http_build_query($params);
+
+
+        $returnData = ConnectorApi::getData($url);
+        return $returnData;
+    }
     public static function sendAck($resultsGuid, $isRejected, $msgs)
     {
         $api_server = ConnectorApi::getServerInfo();
@@ -196,7 +222,7 @@ class ConnectorApi
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         $result = curl_exec($ch);
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
+        error_log(print_r($ch));
         curl_close($ch);
         if ($httpcode == 200 || $httpcode == 400) {
             $responseJsonData = json_decode($result);
@@ -271,7 +297,7 @@ class ConnectorApi
     }
     public static function buildHeader()
     {
-        $token = "";
+        $token = ConnectorApi::getAccessToken();
         $content = 'content-type: application/json';
         $bearer = 'authorization: Bearer ' . $token;
         $headers = [
@@ -279,5 +305,50 @@ class ConnectorApi
             $bearer
          ];
          return $headers;
+    }
+
+
+    public static function canConnectToClaimRev()
+    {
+        $token = ClaimRevApi::GetAccessToken();
+        if ($token == "") {
+            return "No";
+        }
+        return "Yes";
+    }
+    public static function getAccessToken()
+    {
+        $bootstrap = new Bootstrap($GLOBALS['kernel']->getEventDispatcher());
+        $globalsConfig = $bootstrap->getGlobalConfig();
+
+        $authority = $globalsConfig->getClientAuthority();
+        $clientId = $globalsConfig->getClientId();
+        $scope = $globalsConfig->getClientScope();
+        $client_secret = $globalsConfig->getClientSecret();
+        $api_server = $globalsConfig->getApiServer();
+
+        $headers = [
+           'content-type: application/x-www-form-urlencoded'
+        ];
+
+        $payload = "client_id=" . $clientId . "&scope=" . $scope . "&client_secret=" . $client_secret . "&grant_type=client_credentials";
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $authority);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        $result = curl_exec($ch);
+        curl_close($ch);
+        $data = json_decode($result);
+
+        $token = "";
+        if (property_exists($data, 'access_token')) {
+            $token = $data->access_token;
+        }
+
+        return $token;
     }
 }

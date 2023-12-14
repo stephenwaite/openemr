@@ -17,6 +17,7 @@ use OpenEMR\Services\Globals\GlobalSetting;
 
 class GlobalConfig
 {
+    public const CONFIG_OPTION_API_URL = 'oe_dorn_api_url';
     public const CONFIG_OPTION_ENVIRONMENT = 'oe_dorn_config_environment';
     public const CONFIG_OPTION_CLIENTID = 'oe_dorn_config_clientid';
     public const CONFIG_OPTION_CLIENTSECRET = 'oe_dorn_config_clientsecret';
@@ -70,7 +71,7 @@ class GlobalConfig
         if ($this->getGlobalSetting(self::CONFIG_OPTION_ENVIRONMENT) == "S") {
             return "https://stagingclaimrevcom.onmicrosoft.com/portal/api/.default";
         } elseif ($this->getGlobalSetting(self::CONFIG_OPTION_ENVIRONMENT) == "D") {
-            return "https://claimrevportaldevelopment.onmicrosoft.com/portal/api/.default";
+            return "https://claimrevportaldevelopment.onmicrosoft.com/labs.claimrev.com/.default";
         }
         return "https://portalclaimrev.onmicrosoft.com/portal/api/.default";
     }
@@ -87,7 +88,7 @@ class GlobalConfig
 
     public function getApiServer()
     {
-        return $this->getGlobalSetting(self::CONFIG_OPTION_ENVIRONMENT);
+        return $this->getGlobalSetting(self::CONFIG_OPTION_API_URL);
     }
 
 
@@ -120,6 +121,12 @@ class GlobalConfig
                 ,'description' => 'The system you connect to. P for production'
                 ,'type' => GlobalSetting::DATA_TYPE_TEXT
                 ,'default' => 'P'
+            ],
+            self::CONFIG_OPTION_API_URL => [
+                'title' => 'API URL'
+                ,'description' => 'The api system you to connect to'
+                ,'type' => GlobalSetting::DATA_TYPE_TEXT
+                ,'default' => 'production\url\when\known'
             ]
             ,self::CONFIG_OPTION_CLIENTID => [
                 'title' => 'Client ID'

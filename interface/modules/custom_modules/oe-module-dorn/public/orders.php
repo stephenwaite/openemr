@@ -18,15 +18,16 @@
  use OpenEMR\Core\Header; //this is needed along with setupHeader() to get the pop up to appear
 
 $tab = "orders";
-
+$pageTitle = "DORN Orders";
 if (!AclMain::aclCheckCore('admin', 'users')) {
-    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Edit/Add Procedure Provider")]);
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl($pageTitle)]);
     exit;
 }
+$primaryInfos = ConnectorApi::getPrimaryInfos('');
 
 if (!empty($_POST)) {
     if (isset($_POST['SubmitButton'])) { //check if form was submitted
-        $datas = ConnectorApi::searchLabs($_POST['form_labName'], $_POST['form_phone'], $_POST['form_fax'], $_POST['form_city'], $_POST['form_state'], $_POST['form_zip'], $_POST['form_active'], $_POST['form_connected']);
+        $datas = ConnectorApi::searchOrderStatus($_POST['form_orderNumber'], $_POST['form_primaryId'], $_POST['form_startDateTime'], $_POST['form_endDateTime']);
         if ($datas == null) {
             $datas = [];
         }
@@ -38,7 +39,7 @@ if (!empty($_POST)) {
         <?php Header::setupHeader(); ?>
         <link rel="stylesheet" href="../../../../../public/assets/bootstrap/dist/css/bootstrap.min.css">
     </head>
-<title> <?php echo xlt("DORN Orders"); ?>  </title>
+<title> <?php echo xlt($pageTitle); ?>  </title>
 <script>
 
 </script>
@@ -52,7 +53,92 @@ if (!empty($_POST)) {
     </div>
     <div class="row"> 
         <div class="col">
-            <h1><?php echo xlt("DORN - Lab Orders"); ?></h1>        
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><?php echo xlt("DORN - Lab Orders"); ?></h5>
+                    <div class="row">
+                        <div class="col">
+                            <form method="post" action="orders.php">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <select name="form_primaryId">
+                                            <?php foreach ($primaryInfos as $primaryInfo) {
+                                                $selected = $primaryInfo->primaryId === $_GET['form_primaryId'] ? "selected" : "";
+                                                ?>
+                                            <option value='<?php echo attr($primaryInfo->primaryId) ?>' <?php $selected ?>>
+                                                <?php echo xlt($primaryInfo->primaryName) ?>
+
+                                            </option>
+                                            <?php } ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="form_orderNumber"><?php echo xlt("Order Number") ?>:</label>
+                                            <input type="text" class="form-control" id="form_orderNumber" name="form_orderNumber" value="<?php echo isset($_POST['form_orderNumber']) ? attr($_POST['form_orderNumber']) : '' ?>"/>
+                                        </div>     
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="form_startDateTime"><?php echo xlt("Start Date") ?>:</label>
+                                            <input type="date" class="form-control" id="form_startDateTime" name="form_startDateTime" value="<?php echo isset($_POST['form_startDateTime']) ? attr($_POST['form_startDateTime']) : '' ?>"/>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="form_endDateTime"><?php echo xlt("End Date") ?>:</label>
+                                            <input type="date" class="form-control" id="form_endDateTime" name="form_endDateTime" value="<?php echo isset($_POST['form_endDateTime']) ? attr($_POST['form_endDateTime']) : '' ?>"/>
+                                        </div>
+                                    </div>                                                
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <button type="submit" name="SubmitButton" class="btn btn-primary"><?php echo xlt("Submit") ?></button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="row">
+                    <div class="col">
+                     <?php
+                        if (empty($datas)) {
+                            echo xlt("No results found");
+                        } else { ?>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col"><?php echo xlt("Lab Name") ?></th>
+                                    <th scope="col"><?php echo xlt("Order Number") ?></th>
+                                    <th scope="col"><?php echo xlt("Order Status") ?></th>
+                                    <th scope="col"><?php echo xlt("Is Pending") ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php
+                                foreach ($datas as $data) {
+                                    ?>
+                                <tr>
+                                    <td scope="row"><?php echo text($data->labName); ?></td>
+                                    <td scope="row"><?php echo text($data->orderNumber); ?></td>
+                                    <td scope="row"><?php echo text($data->orderStatusLong); ?></td>
+                                    <td scope="row"><?php echo text($data->isPending); ?></td>
+                                </tr>
+                                    <?php
+                                }//end foreach
+                                ?>
+                            </tbody>
+                        </table>
+                                <?php
+                        }//end empty data
+                        ?>
+                    </div>
+                    </div>
+                </div>
+            </div>
+                 
         </div>
     </div>
 
