@@ -396,7 +396,7 @@ class ReceiveHl7Results
                         'phone_home' => $in_phone,
                         'pubpid' => $in_pubpid
                     );
-                    $patient_id = $this->match_patient($ptarr);
+                    $patient_id = $this->matchPatient($ptarr);
                     if ($patient_id == -1) {
                         // Result is indeterminate.
                         // Make a stringified form of $ptarr to use as a key.
@@ -421,7 +421,7 @@ class ReceiveHl7Results
     
                     if ($patient_id == 0 && !$dryrun) {
                         // We must create the patient.
-                        $patient_id = $this->create_skeleton_patient($ptarr);
+                        $patient_id = $this->createSkeletonPatient($ptarr);
                     }
     
                     if ($patient_id == -1) {
@@ -440,10 +440,10 @@ class ReceiveHl7Results
                 } elseif ('MDM' == $msgtype) {
                     // For documents we want the ordering provider.
                     // Try Referring Provider first.
-                    $oprow = $this->match_provider(explode($d2, $a[8]));
+                    $oprow = $this->matchProvider(explode($d2, $a[8]));
                     // If no match, try Other Provider.
                     if (empty($oprow)) {
-                        $oprow = $this->match_provider(explode($d2, $a[52]));
+                        $oprow = $this->matchProvider(explode($d2, $a[52]));
                     }
                 }
             } elseif ('ORC' == $a[0] && 'ORU' == $msgtype) {
@@ -563,7 +563,7 @@ class ReceiveHl7Results
     
                         if (!$provider_id) {
                             // Attempt ordering provider matching by name or NPI.
-                            $oprow = $this->match_provider(explode($d2, $a[16]));
+                            $oprow = $this->matchProvider(explode($d2, $a[16]));
                             if (!empty($oprow)) {
                                 $provider_id = (int)$oprow['id'];
                                 $provider_username = $oprow['username'];
@@ -573,7 +573,7 @@ class ReceiveHl7Results
                         if (!$dryrun) {
                             // create an encounter. I mean, why not...
                             if (empty($encrow) && !$encounter_id) {
-                                $encounter_id = $this->create_encounter(
+                                $encounter_id = $this->createEncounter(
                                     $patient_id,
                                     $provider_id,
                                     $datetime_report,
@@ -1426,7 +1426,7 @@ class ReceiveHl7Results
      *   0  No patient is close to a match.
      *  -1  It's not clear if there is a match.
      */
-    private function match_patient($ptarr)
+    private function matchPatient($ptarr)
     {
         $in_ss = str_replace('-', '', $ptarr['ss']);
         $in_fname = $ptarr['fname'];
@@ -1489,7 +1489,7 @@ class ReceiveHl7Results
     }
 
     // create encounter
-    private function create_encounter($pid, $provider_id, $order_date, $lab_name)
+    private function createEncounter($pid, $provider_id, $order_date, $lab_name)
     {
         global $orphanLog;
         $conn = $GLOBALS['adodb']['db'];
@@ -1572,7 +1572,7 @@ class ReceiveHl7Results
      * @param array $arr array(NPI, lastname, firstname) identifying a provider.
      * @return mixed        Array(id, username), or FALSE if no match.
      */
-    private function match_provider($arr)
+    private function matchProvider($arr)
     {
         if (empty($arr)) {
             return false;
@@ -1631,7 +1631,7 @@ class ReceiveHl7Results
     /**
      * Create a patient using whatever patient_data attributes are provided.
      */
-    private function create_skeleton_patient($patient_data)
+    private function createSkeletonPatient($patient_data)
     {
         global $orphanLog;
         $employer_data = array();

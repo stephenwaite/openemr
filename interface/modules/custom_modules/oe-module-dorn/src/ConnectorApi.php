@@ -19,7 +19,7 @@ use OpenEMR\Modules\Dorn\models\AckViewModel;
 
 class ConnectorApi
 {
-    public static function searchOrderStatus($originalOrderNumber, $primaryId, $startDateTime, $endDateTime )
+    public static function searchOrderStatus($originalOrderNumber, $primaryId, $startDateTime, $endDateTime)
     {
         $api_server = ConnectorApi::getServerInfo();
         $url = $api_server . "/api/Orders/v1/SearchOrderStatus";
@@ -31,7 +31,7 @@ class ConnectorApi
         }
         if (!empty($primaryId)) {
             $params['primaryId'] = $primaryId;
-        }        
+        }
         if (!empty($startDateTime)) {
             $params['startDateTime'] = $startDateTime;
         }
@@ -222,7 +222,6 @@ class ConnectorApi
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         $result = curl_exec($ch);
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        error_log(print_r($ch));
         curl_close($ch);
         if ($httpcode == 200 || $httpcode == 400) {
             $responseJsonData = json_decode($result);

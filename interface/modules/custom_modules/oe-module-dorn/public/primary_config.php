@@ -15,7 +15,7 @@
     use OpenEMR\Common\Acl\AclMain;
     use OpenEMR\Common\Csrf\CsrfUtils;
     use OpenEMR\Common\Twig\TwigContainer;
-    use OpenEMR\Modules\Dorn\ClaimRevDornApiConector;
+    use OpenEMR\Modules\Dorn\ConnectorApi;
     use OpenEMR\Core\Header; //this is needed along with setupHeader() to get the pop up to appear
 
     $tab = "Configure Primary";
@@ -27,7 +27,7 @@ if (!AclMain::aclCheckCore('admin', 'users')) {
 
 if (!empty($_POST)) {
     if (isset($_POST['SubmitButton'])) { //check if form was submitted
-        $datas = ClaimRevDornApiConector::getPrimaryInfos($_POST['npi']);
+        $datas = ConnectorApi::getPrimaryInfos($_POST['npi']);
         if ($datas == null) {
             $datas = [];
         }

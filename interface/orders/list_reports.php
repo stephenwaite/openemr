@@ -277,7 +277,7 @@ function doWait(e){
     }
     // Attempt to post any incoming results.
     if (!empty($_REQUEST['form_process_labs']) || (!empty($info['orphaned_order']) && $info['orphaned_order'] == "R")) {
-        $errmsg = poll_hl7_results($info, $processing_lab);
+                $errmsg = poll_hl7_results($info, $processing_lab);
     }
     // echo "<!--\n";  // debugging
     // print_r($info); // debugging
@@ -408,8 +408,7 @@ function doWait(e){
         <div class="col-md">
             <select class="col-md form-control" name='form_reviewed'>
                 <?php
-                foreach (
-                    array(
+                foreach (array(
                         '1' => xl('All'),
                         '2' => xl('Reviewed'),
                         '3' => xl('Received, unreviewed'),

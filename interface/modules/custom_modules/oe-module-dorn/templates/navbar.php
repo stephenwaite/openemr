@@ -42,18 +42,7 @@
                 echo "active";
                                 } ?>" >
                 <a class="nav-link" href="results.php"><?php echo xlt("Results"); ?></a>                            
-            </li>
-
-            <li class="nav-item <?php if ($tab == "setup") {
-                echo "active";
-                                } ?>" >
-                <a class="nav-link" href="setup.php"><?php echo xlt("Setup"); ?></a>                            
-            </li>
-            <li class="nav-item <?php if ($tab == "connectivity") {
-                echo "active";
-                                } ?>" >
-                <a class="nav-link" href="debug-info.php"><?php echo xlt("Connectivity"); ?></a>                            
-            </li>
+            </li>            
         </ul>        
     </div>
 </nav>       

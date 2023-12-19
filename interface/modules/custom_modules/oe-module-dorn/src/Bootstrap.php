@@ -93,7 +93,7 @@ class Bootstrap
         if ($this->globalsConfig->isConfigured()) {
             $this->registerMenuItems();
             $this->registerTemplateEvents();
-            $this->subscribeToApiEvents();            
+            $this->subscribeToApiEvents();
         }
     }
 
