@@ -32,10 +32,10 @@ class LabRouteSetup
         $recv_fac_id = "";
         $DorP = "P";
         $direction = "B";
-        $protocol = "FS";
+        $protocol = "DORN";
         $remote_host = "";
-        $orders_path = "/tmp/dorn/orders/" + $labName;
-        $results_path = "/tmp/hl7/dorn/"+ $labName;
+        $orders_path = "";
+        $results_path = "";
         $notes = "created automatically - LabGuid:" . $labGuid;
         $lab_director = $uuid;
         $active = 1;
@@ -63,10 +63,10 @@ class LabRouteSetup
         $recv_fac_id = "";
         $DorP = "P";
         $direction = "B";
-        $protocol = "FS";
+        $protocol = "DORN";
         $remote_host = "";
-        $orders_path = "/tmp/dorn/orders/" . $labName;
-        $results_path = "/tmp/hl7/dorn/" . $labName;
+        $orders_path = "";
+        $results_path = "";
         $notes = "created automatically - LabGuid:" . $labGuid;
         $lab_director = $uuid;
         $active = 1;
