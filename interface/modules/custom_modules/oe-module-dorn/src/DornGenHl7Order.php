@@ -8,11 +8,12 @@
  * @copyright Copyright (c) 2022 Brad Sharp <brad.sharp@claimrev.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
-namespace OpenEMR\Common\ProcedureTools;
+namespace OpenEMR\Modules\Dorn;
 
-use OpenEMR\Common\ProcedureTools\GenHl7OrderBase;
+use OpenEMR\Modules\Dorn\GenHl7OrderBase;
 use OpenEMR\Common\Logging\EventAuditLogger;
 use OpenEMR\Modules\Dorn\ConnectorApi;
+use OpenEMR\Modules\Dorn\ProcedureSqlStatements;
 
 class DornGenHl7Order extends GenHl7OrderBase
 {

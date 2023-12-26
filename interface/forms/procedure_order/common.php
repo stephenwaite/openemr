@@ -28,7 +28,7 @@ use OpenEMR\Common\Forms\ReasonStatusCodes;
 use OpenEMR\Core\Header;
 use OpenEMR\Events\Services\QuestLabTransmitEvent;
 use Symfony\Component\EventDispatcher\EventDispatcher;
-use OpenEMR\Common\ProcedureTools\DornGenHl7Order;
+use OpenEMR\Modules\Dorn\DornGenHl7Order;//wanting to keep everything in the module for easy updating. I hope this works, from what I've read it should.
 
 if (!$encounter) { // comes from globals.php
     die("Internal error: we do not seem to be in an encounter!");
@@ -372,10 +372,16 @@ if (($_POST['bn_save'] ?? null) || !empty($_POST['bn_xmit']) || !empty($_POST['b
     }
  
     $alertmsg = '';
-    $isDorn = DornGenHl7Order::isDornLab($ppid);
+    $isDorn = false;
     $dornConnector = null;
-    if ($isDorn) {
-        $dornConnector = new DornGenHl7Order();
+    try {
+        $isDorn = DornGenHl7Order::isDornLab($ppid);
+        if ($isDorn) {
+            $dornConnector = new DornGenHl7Order();
+        }
+    } catch (Exception $e) {
+        $isDorn = false;
+        $dornConnector = null;
     }
     
     if (!empty($_POST['bn_xmit'])) {
