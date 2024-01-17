@@ -46,7 +46,7 @@ class Claim
     public $payers;            // array of arrays, for all payers
     public $copay;             // total of copays from the ar_activity table
     public $facilityService;   // via matthew.vita orm work :)
-    public $pay_to_provider;   // to be implemented in facility ui
+    public $pay_to_provider_address;   // to be implemented in facility ui
     private $encounterService;
     public $billing_prov_id;
     public $line_item_adjs;    // adjustment array with key of [group code][reason code] needed for secondary claims
@@ -63,12 +63,12 @@ class Claim
         $this->copay = $this->getCopay($this->pid, $this->encounter_id);
         $this->facilityService = new FacilityService();
         $this->facility = $this->facilityService->getById($this->encounter['facility_id']);
-        $this->pay_to_provider = ''; // will populate from facility someday :)
         $this->x12_partner = $this->getX12Partner($x12_partner_id);
         $this->provider = (new UserService())->getUser($this->encounter['provider_id']);
         $this->billing_facility = empty($this->encounter['billing_facility']) ?
             $this->facilityService->getPrimaryBillingLocation() :
             $this->facilityService->getById($this->encounter['billing_facility']);
+        $this->pay_to_provider_address = ($this->payToFacilityStreet()) ? true : false;
         $this->insurance_numbers = $this->getInsuranceNumbers(
             $this->procs[0]['payer_id'],
             $this->encounter['provider_id']
@@ -752,6 +752,32 @@ class Claim
     {
         return $this->x12Zip($this->billing_facility['postal_code']);
     }
+
+    public function payToFacilityStreet()
+    {
+        return $this->x12Clean(trim($this->billing_facility['mail_street']));
+    }
+
+    public function payToFacilityStreet2()
+    {
+        return $this->x12Clean(trim($this->billing_facility['mail_street2']));
+    }
+
+    public function payToFacilityCity()
+    {
+        return $this->x12Clean(trim($this->billing_facility['mail_city']));
+    }
+
+    public function payToFacilityState()
+    {
+        return $this->x12Clean(trim($this->billing_facility['mail_state']));
+    }
+
+    public function payToFacilityZip()
+    {
+        return $this->x12Zip($this->billing_facility['mail_zip']);
+    }
+
 
     public function billingFacilityETIN()
     {

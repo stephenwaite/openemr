@@ -317,7 +317,7 @@ class X125010837P
             // Situational PER*1C segment omitted.
 
             // Pay-To Address defaults to billing provider and is no longer required in 5010 but may be useful
-            if ($claim->pay_to_provider != '') {
+            if ($claim->pay_to_provider_address) {
                 ++$edicount;
                 $billingFacilityName = substr($claim->billingFacilityName(), 0, 60);
                 $out .= "NM1" .       // Loop 2010AB Pay-To Provider
@@ -338,8 +338,8 @@ class X125010837P
                 ++$edicount;
                 $out .= "N3" .
                 "*";
-                if ($claim->billingFacilityStreet()) {
-                    $out .= $claim->billingFacilityStreet();
+                if ($claim->payToFacilityStreet()) {
+                    $out .= $claim->payToFacilityStreet() . " " . $claim->payToFacilityStreet2();
                 } else {
                     $log .= "*** Pay to provider has no street.\n";
                 }
@@ -348,23 +348,23 @@ class X125010837P
                 ++$edicount;
                 $out .= "N4" .
                 "*";
-                if ($claim->billingFacilityCity()) {
-                    $out .= $claim->billingFacilityCity();
+                if ($claim->payToFacilityCity()) {
+                    $out .= $claim->payToFacilityCity();
                 } else {
                     $log .= "*** Pay to provider has no city.\n";
                 }
                 $out .= "*";
-                if ($claim->billingFacilityState()) {
-                    $out .= $claim->billingFacilityState();
+                if ($claim->payToFacilityState()) {
+                    $out .= $claim->payToFacilityState();
                 } else {
                     $log .= "*** Pay to provider has no state.\n";
                 }
                 $out .= "*";
                 // X12 requires a 9 digit zip but we output it anyways
-                if (strlen($claim->billingFacilityZip()) != 9) {
+                if (strlen($claim->payToFacilityZip()) != 9) {
                     $log .= "*** Pay to provider zip is not 9 digits.\n";
                 }
-                $out .= $claim->billingFacilityZip();
+                $out .= $claim->payToFacilityZip();
                 $out .= "~\n";
             }
 
