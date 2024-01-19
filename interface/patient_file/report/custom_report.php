@@ -218,7 +218,7 @@ function zip_content($source, $destination, $content = '', $create = true)
 
 <body>
     <div class="container">
-        <div id="report_custom w-100">  <!-- large outer DIV -->
+        <div id="report_custom w-100" style="padding:3em" >  <!-- large outer DIV -->
             <?php
             if (sizeof($_GET) > 0) {
                 $ar = $_GET;
