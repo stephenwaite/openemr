@@ -289,7 +289,7 @@ function create_statement($stmt)
                     $agedate = $dos;
                 }
                 $amount = sprintf("%.2f", $ddata['pmt']);
-                $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco;
+                $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco ?? '';
                 if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
                     $pt_paid_flag = true;
                     $desc = xl('Pt paid');
@@ -302,9 +302,9 @@ function create_statement($stmt)
                 $dos = $ddate;
                 if ($ddata['chg']) {
                     $amount = sprintf("%.2f", ($ddata['chg'] * -1));
-                    $desc = xl('Adj') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco;
+                    $desc = xl('Adj') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco ?? '';
                 } else {
-                    $desc = xl('Note') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco;
+                    $desc = xl('Note') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco ?? '';
                 }
                 $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
             } elseif ($ddata['chg'] < 0) {
