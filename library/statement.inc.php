@@ -218,7 +218,7 @@ function create_statement($stmt)
     //  %-25s = left-justified string of 25 characters padded with spaces
     // Note that "\n" is a line feed (new line) character.
     // reformatted to handle i8n by tony
-    //$out = "\n\n";    
+    //$out = "\n\n";
     $addrline = strtoupper(preg_replace('/\s+/', ' ', $stmt['to'][1]));
     $out  = sprintf("%-9s %-55s %6s \r\n", '', trim(strtoupper($stmt['to'][0])), $stmt['pid']);
     $out .= sprintf("%-9s %-43s %-8s \r\n", '', $addrline, date('m d y'));
@@ -276,7 +276,7 @@ function create_statement($stmt)
             }
 
             $amount = '';
-            
+
             if (!empty($insco)) {
                 if (strpos(($ddata['pmt_method'] ?? ''), $insco) !== false) {
                     $insco = '';
@@ -289,7 +289,7 @@ function create_statement($stmt)
                     $agedate = $dos;
                 }
                 $amount = sprintf("%.2f", $ddata['pmt']);
-                $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco ?? '';
+                $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                 if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
                     $pt_paid_flag = true;
                     $desc = xl('Pt paid');
@@ -302,9 +302,9 @@ function create_statement($stmt)
                 $dos = $ddate;
                 if ($ddata['chg']) {
                     $amount = sprintf("%.2f", ($ddata['chg'] * -1));
-                    $desc = xl('Adj') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco ?? '';
+                    $desc = xl('Adj') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                 } else {
-                    $desc = xl('Note') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . $insco ?? '';
+                    $desc = xl('Note') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                 }
                 $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
             } elseif ($ddata['chg'] < 0) {
@@ -327,7 +327,7 @@ function create_statement($stmt)
                 $continued_text = "\r\n\r\n";
                 $continued_text .= sprintf("                       %.2f", $stmt['amount']);
                 $continued_text .= "CONTINUED PAGE $page_count \r\n";
-                $continued_text .= "\014"; // this is a form feed                
+                $continued_text .= "\014"; // this is a form feed
             }
         }
         if ($agedate == '0000-00-00') {
@@ -338,6 +338,11 @@ function create_statement($stmt)
         $age_in_days = (int) (($todays_time - strtotime($agedate)) / (60 * 60 * 24));
         $age_index = (int) (($age_in_days - 1) / 30);
         $age_index = max(0, min($num_ages - 1, $age_index));
+        if ($stmt['dun_count'] == 0) {
+            $age_index = 0;
+        } else {
+            // add better aging here based on payments made since last bill date
+        }
         $aging[$age_index] += $line['amount'] - $line['paid'];
     }
 
