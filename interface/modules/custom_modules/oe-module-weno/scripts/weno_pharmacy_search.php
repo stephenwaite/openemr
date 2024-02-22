@@ -109,7 +109,7 @@ if (isset($_GET['searchFor']) && $_GET['searchFor'] == 'weno_pharmacy') {
             );
         }
     }
-    echo json_encode($return_arr);
+    echo text(json_encode($return_arr));
 }
 
 if (isset($_GET['searchFor']) && $_GET['searchFor'] == 'weno_drop') {
@@ -164,6 +164,7 @@ if (isset($_GET['searchFor']) && $_GET['searchFor'] == 'weno_drop') {
 
     $return_arr = [];
     $res = sqlStatement($sql, $params);
+    $return_arr = [];
     while ($row = sqlFetchArray($res)) {
         if (strlen($row['ncpdp_safe']) < 8) {
             $return_arr[] = array(
@@ -172,5 +173,5 @@ if (isset($_GET['searchFor']) && $_GET['searchFor'] == 'weno_drop') {
             );
         }
     }
-    echo json_encode($return_arr);
+    echo text(json_encode($return_arr));
 }
