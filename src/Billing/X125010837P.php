@@ -321,18 +321,8 @@ class X125010837P
                 ++$edicount;
                 $billingFacilityName = substr($claim->billingFacilityName(), 0, 60);
                 $out .= "NM1" .       // Loop 2010AB Pay-To Provider
-                "*" . "87" .
-                "*" . "2" .
-                "*" . $billingFacilityName .
-                "*" .
-                "*" .
-                "*" .
-                "*";
-                if ($claim->billingFacilityNPI()) {
-                    $out .= "*XX*" . $claim->billingFacilityNPI();
-                } else {
-                    $log .= "*** Pay to provider has no NPI.\n";
-                }
+                    "*" . "87" .
+                    "*" . "2";
                 $out .= "~\n";
 
                 ++$edicount;
