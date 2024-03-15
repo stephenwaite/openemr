@@ -380,6 +380,7 @@ class Claim
                 if (
                     $tmp
                     && (($value['pmt'] ?? null) == 0)
+                    && ($value['plv'] === $ins)
                 ) { // not original charge and not a payment
                     $rsn = $value['rsn'];
                     $chg = 0 - $value['chg']; // adjustments are negative charges
@@ -437,7 +438,7 @@ class Claim
                         $rcode = '45'; // reason 42 is obsolete
                     }
 
-                    $aadj[] = array($date, $gcode, $rcode, sprintf('%.2f', $chg));
+                    $aadj[$ins][] = array($date, $gcode, $rcode, sprintf('%.2f', $chg));
                 } // end if
             } // end foreach
 
@@ -483,15 +484,15 @@ class Claim
             $copay       = sprintf('%.2f', $copay);
 
             if ($date && $deductible != 0) {
-                $aadj[] = array($date, 'PR', '1', $deductible, $msp);
+                $aadj[$ins][] = array($date, 'PR', '1', $deductible, $msp);
             }
 
             if ($date && $coinsurance != 0) {
-                $aadj[] = array($date, 'PR', '2', $coinsurance, $msp);
+                $aadj[$ins][] = array($date, 'PR', '2', $coinsurance, $msp);
             }
 
             if ($date && $copay != 0) {
-                $aadj[] = array($date, 'PR', '3', $copay, $msp);
+                $aadj[$ins][] = array($date, 'PR', '3', $copay, $msp);
             }
         } // end if
 
@@ -534,7 +535,7 @@ class Claim
             }
 
             $aarr = $this->payerAdjustments($ins, $codekey);
-            foreach ($aarr as $a) {
+            foreach ($aarr[$ins] as $a) {
                 if (strcmp($a[1], 'PR') != 0) {
                     $adjtotal += $a[3];
                 }
@@ -764,7 +765,6 @@ class Claim
     {
         return $this->x12Zip($this->billing_facility['mail_zip']);
     }
-
 
     public function billingFacilityETIN()
     {
@@ -1855,10 +1855,10 @@ class Claim
      * @param  array $aarr Payer adjustment array from the X12837 script with payer adjustments
      * @return array       Returns a grouped array to the 837 for output in the CAS segment
      */
-    public function getLineItemAdjustments($aarr)
+    public function getLineItemAdjustments($aarr, $ins)
     {
         $this->line_item_adjs = [];
-        foreach ($aarr as $a) {
+        foreach ($aarr[$ins] as $a) {
             if (!array_key_exists($a[1], $this->line_item_adjs)) {
                 $this->line_item_adjs[$a[1]] = [];
             }
