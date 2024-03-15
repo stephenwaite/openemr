@@ -1393,8 +1393,10 @@ class X125010837P
                     $out .= "AE7";
                 } elseif (($claim->payerID($ins)) == "39026") {
                     $out .= "S02";
+                } elseif (!empty($claim->groupNumber($ins))) {
+                    $out .= substr($claim->groupNumber($ins), 0, 3);
                 } else {
-                    $log .= "*** Missing other insco payer id with medicaid 2ndary?\n";
+                    $log .= "*** Missing carrier code for medicaid? Enter in previous ins group # then?\n";
                 }
             } elseif ($claim->payerID($ins)) {
                 $out .= $claim->payerID($ins);
@@ -1716,61 +1718,50 @@ class X125010837P
                     if ($claim->claimType($ins) === 'MB') {
                         $out .= "MDB";
                         $pr_3_flag = true;
+                    } elseif ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
+                        if (($claim->payerName($ins)) == "BCBS NJ") {
+                            $out .= "H6";
+                        } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
+                            $out .= "MDB";
+                        } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
+                            $out .= "BV";
+                        } else {
+                            $out .= "EE";
+                        }
+                    } elseif (($claim->payerID($ins)) == "14512") {
+                        $out .= "MDB";
+                    } elseif (($claim->payerID($ins)) == "14212") {
+                        $out .= "MDB";
+                    } elseif (($claim->payerID($ins)) == "14163") {
+                        $out .= "MDB";
+                    } elseif (($claim->payerID($ins)) == "87726") {
+                        $out .= "MDB";
+                    } elseif (($claim->payerID($ins)) == "62308") {
+                        $out .= "FB6";
+                    } elseif (($claim->payerID($ins)) == "14165") {
+                        $out .= "Z2";
+                    } elseif (($claim->payerID($ins)) == "60054") {
+                        if (!empty($claim->groupNumber())) {
+                            $out .= $claim->groupNumber();
+                        } else {
+                            $out .= "92";
+                        }
+                    } elseif (($claim->payerID($ins)) == "00010") {
+                        $out .= "42";
+                    } elseif (($claim->payerID($ins)) == "MPHC1") {
+                        $out .= "42";
+                    } elseif (($claim->payerID($ins)) == "EBSRM") {
+                        $out .= "AW1";
+                    } elseif (($claim->payerID($ins)) == "00882") {
+                        $out .= "MDB";
+                    } elseif (($claim->payerID($ins)) == "53275") {
+                        $out .= "AE7";
+                    } elseif (($claim->payerID($ins)) == "39026") {
+                        $out .= "S02";
+                    } elseif (!empty($claim->groupNumber($ins))) {
+                        $out .= substr($claim->groupNumber($ins), 0, 3);
                     } else {
-                        if ($claim->payerID($ins) == "BCSVT" || $claim->payerID($ins) == "BCBSVT") {
-                            if (($claim->payerName($ins)) == "BCBS NJ") {
-                                $out .= "H6";
-                            } elseif ((substr($claim->policyNumber($ins), 0, 4) == "V4BV")) {
-                                $out .= "MDB";
-                            } elseif ((substr($claim->policyNumber($ins), 0, 3) == "PEX")) {
-                                $out .= "BV";
-                            } else {
-                                $out .= "EE";
-                            }
-                        }
-                        if (($claim->payerID($ins)) == "14512") {
-                            $out .= "MDB";
-                        }
-                        if (($claim->payerID($ins)) == "14212") {
-                            $out .= "MDB";
-                        }
-                        if (($claim->payerID($ins)) == "14163") {
-                            $out .= "MDB";
-                        }
-                        if (($claim->payerID($ins)) == "87726") {
-                            $out .= "MDB";
-                        }
-                        if (($claim->payerID($ins)) == "62308") {
-                            $out .= "FB6";
-                        }
-                        if (($claim->payerID($ins)) == "14165") {
-                            $out .= "Z2";
-                        }
-                        if (($claim->payerID($ins)) == "60054") {
-                            if (!empty($claim->groupNumber())) {
-                                $out .= $claim->groupNumber();
-                            } else {
-                                $out .= "92";
-                            }
-                        }
-                        if (($claim->payerID($ins)) == "00010") {
-                            $out .= "42";
-                        }
-                        if (($claim->payerID($ins)) == "MPHC1") {
-                            $out .= "42";
-                        }
-                        if (($claim->payerID($ins)) == "EBSRM") {
-                            $out .= "AW1";
-                        }
-                        if (($claim->payerID($ins)) == "00882") {
-                            $out .= "MDB";
-                        }
-                        if (($claim->payerID($ins)) == "53275") {
-                            $out .= "AE7";
-                        }
-                        if (($claim->payerID($ins)) == "39026") {
-                            $out .= "S02";
-                        }
+                        $log .= "*** Missing carrier code for medicaid? Enter in previous ins group # then?\n";
                     }
                 } else {
                     $out .= $claim->payerID($ins);
@@ -1783,7 +1774,7 @@ class X125010837P
                 "~\n";
 
                 $tmpdate = $payerpaid[0];
-                $cas = $claim->getLineItemAdjustments($aarr);
+                $cas = $claim->getLineItemAdjustments($aarr, $ins);
 
                 // if tertiary claim need to hard code adjustments
                 if (
@@ -1815,12 +1806,6 @@ class X125010837P
                             $tmpdate = $value;
                         }
                         continue;
-                    } elseif (
-                        ($primary_paid_oa ?? null)
-                        && $key == 'CO'
-                        && $claim->payerSequence($ins) == 'S'
-                    ) {
-                            continue;
                     }
 
                     $out .= "CAS" .
