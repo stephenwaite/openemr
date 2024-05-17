@@ -499,7 +499,7 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
             $patient_id = $appointment['pid'];
             $patient_dob = getPatientData($patient_id, "dob");
             $patient_ins = getInsuranceData($patient_id, "primary");
-            $getIP = getInsuranceProvider($patient_ins['provider']) ?? '';
+            $getIP = getInsuranceProvider($patient_ins['provider'] ?? '');
             $patientbalance = get_patient_balance($appointment['pid'], false);
             if ($patientbalance == "-0.00") {
                 $patientbalance = "0.00";
