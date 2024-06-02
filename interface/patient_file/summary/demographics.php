@@ -1165,19 +1165,12 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                         }
                         $id = "current_prescriptions_ps_expand";
                         $viewArgs = [
-                            'title' => xl("Demographics"),
-                            'id' => "demographics_ps_expand",
-                            'btnLabel' => "Edit",
-                            'btnLink' => "demographics_full.php",
-                            'linkMethod' => "html",
-                            'auth' => ACLMain::aclCheckCore('patients', 'demo', '', 'write'),
-                            'requireRestore' => (!isset($_SESSION['patient_portal_onsite_two'])) ? true : false,
-                            'initiallyCollapsed' => getUserSetting("demographics_ps_expand") == true ? true : false,
-                            'tabID' => "DEM",
-                            'result' => $result,
-                            'result2' => $result2,
-                            'prependedInjection' => $dispatchResult->getPrependedInjection(),
-                            'appendedInjection' => $dispatchResult->getAppendedInjection(),
+                            'title' => xl('Current Medications'),
+                            'id' => $id,
+                            'forceAlwaysOpen' => false,
+                            'initiallyCollapsed' => (getUserSetting($id) == 0) ? true : false,
+                            'auth' => false,
+                            'rxList' => $rxArr,
                         ];
 
                         echo $t->render('patient/card/erx.html.twig', $viewArgs);
@@ -1260,18 +1253,14 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                         }
 
                         $viewArgs = [
-                            'title' => xl("Insurance"),
-                            'id' => $id,
-                            'btnLabel' => "Edit",
-                            'btnLink' => "demographics_full.php",
-                            'linkMethod' => 'html',
-                            'initiallyCollapsed' => (getUserSetting($id) == 0) ? false : true,
-                            'ins' => $insArr,
-                            'eligibility' => $output,
-                            'enable_oa' => $GLOBALS['enable_oa'],
-                            'auth' => AclMain::aclCheckCore('patients', 'demo', '', 'write'),
-                            'prependedInjection' => $dispatchResult->getPrependedInjection(),
-                            'appendedInjection' => $dispatchResult->getAppendedInjection(),
+                            'title' => $card->getTitle(),
+                            'id' => $card->getIdentifier(),
+                            'initiallyCollapsed' => $card->isInitiallyCollapsed(),
+                            'card_bg_color' => $card->getBackgroundColorClass(),
+                            'card_text_color' => $card->getTextColorClass(),
+                            'forceAlwaysOpen' => !$card->canCollapse(),
+                            'btnLabel' => $btnLabel,
+                            'btnLink' => 'test',
                         ];
 
                         echo $t->render($card->getTemplateFile(), array_merge($viewArgs, $card->getTemplateVariables()));
