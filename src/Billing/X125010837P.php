@@ -362,6 +362,12 @@ class X125010837P
             // NM1*PE, N3, N4, REF*2U, REF*EI
         }
 
+        if (!empty($GLOBALS['gen_x12_based_on_ins_co'])) {
+            $HLcount += $patSegmentCount;
+        }
+
+        $HLcount++;
+
         $PatientHL = $claim->isSelfOfInsured() ? 0 : 1;
         $HLSubscriber = $HLcount++;
 
