@@ -562,7 +562,7 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
                 }
                 ?>
                 <?php
-                if ($patient_id && (!empty($rems) || !empty($appointment['pc_hometext']))) { // Not display of available slot or not showing reminders and comments empty ?>
+                if ($patient_id && (!empty($rems) || !empty($appointment['pc_hometext']) || (!empty($getIP)))) { // Not display of available slot or not showing reminders and comments empty ?>
         <tr valign='top' id='p2.<?php echo attr($patient_id) ?>' >
             <td colspan='<?php echo $showDate ? '"3"' : '"2"' ?>' class="detail"></td>
         <td colspan='<?php echo ($incl_reminders ? "3" : "6") ?>' class="detail" align='left'>
