@@ -64,6 +64,10 @@ class Claim
         $this->facility = $this->facilityService->getById($this->encounter['facility_id']);
         $this->x12_partner = $this->getX12Partner($x12_partner_id);
         $this->provider = (new UserService())->getUser($this->encounter['provider_id']);
+        // user id is 6 for incident 2 billing for esp
+        if ($_SESSION['site_id'] == '1500') {
+            $this->provider = (new UserService())->getUser(6);
+        }
         $this->billing_facility = empty($this->encounter['billing_facility']) ?
             $this->facilityService->getPrimaryBillingLocation() :
             $this->facilityService->getById($this->encounter['billing_facility']);
