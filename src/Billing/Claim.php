@@ -13,6 +13,7 @@
 
 namespace OpenEMR\Billing;
 
+use Countable;
 use InsuranceCompany;
 use OpenEMR\Billing\InvoiceSummary;
 use OpenEMR\Services\EncounterService;
@@ -603,7 +604,7 @@ class Claim
   // Number of payers for this claim. Ranges from 1 to 3.
     public function payerCount()
     {
-        return !empty($this->payers) ? count($this->payers) : 0;
+        return is_countable($this->payers) ? count($this->payers) : 0;
     }
 
     public function x12gsversionstring()
