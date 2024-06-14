@@ -603,7 +603,7 @@ class Claim
   // Number of payers for this claim. Ranges from 1 to 3.
     public function payerCount()
     {
-        return count($this->payers);
+        return !empty($this->payers) ? count($this->payers) : 0;
     }
 
     public function x12gsversionstring()
