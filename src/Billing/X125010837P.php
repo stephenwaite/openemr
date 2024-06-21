@@ -896,6 +896,9 @@ class X125010837P
                 "*" . "ADD" .
                 "*" . $claim->medicaidReferralCode() .
                 "~\n";
+            if (empty($claim->medicaidReferralCode())) {
+                $log .= "*** Missing EPSDT code ***" . "\n";
+            }
         }
 
         // Diagnoses, up to $max_per_seg per HI segment.
