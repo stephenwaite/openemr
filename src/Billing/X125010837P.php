@@ -892,9 +892,8 @@ class X125010837P
         // Segment CRC (EPSDT Referral).
         if ($claim->epsdtFlag()) {
             ++$edicount;
-            $out .= "CRC" .
-                "*" . "ZZ" .
-                "*" . "Y" .
+            $out .= "NTE" .
+                "*" . "ADD" .
                 "*" . $claim->medicaidReferralCode() .
                 "~\n";
         }
