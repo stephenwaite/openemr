@@ -1136,7 +1136,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                                         )
                                     );
                                     $count = 0;
-                                    $default_x12_partner = $iter['x12_partner_id'] ?? null;
+                                    $default_x12_partner = $iter['ic_x12id'] ?? null;
                                     $prevtype = '';
 
                                     while ($row = sqlFetchArray($result)) {
