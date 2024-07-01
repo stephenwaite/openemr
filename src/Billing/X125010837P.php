@@ -653,7 +653,7 @@ class X125010837P
         $proccount = $claim->procCount();
         $clm_total_charges = 0;
         for ($prockey = 0; $prockey < $proccount; ++$prockey) {
-            $clm_total_charges += (int) $claim->cptCharges($prockey);
+            $clm_total_charges += $claim->cptCharges($prockey);
             $cpts[] = $claim->cptCode($prockey);
         }
         if (!$clm_total_charges) {
