@@ -23,7 +23,7 @@ class EmailClient extends AppDispatch
     public $baseDir;
     public $uriDir;
     public $serverUrl;
-    public $credentials;
+    public mixed $credentials;
     public string $portalUrl;
     protected CryptoGen $crypto;
     private EmailClient $client;

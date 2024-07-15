@@ -586,7 +586,6 @@ $tabTitle = $serviceType == "sms" ? xlt('SMS') : ($serviceType == "email" ? xlt(
             );
             return false;
         }
-
         // drop bucket
         const queueMsg = '' + <?php echo xlj('Fax Queue. Drop files or Click here for Fax Contact form.') ?>;
         Dropzone.autoDiscover = false;

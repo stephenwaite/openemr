@@ -123,10 +123,10 @@ $db_sms_msg['message'] = $MESSAGE;
         <?php Header::setupHeader(); ?>
     </head>
     <style>
-      html {
-        font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
-        font-size: 14px;
-      }
+        html {
+            font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+            font-size: 14px;
+        }
     </style>
     <body>
         <div class="container-fluid">
