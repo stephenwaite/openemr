@@ -1578,6 +1578,13 @@ class X125010837P
             $ndc = $claim->cptNDCID($prockey);
 
             if ($ndc) {
+                // for esp
+                if (
+                    $_SESSION['site_id'] == '1500'
+                    && in_array($claim->payerID(), ['87726', '39026', '25169', 'TREST', 'PAMCD'])
+                ) {
+                    continue;
+                }
                 ++$edicount;
                 $out .= "LIN" . // Drug Identification. Page 500+ (Addendum pg 71).
                     "*" .         // Per addendum, LIN01 is not used.
@@ -1767,7 +1774,7 @@ class X125010837P
                             "*" .
                             "OA" . "*" .
                             "23" . "*" .
-                            $primary_paid_oa;
+                            ltrim($primary_paid_oa);
                         $out .= "~\n";
                         ++$edicount;
                     }
@@ -1800,7 +1807,7 @@ class X125010837P
 
                         $out .= $k .
                             "*" .
-                            $v;
+                            ltrim($v);
                         if ($cntr < $size) {
                             $out .= "*" .
                                 "*";
