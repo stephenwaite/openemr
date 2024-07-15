@@ -1774,7 +1774,7 @@ class X125010837P
                             "*" .
                             "OA" . "*" .
                             "23" . "*" .
-                            ltrim($primary_paid_oa);
+                            ltrim($primary_paid_oa, '0');
                         $out .= "~\n";
                         ++$edicount;
                     }
@@ -1807,7 +1807,7 @@ class X125010837P
 
                         $out .= $k .
                             "*" .
-                            ltrim($v);
+                            ltrim($v, '0');
                         if ($cntr < $size) {
                             $out .= "*" .
                                 "*";
