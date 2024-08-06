@@ -298,6 +298,7 @@ try {
 }
 
 // This will open the openemr mysql connection.
+
 require_once(__DIR__ . "/../library/sql.inc.php");
 
 // Include the version file
@@ -444,7 +445,7 @@ if (!empty($glrow)) {
 
   // Language cleanup stuff.
     $GLOBALS['language_menu_login'] = false;
-    if ((count($GLOBALS['language_menu_show']) > 1) || $GLOBALS['language_menu_showall']) {
+    if (!empty($GLOBALS['language_menu_show']) && ((count($GLOBALS['language_menu_show']) > 1) || $GLOBALS['language_menu_showall'])) {
         $GLOBALS['language_menu_login'] = true;
     }
 
@@ -476,9 +477,9 @@ if (!empty($glrow)) {
         }
     } else {
         //$_SESSION['language_direction'] is not set, so will use the default language
-        $default_lang_id = sqlQueryNoLog('SELECT lang_id FROM lang_languages WHERE lang_description = ?', array($GLOBALS['language_default']));
+        $default_lang_id = sqlQueryNoLog('SELECT lang_id FROM lang_languages WHERE lang_description = ?', array($GLOBALS['language_default'] ?? ''));
 
-        if (getLanguageDir($default_lang_id['lang_id']) === 'rtl' && !strpos($GLOBALS['css_header'], 'rtl')) {
+        if (getLanguageDir($default_lang_id['lang_id'] ?? '') === 'rtl' && !strpos($GLOBALS['css_header'], 'rtl')) {
 // @todo eliminate 1 SQL query
             $rtl_override = true;
         }
@@ -637,9 +638,13 @@ $GLOBALS['layout_search_color'] = '#ff9919';
 // module configurations
 // upgrade fails for versions prior to 4.2.0 since no modules table
 // so perform this check to avoid sql error
-if (!file_exists($webserver_root . "/interface/modules/")) {
-    error_log("The modules directory does not exist thus not loading modules.");
-} else {
+try { 
+    $checkModulesTableExists = sqlQueryNoLog( 'SELECT 1 FROM `modules`', false, true);
+} catch (\Exception $ex) {
+    error_log(errorLogEscape($ex->getMessage() . $ex->getTraceAsString()));
+}
+
+if (!empty($checkModulesTableExists)) {
     $GLOBALS['baseModDir'] = "interface/modules/"; //default path of modules
     $GLOBALS['customModDir'] = "custom_modules"; //non zend modules
     $GLOBALS['zendModDir'] = "zend_modules"; //zend modules
@@ -665,6 +670,7 @@ if (!file_exists($webserver_root . "/interface/modules/")) {
         die();
     }
 }
+
 
 // Don't change anything below this line. ////////////////////////////
 

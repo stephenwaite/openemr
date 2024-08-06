@@ -78,12 +78,12 @@ while (false !== ($sfname = readdir($dh))) {
 closedir($dh);
 ksort($versions);
 
-$res2 = sqlStatement("select * from lang_languages where lang_description = ?", array($GLOBALS['language_default']));
+$res2 = sqlStatement("select * from lang_languages where lang_description = ?", array($GLOBALS['language_default'] ?? ''));
 for ($iter = 0; $row = sqlFetchArray($res2); $iter++) {
     $result2[$iter] = $row;
 }
 
-if (count($result2) == 1) {
+if (count($result2 ?? []) == 1) {
     $defaultLangID = $result2[0]["lang_id"];
     $defaultLangName = $result2[0]["lang_description"];
     $direction = (int)$result2[0]["lang_is_rtl"] === 1 ? 'rtl' : 'ltr';
@@ -94,7 +94,7 @@ if (count($result2) == 1) {
 }
 
 $_SESSION['language_choice'] = $defaultLangID;
-$_SESSION['language_direction'] = $direction;
+$_SESSION['language_direction'] = $direction ?? '';
 CsrfUtils::setupCsrfKey();
 session_write_close();
 
@@ -117,7 +117,7 @@ header('Content-type: text/html; charset=utf-8');
     // recursive long polling where ending is based
     // on global doPoll true or false.
     // added a forcePollOff parameter to avoid polling from staying on indefinitely when updating from patch.sql
-    async function serverStatus(version = '', start = 0, forcePollOff = 0) {
+    async function serverStatus(version = '', start = 0, forcePollOff = 1) {
         let updateMsg = "";
         let endMsg = "<li class='text-success bg-light'>" +
             <?php echo  xlj("End watching server processes for upgrade version"); ?>  + " " + currentVersion + "</li>";
