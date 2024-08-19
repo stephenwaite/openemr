@@ -1747,7 +1747,7 @@ class X125010837P
                     $out .= $claim->payerID($ins);
                 }
 
-                $out .= "*" . $payerpaid[1] .
+                $out .= "*" . ltrim($payerpaid[1], '0') .
                 "*" . "HC:" . $claim->cptKey($prockey) .
                 "*" .
                 "*" . $claim->cptUnits($prockey) .
