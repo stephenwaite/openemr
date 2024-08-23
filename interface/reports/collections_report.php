@@ -696,7 +696,7 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_export']) || !empty($_
              $newkey = $key_newval['pid'];
              $newencounter =  $key_newval['encounter'];
              # added this condition to handle the downloading of individual invoices (TLH)
-            if ($_POST['form_individual'] ?? '' == 1) {
+            if (($_POST['form_individual'] ?? '' == 1) || (!empty($_POST['form_export'] ?? ''))) {
                 $where .= " OR f.encounter = ? ";
                 array_push($sqlArray, $newencounter);
             } else {
@@ -1418,7 +1418,7 @@ if (empty($_POST['form_csvexport'])) {
     <a href='javascript:;' class='btn btn-secondary btn-transmit' onclick='$("#form_csvexport").attr("value","true"); $("#theform").submit();'>
             <?php echo xlt('Export Selected as CSV'); ?>
     </a>
-    <?php if ($_SESSION['site_id'] != '1400') { ?>
+        <?php if ($_SESSION['site_id'] != '1400') { ?>
     <a href='javascript:;' class='btn btn-secondary btn-transmit' onclick='$("#form_export").attr("value","true"); $("#form_csvexport").val(""); $("#form_clear_ins_debt").val("");$("#theform").submit();'>
             <?php echo xlt('Export Selected to Collections'); ?>
     </a>

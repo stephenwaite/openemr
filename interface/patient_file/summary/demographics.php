@@ -1058,6 +1058,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                         $insurancebalance = get_patient_balance($pid, true) - $patientbalance;
                         $totalbalance = $patientbalance + $insurancebalance;
                         $unallocated_amt = get_unallocated_patient_balance($pid);
+                        $collectionbalance = get_patient_balance($pid, false, false, true);
 
                         $id = "billing_ps_expand";
                         $dispatchResult = $ed->dispatch(new CardRenderEvent('billing'), CardRenderEvent::EVENT_HANDLE);
@@ -1071,6 +1072,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                             'insuranceBalance' => $insurancebalance,
                             'totalBalance' => $totalbalance,
                             'unallocated' => $unallocated_amt,
+                            'collectionBalance' => $collectionbalance,
                             'forceAlwaysOpen' => $forceBillingExpandAlways,
                             'prependedInjection' => $dispatchResult->getPrependedInjection(),
                             'appendedInjection' => $dispatchResult->getAppendedInjection(),
