@@ -1603,6 +1603,7 @@ function getAllinsurances($pid)
  * @return number The balance.
  */
 function get_patient_balance($pid, $with_insurance = false, $eid = false, $in_collection = false)
+function get_patient_balance($pid, $with_insurance = false, $eid = false, $in_collection = false)
 {
     $balance = 0;
     $bindarray = array($pid);
