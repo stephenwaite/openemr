@@ -11,7 +11,7 @@
 */
 
 // comment this out when using this script (and then uncomment it again when done using script)
-exit;
+//exit;
 
 if (php_sapi_name() !== 'cli') {
     echo "Only php cli can execute command\n";
@@ -38,7 +38,9 @@ $type = $argv[4] ?? 'primary';
 $payerId = $argv[5] ?? '87726';
 
 // get insurance_companies by payer id, example 87726 for uhc
-$inscos_by_payer_id = (new InsuranceCompanyService())->getAllByPayerID($payerId);
+//$incos_by_payer_id = (new InsuranceCompanyService())->getAllByPayerID('87726');
+// get insurance_companies by id, example 74 for vba
+$incos_by_payer_id = (new InsuranceCompanyService())->getAllByName('VERMONT BLUE ADVANTAGE');
 
 // grab pids with that insurance payer id
 foreach ($inscos_by_payer_id as $key => $insco) {
