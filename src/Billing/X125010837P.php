@@ -858,7 +858,11 @@ class X125010837P
                 "~\n";
         }
 
-        if ($claim->cliaCode() && ($claim->claimType() === 'MB')) {
+        $cliaCodes = ['81002', '81025'];
+        if (
+            $claim->cliaCode() &&
+            (($claim->claimType() === 'MB') || array_intersect($cpts, $cliaCodes))
+        ) {
             // Required by Medicare when in-house labs are done.
             ++$edicount;
             $out .= "REF" .     // Clinical Laboratory Improvement Amendment Number
