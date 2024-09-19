@@ -250,7 +250,7 @@ assets:
         basePath: '%assets_static_relative%/jspdf/dist/'
         script: jspdf.umd.min.js
     jstiff:
-      basePath: '%assets_static_relative%/tiff/'
+      basePath: '%assets_static_relative%/modified/tiff/'
       script: tiff.min.js
     dwv:
         basePath: '%assets_static_relative%/dwv/'
