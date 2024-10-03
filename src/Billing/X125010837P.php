@@ -1585,7 +1585,7 @@ class X125010837P
                 // for esp
                 if (
                     $_SESSION['site_id'] == '1500'
-                    && in_array($claim->payerID(), ['87726', '39026', '25169', 'TREST', 'PAMCD'])
+                    && in_array($claim->payerID(), ['87726', '39026', 'TREST', 'PAMCD'])
                 ) {
                     continue;
                 }

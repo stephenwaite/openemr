@@ -76,6 +76,14 @@ class X12RemoteTracker extends BaseService
                 $claim_file = $GLOBALS['OE_SITE_DIR'] . "/documents/edi/" . $x12_remote['x12_filename'];
             }
 
+            if ($x12_remote['x12_sftp_host'] == 'moveit.bcbsvt.com') {
+                $moveitFilename = '007111' . rand(20, 99) . '.x12';
+                rename($claim_file, $GLOBALS['OE_SITE_DIR'] . "/documents/edi/" . $moveitFilename);
+                $claim_file = $GLOBALS['OE_SITE_DIR'] . "/documents/edi/" . $moveitFilename;
+                $x12_remote['x12_filename'] = $moveitFilename;
+            }
+
+
             $claim_file_contents = file_get_contents($claim_file);
             if (false === $claim_file_contents) {
                 $x12_remote['status'] = self::STATUS_CLAIM_FILE_ERROR;

@@ -748,7 +748,7 @@ class Claim
 
     public function payToFacilityStreet()
     {
-        return $this->x12Clean(trim($this->billing_facility['mail_street']));
+        return $this->x12Clean(trim($this->billing_facility['mail_street'] ?? ''));
     }
 
     public function payToFacilityStreet2()
