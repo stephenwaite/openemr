@@ -257,7 +257,7 @@ class X12Partner extends ORDataObject
 
     function set_x12_isa02($string)
     {
-        $this->x12_isa02 = str_pad($string, 10);
+        $this->x12_isa02 = str_pad($string, 20);
     }
 
     function get_x12_isa03()
