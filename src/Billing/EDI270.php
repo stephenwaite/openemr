@@ -466,9 +466,16 @@ class EDI270
             if (!$X12info) {
                 $X12info = self::getX12Partner($row['partner']);
             }
-            if ($row['providerID'] === 0 || !$row['provider_npi']) {
-                $error_accum .= xlt("Error") . ": " . xlt("Provider Missing NPI or Provider not selected in choices") . "\n";
+            if ($_SESSION['site_id'] == '200') {
+                $row['provider_npi'] = '1861432841';
+                $row['provider_ID'] = '4';
+                $row['facility_name'] = 'REBECCA JONES MD';
+            } else {
+                if ($row['providerID'] === 0 || !$row['provider_npi']) {
+                    $error_accum .= xlt("Error") . ": " . xlt("Provider Missing NPI or Provider not selected in choices") . "\n";
+                }
             }
+
             if (!$row['eligibility_id']) {
                 $error_accum .= xlt("Error") . ": " . xlt("Missing Insurance Payer Id") . "\n";
             }
