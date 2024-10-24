@@ -16,7 +16,7 @@
  * @copyright Copyright (c) 2016 Terry Hill <terry@lillysystems.com>
  * @copyright Copyright (c) 2017 Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2019 Jerry Padgett <sjpadgett@gmail.com>
- * @copyright Copyright (c) 2019 Stephen Waite <stephen.waite@cmsvt.com>
+ * @copyright Copyright (c) 2019-2023 Stephen Waite <stephen.waite@cmsvt.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -25,9 +25,10 @@ namespace OpenEMR\Billing;
 require_once(dirname(__FILE__) . "/../../library/edihistory/codes/edih_271_code_class.php");
 
 use edih_271_codes;
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\MultipartStream;
 use OpenEMR\Billing\BillingProcessor\BillingClaimBatchControlNumber;
 use OpenEMR\Common\Crypto\CryptoGen;
-use OpenEMR\Common\Http\oeHttp;
 use OpenEMR\Common\Utils\RandomGenUtils;
 
 // @TODO global to become private var when this goes to a class.
@@ -48,13 +49,13 @@ class EDI270
         $ISA = array();
         $ISA[0] = "ISA"; // Interchange Control Header Segment ID
         $ISA[1] = "00";  // Author Info Qualifier
-        $ISA[2] = str_pad("0000000", 10, " ");        // Author Information
+        $ISA[2] = str_pad("", 10, " ");        // Author Information
         $ISA[3] = "00"; //   Security Information Qualifier
         //   MEDI-CAL NOTE: For Leased-Line & Dial-Up use '01',
         //   for BATCH use '00'.
         //   '00' No Security Information Present
         //   (No Meaningful Information in I04)
-        $ISA[4] = str_pad("0000000000", 10, " ");         // Security Information
+        $ISA[4] = str_pad("", 10, " ");         // Security Information
         $ISA[5] = str_pad($X12info['x12_isa05'], 2, " ");              // Interchange ID Qualifier
         $ISA[6] = str_pad($X12info['x12_sender_id'], 15, " ");      // INTERCHANGE SENDER ID
         $ISA[7] = str_pad($X12info['x12_isa07'], 2, " ");              // Interchange ID Qualifier
@@ -463,9 +464,16 @@ class EDI270
             if (!$X12info) {
                 $X12info = self::getX12Partner($row['partner']);
             }
-            if ($row['providerID'] === 0 || !$row['provider_npi']) {
-                $error_accum .= xlt("Error") . ": " . xlt("Provider Missing NPI or Provider not selected in choices") . "\n";
+            if ($_SESSION['siteid'] == '200') {
+                $row['provider_npi'] = '1861432841';
+                $row['provider_ID'] = '4';
+                $row['facility_name'] = 'REBECCA JONES MD';
+            } else {
+                if ($row['providerID'] === 0 || !$row['provider_npi']) {
+                    $error_accum .= xlt("Error") . ": " . xlt("Provider Missing NPI or Provider not selected in choices") . "\n";
+                }
             }
+
             if (!$row['eligibility_id']) {
                 $error_accum .= xlt("Error") . ": " . xlt("Missing Insurance Payer Id") . "\n";
             }
@@ -669,7 +677,7 @@ class EDI270
             $col++;
         }
         if ($title === 1) {
-            $showString = "<br /><span><b>" . xlt("Nothing To Report") . "</b></span><br />";
+            $showString .= "<br /><span><b>" . xlt("Nothing To Report") . "</b></span><br />";
         }
         $showString .= "</div>\n";
         echo $showString;
@@ -792,71 +800,70 @@ class EDI270
 
         $cryptoGen = new CryptoGen();
         $decrypted_password = $cryptoGen->decryptStandard($X12info['x12_sftp_pass']);
-        $rt_passwrd = $decrypted_password;
+        $rt_password = $decrypted_password;
         $rt_user = $X12info['x12_sftp_login'];
         $sender_id = $X12info['x12_sender_id'];
         $receiver_id = $X12info['x12_receiver_id'];
         $now_date = date("Y-m-d\TH:i:s\Z");
-        $headers = array(
-            'Content-Type' => "multipart/form-data; boundary=$boundary",
-            'Host' => ' wsd.officeally.com'
-        );
+        $url = $X12info['x12_sftp_remote_dir'];
+        $multipart_form = [
+            [
+                'name' => 'PayloadType',
+                'contents' => 'X12_270_Request_005010X279A1',
+            ],
+            [
+                'name' => 'ProcessingMode',
+                'contents' => 'RealTime',
+            ],
+            [
+                'name' => 'PayloadId',
+                'contents' => $payloadId,
+            ],
+            [
+                'name' => 'TimeStamp',
+                'contents' => $now_date,
+            ],
+            [
+                'name' => 'UserName',
+                'contents' => $rt_user,
+            ],
+            [
+                'name' => 'Password',
+                'contents' => $rt_password,
+            ],
+            [
+                'name' => 'SenderId',
+                'contents' => $sender_id,
+            ],
+            [
+                'name' => 'ReceiverId',
+                'contents' => $receiver_id,
+            ],
+            [
+                'name' => 'CORERuleVersion',
+                'contents' => '2.2.0',
+            ],
+            [
+                'name' => 'Payload',
+                'contents' => $x12_270,
+            ]
 
-// IMPORTANT: Do not change the format of $mime_body below.
-// HTTP MIME Multipart is non-normative. LFs matter...
-//
-        $mime_body = <<<MIMEBODY
---$boundary
-Content-Disposition: form-data; name="ProcessingMode"
+        ];
 
-RealTime
---$boundary
-Content-Disposition: form-data; name="TimeStamp"
+        $params = [
+            'headers' => [
+                'Connection' => 'close',
+                'Content-Type' => 'multipart/form-data; boundary=' . $boundary,
+            ],
+            'body' => new MultipartStream($multipart_form, $boundary), // here is all the magic
+        ];
 
-$now_date
---$boundary
-Content-Disposition: form-data; name="PayloadID"
-
-$payloadId
---$boundary
-Content-Disposition: form-data; name="CORERuleVersion"
-
-2.2.0
---$boundary
-Content-Disposition: form-data; name="ReceiverID"
-
-$receiver_id
---$boundary
-Content-Disposition: form-data; name="SenderID"
-
-$sender_id
---$boundary
-Content-Disposition: form-data; name="PayloadType"
-
-X12_270_Request_005010X279A1
---$boundary
-Content-Disposition: form-data; name="UserName"
-
-$rt_user
---$boundary
-Content-Disposition: form-data; name="Password"
-
-$rt_passwrd
---$boundary
-Content-Disposition: form-data; name="Payload"
-
-$x12_270
---$boundary--
-MIMEBODY;
         // send the request
-        $response = oeHttp::bodyFormat('body')
-            //->setDebug('5000')/* @todo uncomment and set proxy port to debug eg Fiddler */
-            ->usingHeaders($headers)
-            ->post('https://wsd.officeally.com/TransactionSite/rtx.aspx', $mime_body); // @TODO put request urls in x12 partner's for versatility.
+        $response = (new Client())->request('POST', $url, $params);
 
-        $formBody = $response->body();
-        $contentType = $response->header('Content-Type')[0];
-        $hContentLength = (int)$response->header('Content-Length')[0];
+        $formBody = $response->getBody();
+        $contentType = $response->getHeader('Content-Type')[0];
+        $hContentLength = (int)$response->getHeader('Content-Length')[0];
         $cksum = ($hContentLength - strlen($formBody)) === 0; // validate content size
         $formData = self::mimeParse($formBody, $contentType);
         // validate the response
@@ -864,8 +871,8 @@ MIMEBODY;
         if (!$cksum) {
             $errors .= "Error:" . xlt("Request Content Fails Integrity Test");
         }
-        if ($response->status() !== 200) {
-            $errors .= "\nError:" . xlt("Http Error") . ": " . $response->getReasonPhrase() . " : " . $response->status();
+        if ($response->getStatusCode() !== 200) {
+            $errors .= "\nError:" . xlt("Http Error") . ": " . $response->getReasonPhrase() . " : " . $response->getStatusCode();
         }
         if ($formData['ErrorCode'] != "Success") {
             $errors .= "\nError:" . $formData['ErrorCode'] . "\n" . $formData['ErrorMessage'];
