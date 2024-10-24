@@ -464,7 +464,7 @@ class EDI270
             if (!$X12info) {
                 $X12info = self::getX12Partner($row['partner']);
             }
-            if ($_SESSION['siteid'] == '200') {
+            if ($_SESSION['site_id'] == '200') {
                 $row['provider_npi'] = '1861432841';
                 $row['provider_ID'] = '4';
                 $row['facility_name'] = 'REBECCA JONES MD';
