@@ -634,6 +634,7 @@ if (!empty($_POST['form_refresh'])) {
         //
         $res = sqlStatement($query, $sqlBindArray);
         while ($row = sqlFetchArray($res)) {
+            $rowreference = '';
             if ($form_use_edate) {
                 $thedate = substr($row['date'], 0, 10);
             } elseif (!empty($row['deposit_date'])) {
@@ -643,15 +644,18 @@ if (!empty($_POST['form_refresh'])) {
             }
 
           // Compute reporting key: insurance company name or payment method.
+            if ($row['pid'] == '661') {
+                error_log('start debugging');
+            }
             if ($form_report_by == '1') {
                 if (empty($row['payer_id'])) {
                     // 'ar_session' is not capturing payer_id when entering payments through invoice or era posting
                     if ($row['payer_type'] == '1') {
-                        $insurance_id = (new InsuranceService())->getOneByPid($row['pid'], "primary");
+                        $insurance_id = (new InsuranceService())->getOneByPid($row['pid'], "primary", $row['date'], $row['date']);
                     } elseif ($row['payer_type'] == '2') {
-                        $insurance_id = (new InsuranceService())->getOneByPid($row['pid'], "secondary");
+                        $insurance_id = (new InsuranceService())->getOneByPid($row['pid'], "secondary", $row['date'], $row['date']);
                     } elseif ($row['payer_type'] == '3') {
-                        $insurance_id = (new InsuranceService())->getOneByPid($row['pid'], "tertiary");
+                        $insurance_id = (new InsuranceService())->getOneByPid($row['pid'], "tertiary", $row['date'], $row['date']);
                     } elseif ($row['payer_type'] == '0') {
                         $rowmethod = xl('Personal pay');
                         $rowreference = trim($row['reference']);

@@ -93,10 +93,13 @@ class InsuranceService extends BaseService
         return $validator->validate($data);
     }
 
-    public function getOneByPid($id, $type)
+    public function getOneByPid($id, $type, $date)
     {
-        $sql = "SELECT * FROM insurance_data WHERE pid=? AND type=?";
-        return sqlQuery($sql, array($id, $type));
+        $sql = "SELECT * FROM insurance_data WHERE pid=? AND type=? " .
+            "AND (`date` <= ? OR `date` IS NULL) AND (`date_end` >= ? OR `date_end` IS NULL) " .
+            "ORDER BY (`date_end` is null or `date_end` > NOW()) DESC, (`date_end` IS NOT NULL AND `date_end` > NOW()) DESC" .
+            ", `date` DESC, `date_end` DESC, `policy_number` ASC";
+        return sqlQuery($sql, array($id, $type, $date, $date));
     }
 
     public function search($search, $isAndCondition = true)
