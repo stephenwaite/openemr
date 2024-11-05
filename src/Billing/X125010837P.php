@@ -1259,7 +1259,9 @@ class X125010837P
                 "*" .
                 "*" . "PI" .
                 "*";
-            if ($claim->payerID($ins)) {
+            if ($claim->claimType(0) == 'MC') {
+                $out .= 'MDB';
+            } elseif ($claim->payerID($ins)) {
                 $out .= $claim->payerID($ins);
             } else {
                 $log .= "*** Missing other insco payer id.\n";
@@ -1558,8 +1560,13 @@ class X125010837P
 
                 ++$edicount;
                 $out .= "SVD" . // Service line adjudication. Page 554.
-                    "*" . $claim->payerID($ins) .
-                    "*" . $payerpaid[1] .
+                    "*";
+                if ($claim->claimType(0) == 'MC') {
+                    $out .= 'MDB';
+                } elseif ($claim->payerID($ins)) {
+                    $out .= $claim->payerID($ins);
+                }
+                    $out .= "*" . $payerpaid[1] .
                     "*" . "HC:" . $claim->cptKey($prockey) .
                     "*" .
                     "*" . $claim->cptUnits($prockey) .
