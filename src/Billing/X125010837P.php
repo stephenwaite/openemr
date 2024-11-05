@@ -689,7 +689,7 @@ class X125010837P
         // Segment DTP*431 (Onset of Current Symptoms or Illness)
         // Segment DTP*484 (Last Menstrual Period Date)
 
-        if (
+        /* if (
             $claim->onsetDate()
             && $claim->onsetDate() !== $claim->serviceDate()
             && $claim->onsetDateValid()
@@ -712,7 +712,7 @@ class X125010837P
                 "*" . "D8" .
                 "*" . $claim->miscOnsetDate() .
                 "~\n";
-        }
+        } */
 
         // Segment DTP*304 (Last Seen Date)
         // Segment DTP*453 (Acute Manifestation Date)
@@ -807,6 +807,10 @@ class X125010837P
                 "*" . "G1" .
                 "*" . $claim->priorAuth() .
                 "~\n";
+        } else {
+            if ($claim->payerID() == 'VACCN') {
+                $log .= "*** Missing prior auth for " . $claim->payerID() . "\n";
+            }
         }
 
         // Segment REF*F8 Payer Claim Control Number for claim re-submission.icn_resubmission_number
@@ -1093,6 +1097,11 @@ class X125010837P
 
             // if the ins is unassigned don't include this SBR/OI loop
             if ($tmp1 === '09') {
+                continue;
+            }
+
+            // if the ins is medicare don't include this SBR/OI loop
+            if ($tmp1 === 'MB' && ($claim->claimType(0) != 'MC')) {
                 continue;
             }
 
@@ -1510,7 +1519,7 @@ class X125010837P
             // Segment REF (Loop 2420D Supervising Provider Secondary Identification) omitted.
 
             // Loop 2420E, Ordering Provider
-            if ($claim->orderer ?? null) {
+            /*if ($claim->orderer ?? null) {
                 ++$edicount;
                 $out .= "NM1" .
                     "*" . "DK" .
@@ -1524,7 +1533,7 @@ class X125010837P
                 $out .= "N3" . "*" . $claim->ordererStreet() . "~\n";
                 $out .= "N4" . "*" . $claim->ordererCity() . "*" .
                     $claim->ordererState() . "*" . $claim->ordererZip() . "~\n";
-            }
+            }*/
 
             // Segment NM1 (Referring Provider Name) omitted.
             // Segment REF (Referring Provider Secondary Identification) omitted.
