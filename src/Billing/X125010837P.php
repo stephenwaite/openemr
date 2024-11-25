@@ -1100,8 +1100,8 @@ class X125010837P
                 continue;
             }
 
-            // if the ins is medicare don't include this SBR/OI loop
-            if ($tmp1 === 'MB' && ($claim->claimType(0) != 'MC')) {
+            // if the ins is primary medicare ($ins = 0) don't include this SBR/OI loop
+            if ($tmp1 === 'MB' && empty($ins) && ($claim->claimType(0) != 'MC')) {
                 continue;
             }
 
