@@ -23,8 +23,6 @@ $_GET['site'] = $argv[1] ?? 'default';
 $ignoreAuth = true;
 require_once __DIR__ . "/../../../interface/globals.php";
 
-use League\Csv\Reader;
-
 $codes_sql = sqlStatement("SELECT * FROM `codes`");
 
 while ($code = sqlFetchArray($codes_sql)) {
