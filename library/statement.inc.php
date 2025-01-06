@@ -256,7 +256,8 @@ function create_statement($stmt)
     $continued = false;
     $continued_text = '';
     foreach ($stmt['lines'] as $line) {
-        $desc_row = sqlQuery("SELECT code_text from codes WHERE code = ?", array(substr($line['desc'], 10, 5)));
+        $procedureCode = substr($line['desc'], 10, 5) ?? '';
+        $desc_row = sqlQuery("SELECT `code_text` from `codes` WHERE `code` = ? AND `code_type` = ?", array($procedureCode, $line['code_type']));
         $description = $desc_row['code_text'] ?? $line['desc'];
 
         //92002-14 are Eye Office Visit Codes
