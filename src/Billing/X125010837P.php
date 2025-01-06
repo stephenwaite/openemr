@@ -858,7 +858,7 @@ class X125010837P
                 "~\n";
         }
 
-        $cliaCodes = ['81002', '81025'];
+        $cliaCodes = ['81002', '81025', '87804'];
         if (
             $claim->cliaCode() &&
             (($claim->claimType() === 'MB') || array_intersect($cpts, $cliaCodes))
