@@ -15,13 +15,17 @@ exit;
 
 if (php_sapi_name() !== 'cli') {
     echo "Only php cli can execute command\n";
-    echo "example use: php default feesched.txt 10 33 2023-10-01\n";
+    echo "example use: php default 03 false\n";
+    echo "will rais fees by 3% if set to true\n";
     die;
 }
 
 $_GET['site'] = $argv[1] ?? 'default';
 $ignoreAuth = true;
 require_once __DIR__ . "/../../../interface/globals.php";
+
+$feeBump = 1 + floatval($argv[2] ?? 0);
+$liveRun = boolval($argv[3] ?? 0);
 
 $codes_sql = sqlStatement("SELECT * FROM `codes`");
 
@@ -40,12 +44,12 @@ while ($code = sqlFetchArray($codes_sql)) {
         continue;
     }
 
-
-            $newFee = number_format(ceil($ourFee * 1.07), 2, '.', '');
-            $format = "raise existing fee of %7.2f for %5s : %2s to %7.2f";
-                echo sprintf($format, $ourFee, $ourCode, $ourMod, $newFee) . "\n";
-                // uncomment below 3 lines to update prices accordingly
-                //echo "update prices table for code $our_code:$our_mod from " . $our_fee .
-                //    " to ". $ceil_fee . " with price id " . $price_id . "\n";
-                //$update_prices = sqlQuery("UPDATE `prices` SET `pr_price` = ? WHERE `pr_id` = ?", [$newFee, $priceId]);
+    $newFee = number_format(ceil($ourFee * $feeBump), 2, '.', '');
+    $format = "raise existing fee by of %7.2f for %5s : %2s to %7.2f";
+    echo sprintf($format, $ourFee, $ourCode, $ourMod, $newFee) . "\n";
+    if ($liveRun) {
+        echo "update prices table for code $our_code:$our_mod from " . $our_fee .
+            " to " . $ceil_fee . " with price id " . $price_id . "\n";
+        $update_prices = sqlQuery("UPDATE `prices` SET `pr_price` = ? WHERE `pr_id` = ?", [$newFee, $priceId]);
+    }
 }
