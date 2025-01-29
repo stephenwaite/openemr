@@ -258,7 +258,7 @@ function create_statement($stmt)
     foreach ($stmt['lines'] as $line) {
         $procedureCode = substr($line['desc'], 10, 5) ?? '';
         $desc_row = sqlQuery("SELECT `code_text` from `codes` WHERE `code` = ? AND `code_type` = ?", array($procedureCode, $line['code_type']));
-        $description = $desc_row['code_text'] ?? $line['desc'];
+        $description = substr($desc_row['code_text'] ?? $line['desc'], 0, 42);
 
         //92002-14 are Eye Office Visit Codes
 
@@ -313,11 +313,11 @@ function create_statement($stmt)
                 $desc = xl('Patient Payment');
                 $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
             } else {
-                $amount = sprintf("%.2f", $ddata['chg']);
+                $amount = str_pad(sprintf("%.2f", $ddata['chg']), 7, " ", STR_PAD_LEFT);
                 $dos = $line['dos'];
                 $desc = $description;
                 $bal = sprintf("%.2f", ($line['amount'] - $line['paid']));
-                $out .= sprintf("%-8s %-44s    %-8s          %-8s \r\n", sidDate($dos), $desc, $amount, $bal);
+                $out .= sprintf("%-8s %-44s   %-8s          %-8s \r\n", sidDate($dos), $desc, $amount, $bal);
             }
 
             ++$count;
