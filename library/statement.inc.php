@@ -316,7 +316,7 @@ function create_statement($stmt)
                 $amount = str_pad(sprintf("%.2f", $ddata['chg']), 7, " ", STR_PAD_LEFT);
                 $dos = $line['dos'];
                 $desc = $description;
-                $bal = sprintf("%.2f", ($line['amount'] - $line['paid']));
+                $bal = str_pad(sprintf("%.2f", ($line['amount'] - $line['paid'])), 7, " ", STR_PAD_LEFT);
                 $out .= sprintf("%-8s %-44s   %-8s          %-8s \r\n", sidDate($dos), $desc, $amount, $bal);
             }
 
