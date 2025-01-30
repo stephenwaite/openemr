@@ -219,13 +219,26 @@ function create_statement($stmt)
     // Note that "\n" is a line feed (new line) character.
     // reformatted to handle i8n by tony
     //$out = "\n\n";
-    $addrline = strtoupper(preg_replace('/\s+/', ' ', $stmt['to'][1]));
+    $addrline = strtoupper(preg_replace('/\s+/', ' ', $stmt['to'][1] ?? ''));
+    $addrline2 = strtoupper(preg_replace('/\s+/', ' ', $stmt['to'][2] ?? ''));
+    if (empty($addrline) && empty($addrline2)) {
+        $addrline = "***BAD ADDRESS***";
+    }
     $out  = sprintf("%-9s %-55s %6s \r\n", '', trim(strtoupper($stmt['to'][0])), $stmt['pid']);
     $out .= sprintf("%-9s %-43s %-8s \r\n", '', $addrline, date('m d y'));
-    $out .= "\r\n";
-    $out .= sprintf("%-9s %-43s %-8s %9s\r\n", '', strtoupper($stmt['to'][2] ?? ''), date('m d y'), $stmt['amount']);
+    if (!empty($addrline2)) {
+        $out .= sprintf("%-9s %-43s \r\n", '', $addrline2);
+    } else {
+        $out .= "\r\n";
+    }
+    $out .= sprintf("%-9s %-43s %-8s %9s\r\n", '', strtoupper($stmt['to'][3] ?? ''), date('m d y'), $stmt['amount']);
 
-    if (($stmt['to'][3] ?? '') != '') { //to avoid double blank lines the if condition is put.
+    $cityStateZip = $stmt['to'][4] ?? '';
+    if (empty($cityStateZip)) {
+        $cityStateZip = "***BAD ADDRESS***";
+    }
+
+    if (($stmt['to'][4] ?? '') != '') { //to avoid double blank lines the if condition is put.
         $out .= sprintf("   %-32s\r\n", $stmt['to'][3]);
     }
 
@@ -305,7 +318,7 @@ function create_statement($stmt)
                     $amount = sprintf("%.2f", ($ddata['chg'] * -1));
                     $desc = xl('Adj') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                 } else {
-                    $desc = xl('Note') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
+                    $desc = xl('Note') . ' ' . substr($ddata['rsn'] ?? '', 0, 40) . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                 }
                 $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
             } elseif ($ddata['chg'] < 0) {
