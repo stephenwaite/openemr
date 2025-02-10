@@ -1,5 +1,9 @@
 <?php
 
+/*
+* php updateNgsPassword <site> <password> <username>
+*/
+exit;
 $_GET['site'] = $argv[1];
 $ignoreAuth = true;
 require_once __DIR__ . "/../../interface/globals.php";
@@ -16,8 +20,8 @@ if (!empty($autoSftpFlag)) {
     try {
         $cryptoGen = new CryptoGen();
         $encryptedPassword = $cryptoGen->encryptStandard($argv[2]);
-        $sqlStatement = "UPDATE `x12_partners` SET `x12_sftp_pass` = ? WHERE `x12_sftp_login` = 'N532@N532'";
-        sqlStatement($sqlStatement, [$encryptedPassword]);
+        $sqlStatement = "UPDATE `x12_partners` SET `x12_sftp_pass` = ? WHERE `x12_sftp_login` = ?";
+        sqlStatement($sqlStatement, [$encryptedPassword, $argv[3]]);
         echo ("updated NGS Password \n");
     } catch (Exception $e) {
         // error stuff goes here
