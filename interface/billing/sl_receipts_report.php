@@ -178,139 +178,133 @@ $form_facility   = $_POST['form_facility'] ?? null;
 
                 <div class="container">
                     <div class="row">
-                        <div class="col-9">
+                        <div class="col">
                             <div class='float-left'>
-                            <table class='text'>
-                                <tr>
-                                    <td class='col-form-label'>
-                                        <?php echo xlt('Facility'); ?>:
-                                    </td>
-                                    <td>
-                                    <?php dropdown_facility($form_facility, 'form_facility'); ?>
-                                    </td>
-                                    <td class='col-form-label'>
-                                        <?php echo xlt('Provider'); ?>:
-                                    </td>
-                                    <td>
-                                        <?php
-                                        if (AclMain::aclCheckCore('acct', 'rep_a')) {
-                                            // Build a drop-down list of providers.
-                                            //
-                                            $query = "select id, lname, fname from users where " .
-                                                "authorized = 1 order by lname, fname";
-                                            $res = sqlStatement($query);
-                                            echo "<select name='form_doctor' class='form-control'>\n";
-                                            echo "    <option value=''>-- " . xlt('All Providers') . " --\n";
-                                            while ($row = sqlFetchArray($res)) {
-                                                $provid = $row['id'];
-                                                echo "    <option value='" . attr($provid) . "'";
-                                                if (!empty($_POST['form_doctor']) && ($provid == $_POST['form_doctor'])) {
-                                                    echo " selected";
+                                <div class="row">
+                                    <div class="col-4">
+                                        <div class='col-form-label'>
+                                            <?php echo xlt('Facility'); ?>:
+                                        </div>
+                                        <div class="form-select">
+                                        <?php dropdown_facility($form_facility, 'form_facility'); ?>
+                                        </div>
+                                        <div class='col-form-label'>
+                                            <?php echo xlt('Provider'); ?>:
+                                        </div>
+                                        <div class="form-select">
+                                            <?php
+                                            if (AclMain::aclCheckCore('acct', 'rep_a')) {
+                                                // Build a drop-down list of providers.
+                                                //
+                                                $query = "select id, lname, fname from users where " .
+                                                    "authorized = 1 order by lname, fname";
+                                                $res = sqlStatement($query);
+                                                echo "<select name='form_doctor' class='form-control'>\n";
+                                                echo "    <option value=''>-- " . xlt('All Providers') . " --\n";
+                                                while ($row = sqlFetchArray($res)) {
+                                                    $provid = $row['id'];
+                                                    echo "    <option value='" . attr($provid) . "'";
+                                                    if (!empty($_POST['form_doctor']) && ($provid == $_POST['form_doctor'])) {
+                                                        echo " selected";
+                                                    }
+
+                                                    echo ">" . text($row['lname']) . ", " . text($row['fname']) . "\n";
                                                 }
 
-                                                echo ">" . text($row['lname']) . ", " . text($row['fname']) . "\n";
+                                                echo "   </select>\n";
+                                            } else {
+                                                echo "<input type='hidden' name='form_doctor' value='" . attr($_SESSION['authUserID']) . "'>";
                                             }
-
-                                            echo "   </select>\n";
-                                        } else {
-                                            echo "<input type='hidden' name='form_doctor' value='" . attr($_SESSION['authUserID']) . "'>";
-                                        }
-                                        ?>
-                                    </td>
-                                    <td>
-                                    <select name='form_use_edate' class='form-control'>
-                                        <option value='0'><?php echo xlt('Payment Date'); ?></option>
-                                        <option value='1'<?php echo ($form_use_edate == 1) ? ' selected' : ''; ?>><?php echo xlt('Service Date'); ?></option>
-                                        <option value='2'<?php echo ($form_use_edate == 2) ? ' selected' : ''; ?>><?php echo xlt('Entry Date'); ?></option>
-                                    </select>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class='col-form-label'>
-                                        <?php echo xlt('From'); ?>:
-                                    </td>
-                                    <td>
-                                    <input type='text' class='datepicker form-control' name='form_from_date' id="form_from_date" size='10' value='<?php echo attr(oeFormatShortDate($form_from_date)); ?>'
-                                        title='<?php echo xla('Date of appointments'); ?>' >
-                                    </td>
-                                    <td class='col-form-label'>
-                                        <?php echo xlt('To{{Range}}'); ?>:
-                                    </td>
-                                    <td>
-                                    <input type='text' class='datepicker form-control' name='form_to_date' id="form_to_date" size='10' value='<?php echo attr(oeFormatShortDate($form_to_date)); ?>'
-                                        title='<?php echo xla('Optional end date'); ?>' >
-                                    </td>
-                                    <td>&nbsp;</td>
-                                </tr>
-                                <tr>
-                                    <td class='col-form-label'>
-                                        <?php
-                                        if (!$GLOBALS['simplified_demographics']) {
-                                            echo '&nbsp;' . xlt('Procedure/Service') . ':';
-                                        } ?>
-                                    </td>
-                                    <td>
-                                    <input type='text' class='form-control' name='form_proc_codefull' size='11' value='<?php echo attr($form_proc_codefull); ?>' onclick='sel_procedure()'
-                                        title='<?php echo xla('Optional procedure/service code'); ?>'
-                                        <?php
-                                        if ($GLOBALS['simplified_demographics']) {
-                                            echo "style='display:none'";
-                                        } ?>>
-                                    </td>
-
-                                    <td class='col-form-label'>
-                                        <?php
-                                        if (!$GLOBALS['simplified_demographics']) {
-                                            echo '&nbsp;' . xlt('Diagnosis') . ':';
-                                        } ?>
-                                    </td>
-                                    <td>
-                                    <input type='text' class='form-control' name='form_dx_codefull' size='11' value='<?php echo attr($form_dx_codefull); ?>' onclick='sel_diagnosis()'
-                                        title='<?php echo xla('Enter a diagnosis code to exclude all invoices not containing it'); ?>'
-                                        <?php
-                                        if ($GLOBALS['simplified_demographics']) {
-                                            echo "style='display: none'";
-                                        } ?>>
-                                    </td>
-
-                                    <td>
-                                <div class='checkbox'>
-                                        <label><input type='checkbox' name='form_details' value='1'<?php echo (!empty($_POST['form_details'])) ? " checked" : ""; ?>><?php echo xlt('Details')?></label>
-                                </div>
-                                <div class='checkbox'>
-                                        <label><input type='checkbox' name='form_procedures' value='1'<?php echo ($form_procedures) ? " checked" : ""; ?>><?php echo xlt('Procedures')?></label>
-                                </div>
-                                    </td>
-                                </tr>
-
-                            </table>
-
-                            </div>
-
-                        </div>
-
-                        <div class="col-3">
-
-                            <table class='w-100 h-100 border-left'>
-                                <tr>
-                                    <td>
-                                        <div class="text-center">
-                                <div class="btn-group" role="group">
-                                            <a href='#' class='btn btn-secondary btn-save' onclick='$("#form_refresh").attr("value","true"); $("#theform").submit();'>
-                                                    <?php echo xlt('Submit'); ?>
-                                            </a>
-                                                <?php if (!empty($_POST['form_refresh'])) { ?>
-                                                <a href='#' class='btn btn-secondary btn-print' id='printbutton'>
-                                                        <?php echo xlt('Print'); ?>
-                                                </a>
-                                                <?php } ?>
-                                </div>
+                                            ?>
                                         </div>
-                                    </td>
-                                </tr>
-                            </table>
+                                        <div class='col-form-label'>
+                                            <?php echo xlt('Date Type'); ?>:
+                                        </div>
+                                        <div class="form-select">
+                                            <select name='form_use_edate' class='form-control'>
+                                                <option value='0'><?php echo xlt('Payment Date'); ?></option>
+                                                <option value='1'<?php echo ($form_use_edate == 1) ? ' selected' : ''; ?>><?php echo xlt('Service Date'); ?></option>
+                                                <option value='2'<?php echo ($form_use_edate == 2) ? ' selected' : ''; ?>><?php echo xlt('Entry Date'); ?></option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class='col-form-label'>
+                                            <?php echo xlt('From'); ?>:
+                                        </div>
+                                        <div class="controls inline-inputs">
+                                            <input type='text' class='datepicker form-control' name='form_from_date' id="form_from_date" size='10' value='<?php echo attr(oeFormatShortDate($form_from_date)); ?>'
+                                                title='<?php echo xla('Date of appointments'); ?>' >
+                                        </div>
+                                        <div class='col-form-label'>
+                                            <?php echo xlt('To{{Range}}'); ?>:
+                                        </div>
+                                        <div class="controls inline-inputs">
+                                            <input type='text' class='datepicker form-control' name='form_to_date' id="form_to_date" size='10' value='<?php echo attr(oeFormatShortDate($form_to_date)); ?>'
+                                                title='<?php echo xla('Optional end date'); ?>' >
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class='col-form-label'>
+                                            <?php
+                                            if (!$GLOBALS['simplified_demographics']) {
+                                                echo '&nbsp;' . xlt('Procedure/Service') . ':';
+                                            } ?>
+                                        </div>
+                                        <div class="controls inline-inputs">
+                                            <input type='text' class='form-control' name='form_proc_codefull' size='11' value='<?php echo attr($form_proc_codefull); ?>' onclick='sel_procedure()'
+                                                title='<?php echo xla('Optional procedure/service code'); ?>'
+                                                <?php
+                                                if ($GLOBALS['simplified_demographics']) {
+                                                    echo "style='display:none'";
+                                                } ?>>
+                                        </div>
+
+                                        <div class='col-form-label'>
+                                            <?php
+                                            if (!$GLOBALS['simplified_demographics']) {
+                                                echo '&nbsp;' . xlt('Diagnosis') . ':';
+                                            } ?>
+                                        </div>
+
+                                        <div class="controls inline-inputs">
+                                            <input type='text' class='form-control' name='form_dx_codefull' size='11' value='<?php echo attr($form_dx_codefull); ?>' onclick='sel_diagnosis()'
+                                                title='<?php echo xla('Enter a diagnosis code to exclude all invoices not containing it'); ?>'
+                                                <?php
+                                                if ($GLOBALS['simplified_demographics']) {
+                                                    echo "style='display: none'";
+                                                } ?>>
+                                        </div>
+
+                                        <div class="controls inline-inputs mt-3">
+                                            <div class='checkbox'>
+                                                    <label><input type='checkbox' name='form_details' value='1'<?php echo (!empty($_POST['form_details'])) ? " checked" : ""; ?>><?php echo xlt('Details')?></label>
+                                            </div>
+                                            <div class='checkbox'>
+                                                    <label><input type='checkbox' name='form_procedures' value='1'<?php echo ($form_procedures) ? " checked" : ""; ?>><?php echo xlt('Procedures')?></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div> <?php // row ?>
+                    </div>
+                    <div class="row center mt-3">
+                        <div class="col-9">
+                            <div class="text-center">
+                                <div class="btn-group" role="group">
+                                    <a href='#' class='btn btn-secondary btn-save' onclick='$("#form_refresh").attr("value","true"); $("#theform").submit();'>
+                                            <?php echo xlt('Submit'); ?>
+                                    </a>
+                                    <?php if (!empty($_POST['form_refresh'])) { ?>
+                                    <a href='#' class='btn btn-secondary btn-print' id='printbutton'>
+                                            <?php echo xlt('Print'); ?>
+                                    </a>
+                                    <?php } ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div> <?php // report parameters div ?>
                 </div>
 
@@ -749,10 +743,6 @@ $form_facility   = $_POST['form_facility'] ?? null;
                     ?>
 
                 </table>
-                </div>
-                <?php } else { ?>
-                <div class='text'>
-                    <?php echo xlt('Please input search criteria above, and click Submit to view results.'); ?>
                 </div>
                 <?php } ?>
 
