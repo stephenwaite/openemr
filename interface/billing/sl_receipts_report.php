@@ -619,8 +619,7 @@ $form_facility   = $_POST['form_facility'] ?? null;
                                 if ($docid) {
                                     // Print doc totals.
                                     ?>
-                    <!-- TODO: Replace bgcolor with BS4 !-->
-                    <tr bgcolor="#ddddff">
+                    <tr class="bg-info">
                         <td class="detail" colspan="<?php echo ($form_proc_codefull ? 4 : 2) + ($form_procedures ? 2 : 0); ?>">
                                     <?php echo xlt('Totals for ') . text($docname) ?>
                 </td>
@@ -704,8 +703,7 @@ $form_facility   = $_POST['form_facility'] ?? null;
                             $grandtotal2 += $amount2;
                         }
                         ?>
-                <!-- TODO: Replace bgcolor with BS4 !-->
-                <tr bgcolor="#ddddff">
+                <tr class="bg-info">
                 <td class="detail" colspan="<?php echo ($form_proc_codefull ? 4 : 2) + ($form_procedures ? 2 : 0); ?>">
                         <?php echo xlt('Totals for ') . text($docname ?? '') ?>
                 </td>
@@ -719,8 +717,7 @@ $form_facility   = $_POST['form_facility'] ?? null;
                 <?php } ?>
                 </tr>
 
-                <!-- TODO: Replace bgcolor with BS4 !-->
-                <tr bgcolor="#ffdddd">
+                <tr class="bg-success">
                 <td class="detail" colspan="<?php echo ($form_proc_codefull ? 4 : 2) + ($form_procedures ? 2 : 0); ?>">
                         <?php echo xlt('Grand Totals') ?>
                 </td>
