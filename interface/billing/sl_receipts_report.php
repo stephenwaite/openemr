@@ -21,8 +21,6 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-// TODO: Replace tables with BS4 grid classes for GSoC
-
 require_once('../globals.php');
 require_once($GLOBALS['srcdir'] . '/patient.inc.php');
 require_once($GLOBALS['srcdir'] . '/options.inc.php');
@@ -115,7 +113,6 @@ $form_facility   = $_POST['form_facility'] ?? null;
 
     <script>
         $(function () {
-            oeFixedHeaderSetup(document.getElementById('mymaintable'));
             var win = top.printLogSetup ? top : opener.top;
             win.printLogSetup(document.getElementById('printbutton'));
 
@@ -316,50 +313,57 @@ $form_facility   = $_POST['form_facility'] ?? null;
 
                     ?>
                 <div id="report_results">
-                <table class='table' cellpadding='1' cellspacing='2' width='98%' id='mymaintable'>
-                <thead>
-                <th>
+                <div class="table" id='mymaintable'>
+                    <?php $report_from_date = oeFormatShortDate($form_from_date)  ;
+                        $report_to_date = oeFormatShortDate($form_to_date)  ;
+                    ?>
+                <div class='row title center'>
+                    <?php echo xlt('Report Date') . ' '; ?><?php echo text($report_from_date);?> - <?php echo text($report_to_date);?>
+            </div>
+
+                <div class="row bg-light">
+                <div class="col">
                     <?php echo xlt('Practitioner') ?>
-                </th>
-                <th>
+                </div>
+                <div class="col">
                     <?php echo xlt('Date') ?>
-                </th>
+                </div>
                     <?php if ($form_procedures) { ?>
-                <th>
+                <div class="col">
                         <?php
                         if ($GLOBALS['cash_receipts_report_invoice'] == '0') {
                             echo xlt('Invoice');
                         } else {
                             echo xlt('Name');
                         }?>
-                </th>
+                </div>
                     <?php } ?>
                     <?php if ($form_proc_codefull) { ?>
-                <th align='right'>
+                <div class="col">
                         <?php echo xlt('InvAmt') ?>
-                </th>
+                </div>
                     <?php } ?>
                     <?php if ($form_proc_codefull) { ?>
-                <th>
+                <div class="col">
                         <?php echo xlt('Insurance') ?>
-                </th>
+                </div>
                     <?php } ?>
                     <?php if ($form_procedures) { ?>
-                <th>
+                <div class="col">
                         <?php echo xlt('Procedure') ?>
-                </th>
-                <th align="right">
-                        <?php echo xlt('Prof.') ?>
-                </th>
-                <th align="right">
+                </div>
+                <div class="col text-right">
+                        <?php echo xlt('Provider Receipts') ?>
+                </div>
+                <div class="col text-right">
                         <?php echo xlt('Clinic') ?>
-                </th>
+                </div>
                     <?php } else { ?>
-                <th align="right">
+                <div class="col">
                         <?php echo xlt('Received') ?>
-                </th>
+                </div>
                     <?php } ?>
-                </thead>
+                </div>
                     <?php
                     if ($_POST['form_refresh']) {
                         $form_doctor = $_POST['form_doctor'];
@@ -619,19 +623,21 @@ $form_facility   = $_POST['form_facility'] ?? null;
                                 if ($docid) {
                                     // Print doc totals.
                                     ?>
-                    <tr class="bg-info">
-                        <td class="detail" colspan="<?php echo ($form_proc_codefull ? 4 : 2) + ($form_procedures ? 2 : 0); ?>">
+                    <div class="row bg-light">
+                        <!-- date div for col spacing-->
+                        <div class="col"></div>
+                        <div class="col">
                                     <?php echo xlt('Totals for ') . text($docname) ?>
-                </td>
-                <td>
+                        </div>
+                <div class="col text-right">
                                     <?php echo text(FormatMoney::getBucks($doctotal1)) ?>
-                </td>
+                </div>
                                     <?php if ($form_procedures) { ?>
-                <td>
+                <div class="col text-right">
                                         <?php echo text(FormatMoney::getBucks($doctotal2)) ?>
-                </td>
+                </div>
                     <?php } ?>
-                </tr>
+                    </div>
                                     <?php
                                 }
 
@@ -648,49 +654,49 @@ $form_facility   = $_POST['form_facility'] ?? null;
                             if ($_POST['form_details'] ?? '') {
                                 ?>
 
-                <tr>
-                    <td class="detail">
+                <div class="row">
+                    <div class="col">
                                 <?php echo text($docnameleft); $docnameleft = " " ?>
-                </td>
-                <td class="detail">
+                    </div>
+                <div class="col">
                                 <?php echo text(oeFormatShortDate($row['transdate'])); ?>
-                </td>
+                </div>
                                 <?php if ($form_procedures) { ?>
-                <td class="detail">
+                <div class="col">
                                     <?php echo empty($row['irnumber']) ? text($row['invnumber']) : text($row['irnumber']); ?>
-                </td>
+                </div>
                     <?php } ?>
                                 <?php
                                 if ($form_proc_code && $form_proc_codetype) {
-                                        echo "  <td class='detail' align='right'>";
+                                        echo "  <div class='col text-right'";
                                         list($patient_id, $encounter_id) = explode(".", $row['invnumber']);
                                         $tmp = sqlQuery("SELECT SUM(fee) AS sum FROM billing WHERE " .
                                             "pid = ? AND encounter = ? AND " .
                                             "code_type = ? AND code = ? AND activity = 1", array($patient_id,$encounter_id,$form_proc_codetype,$form_proc_code));
                                         echo text(FormatMoney::getBucks($tmp['sum']));
-                                        echo "  </td>\n";
+                                        echo "  </div>\n";
                                 }
                                 ?>
                                 <?php
                                 if ($form_proc_codefull) { ?>
-                    <td class="detail">
+                    <div class="col">
                                         <?php echo text($insconame) ?>
-                    </td>
+                    </div>
                                     <?php } ?>
                                 <?php if ($form_procedures) { ?>
-                <td class="detail">
+                <div class="col">
                                     <?php echo text($row['memo']) ?>
-                </td>
+                </div>
                             <?php } ?>
-                <td class="detail">
+                <div class="col text-right">
                                 <?php echo text(FormatMoney::getBucks($amount1)) ?>
-                </td>
+                </div>
                                 <?php if ($form_procedures) { ?>
-                <td class="detail">
+                <div class="col text-right">
                                     <?php echo text(FormatMoney::getBucks($amount2)) ?>
-                </td>
+                </div>
                             <?php } ?>
-                </tr>
+                </div>
                                 <?php
                             } // end details
                             $doctotal1   += $amount1;
@@ -703,43 +709,55 @@ $form_facility   = $_POST['form_facility'] ?? null;
                             $grandtotal2 += $amount2;
                         }
                         ?>
-                <tr class="bg-info">
-                <td class="detail" colspan="<?php echo ($form_proc_codefull ? 4 : 2) + ($form_procedures ? 2 : 0); ?>">
+                <div class="row bg-light">
+                <div class="col">
                         <?php echo xlt('Totals for ') . text($docname ?? '') ?>
-                </td>
-                <td>
+                </div>
+                <!-- date div for col spacing-->
+                <div class="col"></div>
+                        <?php if ($form_procedures) { ?>
+                    <!-- proc div for col spacing-->
+                    <div class="col"></div>
+                    <!-- inv div for col spacing-->
+                    <div class="col"></div>
+                <?php } ?>
+                <div class="col text-right">
                         <?php echo text(FormatMoney::getBucks($doctotal1 ?? '')) ?>
-                </td>
+                </div>
                         <?php if ($form_procedures) { ?>
-                <td>
+                <div class="col text-right">
                             <?php echo text(FormatMoney::getBucks($doctotal2)) ?>
-                </td>
+                </div>
                 <?php } ?>
-                </tr>
+                </div>
 
-                <tr class="bg-success">
-                <td class="detail" colspan="<?php echo ($form_proc_codefull ? 4 : 2) + ($form_procedures ? 2 : 0); ?>">
+                <div class="row bg-secondary">
+                <div class="col">
                         <?php echo xlt('Grand Totals') ?>
-                </td>
-                <td>
-                        <?php echo text(FormatMoney::getBucks($grandtotal1 ?? '')) ?>
-                </td>
+                </div>
+                <!-- date div for col spacing-->
+                <div class="col"></div>
                         <?php if ($form_procedures) { ?>
-                <td>
-                            <?php echo text(FormatMoney::getBucks($grandtotal2)) ?>
-                </td>
+                    <!-- proc div for col spacing-->
+                    <div class="col"></div>
+                    <!-- inv div for col spacing-->
+                    <div class="col"></div>
                 <?php } ?>
-                </tr>
-                        <?php $report_from_date = oeFormatShortDate($form_from_date)  ;
-                        $report_to_date = oeFormatShortDate($form_to_date)  ;
-                        ?>
-                <div align='right'><span class='title'><?php echo xlt('Report Date') . ' '; ?><?php echo text($report_from_date);?> - <?php echo text($report_to_date);?></span></div>
-
+                <div class="col text-right">
+                        <?php echo text(FormatMoney::getBucks($grandtotal1 ?? '')) ?>
+                </div>
+                        <?php if ($form_procedures) { ?>
+                <div class="col text-right">
+                            <?php echo text(FormatMoney::getBucks($grandtotal2)) ?>
+                </div>
+                <?php } ?>
+                </div>
+                        
                         <?php
                     }
                     ?>
 
-                </table>
+                </div>
                 </div>
                 <?php } ?>
 
