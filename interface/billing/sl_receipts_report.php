@@ -176,7 +176,6 @@ $form_facility   = $_POST['form_facility'] ?? null;
                 <div class="container">
                     <div class="row">
                         <div class="col">
-                            <div class='float-left'>
                                 <div class="row">
                                     <div class="col-4">
                                         <div class='col-form-label'>
@@ -283,7 +282,6 @@ $form_facility   = $_POST['form_facility'] ?? null;
                                         </div>
                                     </div>
                                 </div>
-                            </div>
                         </div>
                     </div>
                     <div class="row center mt-3">
@@ -359,7 +357,7 @@ $form_facility   = $_POST['form_facility'] ?? null;
                         <?php echo xlt('Clinic') ?>
                 </div>
                     <?php } else { ?>
-                <div class="col">
+                <div class="col text-right">
                         <?php echo xlt('Received') ?>
                 </div>
                     <?php } ?>
