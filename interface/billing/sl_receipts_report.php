@@ -272,7 +272,7 @@ $form_facility   = $_POST['form_facility'] ?? null;
                                                 } ?>>
                                         </div>
 
-                                        <div class="controls inline-inputs mt-3">
+                                        <div class="controls inline-inputs m-3">
                                             <div class='checkbox'>
                                                     <label><input type='checkbox' name='form_details' value='1'<?php echo (!empty($_POST['form_details'])) ? " checked" : ""; ?>><?php echo xlt('Details')?></label>
                                             </div>
@@ -284,7 +284,7 @@ $form_facility   = $_POST['form_facility'] ?? null;
                                 </div>
                         </div>
                     </div>
-                    <div class="row center mt-3">
+                    <div class="row center m-3">
                         <div class="col">
                             <div class="text-center">
                                 <div class="btn-group" role="group">
@@ -315,7 +315,7 @@ $form_facility   = $_POST['form_facility'] ?? null;
                     <?php $report_from_date = oeFormatShortDate($form_from_date)  ;
                         $report_to_date = oeFormatShortDate($form_to_date)  ;
                     ?>
-                <div class='row title center'>
+                <div class='title text-center m-3'>
                     <?php echo xlt('Report Date') . ' '; ?><?php echo text($report_from_date);?> - <?php echo text($report_to_date);?>
             </div>
 
@@ -758,7 +758,7 @@ $form_facility   = $_POST['form_facility'] ?? null;
                 </div>
                 </div>
                 <?php } else { ?>
-                <div class="info mt-3 text-center">
+                <div class="info m-3 text-center">
                     <?php
                         echo xlt('Please input search criteria above, and click Submit to view results.');
                 }    ?>
