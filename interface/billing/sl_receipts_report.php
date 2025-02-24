@@ -165,7 +165,7 @@ $form_facility   = $_POST['form_facility'] ?? null;
         </div>
     </div><!-- end of header div -->
     <div class="row">
-        <div class="col-12">
+        <div class="col">
                <form method='post' action='sl_receipts_report.php' id='theform' onsubmit='return top.restoreSession()'>
                 <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
@@ -285,7 +285,7 @@ $form_facility   = $_POST['form_facility'] ?? null;
                         </div>
                     </div>
                     <div class="row center mt-3">
-                        <div class="col-9">
+                        <div class="col">
                             <div class="text-center">
                                 <div class="btn-group" role="group">
                                     <a href='#' class='btn btn-secondary btn-save' onclick='$("#form_refresh").attr("value","true"); $("#theform").submit();'>
@@ -757,7 +757,11 @@ $form_facility   = $_POST['form_facility'] ?? null;
 
                 </div>
                 </div>
-                <?php } ?>
+                <?php } else { ?>
+                <div class="info mt-3 text-center">
+                    <?php
+                        echo xlt('Please input search criteria above, and click Submit to view results.');
+                }    ?>
 
                 </form>
         </div>
