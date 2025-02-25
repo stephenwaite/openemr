@@ -179,14 +179,14 @@
     <div class="form-row my-sm-2">
         <label for="x12_client_id" class="col-form-label col-sm-2">{xlt t='Client ID'}</label>
         <div class="col-sm-8">
-            <input type="text" maxlength="400" id="x12_client_id" name="x12_client_id" class="form-control" value="{$partner->get_x12_client_id()|attr}" onKeyDown="PreventIt(event)">
+            <input type="password" maxlength="400" id="x12_client_id" name="x12_client_id" class="form-control" value="{$partner->get_x12_client_id()|attr}" onKeyDown="PreventIt(event)">
         </div>
     </div>
 
     <div class="form-row my-sm-2">
         <label for="x12_client_secret" class="col-form-label col-sm-2">{xlt t='Client Secret'}</label>
         <div class="col-sm-8">
-            <input type="text" maxlength="400" id="x12_client_secret" name="x12_client_secret" class="form-control" value="{$partner->get_x12_client_secret()|attr}" onKeyDown="PreventIt(event)">
+            <input type="password" maxlength="400" id="x12_client_secret" name="x12_client_secret" class="form-control" value="{$partner->get_x12_client_secret()|attr}" onKeyDown="PreventIt(event)">
         </div>
     </div>
 

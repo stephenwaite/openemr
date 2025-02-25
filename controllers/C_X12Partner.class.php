@@ -51,6 +51,16 @@ class C_X12Partner extends Controller
             $this->x12_partners[0]->set_x12_sftp_pass($cryptoGen->decryptStandard($this->x12_partners[0]->get_x12_sftp_pass()));
         }
 
+        if ($this->x12_partners[0]->get_x12_client_id()) {
+            $cryptoGen = new CryptoGen();
+            $this->x12_partners[0]->set_x12_client_id($cryptoGen->decryptStandard($this->x12_partners[0]->get_x12_client_id()));
+        }
+        
+        if ($this->x12_partners[0]->get_x12_client_secret()) {
+            $cryptoGen = new CryptoGen();
+            $this->x12_partners[0]->set_x12_client_secret($cryptoGen->decryptStandard($this->x12_partners[0]->get_x12_client_secret()));
+        }
+
         $this->assign("partner", $this->x12_partners[0]);
         return $this->fetch($GLOBALS['template_dir'] . "x12_partners/" . $this->template_mod . "_edit.html");
     }
@@ -83,6 +93,16 @@ class C_X12Partner extends Controller
         if (!empty($_POST['x12_sftp_pass'])) {
             $cryptoGen = new CryptoGen();
             $this->x12_partners[0]->x12_sftp_pass = $cryptoGen->encryptStandard($this->x12_partners[0]->x12_sftp_pass);
+        }
+
+        if (!empty($_POST['x12_client_id'])) {
+            $cryptoGen = new CryptoGen();
+            $this->x12_partners[0]->x12_client_id = $cryptoGen->encryptStandard($this->x12_partners[0]->x12_client_id);
+        }
+
+        if (!empty($_POST['x12_client_secret'])) {
+            $cryptoGen = new CryptoGen();
+            $this->x12_partners[0]->x12_client_secret = $cryptoGen->encryptStandard($this->x12_partners[0]->x12_client_secret);
         }
 
         $this->x12_partners[0]->persist();
