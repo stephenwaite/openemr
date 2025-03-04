@@ -25,6 +25,7 @@
  * @license https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Common\Crypto\CryptoGen;
 
 // The location/name of a temporary file to hold printable statements.
@@ -316,11 +317,17 @@ function create_statement($stmt)
                 $dos = $ddate;
                 if ($ddata['chg']) {
                     $amount = sprintf("%.2f", ($ddata['chg'] * -1));
-                    $desc = xl('Adj') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
+                    if (stripos($ddata['rsn'], "djust code") !== false) {
+                        $reason_code = trim(substr($ddata['rsn'], -3, 3));
+                        $reason = substr(BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[$reason_code], 0, 41);
+                    } else {
+                        $reason = $ddata['rsn'];
+                    }
+                    $desc = xl('Adj') . ' ' . $reason . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                 } else {
                     $desc = xl('Note') . ' ' . substr($ddata['rsn'] ?? '', 0, 40) . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                 }
-                $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
+                $out .= sprintf("%-8s %-54s %8s\r\n", formatDate($dos), $desc, $amount);
             } elseif ($ddata['chg'] < 0) {
                 $amount = sprintf("%.2f", $ddata['chg']);
                 $desc = xl('Patient Payment');
