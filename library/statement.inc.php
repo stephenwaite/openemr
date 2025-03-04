@@ -327,7 +327,7 @@ function create_statement($stmt)
                 } else {
                     $desc = xl('Note') . ' ' . substr($ddata['rsn'] ?? '', 0, 40) . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                 }
-                $out .= sprintf("%-8s %-54s %8s\r\n", formatDate($dos), $desc, $amount);
+                $out .= sprintf("%-8s %-54s %8s\r\n", sidDate($dos), $desc, $amount);
             } elseif ($ddata['chg'] < 0) {
                 $amount = sprintf("%.2f", $ddata['chg']);
                 $desc = xl('Patient Payment');
