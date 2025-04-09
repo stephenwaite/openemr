@@ -22,7 +22,6 @@ use OpenEMR\Services\EncounterService;
 use OpenEMR\Services\InsuranceService;
 use OpenEMR\Services\PatientService;
 
-
 if (php_sapi_name() !== 'cli') {
     echo "Only php cli can execute command\n";
     echo "example use: php default 83\n";
@@ -107,7 +106,7 @@ foreach ($worksheet->getRowIterator() as $row) {
         $fee = $codes_sql['fee'];
         $code_text = $codes_sql['code_text'];
     } else {
-        echo $code . " dx code is empty \n";
+        //echo $code . " dx code is empty \n";
     }
 
 
@@ -125,7 +124,6 @@ foreach ($worksheet->getRowIterator() as $row) {
     $lnamePiece = substr($lname, 0, 3);
 
     $pidExists = sqlQuery($pidQuery, ['%' . $fnamePiece . '%', '%' . $lnamePiece . '%', $dob]);
-    $ptService = new PatientService();
 
     if (!empty($pidExists) && $pidExists['pid']) {
         // pt exists, check for encounter
@@ -133,11 +131,12 @@ foreach ($worksheet->getRowIterator() as $row) {
         //echo $dos . " " . $pidExists['pid'] . "\n";
         $encExists = sqlQuery($encQuery, [$dos . "%", $pidExists['pid']]);
         if ($encExists) {
+            //echo $pidExists['uuid'] . " " . $dos . "\n";
             //var_dump($encExists);
         } else {
             //echo $pidExists['uuid'] . " " . $dos . "\n";
-            //$puuid = UuidRegistry::uuidToString($pidExists['uuid']);
-            /* $enc = (new EncounterService)->insertEncounter(
+            $puuid = UuidRegistry::uuidToString($pidExists['uuid']);
+            $enc = (new EncounterService())->insertEncounter(
                 $puuid,
                 [
                     'date' => $dos,
@@ -155,23 +154,23 @@ foreach ($worksheet->getRowIterator() as $row) {
             );
             $encData = $enc->getData()[0];
             //var_dump($encData);
-            echo "new encounter created for pid-enc " . $encData['pid'] . "-" . $encData['encounter'] . "\n";
+            //echo "new encounter created for pid-enc " . $encData['pid'] . "-" . $encData['encounter'] . "\n";
             $addBilling = BillingUtilities::addBilling(
-                $encData['eid'],
+                $encData['encounter'],
                 'ICD10',
                 $dx ?? '',
                 $dx_text ?? '',
-                $encData['pid'],
+                $pidExists['pid'],
                 1,
                 5000,
             );
 
             $addBilling = BillingUtilities::addBilling(
-                $encData['eid'],
+                $encData['encounter'],
                 'CPT4',
                 $code,
                 $code_text,
-                $encData['pid'],
+                $pidExists['pid'],
                 1,
                 5000,
                 '',
@@ -179,8 +178,7 @@ foreach ($worksheet->getRowIterator() as $row) {
                 $fee,
                 '',
                 'ICD10|' . $dx ?? ''
-            ); */
-            //exit;
+            );
         }
     } else {
         $cobolDob = str_replace('-', '', $dob);
@@ -207,10 +205,59 @@ foreach ($worksheet->getRowIterator() as $row) {
             }
         }
         if (empty($matchFlag)) {
-            //echo "couldn't find a match for " . $missingPtsKey . "\n";
+            echo "couldn't find a match for " . $missingPtsKey . "\n";
         } else {
-            var_dump($savedRow);
-            addPatient($savedRow, $ptService, $insService);
+            //var_dump($savedRow);
+            $cmsPatient = addPatient($savedRow, $ptService, $insService);
+            $cmsPtData = $cmsPatient->getData();
+            //var_dump($cmsPtData);
+            $puuid = $cmsPtData[0]['uuid'];
+            $pid = $cmsPtData[0]['pid'];
+            $enc = (new EncounterService())->insertEncounter(
+                $puuid,
+                [
+                    'date' => $dos,
+                    'onset_date' => $onset_date,
+                    'class_code' => $class_code,
+                    'pos_code' => $pos_code,
+                    'pc_catid' => $pc_catid,
+                    'provider_id' => 5000,
+                    'referring_provider_id' => 6084,
+                    'facility_id' => $facility_id,
+                    'billing_facility' => $billing_facility,
+                    'user' => $user,
+                    'group' => $groupname
+                ],
+            );
+            $encData = $enc->getData()[0];
+            //var_dump($encData);
+            //exit;
+            //echo "new encounter created for pid-enc " . $encData['pid'] . "-" . $encData['encounter'] . "\n";
+            $addBilling = BillingUtilities::addBilling(
+                $encData['encounter'],
+                'ICD10',
+                $dx ?? '',
+                $dx_text ?? '',
+                $pid,
+                1,
+                5000,
+            );
+
+            $addBilling = BillingUtilities::addBilling(
+                $encData['encounter'],
+                'CPT4',
+                $code,
+                $code_text,
+                $pid,
+                1,
+                5000,
+                '',
+                '',
+                $fee,
+                '',
+                'ICD10|' . $dx ?? ''
+            );
+            //exit;
         }
     }
 }
@@ -309,7 +356,7 @@ function addPatient($row, $ptService, $insService)
         $insData['type'] = 'primary';
         $insData['policy_number'] = $row['pripol'];
         $insData['group_number'] = $row['prgroup'] ?? '';
-        var_dump($insService->insert($insData));
+        $insService->insert($insData);
     }
 
     if ($row['seins'] != '001') {
@@ -319,7 +366,7 @@ function addPatient($row, $ptService, $insService)
         $insData['group_number'] = $row['segroup'] ?? '';
         $insService->insert($insData);
     }
-
+    return $newPt;
 }
 
 
