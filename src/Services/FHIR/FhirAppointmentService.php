@@ -65,8 +65,13 @@ class FhirAppointmentService extends FhirServiceBase implements IPatientCompartm
         return  [
             'patient' => $this->getPatientContextSearchField(),
             '_id' => new FhirSearchParameterDefinition('_id', SearchFieldType::TOKEN, [new ServiceField('pc_uuid', ServiceField::TYPE_UUID)]),
+<<<<<<< HEAD
             'date' => new FhirSearchParameterDefinition('date', SearchFieldType::DATE, ['pc_eventDate']),
             '_lastUpdated' => $this->getLastModifiedSearchField(),
+=======
+            '_lastUpdated' => new FhirSearchParameterDefinition('_lastUpdated', SearchFieldType::DATETIME, ['pc_time']),
+            'date' => new FhirSearchParameterDefinition('date', SearchFieldType::DATE, ['pc_eventDate']),
+>>>>>>> Pr7066 rel 702 (#7089)
         ];
     }
 
