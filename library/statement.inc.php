@@ -304,13 +304,14 @@ function create_statement($stmt)
                     $agedate = $dos;
                 }
                 $amount = sprintf("%.2f", $ddata['pmt']);
-                $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                 if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
+                    $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                     $pt_paid_flag = true;
                     $desc = xl('Pt paid');
                     //$out .= sprintf("%-8s %-44s           %8s  -%-8s \r\n", sidDate($dos), $desc, $amount, $amount);
                     $out .= sprintf("%-8s %-44s           %8s  \r\n", sidDate($dos), $desc, $amount);
                 } else {
+                    $desc = substr($ddata['src'] ?? '', 0, 40) . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                     $out .= sprintf("%-8s %-44s           %8s\r\n", sidDate($dos), $desc, $amount);
                 }
             } elseif ($ddata['rsn'] ?? '') {
