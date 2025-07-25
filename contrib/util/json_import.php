@@ -34,7 +34,6 @@ use OpenEMR\Services\{
 };
 
 $zip = new ZipArchive();
-//$filename = '/home/stee/Documents/sunflower_pediatric_eye_care/Triplett,\ Ryan\ -\ 12238.zip';
 $filename = "/tmp/test.zip";
 $res = $zip->open($filename);
 if ($res === true) {
