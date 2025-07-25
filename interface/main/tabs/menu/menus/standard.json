@@ -1299,6 +1299,17 @@
               "patients",
               "demo"
             ]
+          },{
+            "label": "Birthday List",
+            "menu_id": "rep0",
+            "target": "rep",
+            "url": "/interface/reports/birthday_list.php",
+            "children": [],
+            "requirement": 0,
+            "acl_req": [
+              "patients",
+              "demo"
+            ]
           },
           {
             "label": "Rx",
