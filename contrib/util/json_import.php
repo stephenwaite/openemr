@@ -12,12 +12,12 @@
 
 // Enable this script via environment variable
 if (!getenv('OPENEMR_ENABLE_JSON_IMPORT')) {
-    die('Set OPENEMR_ENABLE_JSON_IMPORT=1 environment variable to enable this script');
+    die("Set OPENEMR_ENABLE_JSON_IMPORT=1 environment variable to enable this script \n");
 }
 
 if (php_sapi_name() !== 'cli') {
     echo "Only php cli can execute command\n";
-    echo "example use: php default 2022-01-01 2022-12-31 primary MCDVT\n";
+    echo "example use: php default /tmp/test.zip \n";
     die;
 }
 
@@ -34,26 +34,46 @@ use OpenEMR\Services\{
 };
 
 $zip = new ZipArchive();
-$filename = "/tmp/test.zip";
+$filename = $argv[2];
 $res = $zip->open($filename);
 if ($res === true) {
-    echo $zip->numFiles;
-    print_r($zip);
-    var_dump($zip);
-    echo "numFiles: " . $zip->numFiles . "\n";
-    echo "status: " . $zip->status  . "\n";
-    echo "statusSys: " . $zip->statusSys . "\n";
-    echo "filename: " . $zip->filename . "\n";
-    echo "comment: " . $zip->comment . "\n";
+     // As long as statIndex() does not return false keep iterating
+    for ($idx = 0; $zipFile = $zip->statIndex($idx); $idx++) {
+        $entry = $zip->getNameIndex($idx);
+        $pathParts = pathinfo($entry);
 
-/* for ($i=0; $i<$zip->numFiles;$i++) {
-    echo "index: $i\n";
-    print_r($zip->statIndex($i));
-} */
-    echo "numFile:" . $zip->numFiles . "\n";
-} else {
-    echo 'failed, code: ' . $res . "\n";
-}
+         if ($pathParts['extension'] ?? '' && $pathParts['filename']) {
+            var_dump($pathParts);
+            
+        }
+        //exit;
+        $isDir = (substr($entry, -1, 1) == '/');
+            switch($entry) {
+                case (stripos($entry, 'appointments') != false):
+                    echo "this is appointments \n";
+                    $section = 'appts';
+                    break;
+                case (stripos($entry, 'communications') != false):
+                    echo "this is communications \n";
+                    $section = 'comms';
+                    break;
+                case (stripos($entry, 'identification') != false):
+                    echo "this is documents \n";
+                    $section = 'ids';
+                    break;
+                case (stripos($entry, 'insurance') != false):
+                    echo "this is documents \n";
+                    $section = 'ins';
+                    break;
+                default:
+                    //echo "default case \n";
+                    $section = 'default';
+            }
+
+        }
+    }
+    $zip->close();
+
 
 exit;
 $file = file_get_contents($argv[2]);
@@ -91,3 +111,31 @@ foreach ($json as $key => $item) {
     echo $key . "\n";
     var_dump($item);
 }
+
+function loadAppointments($contents) {
+    echo "going to load appts \n";
+    var_dump(json_decode($contents));
+}
+
+
+/* echo "directory: " . $entry . "\n";
+if (!$isDir) {
+            echo $zipFile['name'] . "\n";
+            $contents = $zip->getFromIndex($idx);
+            if ($section == "appts") {
+                $apptJson = $contents;
+
+            } elseif ($section == "comms") {
+                if (stripos($entry, 'ToDos.json') != false) {
+                    $toDosJson = $contents;
+                }
+            } elseif ($section == "ids") {
+
+            }
+            // file contents
+            //$contents = $zip->getFromIndex($idx);
+        } else {
+} else {
+    echo 'failed, code: ' . $res . "\n";
+}
+ */
