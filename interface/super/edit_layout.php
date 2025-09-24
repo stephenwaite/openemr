@@ -1649,6 +1649,10 @@ if ($layout_id) {
         } // end new group
 
         if (!empty($row['form_id'])) {
+            if ($row['field_id'] == 'guardianaddress') {
+                // do magiq
+                error_log("we're in here");
+            }
             writeFieldLine($row);
         }
         $prevgroup = $group_id;

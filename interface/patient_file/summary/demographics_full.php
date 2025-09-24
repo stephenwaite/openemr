@@ -267,6 +267,25 @@ function address_verify() {
     return false;
 }
 
+function address_copy() {
+    top.restoreSession();
+    var f = document.demographics_form;
+
+    if(typeof f.form_street_line_2 !== 'undefined') {
+        f.form_guardianaddress.value = f.form_street.value + ' ' + f.form_street_line_2.value;
+    } else {
+        f.form_guardianaddress.value = f.form_street.value;
+    }
+
+    f.form_guardiancity.value = f.form_city.value;
+    f.form_guardianstate.value = f.form_state.value;
+    f.form_guardianpostalcode.value = f.form_postal_code.value;
+    f.form_guardianemail.value = f.form_email.value;
+    f.form_guardianphone.value = f.form_phone_cell.value;
+
+    return false;
+}
+
 // This capitalizes the first letter of each word in the passed input
 // element.  It also strips out extraneous spaces.
 function capitalizeMe(elem) {
@@ -609,6 +628,11 @@ $use_validate_js = $GLOBALS['new_validate'];
             $("#value_id_text_postal_code").append(
                 "<input type='button' class='btn btn-sm btn-secondary mb-1' onclick='address_verify()' value='<?php echo xla('Verify Address') ?>' />");
         <?php } ?>
+        //
+        $("#value_id_text_guardianaddress").append(
+            "<input type='button' class='btn btn-sm btn-secondary mb-1' onclick='address_copy()' value='<?php echo xla('Copy Contact Address') ?>' />"
+        );
+
     })
 </script>
 
