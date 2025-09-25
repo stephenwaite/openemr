@@ -33,54 +33,123 @@ use OpenEMR\Services\{
     PatientService
 };
 
-$zip = new ZipArchive();
-$filename = $argv[2];
-$res = $zip->open($filename);
-if ($res === true) {
-     // As long as statIndex() does not return false keep iterating
-    for ($idx = 0; $zipFile = $zip->statIndex($idx); $idx++) {
-        $entry = $zip->getNameIndex($idx);
-        $pathParts = pathinfo($entry);
+use Archive7z\Archive7z;
 
-         if ($pathParts['extension'] ?? '' && $pathParts['filename']) {
-            var_dump($pathParts);
-            
-        }
-        //exit;
-        $isDir = (substr($entry, -1, 1) == '/');
-            switch($entry) {
+class MyArchive7z extends Archive7z
+{
+    protected ?float $timeout = 120;
+    protected int $compressionLevel = 6;
+    protected string $overwriteMode = self::OVERWRITE_MODE_S;
+    protected string $outputDirectory = '/tmp';
+}
+$obj = new MyArchive7z('/tmp/SUNPED.zip.001');
+$obj->setPassword('h4,o5"r4%k4;s7+h');
+
+if (!$obj->isValid()) {
+    throw new \RuntimeException('Incorrect archive');
+}
+
+//print_r($obj->getinfo());
+//exit;
+
+foreach ($obj->getEntries(null, 100) as $entry) {
+        print_r($entry);
+}
+
+exit;
+$tmpDir = "/tmp/charts";
+$scanDir = scandir($tmpDir);
+foreach ($scanDir as $chart) {
+    if ($chart == '.' || $chart == '..') {
+        continue;
+    }
+    $zip = new ZipArchive();
+    $filename = $chart;
+    if (stripos($filename, '-') !== false) {
+        $pubPidZip = substr($filename, stripos($filename, '-') + 2);
+        $pubPid = str_replace('.zip', '', $pubPidZip);
+    } else {
+        throw new \Exception('no dash in zip folder');
+    }
+    $res = $zip->open($tmpDir . DIRECTORY_SEPARATOR . $filename);
+    if ($res === true) {
+         // As long as statIndex() does not return false keep iterating
+        for ($idx = 0; $zipFile = $zip->statIndex($idx); $idx++) {
+            $entry = $zip->getNameIndex($idx);
+            $pathParts = pathinfo($entry);
+
+            if ($pathParts['extension'] ?? '' && $pathParts['filename']) {
+                //var_dump($pathParts);
+            }
+            //exit;
+            $isDir = (substr($entry, -1, 1) == '/');
+            switch ($entry) {
                 case (stripos($entry, 'appointments') != false):
-                    echo "this is appointments \n";
+                    echo "this is appointments dir \n";
                     $section = 'appts';
+                    if (!$isDir) {
+                        loadJson($zip, $entry);
+                    }
                     break;
                 case (stripos($entry, 'communications') != false):
                     echo "this is communications \n";
                     $section = 'comms';
+                    if (!$isDir) {
+                        loadJson($zip, $entry);
+                    }
                     break;
                 case (stripos($entry, 'identification') != false):
                     echo "this is documents \n";
                     $section = 'ids';
+                    if (!$isDir) {
+                        loadJson($zip, $entry);
+                    }
                     break;
                 case (stripos($entry, 'insurance') != false):
-                    echo "this is documents \n";
+                    echo "this is insurance \n";
                     $section = 'ins';
+                    if (!$isDir) {
+                        //var_dump(loadJson($zip, $entry));
+                    }
+                    break;
+                case (stripos($entry, 'demographics') != false):
+                    echo "this is demographics \n";
+                    $section = 'ins';
+                    if (!$isDir) {
+                        //loadJsonDemographics($zip, $entry);
+                    }
+                    break;
+                case (stripos($entry, 'documents') != false):
+                    echo "this is documents \n";
+                    $section = 'docs';
+                    if (!$isDir) {
+                       var_dump($entry);
+                    }
                     break;
                 default:
                     //echo "default case \n";
                     $section = 'default';
             }
-
         }
     }
     $zip->close();
-
+}
 
 exit;
-$file = file_get_contents($argv[2]);
-//var_dump($file);
-$ptJson = json_decode($file);
-var_dump($ptJson);
-$ptData = [
+
+
+function loadJson($zip, $entry)
+{
+    $contents = $zip->getFromName($entry);
+    return $contents;
+}
+
+function loadJsonDemographics($zip, $entry)
+{
+    $contents = $zip->getFromName($entry);
+    $ptJson = json_decode($contents);
+    var_dump($ptJson);
+    $ptData = [
     'lname'    => $ptJson->PrimaryInformation->LastName,
     'fname'    => $ptJson->PrimaryInformation->FirstName,
     'mname'    => $ptJson->PrimaryInformation->Mi,
@@ -99,20 +168,23 @@ $ptData = [
     'postal_code'   => $ptJson->AddressInformation[0]->Zip,
     'contact_relationship' => $ptJson->EmergencyContactInformation[0]->Name . ' ' . $ptJson->EmergencyContactInformation[0]->RelationshipComment,
     'phone_contact' => $ptJson->EmergencyContactInformation[0]->Phone1,
-];
+    ];
 
-var_dump($ptData);
+    var_dump($ptData);
 
-$dbInsert = (new PatientService())->databaseInsert($ptData);
-var_dump($dbInsert);
-exit;
+    $dbInsert = (new PatientService())->databaseInsert($ptData);
+    var_dump($dbInsert);
+}
+
+
 
 foreach ($json as $key => $item) {
     echo $key . "\n";
     var_dump($item);
 }
 
-function loadAppointments($contents) {
+function loadAppointments($contents)
+{
     echo "going to load appts \n";
     var_dump(json_decode($contents));
 }
