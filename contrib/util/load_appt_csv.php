@@ -77,7 +77,7 @@ foreach ($records as $record) {
         case (stripos($type, 'adult follow up') !== false):
             $apptData['pc_catid'] = 21;
             break;
-        case (stripos($type, 'post op') !== false):
+        case (stripos($type, 'post-op') !== false):
             $apptData['pc_catid'] = 22;
             break;
         case (stripos($type, 'procedure') !== false):
@@ -88,9 +88,6 @@ foreach ($records as $record) {
             break;
         case (stripos($type, 'telehealth') !== false):
             $apptData['pc_catid'] = 20;
-            break;
-        case (stripos($type, 'post op') !== false):
-            $apptData['pc_catid'] = 22;
             break;
         case (stripos($type, 'testing') !== false):
             $apptData['pc_catid'] = 14;
