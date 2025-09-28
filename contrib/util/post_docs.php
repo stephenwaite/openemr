@@ -31,7 +31,6 @@ use GuzzleHttp\Psr7\Request;
 use OpenEMR\Common\Uuid\UuidRegistry;
 
 
-//$file = file_get_contents($filename);
 //$base_url = getenv('BASE_OEMR_URL');
 $base_url = "https://172.17.0.1:9300";
 //$site_id = getenv('SUNPED_SITE_ID');
@@ -91,40 +90,105 @@ foreach ($rii as $file) {
     }
     $files[] = $pathName;
 }
+
+//echo count($files);
+
+usort($files, function ($a, $b) {
+    return strnatcmp($a, $b);
+});
+
+//echo count($files);
 //var_dump($files);
 
-$parts = explode('/', $pathName);
-$chartName = $parts[4];
-$length = strlen($chartName);
-$dashPos = strrpos($chartName, '-');
-$pos = ($length - $dashPos - 1) * -1;
-$pubpid = substr($chartName, $pos);
-echo $pubpid . "\n";
+//exit;
 
-exit;
+foreach ($files as $file) {
+    $parts = explode('/', $file);
+    //var_dump($parts);
+    $chartName = $parts[4];
+    $length = strlen($chartName);
+    $dashPos = strrpos($chartName, '-');
+    $pos = ($length - $dashPos - 1) * -1;
+    $pubpid = trim(substr($chartName, $pos));
+    //echo $pubpid . "\n";
+    //var_dump($pubpid);
+    $pid = sqlQuery("SELECT `pid` FROM `patient_data` WHERE `pubpid` = ?", [$pubpid])['pid'];
+    //var_dump($pid);
+    //echo $pid . "\n";
+    $pathInfo = pathinfo($file);
+    //var_dump($pathInfo);
+    $ext = $pathInfo['extension'];
+    switch ($ext) {
+        case ($ext == 'xml'):
+            $category = 'zCCDA';
+            break;
+        default:
+            $category = 'Nextech';
+    }
+
+    foreach ($parts as $part) {
+        if (
+            $part == 'tmp' ||
+            $part == 'SUNPED' ||
+            $part == 'Patients'
+        ) {
+            continue;
+        }
+
+        if (empty($fileName)) {
+            $fileName = $part;
+        } else {
+            echo $file . "\n";
+            echo $part . "\n";
+            if (stripos($part, '.Spec Practice Fusion') !== false) {
+                $part = str_replace('.Spec Practice Fusion', '', $part);
+            } elseif (stripos($part, 'Documents') !== false) {
+                $part = str_replace('Documents', 'SPF', $part);
+            } elseif (stripos($part, '.Spec Paper Exam') !== false) {
+                $part = str_replace('.Spec Paper Exam', 'SPE', $part);
+            } elseif (stripos($part, '.Spec Paper Chart') !== false) {
+                $part = str_replace('.Spec Paper Chart', 'SPC', $part);
+            } elseif (stripos($part, '.New Patient Referral') !== false) {
+                $part = str_replace('.New Patient Referral', 'NPR', $part);
+            } elseif (stripos($part, 'Letter Consultation') !== false) {
+                $part = str_replace('Letter Consultation', 'LC', $part);
+            }
+            //echo $part . "\n";
+            $fileName .= '_' . $part;
+        }
+    }
+    //echo $fileName . "\n";
+    $fileName = trim($fileName);
+    $fileName = preg_replace('/___/', '_', $fileName);
+    $fileName = '/tmp/' . $fileName;
+    copy($file, $fileName);
+    //echo $fileName . "\n";
+    $options = [
+        'multipart' => [
+            [
+                'name' => 'document',
+                'contents' => Utils::tryFopen($fileName, 'r'),
+            ],
+        ]
+    ];
+
+
+    $url = $base_url . '/apis/' . $site_id . '/api/patient/' . $pid . '/document?path=' . $category;
+
+    $request = new Request('POST', $url, $headers);
+    $res = $client->sendAsync($request, $options)->wait();
+    //$ptObj = json_decode($res->getBody(), true);
+    //var_dump($ptObj);
+    unlink($fileName);
+    $fileName = '';
+}
+
+
+
+
 //$puuidBinary = sqlQuery("SELECT `uuid` FROM `patient_data` WHERE pid = ?", [$pid])['uuid'];
 //$puuid = UuidRegistry::uuidToString($puuidBinary);
 //echo $puuid . "\n";
 
 //$request = new Request('GET', $base_url . '/apis/' . $site_id . '/api/patient/' . $puuid, $headers);
 //$request = new Request('GET', $base_url . '/apis/' . $site_id . '/api/patient/' . $pid . '/appointment', $headers);
-
-foreach ($files as $file) {
-}
-$options = [
-    'multipart' => [
-        [
-            'name' => 'document',
-            'contents' => Utils::tryFopen('/tmp/test.pdf', 'r'),
-        ],
-    ]
-];
-
-$category = "Nextech";
-
-$url = $base_url . '/apis/' . $site_id . '/api/patient/' . $pid . '/document?path=' . $category;
-
-$request = new Request('POST', $url, $headers);
-$res = $client->sendAsync($request, $options)->wait();
-$ptObj = json_decode($res->getBody(), true);
-var_dump($ptObj);
