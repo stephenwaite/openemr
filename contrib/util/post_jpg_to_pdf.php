@@ -11,8 +11,8 @@
 */
 
 // Enable this script via environment variable
-if (!getenv('OPENEMR_ENABLE_POST_DOCS_API')) {
-    die('Set OPENEMR_ENABLE_POST_DOCS_API=1 environment variable to enable this script');
+if (!getenv('OPENEMR_ENABLE_POST_JPG_TO_PDF_API')) {
+    die('Set OPENEMR_ENABLE_POST_JPG_TO_PDF=1 environment variable to enable this script');
 }
 
 if (php_sapi_name() !== 'cli') {
