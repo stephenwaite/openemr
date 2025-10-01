@@ -30,38 +30,6 @@ use GuzzleHttp\Psr7\Utils;
 use GuzzleHttp\Psr7\Request;
 use OpenEMR\Common\Uuid\UuidRegistry;
 
-function batchConvertJpgsToPdf($sourceDir, $outputDir)
-{
-    if (!is_dir($outputDir)) {
-        mkdir($outputDir, 0755, true);
-    }
-
-    $files = glob($sourceDir . '/*.{jpg,jpeg,JPG,JPEG}', GLOB_BRACE);
-    $converted = 0;
-
-    foreach ($files as $jpgFile) {
-        $filename = pathinfo($jpgFile, PATHINFO_FILENAME);
-        $pdfFile = $outputDir . '/' . $filename . '.pdf';
-
-        try {
-            list($width, $height) = getimagesize($jpgFile);
-            $width_mm = $width * 0.264583;
-            $height_mm = $height * 0.264583;
-
-            $pdf = new FPDF('P', 'mm', array($width_mm, $height_mm));
-            $pdf->AddPage();
-            $pdf->Image($jpgFile, 0, 0, $width_mm, $height_mm);
-            $pdf->Output('F', $pdfFile);
-
-            $converted++;
-        } catch (Exception $e) {
-            echo "Failed to convert $jpgFile: " . $e->getMessage() . "\n";
-        }
-    }
-
-    return $converted;
-}
-
 //$base_url = getenv('BASE_OEMR_URL');
 $base_url = "https://172.17.0.1:9300";
 //$site_id = getenv('SUNPED_SITE_ID');
