@@ -83,20 +83,28 @@ $reader->setDelimiter(",");
 $records = $reader->getRecords();
 
 foreach ($records as $record) {
-    var_dump($record);
+    //var_dump($record);
     $chartNumber = $record[1];
     $chartName = $record[3] . ", " . $record[2];
     $filePath = str_replace("\\", "/", substr($record[5], 2));
     $photoDate = $record[6];
     $photoType = $record[7];
     $fullPath = $tmpPath . DIRECTORY_SEPARATOR . "SUNPED" . DIRECTORY_SEPARATOR . "SUN002" . DIRECTORY_SEPARATOR . $filePath;
+    $parts = explode('/', $fullPath);
+    //var_dump($parts);
+    $photoName = $parts[5];
+    $shortName = $tmpPath . DIRECTORY_SEPARATOR . $photoName;
+    //copy($fullPath, $shortName);
+    //exit;
+    //$shortPath =
     //$test = file_get_contents($fullPath);
     $category = match ($photoType) {
         "15" => "insuranceidcard",
-        "11" => "patientphotoid"
+        default => "patientphotoid",
     };
-    apiDocumentPost($client, $base_url, $site_id, $headers, $oldPubpid, $category, $pdfFile);
-    exit;
+    //echo "category: " . $category . " photoType " . $photoType . "\n";
+    apiDocumentPost($client, $base_url, $site_id, $headers, $chartNumber, $category, $fullPath);
+    //exit;
 }
 
 function apiDocumentPost($client, $base_url, $site_id, $headers, $pubpid, $category, $fileName)
