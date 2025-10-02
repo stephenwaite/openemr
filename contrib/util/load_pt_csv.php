@@ -50,7 +50,7 @@ foreach ($records as $record) {
     'mname'    => $record['MiddleInitial'],
     'ss'       => $record['SocialSecurity'],
     'pubpid'   => $record['AccountNumber'],
-    'DOB'      => date('Y-m-d',strtotime($record['Birthdate'])),
+    'DOB'      => date('Y-m-d', strtotime($record['Birthdate'])),
     'sex'      => $record['Gender'],
     'language' => $record['Language'],
     'phone_home' => $record['HomePhone'],

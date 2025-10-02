@@ -85,6 +85,7 @@ foreach ($rii as $file) {
         (($fileSize < 30000) && ($filePath['extension'] == 'pdf'))
         || ($filePath['extension'] != 'jpg')
         || (stripos($pathName, 'patient photo') !== false)
+        || (stripos($pathName, 'Images') !== false)
     ) {
         continue;
     }

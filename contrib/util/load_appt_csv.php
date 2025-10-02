@@ -105,7 +105,7 @@ foreach ($records as $record) {
     $apptData['pc_hometext'] = $record['Purpose'] . ' ' . $record['Notes'];
     $apptData['pc_eventDate'] = date('Y-m-d', strtotime($record['AppointmentDate']));
     $isCanceled = (stripos($record['IsCancelled'], 'TRUE') !== false);
-    $isNoShow = (stripos($record['IsNoShow'],'TRUE') !== false);
+    $isNoShow = (stripos($record['IsNoShow'], 'TRUE') !== false);
     $isUnconfirmed = (stripos($record['Status'], 'Unconfirmed') !== false);
     $isCompleted = (stripos($record['Status'], 'completed') !== false) || (stripos($record['Status'], 'performed') !== false);
     $isRescheduled = (stripos($record['Status'], 'rescheduled') !== false);

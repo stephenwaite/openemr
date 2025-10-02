@@ -123,7 +123,7 @@ foreach ($scanDir as $chart) {
                     echo "this is documents \n";
                     $section = 'docs';
                     if (!$isDir) {
-                       var_dump($entry);
+                        var_dump($entry);
                     }
                     break;
                 default:

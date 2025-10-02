@@ -83,8 +83,8 @@ foreach ($rii as $file) {
     $fileSize = filesize($pathName);
     $filePath = pathinfo($pathName);
     if (
-        ($fileSize < 30000) &&
-        ($filePath['extension'] == 'pdf')
+        ($fileSize < 30000) && ($filePath['extension'] == 'pdf')
+        || (stripos($pathName, 'medical record') !== false)
     ) {
         continue;
     }
@@ -98,9 +98,9 @@ usort($files, function ($a, $b) {
 });
 
 //echo count($files);
-//var_dump($files);
+var_dump($files);
 
-//exit;
+exit;
 
 foreach ($files as $file) {
     $parts = explode('/', $file);
@@ -115,15 +115,19 @@ foreach ($files as $file) {
     $pid = sqlQuery("SELECT `pid` FROM `patient_data` WHERE `pubpid` = ?", [$pubpid])['pid'];
     //var_dump($pid);
     //echo $pid . "\n";
-    $pathInfo = pathinfo($file);
+    //$pathInfo = pathinfo($file);
     //var_dump($pathInfo);
-    $ext = $pathInfo['extension'];
-    switch ($ext) {
-        case ($ext == 'xml'):
-            $category = 'zCCDA';
-            break;
-        default:
-            $category = 'Nextech';
+    //$ext = $pathInfo['extension'];
+    if (stripos($fileName, 'CCDA') !== false) {
+        $category = "zCCDA";
+    } elseif (stripos($fileName, 'Images') !== false) {
+        $category = "OCT-EYE";
+    } elseif (stripos($fileName, 'ChartNote') !== false) {
+        $category = "SPECSCHART";
+    } elseif (stripos($fileName, 'Letter_Update') !== false) {
+        $category = "SPECSCHART";
+    } elseif (stripos($fileName, 'Letter_Referral') !== false) {
+        $category = "SPECSCHART";
     }
 
     foreach ($parts as $part) {

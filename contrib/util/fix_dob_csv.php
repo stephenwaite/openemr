@@ -46,7 +46,7 @@ foreach ($records as $record) {
         $query = sqlQuery("SELECT `pid`, `fname`, `lname`, `DOB` FROM `patient_data` WHERE `pubpid` = ?", [$record['AccountNumber']]);
         //echo $query['pid'] . " " . $query['fname'] . " " . $query['lname'] . " " . $query['DOB'] . "\n";
         //echo $record['FirstName'] . " " . $record['LastName'] . " " . $record['Birthdate'] . "\n";
-        $formattedDob = date('Y-m-d',strtotime($record['Birthdate']));
+        $formattedDob = date('Y-m-d', strtotime($record['Birthdate']));
         if ($query['DOB'] != $formattedDob) {
             echo "have to set dob to " . $formattedDob . "\n";
             $updateDOB = sqlStatement("UPDATE `patient_data` SET `DOB` = ? WHERE `pubpid` = ?", [$formattedDob, $record['AccountNumber']]);
