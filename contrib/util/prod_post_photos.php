@@ -9,10 +9,10 @@
  * @copyright Copyright (c) 2025 stephen waite <stephen.waite@cmsvt.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
 */
-
+exit;
 // Enable this script via environment variable
-if (!getenv('OPENEMR_ENABLE_POST_PDF_API')) {
-    die('Set OPENEMR_ENABLE_POST_PDF_API=1 environment variable to enable this script');
+if (!getenv('OPENEMR_ENABLE_POST_PHOTOS_API')) {
+    die('Set OPENEMR_ENABLE_POST_PHOTOS_API=1 environment variable to enable this script');
 }
 
 if (php_sapi_name() !== 'cli') {
@@ -31,8 +31,8 @@ use GuzzleHttp\Psr7\Request;
 use League\Csv\Reader;
 use OpenEMR\Common\Uuid\UuidRegistry;
 
-//$base_url = getenv('BASE_OEMR_URL');
-$base_url = "https://172.17.0.1:9300";
+$base_url = getenv('BASE_OEMR_URL');
+//$base_url = "https://172.17.0.1:9300";
 //$site_id = getenv('SUNPED_SITE_ID');
 $site_id = $argv[1];
 $base_uri = $base_url . '/oauth2/' . $site_id . '/token';
@@ -46,20 +46,18 @@ $guzzle = new Client(
 $response = $guzzle->post($base_uri, [
     'form_params' => [
         'grant_type' => 'password',
-        //'client_id' => getenv('SUNPED_CLIENT_ID'),
-        'client_id' => '6zhcRUNBs51RHvAYyprky75bPF2L2w4o-z1wOqMUCWQ',
-        'redirect_uri' => 'https://localhost:9300',
+        'client_id' => getenv('SUNPED_CLIENT_ID'),
+        'redirect_uri' => getenv('SUNPED_REDIRECT_URI'),
         'scope' => "openid api:oemr user/appointment.read user/document.read user/document.write user/encounter.read user/encounter.write user/patient.read user/patient.write",
         'user_role' => 'users',
-        //'username' => getenv('OEMR_RRI_USERNAME'),
-        'username' => 's.waite',
-        //'password' => getenv('OEMR_RRI_PASSWORD')
-        'password' => '123456Sw.'
+        'username' => getenv('SUNPED_USERNAME'),
+        'password' => getenv('SUNPED_PASSWORD')
     ],
 ]);
 $bearer = json_decode((string) $response->getBody(), true)['access_token'];
 //echo $bearer . "\n";
 //exit;
+
 $client = new Client(
     ['verify' => false],
     ['debug' => true]
@@ -71,8 +69,7 @@ $headers = [
 
 // setup a csv file with a header consiting of type, code and modifier
 // at the specified location
-$filename = 'SUN002-NextechDocumentsToPdf-20250922071517.csv';
-//$filename = 'test.csv';
+$filename = 'SUN002-NextechPhotos-20250922071517.csv';
 $tmpPath = $GLOBALS['temporary_files_dir'];
 $reader = Reader::createFromPath($tmpPath . DIRECTORY_SEPARATOR . $filename);
 $reader->setDelimiter(",");
@@ -85,49 +82,26 @@ $records = $reader->getRecords();
 
 foreach ($records as $record) {
     //var_dump($record);
-    //exit;
     $chartNumber = $record[1];
     $chartName = $record[3] . ", " . $record[2];
-
-    $filePath = $record[5];
-    $filePath = str_replace("\\", "/", substr(trim($filePath), 2));
-    $filePath = rtrim($filePath, '.');
-    //$filePath = str_replace([". ",], ".\ ", $filePath);
-    //$filePath = str_replace(["$",], "\\$", $filePath);
-    if (stripos($filePath, 'demo') !== false) {
-        $category = "4.officedocuments";
-    } elseif (stripos($filePath, 'medical history') !== false) {
-        $category = "specspaperchart";
-    } else {
-        $category = "6.billingdocuments";
-    }
-
-    $photoDate = date('Y-m-d', strtotime($record[6]));
+    $filePath = str_replace("\\", "/", substr($record[5], 2));
+    $photoDate = $record[6];
     $photoType = $record[7];
-    /* $pattern = '/\$/';
-    if (preg_match($pattern, $filePath)) {
-
-        echo $filePath . "\n";
-        $safe = preg_replace('/[^a-zA-Z0-9._-]/', '', $filePath);
-        copy($filePath, $safe);
-        echo $safe . "\n";
-    } */
-    $fileRoot = $tmpPath . DIRECTORY_SEPARATOR . "SUNPED" . DIRECTORY_SEPARATOR . "SUN002" . DIRECTORY_SEPARATOR;
-    $origFileName =  $fileRoot . $filePath;
-    //$parts = explode('/', $fullPath);
+    $fullPath = $tmpPath . DIRECTORY_SEPARATOR . "SUNPED" . DIRECTORY_SEPARATOR . "SUN002" . DIRECTORY_SEPARATOR . $filePath;
+    $parts = explode('/', $fullPath);
     //var_dump($parts);
-    $newFileName = $fileRoot . str_replace('PatientFile', $photoType, $filePath) . "_" . $photoDate;
-    echo $origFileName. "\n";
-    echo $newFileName . "\n";
-    //exit;
-    copy($origFileName, $newFileName);
+    $photoName = $parts[5];
+    $shortName = $tmpPath . DIRECTORY_SEPARATOR . $photoName;
+    //copy($fullPath, $shortName);
     //exit;
     //$shortPath =
     //$test = file_get_contents($fullPath);
-
-
-    //echo "chart number " . $chartNumber . " category: " . $category . " photoType " . $photoType . "\n";
-    apiDocumentPost($client, $base_url, $site_id, $headers, $chartNumber, $category, $newFileName);
+    $category = match ($photoType) {
+        "15" => "insuranceidcard",
+        default => "patientphotoid",
+    };
+    echo "category: " . $category . " photoType " . $photoType . "\n";
+    apiDocumentPost($client, $base_url, $site_id, $headers, $chartNumber, $category, $fullPath);
     //exit;
 }
 
