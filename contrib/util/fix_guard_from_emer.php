@@ -2,11 +2,11 @@
 
 /**
  * grab guardian info from emer for pts under 18
- *
+ * and update other missing demos from orig import
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    stephen waite <stephen.waite@cmsvt.com>
- * @copyright Copyright (c) 2023 stephen waite <stephen.waite@cmsvt.com>
+ * @copyright Copyright (c) 2025 stephen waite <stephen.waite@cmsvt.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
 */
 
@@ -26,6 +26,20 @@ $ignoreAuth = true;
 require_once __DIR__ . "/../../interface/globals.php";
 
 use League\Csv\Reader;
+$refProvReader = Reader::createFromPath('/tmp/specs-refprov.csv');
+$refProvReader->setDelimiter(",");
+$refProvReader->SetHeaderOffset(0);
+$refProvHeader = $refProvReader->getHeader();
+$refProvRecords = $refProvReader->getRecords($refProvHeader);
+
+$refProvArray = [];
+foreach ($refProvRecords as $refProvRecord) {
+    $key = $refProvRecord['Id'];
+    $refProvArray[$key] = $refProvRecord;
+}
+
+//print_r($refProvArray);
+//exit;
 
 // setup a csv file with a header
 $filename = 'SUN002-NextechPatientDemographics-20250922071517.csv';
@@ -43,19 +57,23 @@ $records = $reader->getRecords($header);
 foreach ($records as $record) {
     //var_dump($record);
     //exit;
+    $pubpid = trim($record['AccountNumber']);
 
     $eighteenYo = strtotime('2007-10-01');
     $recordYo = strtotime(trim($record['Birthdate']));
     if ($recordYo > $eighteenYo) {
-        $pubpid = trim($record['AccountNumber']);
         $query = sqlQuery("SELECT * FROM `patient_data` WHERE `pubpid` = ?", [$pubpid]);
         $guardiansName = trim($record['EmergencyContactFirstName'] . " " . $record['EmergencyContactLastName']);
         $guardiansPhone = trim($record['EmergencyContactHomePhone']);
-        if (!empty($guardiansName) || !empty($guardiansPhone) || $query['guardiansname']) {
-            //echo "have to move emer contact to guardian for pt " . $query['fname'] . " " . $query['lname'] . " " . $query['DOB'] . "\n";
-            //echo $query['contact_relationship'] . " " . $query['phone_contact'] . "\n";
-            //echo "address " . trim($record['Address1']. " " . $record['Address2']) . " city " . $record['City'] . " state " . $record['State'] . " " . $record['Zip'] . "\n";
-            /* $updateGuardian = sqlStatement("UPDATE `patient_data` SET `guardiansname` = ?,
+        if (
+            (!empty($guardiansName) || !empty($guardiansPhone))
+            && empty($query['guardiansname'])
+        ) {
+            echo "have to move emer contact to guardian for pt " . $query['fname'] . " " . $query['lname'] . " " . $query['DOB'] . "\n";
+            echo $query['contact_relationship'] . " " . $query['phone_contact'] . "\n";
+            echo "address " . trim($record['Address1'] . " " . $record['Address2']) . " city " . $record['City'] . " state " . $record['State'] . " " . $record['Zip'] . "\n";
+            $updateGuardian = sqlStatement(
+                "UPDATE `patient_data` SET `guardiansname` = ?,
                 `guardianrelationship` = ?,
                 `guardianaddress` = ?,
                 `guardiancity` = ?,
@@ -75,43 +93,133 @@ foreach ($records as $record) {
                     $query['email'],
                     $pubpid
                 ]
-            ); */
+            );
         }
     }
 
-    //$csvRecords[] = $record;
+    $csvRecords[] = $record;
     // marital status
-    $maritalStatus = match (trim($record['MaritalStatus'])) {
-        'Single' => 'single',
-        'Married' => 'married',
-        default => '',
-    };
-    $updateMaritalStatus = sqlStatement("UPDATE `patient_data` SET `status` = ?", [$maritalStatus]);
+    $maritalStatus = trim($record['MaritalStatus']);
+    if (!empty($maritalStatus)) {
+        $maritalText = match ($maritalStatus) {
+            'Single' => 'single',
+            'Married' => 'married',
+            default => '',
+        };
+        echo "updating marital status for " . $pubpid . " to " . $maritalText . "\n";
+        $updateMaritalStatus = sqlStatement("UPDATE `patient_data` SET `status` = ? WHERE `pubpid` = ?", [$maritalText, $pubpid]);
+    }
+
 
     // race
     // SELECT `race` FROM `patient_data` WHERE `pubpid` = '10120'
     $race = getRace(trim($record['Race']));
-    $updateRace = sqlStatement("UPDATE `patient_data` SET `race` = ?", [$race]);
+    if (!empty($race)) {
+        echo "updating race for " . $pubpid . " to " . $race . "\n";
+        $updateRace = sqlStatement("UPDATE `patient_data` SET `race` = ? WHERE `pubpid` = ?", [$race, $pubpid]);
+    }
 
     // ethnicity code
-    $ethnicityCode = match (substr(trim($record['EthnicityCd']), 0, 2)) {
-        'NH' => 'not_hisp_or_latin',
-        'HS' => 'hispanic',
-        'DE' => 'decline_to_specify',
-        default => ''
-    };
-    $updateEthnicity = sqlStatement("UPDATE `patient_data` SET `ethnicity` = ?", [$ethnicityCode]);
+    $ethnicityCode = substr(trim($record['EthnicityCd']), 0, 2);
+    if (!empty($ethnicityCode)) {
+        $ethnicityText = match ($ethnicityCode) {
+            'NH' => 'not_hisp_or_latin',
+            'HS' => 'hispanic',
+            'DE' => 'decline_to_specify',
+            default => ''
+        };
+        echo "updating ethnicity for " . $pubpid . " to " . $ethnicityText . "\n";
+        $updateEthnicity = sqlStatement("UPDATE `patient_data` SET `ethnicity` = ? WHERE `pubpid` = ?", [$ethnicityText, $pubpid]);
+    }
 
+    // referral source
+    // Referral source, ['Current Patient', 'Referring provider', 'Internet search', 'friend', 'Other', 'Walk-In']
+    //$uniqueReferralSource = getUniqueFieldValues($csvRecords, 'ReferralSource');
+    //print_r($uniqueReferralSource);
+    $referralSource = trim($record['ReferralSource']);
+    if (!empty($referralSource)) {
+        $referralSourceText = match ($referralSource) {
+            'Hospital/Urgent Care' => 'Hospital',
+            'Insurance' => 'Insurance',
+            'Internet Search/Website' => 'Internet search',
+            'Previous Patient' => 'Current Patient',
+            'Referring Physician' => 'Referring provider',
+            'Social Media' => 'Social Media',
+            'Word of Mouth' => 'Word of Mouth',
+            default => '',
+        };
+        echo "updating referral source for " . $pubpid . " to " . $referralSourceText . "\n";
+        $updateReferralSource = sqlStatement("UPDATE `patient_data` SET `referral_source` = ? WHERE `pubpid` = ?", [$referralSourceText, $pubpid]);
+    }
 
-    // language code
-    $languageCode = match (trim($record['LanguageCd'])) {
-        'spa' => 'spanish',
-        'vie' => 'vietnamese',
-        'afr' => 'afrikaans',
-        default => 'eng'
-    };
-    $updateLanguage = sqlStatement("UPDATE `patient_data` SET `language` = ?", [$languageCode]);
+    $refProvCode = trim($record['ReferringPhysicianId']);
+    if (!empty($refProvCode)) {
+        if ($refProvCode == '1') {
+            echo "updating refprov to Marie \n";
+            $updateRefProv = sqlStatement("UPDATE `patient_data` SET `ref_providerID` = ? WHERE `pubpid` = ?", ['5', $pubpid]);
+        }
+        $refProv = $refProvArray[$refProvCode];
+        //var_dump($refProv);
+        $refProvNameF = $refProv['FirstName'];
+        if ($refProvNameF == "LARISSA") {
+            $refProvNameF = "LARISA";
+        }
+        $refProvNameL = $refProv['LastName'];
+        if (!empty($refProvNameF)) {
+            //print_r($refProv);
+            try {
+                $refProvQuery = sqlQuery("SELECT * FROM `users` WHERE `fname` LIKE '" . $refProvNameF . "%' AND `lname` LIKE '" . $refProvNameL . "%' LIMIT 1");
+            } catch (\Exception $e) {
+                echo "had a ref prov code " . $refProvNameF . " " . $refProvNameL . " but no match on name \n";
+            }
+            $refProvId = $refProvQuery['id'] ?? '';
+            if (!empty($refProvId)) {
+             //print_r($refProvQuery);
+                //echo "updating refprov to " . $refProvId . "\n";
+                $updateRefProv = sqlStatement("UPDATE `patient_data` SET `ref_providerID` = ? WHERE `pubpid` = ?", [$refProvId, $pubpid]);
+            } else {
+                //print_r($refProv);
+                //exit;
+            }
+        }
+    }
+
+    $primProvCode = trim($record['PrimaryCarePhysicianId']);
+    if (!empty($primProvCode)) {
+        if ($primProvCode == '1') {
+            echo "updating primprov to Marie \n";
+            $updatePrimProv = sqlStatement("UPDATE `patient_data` SET `providerID` = ? WHERE `pubpid` = ?", ['5', $pubpid]);
+        }
+        $primProv = $refProvArray[$primProvCode];
+        //var_dump($primProv);
+        $primProvNameF = $primProv['FirstName'];
+        if ($primProvNameF == "LARISSA") {
+            $primProvNameF = "LARISA";
+        }
+        $primProvNameL = str_replace("'", "\'", $primProv['LastName']);
+        if (!empty($primProvNameF)) {
+            //print_r($primProv);
+            try {
+                $primProvQuery = sqlQuery("SELECT * FROM `users` WHERE `fname` LIKE '" . $primProvNameF . "%' AND `lname` LIKE '" . $primProvNameL . "%' LIMIT 1");
+            } catch (\Exception $e) {
+                echo "had a prim prov code " . $primProvNameF . " " . $primProvNameL . " but no match on name \n";
+            }
+            $primProvId = $primProvQuery['id'] ?? '';
+            if (!empty($primProvId)) {
+             //print_r($primProvQuery);
+                echo "updating primprov to " . $primProvId . "\n";
+                $updateprimProv = sqlStatement("UPDATE `patient_data` SET `providerID` = ? WHERE `pubpid` = ?", [$primProvId, $pubpid]);
+            } else {
+                echo "primProvID was empty \n";
+                //print_r($primProv);
+                //exit;
+            }
+        }
+    }
 }
+
+
+
 
 function getRace(string $text): string
 {
@@ -187,8 +295,9 @@ function getUniqueFieldValues($array, $field)
     }, []));
 }
 
-$uniqueEthnicityCd = getUniqueFieldValues($csvRecords, 'LanguageCd');
-print_r($uniqueEthnicityCd);
+
+//$uniqueEthnicityCd = getUniqueFieldValues($csvRecords, 'LanguageCd');
+//print_r($uniqueEthnicityCd);
 /*
 print_r($uniqueMaritalStatus);
     [0] =>
