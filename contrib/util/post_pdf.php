@@ -117,7 +117,7 @@ foreach ($records as $record) {
     //$parts = explode('/', $fullPath);
     //var_dump($parts);
     $newFileName = $fileRoot . str_replace('PatientFile', $photoType, $filePath) . "_" . $photoDate;
-    echo $origFileName. "\n";
+    echo $origFileName . "\n";
     echo $newFileName . "\n";
     //exit;
     copy($origFileName, $newFileName);

@@ -94,18 +94,28 @@ foreach ($records as $record) {
     $updateRace = sqlStatement("UPDATE `patient_data` SET `race` = ?", [$race]);
 
     // ethnicity code
-    $ethnicityCode = match(substr(trim($record['EthnicityCd']), 0, 2)) {
+    $ethnicityCode = match (substr(trim($record['EthnicityCd']), 0, 2)) {
         'NH' => 'not_hisp_or_latin',
         'HS' => 'hispanic',
         'DE' => 'decline_to_specify',
         default => ''
     };
+    $updateEthnicity = sqlStatement("UPDATE `patient_data` SET `ethnicity` = ?", [$ethnicityCode]);
 
+
+    // language code
+    $languageCode = match (trim($record['LanguageCd'])) {
+        'spa' => 'spanish',
+        'vie' => 'vietnamese',
+        'afr' => 'afrikaans',
+        default => 'eng'
+    };
+    $updateLanguage = sqlStatement("UPDATE `patient_data` SET `language` = ?", [$languageCode]);
 }
 
- function getRace($text)
-     {
-        $race = match ($text) {
+function getRace(string $text): string
+{
+       $race = match ($text) {
         'White' => 'white',
         'African American, White' => 'white|black_or_afri_amer',
         'Asian' => 'Asian',
@@ -161,11 +171,14 @@ foreach ($records as $record) {
         'Choctaw, German, Irish' => 'white|amer_ind_or_alaska_native',
         'African American, African' => 'black_or_afri_amer',
         default => '',
-    }
+       };
+
+        return $race;
 }
 
-function getUniqueFieldValues($array, $field) {
-    return array_values(array_reduce($array, function($carry, $item) use ($field) {
+function getUniqueFieldValues($array, $field)
+{
+    return array_values(array_reduce($array, function ($carry, $item) use ($field) {
         $value = $item[$field] ?? null;
         if ($value !== null && !in_array($value, $carry)) {
             $carry[] = $value;

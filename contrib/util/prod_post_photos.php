@@ -9,6 +9,7 @@
  * @copyright Copyright (c) 2025 stephen waite <stephen.waite@cmsvt.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
 */
+
 exit;
 // Enable this script via environment variable
 if (!getenv('OPENEMR_ENABLE_POST_PHOTOS_API')) {
