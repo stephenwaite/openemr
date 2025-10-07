@@ -82,10 +82,8 @@ foreach ($rii as $file) {
     $fileSize = filesize($pathName);
     $filePath = pathinfo($pathName);
     if (
-        (($fileSize < 30000) && ($filePath['extension'] == 'pdf'))
-        || ($filePath['extension'] != 'jpg')
+        ($filePath['extension'] != 'jpg')
         || (stripos($pathName, 'patient photo') !== false)
-        || (stripos($pathName, 'Images') !== false)
     ) {
         continue;
     }
@@ -98,7 +96,8 @@ usort($files, function ($a, $b) {
     return strnatcmp($a, $b);
 });
 
-//echo count($files);
+$countFiles = count($files);
+$cntr = 0;
 //var_dump($files);
 //exit;
 
@@ -106,71 +105,49 @@ $outputDir = '/tmp/jpg';
 exec('rm -r ' . $outputDir);
 mkdir($outputDir);
 foreach ($files as $key => $file) {
+    $cntr++;
     $parts = explode('/', $file);
-    var_dump($parts);
-    $chartName = $parts[4];
-    $length = strlen($chartName);
-    $dashPos = strrpos($chartName, '-');
-    $pos = ($length - $dashPos - 1) * -1;
-    $pubpid = trim(substr($chartName, $pos));
-    echo $pubpid . "\n";
+    //var_dump($parts);
+    $pubpid = getPubpid($parts[4]);
+    //echo $pubpid . " pubpid \n";
     $folder = $parts[7];
     array_pop($parts);
     $newPath = implode('/', $parts);
-    if ($key == 0) {
-        $oldPath = $newPath;
-    }
-    echo $newPath . "\n";
-    echo $oldPath . "\n";
-    if ($newPath == $oldPath) {
-        // add to array and continue
-        $jpgArray[] = $file;
-    } else {
-        // write pdf;
-         list($width, $height) = getimagesize($oldFile);
-        $width_mm = $width * 0.264583;
-        $height_mm = $height * 0.264583;
-        $pdf = new FPDF('P', 'mm', [$width_mm, $height_mm]);
-        foreach ($jpgArray as $jpgFile) {
-            //echo $jpgFile . "\n";
-            $fileName = $oldFolder;
-            $mimeType = mime_content_type($jpgFile);
-            if ($mimeType == 'image/png') {
-                // post to docs as png
-                echo "will post to docs as png \n";
-                copy($jpgFile, $jpgFile . ".png");
-                $jpgFile = $jpgFile . ".png";
-            }
-
-            $pdfFile = $outputDir . '/' . $fileName . '.pdf';
-
-            try {
-                //list($width, $height) = getimagesize($jpgFile);
-                //$width_mm = $width * 0.264583;
-                //$height_mm = $height * 0.264583;
-                $pdf->AddPage();
-                $pdf->Image($jpgFile, 0, 0, $width_mm, $height_mm);
-            } catch (Exception $e) {
-                echo "Failed to convert $jpgFile: " . $e->getMessage() . "\n";
-            }
-        }
-        echo "writing image \n";
-        //var_dump($jpgArray);
-        if (!empty($jpgArray)) {
-            $pdf->Output('F', $pdfFile);
-            if (stripos($oldFolder, 'Practice Fusion') !== false) {
-                $category = "SPECSCHART";
-            } else {
-                $category = "SPECSEXAMS";
-            }
-            apiDocumentPost($client, $base_url, $site_id, $headers, $oldPubpid, $category, $pdfFile);
-            //var_dump($jpgArray);
-            // add doc to jpg array after emptying
-            $jpgArray = [];
+    echo $newPath . " newPath \n";
+    echo $oldPath . " oldPath\n";
+    if (
+        ($newPath != ($oldPath ?? ''))
+        && $key != 0
+        || $key == $countFiles - 1
+    ) {
+        //echo $oldPath . " oldPath \n";
+        $jpg2Pdf = true;
+        if (str_contains($oldPath, 'Practice Fusion')) {
+            $category = "SPECSPAPERCHART";
+        } elseif (str_contains($oldPath, 'Medical Record')) {
+            $category = "OutsideRecords";
+        } elseif (str_contains($oldPath, ".OCT")) {
+            $category = "OCT-EYE";
+            $jpg2Pdf = false;
         } else {
-            $jpgArray[] = $file;
+            $category = "SPECSEXAMS";
         }
+        echo $category . " category \n";
+
+        if ($jpg2Pdf) {
+            $newPdf = writePdf($oldFile, $jpgArray, $oldFolder, $outputDir);
+            apiDocumentPost($client, $base_url, $site_id, $headers, $oldPubpid, $category, $newPdf);
+        } else {
+            foreach ($jpgArray as $jpgFile) {
+                $newJpgFileName = getNewJpgFileName($jpgFile, $outputDir);
+                apiDocumentPost($client, $base_url, $site_id, $headers, $oldPubpid, $category, $newJpgFileName);
+            }
+        }
+        $jpgArray = [];
     }
+
+    echo $file . " file \n";
+    $jpgArray[] = $file;
 
     $oldPath = $newPath;
     $oldFolder = $folder;
@@ -178,9 +155,68 @@ foreach ($files as $key => $file) {
     $oldFile = $file;
 }
 
+function getPubpid($string): string
+{
+    $length = strlen($string);
+    $dashPos = strrpos($string, '-');
+    $pos = ($length - $dashPos - 1) * -1;
+    $pubpid = trim(substr($string, $pos));
+    return $pubpid;
+}
+
+function getNewJpgFileName($pathToFile, $tmpDir)
+{
+    $parts = explode('/', $pathToFile);
+    $newName = $tmpDir . DIRECTORY_SEPARATOR . $parts[7] . "_" . $parts[8];
+    copy($pathToFile, $newName);
+    return $newName;
+}
+
+function writePdf($oldFile, $jpgArray, $oldFolder, $outputDir): string
+{
+// write pdf;
+        list($width, $height) = getimagesize($oldFile);
+        $width_mm = round($width * 0.264583);
+        $height_mm = round($height * 0.264583);
+        $pdf = new FPDF('P', 'mm', [$width_mm, $height_mm]);
+    foreach ($jpgArray as $jpgFile) {
+        //echo $jpgFile . "\n";
+        $fileName = $oldFolder;
+        $mimeType = mime_content_type($jpgFile);
+        if ($mimeType == 'image/png') {
+            // post to docs as png
+            echo "will post to docs as png \n";
+            copy($jpgFile, $jpgFile . ".png");
+            $jpgFile = $jpgFile . ".png";
+        }
+
+        $pdfFile = $outputDir . DIRECTORY_SEPARATOR . $fileName . '.pdf';
+
+        try {
+            //list($width, $height) = getimagesize($jpgFile);
+            //$width_mm = $width * 0.264583;
+            //$height_mm = $height * 0.264583;
+            $pdf->AddPage();
+            $pdf->Image($jpgFile, 0, 0, $width_mm, $height_mm);
+        } catch (Exception $e) {
+            echo "Failed to convert $jpgFile: " . $e->getMessage() . "\n";
+        }
+    }
+        echo "writing image \n";
+        //var_dump($jpgArray);
+        //if (!empty($jpgArray)) {
+            $pdf->Output('F', $pdfFile);
+            return $pdfFile;
+
+            //var_dump($jpgArray);
+            // add doc to jpg array after emptying
+        //    $jpgArray = [];
+        //}
+}
 function apiDocumentPost($client, $base_url, $site_id, $headers, $pubpid, $category, $fileName)
 {
     $pid = sqlQuery("SELECT `pid` FROM `patient_data` WHERE `pubpid` = ?", [$pubpid])['pid'];
+    echo $pid . " pid \n";
 
     $options = [
         'multipart' => [
