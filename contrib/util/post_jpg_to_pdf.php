@@ -30,9 +30,7 @@ use GuzzleHttp\Psr7\Utils;
 use GuzzleHttp\Psr7\Request;
 use OpenEMR\Common\Uuid\UuidRegistry;
 
-//$base_url = getenv('BASE_OEMR_URL');
-$base_url = "https://172.17.0.1:9300";
-//$site_id = getenv('SUNPED_SITE_ID');
+$base_url = getenv('BASE_OEMR_URL');
 $site_id = $argv[1];
 $base_uri = $base_url . '/oauth2/' . $site_id . '/token';
 //echo $base_uri . "\n";
@@ -45,15 +43,12 @@ $guzzle = new Client(
 $response = $guzzle->post($base_uri, [
     'form_params' => [
         'grant_type' => 'password',
-        //'client_id' => getenv('SUNPED_CLIENT_ID'),
-        'client_id' => '6zhcRUNBs51RHvAYyprky75bPF2L2w4o-z1wOqMUCWQ',
-        'redirect_uri' => 'https://localhost:9300',
+        'client_id' => getenv('SUNPED_CLIENT_ID'),
+        'redirect_uri' => getenv("SUNPED_REDIRECT_URI"),
         'scope' => "openid api:oemr user/appointment.read user/document.read user/document.write user/encounter.read user/encounter.write user/patient.read user/patient.write",
         'user_role' => 'users',
-        //'username' => getenv('OEMR_RRI_USERNAME'),
-        'username' => 's.waite',
-        //'password' => getenv('OEMR_RRI_PASSWORD')
-        'password' => '123456Sw.'
+        'username' => getenv('SUNPED_USERNAME'),
+        'password' => getenv('SUNPED_PASSWORD')
     ],
 ]);
 $bearer = json_decode((string) $response->getBody(), true)['access_token'];
@@ -83,10 +78,11 @@ foreach ($rii as $file) {
     $filePath = pathinfo($pathName);
     if (
         ($filePath['extension'] != 'jpg')
-        || (stripos($pathName, 'patient photo') !== false)
+        || (str_contains($pathName, 'Patient Photo'))
     ) {
         continue;
     }
+    //echo $pathName . "\n";
     $files[] = $pathName;
 }
 
@@ -97,7 +93,6 @@ usort($files, function ($a, $b) {
 });
 
 $countFiles = count($files);
-$cntr = 0;
 //var_dump($files);
 //exit;
 
@@ -113,8 +108,8 @@ foreach ($files as $key => $file) {
     $folder = $parts[7];
     array_pop($parts);
     $newPath = implode('/', $parts);
-    echo $newPath . " newPath \n";
-    echo $oldPath . " oldPath\n";
+    //echo $newPath . " newPath \n";
+    //echo $oldPath . " oldPath\n";
     if (
         ($newPath != ($oldPath ?? ''))
         && $key != 0
@@ -126,7 +121,7 @@ foreach ($files as $key => $file) {
             $category = "SPECSPAPERCHART";
         } elseif (str_contains($oldPath, 'Medical Record')) {
             $category = "OutsideRecords";
-        } elseif (str_contains($oldPath, ".OCT")) {
+        } elseif (str_contains($oldPath, ".OCT") || str_contains($oldPath, "ExternalPhotos-Eye")) {
             $category = "OCT-EYE";
             $jpg2Pdf = false;
         } else {
@@ -234,7 +229,7 @@ function apiDocumentPost($client, $base_url, $site_id, $headers, $pubpid, $categ
 
     //$ptObj = json_decode($res->getBody(), true);
     //var_dump($ptObj);
-    //unlink($fileName);
+    unlink($fileName);
     //$fileName = '';
 }
 
