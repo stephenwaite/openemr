@@ -39,18 +39,23 @@ $guzzle = new Client(
     ['verify' => false],
     ['debug' => true],
 );
+try {
+    $response = $guzzle->post($base_uri, [
+        'form_params' => [
+            'grant_type' => 'password',
+            'client_id' => getenv('SUNPED_CLIENT_ID'),
+            'redirect_uri' => getenv("SUNPED_REDIRECT_URI"),
+            'scope' => "openid api:oemr user/appointment.read user/document.read user/document.write user/encounter.read user/encounter.write user/patient.read user/patient.write",
+            'user_role' => 'users',
+            'username' => getenv('SUNPED_USERNAME'),
+            'password' => getenv('SUNPED_PASSWORD')
+        ],
+    ]);
+} catch (Exception $e) {
+    echo "error msg " . $e->getMessage();
+    exit;
+}
 
-$response = $guzzle->post($base_uri, [
-    'form_params' => [
-        'grant_type' => 'password',
-        'client_id' => getenv('SUNPED_CLIENT_ID'),
-        'redirect_uri' => getenv("SUNPED_REDIRECT_URI"),
-        'scope' => "openid api:oemr user/appointment.read user/document.read user/document.write user/encounter.read user/encounter.write user/patient.read user/patient.write",
-        'user_role' => 'users',
-        'username' => getenv('SUNPED_USERNAME'),
-        'password' => getenv('SUNPED_PASSWORD')
-    ],
-]);
 $bearer = json_decode((string) $response->getBody(), true)['access_token'];
 //echo $bearer . "\n";
 //exit;
@@ -117,15 +122,58 @@ foreach ($files as $key => $file) {
     ) {
         //echo $oldPath . " oldPath \n";
         $jpg2Pdf = true;
-        if (str_contains($oldPath, 'Practice Fusion')) {
+        if (str_contains($oldPath, '.Spec Practice Fusion')) {
+            $category = "SPECSPAPEREXAMS";
+        } elseif (str_contains($oldPath, "Unknown_FileType")) {
+            $category = "Procedures";
+            $jpg2Pdf = false;
+        } elseif (str_contains($oldPath, ".Spec Paper Chart")) {
             $category = "SPECSPAPERCHART";
-        } elseif (str_contains($oldPath, 'Medical Record')) {
-            $category = "OutsideRecords";
-        } elseif (str_contains($oldPath, ".OCT") || str_contains($oldPath, "ExternalPhotos-Eye")) {
+        } elseif (str_contains($oldPath, ".Spec Paper Exam")) {
+            $category = "SPECSPAPEREXAMS";
+        } elseif (
+            str_contains($oldPath, "Medical Record")
+                || str_contains($oldPath, ".NP Needs Appt")
+                || str_contains($oldPath, ".New Patient Referral")
+        ) {
+                $category = "OutsideRecords";
+        } elseif (str_contains($oldPath, ".OCT")) {
             $category = "OCT-EYE";
             $jpg2Pdf = false;
+        } elseif (
+            str_contains($oldPath, ".OP Notes")
+            || str_contains($oldPath, ".Surgical")
+        ) {
+            $category = "Procedures";
+        } elseif (str_contains($oldPath, ".External Photos")) {
+            $category = "ExternalPhotos-Eye";
+            $jpg2Pdf = false;
+        } elseif (str_contains($oldPath, "Fundus Photos")) {
+            $category = "FUNDUS-Eye";
+            $jpg2Pdf = false;
+        } elseif (str_contains($oldPath, "Consents")) {
+            $category = "4.OfficeDocuments";
+            $jpg2Pdf = false;
+        } elseif (str_contains($oldPath, "Authorizations")) {
+            $category = "6.BillingDocuments";
+            $jpg2Pdf = false;
+        } elseif (str_contains($oldPath, ".Patient Communication")) {
+            $category = "Communication-Eye";
+        } elseif (str_contains($oldPath, ".Visual Fields")) {
+            $category = "VF-Eye";
+            $jpg2Pdf = false;
+        } elseif (str_contains($oldPath, "Anterior SegSL photos")) {
+            $category = "AntSegPhotos-Eye";
+            $jpg2Pdf = false;
+        } elseif (str_contains($oldPath, "Insurance Card")) {
+            $category = "InsuranceIDcard";
+            $jpg2Pdf = false;
+        } elseif (str_contains($oldPath, "Imported Document")) {
+            $category = "OutsideRecords";
+        } elseif (str_contains($oldPath, "Lab Results")) {
+            $category = "LabReport";
         } else {
-            $category = "SPECSEXAMS";
+            $category = "SPECSPAPEREXAMS";
         }
         echo $category . " category \n";
 
@@ -244,3 +292,47 @@ function apiDocumentPost($client, $base_url, $site_id, $headers, $pubpid, $categ
 
 //$request = new Request('GET', $base_url . '/apis/' . $site_id . '/api/patient/' . $puuid, $headers);
 //$request = new Request('GET', $base_url . '/apis/' . $site_id . '/api/patient/' . $pid . '/appointment', $headers);
+
+/* foreach ($files as $key => $file) {
+    $parts = explode('/', $file);
+    $partsArr[] = $parts;
+}
+
+$uniquePart = getUniqueFieldValues($partsArr, '6');
+print_r($uniquePart);
+exit; */
+
+/* Array
+(
+    [0] => .Spec Practice Fusion
+    [1] => Unknown_FileType
+    [2] => .NP Needs Appt
+    [3] => .Spec Paper Chart
+    [4] => .Spec Paper Exam
+    [5] => .New Patient Referral
+    [6] => .Medical Record
+    [7] => .OP Notes
+    [8] => .Surgical
+    [9] => .External Photos
+    [10] => .OCT
+    [11] => Fundus Photos
+    [12] => Authorizations
+    [13] => Consents
+    [14] => .Patient Communication
+    [15] => .Visual Fields
+    [16] => Anterior SegSL photos
+    [17] => Insurance Card 1
+    [18] => Imported Document
+    [19] => Lab Results
+) */
+
+/* function getUniqueFieldValues($array, $field)
+{
+    return array_values(array_reduce($array, function ($carry, $item) use ($field) {
+        $value = $item[$field] ?? null;
+        if ($value !== null && !in_array($value, $carry)) {
+            $carry[] = $value;
+        }
+        return $carry;
+    }, []));
+} */

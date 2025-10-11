@@ -93,8 +93,8 @@ foreach ($records as $record) {
     //exit;
     //$shortPath =
     //$test = file_get_contents($fullPath);
-    $category = "Invoices";
-    //echo "category: " . $category . " photoType " . $photoType . "\n";
+    $category = "7.Statements";
+    echo $chartNumber . " chartNumber category: " . $category . " photoType " . $photoType . "\n";
     apiDocumentPost($client, $base_url, $site_id, $headers, $chartNumber, $category, $fullPath);
     //exit;
 }
