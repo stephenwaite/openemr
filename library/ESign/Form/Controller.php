@@ -1,34 +1,28 @@
 <?php
 
-namespace ESign;
-
 /**
  * Form controller implementation
  *
- * Copyright (C) 2013 OEMR 501c3 www.oemr.org
- *
- * LICENSE: This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 3
- * of the License, or (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://opensource.org/licenses/gpl-license.php>;.
- *
- * @package OpenEMR
- * @author  Ken Chapple <ken@mi-squared.com>
- * @author  Medical Information Integration, LLC
- * @link    http://www.open-emr.org
+ * @package   OpenEMR
+ * @link      http://www.open-emr.org
+ * @link      https://www.open-emr.org/wiki/index.php/OEMR_wiki_page OEMR
+ * @author    Ken Chapple <ken@mi-squared.com>
+ * @author    Medical Information Integration, LLC
+ * @author    Rod Roark <rod@sunsetsystems.com>
+ * @author    Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2013 OEMR
+ * @copyright Copyright (c) 2019 Brady Miller <brady.g.miller@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  **/
 
-require_once $GLOBALS['srcdir'].'/ESign/Abstract/Controller.php';
-require_once $GLOBALS['srcdir'].'/ESign/Form/Configuration.php';
-require_once $GLOBALS['srcdir'].'/ESign/Form/Factory.php';
-require_once $GLOBALS['srcdir'].'/ESign/Form/Log.php';
-require_once $GLOBALS['srcdir'].'/authentication/login_operations.php';
+namespace ESign;
+
+require_once $GLOBALS['srcdir'] . '/ESign/Abstract/Controller.php';
+require_once $GLOBALS['srcdir'] . '/ESign/Form/Configuration.php';
+require_once $GLOBALS['srcdir'] . '/ESign/Form/Factory.php';
+require_once $GLOBALS['srcdir'] . '/ESign/Form/Log.php';
+
+use OpenEMR\Common\Auth\AuthUtils;
 
 class Form_Controller extends Abstract_Controller
 {
@@ -42,13 +36,17 @@ class Form_Controller extends Abstract_Controller
         $form->formDir = $this->getRequest()->getParam('formdir', '');
         $form->formId = $this->getRequest()->getParam('formid', 0);
         $form->encounterId = $this->getRequest()->getParam('encounterid', 0);
-        $form->userId = $GLOBALS['authUserID'];
+        $form->userId = $_SESSION['authUserID'] ?? null;
         $form->action = '#';
         $signable = new Form_Signable($form->formId, $form->formDir, $form->encounterId);
         $form->showLock = false;
-        if ($signable->isLocked() === false &&
+        $form->displayGoogleSignin = (!empty($GLOBALS['google_signin_enabled']) && !empty($GLOBALS['google_signin_client_id'])) ? true : false;
+        $form->googleSigninClientID = $GLOBALS['google_signin_client_id'];
+        if (
+            $signable->isLocked() === false &&
             $GLOBALS['lock_esign_individual'] &&
-            $GLOBALS['esign_lock_toggle'] ) {
+            $GLOBALS['esign_lock_toggle']
+        ) {
             $form->showLock = true;
         }
 
@@ -56,8 +54,8 @@ class Form_Controller extends Abstract_Controller
         $this->setViewScript('form/esign_form.php');
         $this->render();
     }
-    
-    public function esign_log_view()
+
+    public function esign_log_view(): never
     {
         $formId = $this->getRequest()->getParam('formId', '');
         $formDir = $this->getRequest()->getParam('formDir', '');
@@ -69,7 +67,7 @@ class Form_Controller extends Abstract_Controller
         echo $html;
         exit;
     }
-    
+
     /**
      *
      * @return multitype:string
@@ -82,6 +80,17 @@ class Form_Controller extends Abstract_Controller
         $formId = $this->getRequest()->getParam('formId', '');
         $formDir = $this->getRequest()->getParam('formDir', '');
         $encounterId = $this->getRequest()->getParam('encounterId', '');
+
+        // If google sign-in enable
+        $usedGoogleSignin = $this->getRequest()->getParam('used_google_signin', '');
+        $googleSigninToken = $this->getRequest()->getParam('google_signin_token', '');
+        $force_google = (
+            !empty($GLOBALS['google_signin_enabled']) &&
+            !empty($GLOBALS['google_signin_client_id']) &&
+            !empty($usedGoogleSignin) &&
+            !empty($googleSigninToken)
+        ) ? 1 : 0;
+
         // Always lock, unless esign_lock_toggle option is enable in globals
         $lock = true;
         if ($GLOBALS['esign_lock_toggle']) {
@@ -90,10 +99,16 @@ class Form_Controller extends Abstract_Controller
 
         $amendment = $this->getRequest()->getParam('amendment', '');
 
-        if ($GLOBALS['use_active_directory']) {
-            $valid = active_directory_validation($_SESSION['authUser'], $password);
+        // If google sign-in enable then valid google sign-in
+        if ($force_google ===  1) {
+            $valid = false;
+            $uPayload = AuthUtils::verifyGoogleSignIn($googleSigninToken);
+            if (!empty($uPayload) && isset($uPayload['id']) && $uPayload['id'] == $_SESSION['authUserID']) {
+                $valid = true;
+            }
+            $gMessage = xlt("Invalid google log in");
         } else {
-            $valid = confirm_user_password($_SESSION['authUser'], $password);
+            $valid = (new AuthUtils())->confirmPassword($_SESSION['authUser'], $password);
         }
 
         if ($valid) {
@@ -103,10 +118,10 @@ class Form_Controller extends Abstract_Controller
                 $message = xlt("Form signed successfully");
                 $status = self::STATUS_SUCCESS;
             } else {
-                $message = xlt("An error occured signing the form");
+                $message = xlt("An error occurred signing the form");
             }
         } else {
-            $message = xlt("The password you entered is invalid");
+            $message = (isset($gMessage) && !empty($gMessage)) ? $gMessage : xlt("The password you entered is invalid");
         }
 
         $response = new Response($status, $message);
@@ -117,7 +132,7 @@ class Form_Controller extends Abstract_Controller
         $response->editButtonHtml = "";
         if ($lock) {
             // If we're locking the form, replace the edit button with a "disabled" lock button
-            $response->editButtonHtml = "<a href=# class='css_button_small form-edit-button-locked' id='form-edit-button-'".attr($formDir)."-".attr($formId)."><span>".xlt('Locked')."</span></a>";
+            $response->editButtonHtml = "<a href=# class='btn btn-secondary btn-sm form-edit-button-locked' id='form-edit-button-'" . attr($formDir) . "-" . attr($formId) . ">" . xlt('Locked') . "</a>";
         }
 
         echo json_encode($response);

@@ -9,7 +9,6 @@ node_modules
 /vendor/*
 /public/assets/*
 /public/themes/*
-!/public/assets/manual-added-packages
 !/public/assets/modified
 /.docs/.out/*
 
@@ -18,3 +17,17 @@ ccdaservice/node_modules
 
 # dev editor configs
 /.idea/*
+/.vscode/*
+/.vscode-oss/*
+/nbproject/*
+.DS_Store
+.buildpath
+.project
+.settings
+
+# testing
+.phpunit.result.cache
+coverage/js-unit
+
+# phpstan
+tmp-phpstan/*

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * forms/eye_mag/taskman.php
  *
@@ -6,63 +7,45 @@
  * It uses an email fax gateway that is behind the corporate
  * firewall, thus it is HIPPA compliant (at least TO the fax machine)
  *
- * Copyright (C) 2016 Raymond Magauran <magauran@MedFetch.com>
- *
- * LICENSE: This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 3
- * of the License, or (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://opensource.org/licenses/gpl-license.php>;.
- *
- * @package OpenEMR
- * @author Ray Magauran <magauran@MedFetch.com>
- * @link http://www.open-emr.org
- *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Ray Magauran <rmagauran@gmail.com>
+ * @copyright Copyright (c) 2016 Raymond Magauran <rmagauran@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
-
-
 $form_name = "eye_mag";
-$form_folder="eye_mag";
+$form_folder = "eye_mag";
 // larry :: hack add for command line version
 if (!$_SERVER['REQUEST_URI']) {
-    $_SERVER['REQUEST_URI']=$_SERVER['PHP_SELF'];
+    $_SERVER['REQUEST_URI'] = $_SERVER['PHP_SELF'];
 }
 
 if (!$_SERVER['SERVER_NAME']) {
-    $_SERVER['SERVER_NAME']='localhost';
+    $_SERVER['SERVER_NAME'] = 'localhost';
 }
 
 if (!$_SERVER['HTTP_HOST']) {
-    $_SERVER['HTTP_HOST']='default'; //need to figure out how to do this for non-default installs
+    $_SERVER['HTTP_HOST'] = 'default'; //need to figure out how to do this for non-default installs
 }
 
 // Check if running as a cronjob
 if (php_sapi_name() === 'cli') {
-    $ignoreAuth=1;
+    $ignoreAuth = 1;
+    // Since from command line, set $sessionAllowWrite since need to set site_id session and no benefit to set to false
+    $sessionAllowWrite = true;
 }
-
-require_once("../../globals.php");
-require_once("$srcdir/acl.inc");
-require_once("$srcdir/html2pdf/vendor/autoload.php");
-require_once("$srcdir/api.inc");
-require_once("$srcdir/forms.inc");
-require_once("php/".$form_name."_functions.php");
+require_once(__DIR__ . "/../../globals.php");
+require_once("$srcdir/api.inc.php");
+require_once("$srcdir/forms.inc.php");
+require_once("php/" . $form_name . "_functions.php");
 require_once($srcdir . "/../controllers/C_Document.class.php");
 require_once($srcdir . "/documents.php");
 
-require_once("$srcdir/patient.inc");
+require_once("$srcdir/patient.inc.php");
 require_once("$srcdir/options.inc.php");
-require_once("$srcdir/acl.inc");
-require_once("$srcdir/lists.inc");
-require_once("$srcdir/report.inc");
-require_once("$srcdir/html2pdf/html2pdf.class.php");
+require_once("$srcdir/lists.inc.php");
+require_once("$srcdir/report.inc.php");
 require_once("php/taskman_functions.php");
 require_once("report.php");
 
@@ -98,15 +81,15 @@ global $form_id;
 global $task;
 global $send;
 
-$PDF_OUTPUT='1';
+$PDF_OUTPUT = '1';
 // If this is a request to make a task, make it.
 $ajax_req = $_REQUEST;
 
-if ($_REQUEST['action']=='make_task') {
+if ($_REQUEST['action'] == 'make_task') {
     make_task($ajax_req);
 }
 
-if ($_REQUEST['action']=='show_task') {
+if ($_REQUEST['action'] == 'show_task') {
     show_task($ajax_req);
 }
 
@@ -116,10 +99,10 @@ if ($_REQUEST['action']=='show_task') {
 
 
 $query  = "SELECT * FROM form_taskman where PATIENT_ID=? AND (COMPLETED is NULL or COMPLETED != '1')  order by REQ_DATE";
-$result = sqlStatement($query, array($ajax_req['pid']));
-while ($task= sqlFetchArray($result)) {
+$result = sqlStatement($query, [$ajax_req['pid']]);
+while ($task = sqlFetchArray($result)) {
     $send = process_tasks($task);
-    if ($_REQUEST['action']=='make_task') {
+    if ($_REQUEST['action'] == 'make_task') {
         echo json_encode($send);
         exit;
     }

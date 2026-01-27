@@ -3,7 +3,7 @@
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   <title>{label_webpage_title}</title>
-  <style type="text/css">
+  <style>
     body, td {
       font-family: sans-serif;
       font-weight: normal;
@@ -147,10 +147,27 @@
   <tr>
    <td style="width:1%;white-space:nowrap">{label_name} &nbsp;</td>
    <td class='under'>{pt_title} {pt_fname} {pt_mname} {pt_lname}&nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_dob} &nbsp;</td>
+   <td class='under'>{pt_DOB}&nbsp;</td>
    <td style="width:1%;white-space:nowrap">&nbsp; {label_age} &nbsp;</td>
    <td class='under'>{pt_age}&nbsp;</td>
    <td style="width:1%;white-space:nowrap">&nbsp; {label_gender} &nbsp;</td>
    <td class='under'>{pt_sex}&nbsp;</td>
+  </tr>
+ </table>
+
+ <table class='linetable'>
+  <tr>
+   <td style="width:1%;white-space:nowrap">{label_ins_name} &nbsp;</td>
+   <td class='under'>{insurance_provider_name}&nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_ins_plan_name} &nbsp;</td>
+   <td class='under'>{insurance_plan_name} &nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_ins_policy} &nbsp;</td>
+   <td class='under'>{insurance_policy_number} &nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_ins_group} &nbsp;</td>
+   <td class='under'>{insurance_group_number}&nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_ins_date} &nbsp;</td>
+   <td class='under'>{insurance_date}</td>
   </tr>
  </table>
 
@@ -245,6 +262,22 @@
    <td class='under'>{pt_sex}&nbsp;</td>
   </tr>
  </table>
+
+ <table class='linetable'>
+  <tr>
+   <td style="width:1%;white-space:nowrap">{label_ins_name} &nbsp;</td>
+   <td class='under'>{insurance_provider_name}&nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_ins_plan_name} &nbsp;</td>
+   <td class='under'>{insurance_plan_name} &nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_ins_policy} &nbsp;</td>
+   <td class='under'>{insurance_policy_number} &nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_ins_group} &nbsp;</td>
+   <td class='under'>{insurance_group_number}&nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_ins_date} &nbsp;</td>
+   <td class='under'>{insurance_date}</td>
+  </tr>
+ </table>
+
 
  <table class='linetable'>
   <tr>
@@ -351,6 +384,22 @@
 
  <table class='linetable'>
   <tr>
+   <td style="width:1%;white-space:nowrap">{label_ins_name} &nbsp;</td>
+   <td class='under'>{insurance_provider_name}&nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_ins_plan_name} &nbsp;</td>
+   <td class='under'>{insurance_plan_name} &nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_ins_policy} &nbsp;</td>
+   <td class='under'>{insurance_policy_number} &nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_ins_group} &nbsp;</td>
+   <td class='under'>{insurance_group_number}&nbsp;</td>
+   <td style="width:1%;white-space:nowrap">{label_ins_date} &nbsp;</td>
+   <td class='under'>{insurance_date}</td>
+  </tr>
+ </table>
+
+
+ <table class='linetable'>
+  <tr>
    <td style="width:1%;white-space:nowrap">{label_clinic} &nbsp;</td>
    <td class='under'>{to_organization}&nbsp;</td>
   </tr>
@@ -408,7 +457,7 @@
 </div></div>
 
 <!-- This should really be in the onload handler but that seems to be unreliable and can crash Firefox 3. -->
-<script type="text/javascript">
+<script>
  var win = top.printLogPrint ? top : opener.top;
  win.printLogPrint(window);
 </script>

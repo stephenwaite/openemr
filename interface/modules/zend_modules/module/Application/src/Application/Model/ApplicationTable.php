@@ -1,29 +1,26 @@
 <?php
-/* +-----------------------------------------------------------------------------+
-*    OpenEMR - Open Source Electronic Medical Record
-*    Copyright (C) 2013 Z&H Consultancy Services Private Limited <sam@zhservices.com>
-*
-*    This program is free software: you can redistribute it and/or modify
-*    it under the terms of the GNU Affero General Public License as
-*    published by the Free Software Foundation, either version 3 of the
-*    License, or (at your option) any later version.
-*
-*    This program is distributed in the hope that it will be useful,
-*    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*    GNU Affero General Public License for more details.
-*
-*    You should have received a copy of the GNU Affero General Public License
-*    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*    @author  Remesh Babu S <remesh@zhservices.com>
-* +------------------------------------------------------------------------------+
-*/
+
+/**
+ * interface/modules/zend_modules/module/Application/src/Application/Model/ApplicationTable.php
+ *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Remesh Babu S <remesh@zhservices.com>
+ * @copyright Copyright (c) 2013 Z&H Consultancy Services Private Limited <sam@zhservices.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
 
 namespace Application\Model;
 
-use Zend\Db\TableGateway\AbstractTableGateway;
-use Zend\Db\ResultSet\ResultSet;
+use DateTime;
+use Exception;
+use Laminas\Db\Adapter\Adapter;
+use Laminas\Db\Adapter\Exception\ExceptionInterface;
+use Laminas\Db\TableGateway\AbstractTableGateway;
+use Laminas\Db\ResultSet\ResultSet;
+use Laminas\Db\TableGateway\Feature\GlobalAdapterFeature;
 use OpenEMR\Common\Logging\EventAuditLogger;
+use OpenEMR\Common\Database\QueryUtils;
 
 class ApplicationTable extends AbstractTableGateway
 {
@@ -32,11 +29,12 @@ class ApplicationTable extends AbstractTableGateway
 
     /**
      *
-     * @param \Zend\Db\Adapter\Adapter $adapter
+     * @param Adapter $adapter
      */
     public function __construct()
     {
-        $adapter = \Zend\Db\TableGateway\Feature\GlobalAdapterFeature::getStaticAdapter();
+        // TODO: I can't find any reason why we grab the static adapter instead of injecting a regular DB adapter here...
+        $adapter = \Laminas\Db\TableGateway\Feature\GlobalAdapterFeature::getStaticAdapter();
         $this->adapter = $adapter;
         $this->resultSetPrototype = new ResultSet();
         $this->resultSetPrototype->setArrayObjectPrototype(new Application());
@@ -47,10 +45,10 @@ class ApplicationTable extends AbstractTableGateway
      * Function zQuery
      * All DB Transactions take place
      *
-     * @param String  $sql      SQL Query Statment
-     * @param array   $params   SQL Parameters
-     * @param boolean $log      Logging True / False
-     * @param boolean $error    Error Display True / False
+     * @param String  $sql    SQL Query Statement
+     * @param array   $params SQL Parameters
+     * @param boolean $log    Logging True / False
+     * @param boolean $error  Error Display True / False
      * @return type
      */
     public function zQuery($sql, $params = '', $log = true, $error = true)
@@ -58,37 +56,34 @@ class ApplicationTable extends AbstractTableGateway
         $return = false;
         $result = false;
 
-        if ($GLOBALS['debug_ssl_mysql_connection']) {
+        if (!empty($GLOBALS['debug_ssl_mysql_connection'])) {
             $temp_return = $this->adapter->query("SHOW STATUS LIKE 'Ssl_cipher';")->execute();
             foreach ($temp_return as $temp_row) {
-                error_log("CHECK SSL CIPHER IN ZEND: " . print_r($temp_row, true));
+                error_log("CHECK SSL CIPHER IN ZEND: " . errorLogEscape(print_r($temp_row, true)));
             }
         }
 
         try {
-            $statement  = $this->adapter->query($sql);
-            $return     = $statement->execute($params);
-            $result     = true;
-        } catch (\Zend\Db\Adapter\ExceptionInterface $e) {
-            if ($error) {
-                $this->errorHandler($e, $sql, $params);
-            }
-        } catch (\Exception $e) {
+            $statement = $this->adapter->query($sql);
+            $return = $statement->execute($params);
+            $result = true;
+        } catch (\Exception | ExceptionInterface $e) {
             if ($error) {
                 $this->errorHandler($e, $sql, $params);
             }
         }
 
-      /**
-       * Function auditSQLEvent
-       * Logging Mechanism
-       *
-       * using OpenEMR log function (auditSQLEvent)
-       * @see EventAuditLogger::auditSQLEvent
-       * Logging, if the $log is true
-       */
+        /**
+         * Function auditSQLEvent
+         * Logging Mechanism
+         *
+         * using OpenEMR log function (auditSQLEvent)
+         *
+         * @see EventAuditLogger::auditSQLEvent
+         * Logging, if the $log is true
+         */
         if ($log) {
-            EventAuditLogger::instance()->auditSQLEvent($sql, $result, $params);
+            EventAuditLogger::getInstance()->auditSQLEvent($sql, $result, $params);
         }
 
         return $return;
@@ -98,19 +93,19 @@ class ApplicationTable extends AbstractTableGateway
      * Function errorHandler
      * All error display and log
      * Display the Error, Line and File
-     * Same behavior of HelpfulDie fuction in OpenEMR
-     * Path /library/sql.inc
+     * Same behavior of HelpfulDie function in OpenEMR
+     * Path /library/sql.inc.php
      *
-     * @param type    $e
-     * @param string  $sql
-     * @param array   $binds
+     * @param type   $e
+     * @param string $sql
+     * @param array  $binds
      */
     public function errorHandler($e, $sql, $binds = '')
     {
-        $escaper = new \Zend\Escaper\Escaper('utf-8');
-        $trace  = $e->getTraceAsString();
-        $nLast = strpos($trace, '[internal function]');
-        $trace = substr($trace, 0, ($nLast - 3));
+        $escaper = new \Laminas\Escaper\Escaper('utf-8');
+        $trace = $e->getTraceAsString();
+        $nLast = strpos((string) $trace, '[internal function]');
+        $trace = substr((string) $trace, 0, ($nLast - 3));
         $logMsg = '';
         do {
             $logMsg .= "\r Exception: " . $escaper->escapeHtml($e->getMessage());
@@ -145,7 +140,7 @@ class ApplicationTable extends AbstractTableGateway
         /** Error Logging */
         $logMsg .= "\n SQL statement : $sql" . $processedBinds;
         $logMsg .= "\n $trace";
-        error_log("ERROR: " . $logMsg, 0);
+        error_log("ERROR: " . errorLogEscape($logMsg), 0);
     }
 
     /**
@@ -162,79 +157,79 @@ class ApplicationTable extends AbstractTableGateway
 
     /**
      * Function zAclCheck
-     * Check ACL in Zend
+     * Check ACL in Laminas
      *
      * Same Functionality in the OpemEMR
      * for Left Nav ACL Check
-     * Path openemr/library/acl.inc
-     * Function Name zh_acl_check
+     * Path openemr/src/Common/Acl/AclMain.php
+     * Function Name zhAclCheck
      *
-     * @param int     $user_id Auth user Id
-     * $param String  $section_identifier ACL Section id
+     * @param int $user_id Auth user Id
+     *                     $param String  $section_identifier ACL Section id
      * @return boolean
      */
     public function zAclCheck($user_id, $section_identifier)
     {
-        $sql_user_acl   = " SELECT 
-                                COUNT(allowed) AS count 
+        $sql_user_acl = " SELECT
+                                COUNT(allowed) AS count
                             FROM
-                                module_acl_user_settings AS usr_settings 
-                                LEFT JOIN module_acl_sections AS acl_sections 
-                                    ON usr_settings.section_id = acl_sections.`section_id` 
-                            WHERE 
+                                module_acl_user_settings AS usr_settings
+                                LEFT JOIN module_acl_sections AS acl_sections
+                                    ON usr_settings.section_id = acl_sections.`section_id`
+                            WHERE
                                 acl_sections.section_identifier = ? AND usr_settings.user_id = ? AND usr_settings.allowed = ?";
-        $sql_group_acl  = " SELECT 
-                                COUNT(allowed) AS count 
+        $sql_group_acl = " SELECT
+                                COUNT(allowed) AS count
                             FROM
-                                module_acl_group_settings AS group_settings 
+                                module_acl_group_settings AS group_settings
                                 LEFT JOIN module_acl_sections AS  acl_sections
                                   ON group_settings.section_id = acl_sections.section_id
                             WHERE
                                 acl_sections.`section_identifier` = ? AND group_settings.group_id IN (?) AND group_settings.allowed = ?";
-        $sql_user_group = " SELECT 
+        $sql_user_group = " SELECT
                                 gagp.id AS group_id
                             FROM
-                                gacl_aro AS garo 
-                                LEFT JOIN `gacl_groups_aro_map` AS gamp 
-                                    ON garo.id = gamp.aro_id 
+                                gacl_aro AS garo
+                                LEFT JOIN `gacl_groups_aro_map` AS gamp
+                                    ON garo.id = gamp.aro_id
                                 LEFT JOIN `gacl_aro_groups` AS gagp
                                     ON gagp.id = gamp.group_id
-                                RIGHT JOIN `users_secure` usr 
+                                RIGHT JOIN `users_secure` usr
                                     ON usr. username =  garo.value
                             WHERE
                                 garo.section_value = ? AND usr. id = ?";
 
-        $res_groups     = $this->zQuery($sql_user_group, array('users',$user_id));
-        $groups = array();
+        $res_groups = $this->zQuery($sql_user_group, ['users', $user_id]);
+        $groups = [];
         foreach ($res_groups as $row) {
             array_push($groups, $row['group_id']);
         }
 
         $groups_str = implode(",", $groups);
 
-        $count_user_denied      = 0;
-        $count_user_allowed     = 0;
-        $count_group_denied     = 0;
-        $count_group_allowed    = 0;
+        $count_user_denied = 0;
+        $count_user_allowed = 0;
+        $count_group_denied = 0;
+        $count_group_allowed = 0;
 
-        $res_user_denied    = $this->zQuery($sql_user_acl, array($section_identifier,$user_id,0));
+        $res_user_denied = $this->zQuery($sql_user_acl, [$section_identifier, $user_id, 0]);
         foreach ($res_user_denied as $row) {
-            $count_user_denied  = $row['count'];
+            $count_user_denied = $row['count'];
         }
 
-        $res_user_allowed   = $this->zQuery($sql_user_acl, array($section_identifier,$user_id,1));
+        $res_user_allowed = $this->zQuery($sql_user_acl, [$section_identifier, $user_id, 1]);
         foreach ($res_user_allowed as $row) {
-            $count_user_allowed  = $row['count'];
+            $count_user_allowed = $row['count'];
         }
 
-        $res_group_denied   = $this->zQuery($sql_group_acl, array($section_identifier,$groups_str,0));
+        $res_group_denied = $this->zQuery($sql_group_acl, [$section_identifier, $groups_str, 0]);
         foreach ($res_group_denied as $row) {
-            $count_group_denied  = $row['count'];
+            $count_group_denied = $row['count'];
         }
 
-        $res_group_allowed  = $this->zQuery($sql_group_acl, array($section_identifier,$groups_str,1));
+        $res_group_allowed = $this->zQuery($sql_group_acl, [$section_identifier, $groups_str, 1]);
         foreach ($res_group_allowed as $row) {
-            $count_group_allowed  = $row['count'];
+            $count_group_allowed = $row['count'];
         }
 
         if ($count_user_denied > 0) {
@@ -255,96 +250,84 @@ class ApplicationTable extends AbstractTableGateway
      */
     public function listAutoSuggest($post, $limit)
     {
-        $pages        = 0;
-        $limitEnd     =  \Application\Plugin\CommonPlugin::escapeLimit($limit);
+        $pages = 0;
+        $limitEnd = \Application\Plugin\CommonPlugin::escapeLimit($limit);
 
         if (isset($GLOBALS['set_autosuggest_options'])) {
-            if ($GLOBALS['set_autosuggest_options'] == 1) {
-                $leading        = '%';
-            } else {
-                $leading        = $post->leading;
-            }
+            $leading = $GLOBALS['set_autosuggest_options'] == 1 ? '%' : $post->leading;
 
-            if ($GLOBALS['set_autosuggest_options'] == 2) {
-                $trailing       = '%';
-            } else {
-                $trailing       = $post->trailing;
-            }
+            $trailing = $GLOBALS['set_autosuggest_options'] == 2 ? '%' : $post->trailing;
 
             if ($GLOBALS['set_autosuggest_options'] == 3) {
-                $leading        = '%';
-                $trailing       = '%';
+                $leading = '%';
+                $trailing = '%';
             }
         } else {
-            $leading        = $post->leading;
-            $trailing       = $post->trailing;
+            $leading = $post->leading;
+            $trailing = $post->trailing;
         }
 
-        $queryString  = $post->queryString;
+        $queryString = $post->queryString;
 
 
-        $page         = $post->page;
-        $searchType   = $post->searchType;
-        $searchEleNo  = $post->searchEleNo;
+        $page = $post->page;
+        $searchType = $post->searchType;
+        $searchEleNo = $post->searchEleNo;
 
-        if ($page == '') {
-            $limitStart = 0;
-        } else {
-            $limitStart = \Application\Plugin\CommonPlugin::escapeLimit($page);
-        }
+        $limitStart = $page == '' ? 0 : \Application\Plugin\CommonPlugin::escapeLimit($page);
 
         $keyword = $leading . $queryString . $trailing;
-        if (strtolower($searchType) == 'patient') {
-            $sql = "SELECT fname, mname, lname, pid, DOB FROM patient_data 
-                WHERE pid LIKE ? 
-                OR  CONCAT(fname, ' ', lname) LIKE ?  
-                OR  CONCAT(lname, ' ', fname) LIKE ? 
-                OR DATE_FORMAT(DOB,'%m-%d-%Y') LIKE ?  
-                OR DATE_FORMAT(DOB,'%d-%m-%Y') LIKE ?  
-                OR DATE_FORMAT(DOB,'%Y-%m-%d') LIKE ?  
+        if (strtolower((string) $searchType) == 'patient') {
+            $sql = "SELECT fname, mname, lname, pid, DOB FROM patient_data
+                WHERE pid LIKE ?
+                OR  CONCAT(fname, ' ', lname) LIKE ?
+                OR  CONCAT(lname, ' ', fname) LIKE ?
+                OR DATE_FORMAT(DOB,'%m-%d-%Y') LIKE ?
+                OR DATE_FORMAT(DOB,'%d-%m-%Y') LIKE ?
+                OR DATE_FORMAT(DOB,'%Y-%m-%d') LIKE ?
                 ORDER BY fname ";
-            $result = $this->zQuery($sql, array(
-                                          $keyword,
-                                          $keyword,
-                                          $keyword,
-                                          $keyword,
-                                          $keyword,
-                                          $keyword
-                                      ));
-            $rowCount   =  $result->count();
-            $sql        .= "LIMIT $limitStart, $limitEnd";
-            $result     = $this->zQuery($sql, array(
-                                          $keyword,
-                                          $keyword,
-                                          $keyword,
-                                          $keyword,
-                                          $keyword,
-                                          $keyword,
+            $result = $this->zQuery($sql, [
+                $keyword,
+                $keyword,
+                $keyword,
+                $keyword,
+                $keyword,
+                $keyword
+            ]);
+            $rowCount = $result->count();
+            $sql .= "LIMIT $limitStart, $limitEnd";
+            $result = $this->zQuery($sql, [
+                $keyword,
+                $keyword,
+                $keyword,
+                $keyword,
+                $keyword,
+                $keyword,
 
-                                      ));
-        } elseif (strtolower($searchType) == 'emrdirect') {
-            $sql = "SELECT fname, mname, lname,email,id FROM users 
-                WHERE (CONCAT(fname, ' ', lname) LIKE ?  
-                OR  CONCAT(lname, ' ', fname) LIKE ? 
-                OR email LIKE ?)   
-                AND abook_type = 'emr_direct' 
+            ]);
+        } elseif (strtolower((string) $searchType) == 'emrdirect') {
+            $sql = "SELECT fname, mname, lname,email_direct AS 'email',id FROM users
+                WHERE (CONCAT(fname, ' ', lname) LIKE ?
+                OR  CONCAT(lname, ' ', fname) LIKE ?
+                OR email_direct LIKE ?)
+                AND abook_type = 'emr_direct'
                 AND active = 1
                 ORDER BY fname ";
-            $result = $this->zQuery($sql, array(
-                                          $keyword,
-                                          $keyword,
-                                          $keyword,
-                                      ));
-            $rowCount   =  $result->count();
-            $sql        .= "LIMIT $limitStart, $limitEnd";
-            $result     = $this->zQuery($sql, array(
-                                          $keyword,
-                                          $keyword,
-                                          $keyword,
-                                      ));
+            $result = $this->zQuery($sql, [
+                $keyword,
+                $keyword,
+                $keyword,
+            ]);
+            $rowCount = $result->count();
+            $sql .= "LIMIT $limitStart, $limitEnd";
+            $result = $this->zQuery($sql, [
+                $keyword,
+                $keyword,
+                $keyword,
+            ]);
         }
 
-        $arr = array();
+        $arr = [];
         if ($result) {
             foreach ($result as $row) {
                 $arr[] = $row;
@@ -356,76 +339,101 @@ class ApplicationTable extends AbstractTableGateway
         return $arr;
     }
 
+    /**
+     * Converts a given format setting (or string) to a PHP date format.
+     *
+     * @param mixed $format 0, 1, 2, or a custom format string.
+     * @return string        PHP date format string.
+     */
+    public static function dateFormat($format = null)
+    {
+        $map = [
+            '0' => 'Y-m-d', // e.g. "1920-01-01"
+            1 => 'm/d/Y', // e.g. "01/01/1920"
+            2 => 'd/m/Y', // e.g. "01/01/1920"
+            'yyyy-mm-dd' => 'Y-m-d',
+            'mm/dd/yyyy' => 'm/d/Y',
+            'dd/mm/yyyy' => 'd/m/Y',
+        ];
+
+        return $map[$format] ?? $format;
+    }
+
     /*
-    * Retrive the data format from GLOBALS
+    * Retrieve the data format from GLOBALS
     *
     * @param    Date format set in GLOBALS
-    * @return   Date format in PHP
+    * @return   Date format in datepicker
     **/
-    public function dateFormat($format = null)
+    public static function datePickerFormat($format = null)
     {
         if ($format == "0") {
-            $date_format = 'yyyy/mm/dd';
-        } else if ($format == 1) {
-            $date_format = 'mm/dd/yyyy';
-        } else if ($format == 2) {
-            $date_format = 'dd/mm/yyyy';
+            $date_format = 'yy-mm-dd';
+        } elseif ($format == 1) {
+            $date_format = 'mm/dd/yy';
+        } elseif ($format == 2) {
+            $date_format = 'dd/mm/yy';
         } else {
             $date_format = $format;
         }
 
         return $date_format;
     }
+
     /**
-    * fixDate - Date Conversion Between Different Formats
-    * @param String $input_date Date to be converted
-    * @param String $date_format Target Date Format
-    */
-    public function fixDate($input_date, $output_format = null, $input_format = null)
+     * Converts an input date from one format to another.
+     *
+     * @param string $input_date    The date to convert.
+     * @param mixed  $output_format The desired output format (as defined by dateFormat).
+     * @param mixed  $input_format  The format of the input date (as defined by dateFormat).
+     *                              If null, the method will attempt to detect the format.
+     * @return string|false         The formatted date or false if conversion fails.
+     */
+    public static function fixDate($input_date, $output_format = null, $input_format = null)
     {
         if (!$input_date) {
-            return;
+            return false;
         }
 
-        $input_date = preg_replace('/T|Z/', ' ', $input_date);
+        $input_date = preg_replace('/[TZ]/', ' ', $input_date);
+        $outputFormat = self::dateFormat($output_format);
 
-        $temp   = explode(' ', $input_date); //split using space and consider the first portion, in case of date with time
-        $input_date = $temp[0];
-
-        $output_format = \Application\Model\ApplicationTable::dateFormat($output_format);
-        $input_format = \Application\Model\ApplicationTable::dateFormat($input_format);
-
-        preg_match("/[^ymd]/", $output_format, $date_seperator_output);
-        $seperator_output   = $date_seperator_output[0];
-        $output_date_arr    = explode($seperator_output, $output_format);
-
-        preg_match("/[^ymd]/", $input_format, $date_seperator_input);
-        $seperator_input    = $date_seperator_input[0];
-        $input_date_array   = explode($seperator_input, $input_format);
-
-        preg_match("/[^1234567890]/", $input_date, $date_seperator_input);
-        $seperator_input    = $date_seperator_input[0];
-        $input_date_arr     = explode($seperator_input, $input_date);
-
-        foreach ($output_date_arr as $key => $format) {
-            $index = array_search($format, $input_date_array);
-            $output_date_arr[$key] = $input_date_arr[$index];
+        if ($input_format) {
+            $inputFormat = self::dateFormat($input_format);
+        } else {
+            if (preg_match('/^\d{8}$/', (string) $input_date)) {
+                $inputFormat = 'Ymd';
+            } elseif (preg_match('/^\d{14}$/', (string) $input_date)) {
+                $inputFormat = 'YmdHis';
+            } else {
+                $inputFormat = null;
+            }
+        }
+        if ($inputFormat) {
+            $dateObj = DateTime::createFromFormat($inputFormat, $input_date);
+        } else {
+            try {
+                $dateObj = new DateTime($input_date);
+            } catch (Exception) {
+                return false;
+            }
         }
 
-        $output_date = implode($seperator_output, $output_date_arr);
+        if (!$dateObj) {
+            return false;
+        }
 
-        $output_date = $temp[1] ? $output_date." ".$temp[1] : $output_date; //append the time, if exists, with the new formatted date
-        return $output_date;
+        return $dateObj->format($outputFormat);
     }
 
     /*
-    * Using generate id function from OpenEMR sql.inc library file
+    * Using generate id function from OpenEMR sql.inc.php library file
     * @param  string  $seqname     table name containing sequence (default is adodbseq)
     * @param  integer $startID     id to start with for a new sequence (default is 1)
     * @return integer              returns the sequence integer
     */
     public function generateSequenceID()
     {
-        return generate_id();
+        return QueryUtils::generateId();
     }
 }

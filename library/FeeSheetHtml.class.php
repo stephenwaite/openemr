@@ -1,24 +1,25 @@
 <?php
+
 /**
  * library/FeeSheetHtml.class.php
  *
  * Class for HTML-specific implementations of the Fee Sheet.
  *
  * @package   OpenEMR
- * @link      http://www.open-emr.org
+ * @link      https://www.open-emr.org
  * @author    Rod Roark <rod@sunsetsystems.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2019 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+require_once(__DIR__ . "/FeeSheet.class.php");
+require_once(__DIR__ . "/api.inc.php");
 
-require_once(dirname(__FILE__) . "/FeeSheet.class.php");
-require_once(dirname(__FILE__) . "/api.inc");
+use OpenEMR\Common\Session\SessionWrapperFactory;
 
 class FeeSheetHtml extends FeeSheet
 {
-
   // Dynamically generated JavaScript to maintain justification codes.
     public $justinit = "var f = document.forms[0];\n";
 
@@ -32,23 +33,25 @@ class FeeSheetHtml extends FeeSheet
   // field, so that we can define providers (for billing purposes)
   // who do not appear in the calendar.
   //
-    public static function genProviderOptionList($toptext, $default = 0)
+    public static function genProviderOptionList($toptext, $default = 0, $inactive = false)
     {
+        $session = SessionWrapperFactory::getInstance()->getWrapper();
         $s = '';
         // Get user's default facility, or 0 if none.
-        $drow = sqlQuery("SELECT facility_id FROM users where username = ?", [$_SESSION['authUser']]);
+        $drow = sqlQuery("SELECT facility_id FROM users where username = ?", [$session->get('authUser')]);
         $def_facility = 0 + $drow['facility_id'];
         //
-        $sqlarr = array($def_facility);
+        $sqlarr = [$def_facility];
         $query = "SELECT id, lname, fname, facility_id FROM users WHERE " .
-        "( authorized = 1 OR info LIKE '%provider%' ) AND username != '' " .
-        "AND active = 1 AND ( info IS NULL OR info NOT LIKE '%Inactive%' )";
+        "( authorized = 1 OR info LIKE '%provider%' ) AND username != '' ";
+        if (!$GLOBALS['include_inactive_providers']) {
+            $query .= " AND active = 1 AND ( info IS NULL OR info NOT LIKE '%Inactive%' )";
+        }
         // If restricting to providers matching user facility...
-        if ($GLOBALS['gbl_restrict_provider_facility']) {
+        if (!empty($GLOBALS['gbl_restrict_provider_facility'])) {
             $query .= " AND ( facility_id = 0 OR facility_id = ? )";
             $query .= " ORDER BY lname, fname";
-        } // If not restricting then sort the matching providers first.
-        else {
+        } else { // If not restricting then sort the matching providers first.
             $query .= " ORDER BY (facility_id = ?) DESC, lname, fname";
         }
 
@@ -62,7 +65,7 @@ class FeeSheetHtml extends FeeSheet
             }
 
             $s .= ">";
-            if (!$GLOBALS['gbl_restrict_provider_facility'] && $def_facility && $row['facility_id'] == $def_facility) {
+            if (empty($GLOBALS['gbl_restrict_provider_facility']) && $def_facility && ($row['facility_id'] == $def_facility)) {
                 // Mark providers in the matching facility with an asterisk.
                 $s .= "* ";
             }
@@ -75,16 +78,18 @@ class FeeSheetHtml extends FeeSheet
 
   // Does the above but including <select> ... </select>.
   //
-    public static function genProviderSelect($tagname, $toptext, $default = 0, $disabled = false)
+    public static function genProviderSelect($tagname, $toptext, $default = 0, $disabled = false, $tooltip = '')
     {
-        $s = "   <select name='" . attr($tagname) . "'";
+        $s = "   <span><select class='form-control' name='" . attr($tagname) . "'";
         if ($disabled) {
             $s .= " disabled";
         }
-
+        if ($tooltip) {
+            $s .= " title='" . attr($tooltip) . "'";
+        }
         $s .= ">";
         $s .= self::genProviderOptionList($toptext, $default);
-        $s .= "</select>\n";
+        $s .= "</select></span>\n";
         return $s;
     }
 
@@ -95,7 +100,7 @@ class FeeSheetHtml extends FeeSheet
         $s = '';
         if ($this->got_warehouses) {
             // Normally would use generate_select_list() but it's not flexible enough here.
-            $s .= "<select name='" . attr($tagname) . "'";
+            $s .= "<span class='form-inline'><select class='form-control' name='" . attr($tagname) . "'";
             if (!$disabled) {
                 $s .= " onchange='warehouse_changed(this);'";
             }
@@ -115,15 +120,27 @@ class FeeSheetHtml extends FeeSheet
                         $s .= " selected";
                     }
                 } else {
-                    $has_inventory = sellDrug($drug_id, 1, 0, 0, 0, 0, '', '', $lrow['option_id'], true);
-                    if (((strlen($default) == 0 && $lrow['is_default']) ||
-                       (strlen($default)  > 0 && $lrow['option_id'] == $default)) &&
-                      ($is_sold || $has_inventory)) {
+                    $allowed = true;
+                    if (isUserRestricted()) {
+                        // Check for permission to use this warehouse.
+                        if (!isWarehouseAllowed($lrow['option_value'], $lrow['option_id'])) {
+                            $allowed = false;
+                        }
+                    }
+                    if ($allowed) {
+                        // OK got permission, check to see if inventory is there.
+                        $allowed = sellDrug($drug_id, 1, 0, 0, 0, 0, '', '', $lrow['option_id'], true);
+                    }
+                    if (
+                        ((strlen((string) $default) == 0 && $lrow['is_default']) ||
+                        (strlen((string) $default)  > 0 && $lrow['option_id'] == $default)) &&
+                        ($is_sold || $allowed)
+                    ) {
                         $s .= " selected";
                     } else {
-                        // Disable this warehouse option if not selected and has no inventory.
-                        if (!$has_inventory) {
-                            $s .= " disabled";
+                        // Hide this warehouse option if not selected and has no permission or no inventory.
+                        if (!$allowed) {
+                            $s .= " disabled style='display:none'";
                         }
                     }
                 }
@@ -131,7 +148,7 @@ class FeeSheetHtml extends FeeSheet
                     $s .= ">" . text(xl_list_label($lrow['title'])) . "</option>\n";
             }
 
-            $s .= "</select>";
+            $s .= "</select></span>";
         }
 
         return $s;
@@ -143,7 +160,7 @@ class FeeSheetHtml extends FeeSheet
     public function genPriceLevelSelect($tagname, $toptext, $pr_id, $pr_selector = '', $default = '', $disabled = false)
     {
         // echo "<!-- pr_id = '$pr_id', pr_selector = '$pr_selector' -->\n"; // debugging
-        $s = "<select name='" . attr($tagname) . "'";
+        $s = "<span class='form-inline'><select class='form-control' name='" . attr($tagname) . "'";
         if (!$disabled) {
             $s .= " onchange='pricelevel_changed(this);'";
         }
@@ -159,14 +176,36 @@ class FeeSheetHtml extends FeeSheet
             "FROM list_options AS lo " .
             "LEFT JOIN prices AS p ON p.pr_id = ? AND p.pr_selector = ? AND p.pr_level = lo.option_id " .
             "WHERE lo.list_id = 'pricelevel' AND lo.activity = 1 ORDER BY lo.seq, lo.title",
-            array($pr_id, $pr_selector)
+            [$pr_id, $pr_selector]
         );
+        $standardPrice = 0;
         while ($lrow = sqlFetchArray($lres)) {
             $price = empty($lrow['pr_price']) ? 0 : $lrow['pr_price'];
+            // if percent-based pricing is enabled...
+            if ($GLOBALS['enable_percent_pricing']) {
+                // Set standardPrice as the first price level (sorted by seq)
+                if ($standardPrice === 0) {
+                    $standardPrice = $price;
+                }
+                // If price level notes contains a percentage,
+                // calculate price as percentage of standard price
+                $notes = $lrow['notes'];
+                if (!empty($notes) && strpos((string) $notes, '%') > -1) {
+                    $percent = intval(str_replace('%', '', $notes));
+                    if ($percent > 0) {
+                        $price = $standardPrice * ((100 - $percent) / 100);
+                    }
+                }
+            }
+            if ($price != 0 && !$this->pricesAuthorized()) {
+              // This user is not authorized to see nonzero prices.
+                $price = 'X';
+            }
             $s .= "<option value='" . attr($lrow['option_id']) . "'";
             $s .= " id='prc_$price'";
-            if ((strlen($default) == 0 && $lrow['is_default'] && !$disabled) ||
-              (strlen($default)  > 0 && $lrow['option_id'] == $default)
+            if (
+                (strlen((string) $default) == 0 && $lrow['is_default'] && !$disabled) ||
+                (strlen((string) $default)  > 0 && $lrow['option_id'] == $default)
             ) {
                 $s .= " selected";
             }
@@ -174,7 +213,7 @@ class FeeSheetHtml extends FeeSheet
             $s .= ">" . text(xl_list_label($lrow['title'])) . "</option>\n";
         }
 
-        $s .= "</select>";
+        $s .= "</select></span>";
         return $s;
     }
 
@@ -185,6 +224,9 @@ class FeeSheetHtml extends FeeSheet
     {
         $s = '';
         if ($GLOBALS['gbl_new_acceptor_policy'] == '1') {
+
+
+            /**********************************************************
             $csrow = sqlQuery(
                 "SELECT COUNT(*) AS count FROM forms AS f WHERE " .
                 "f.pid = ? AND f.encounter = ? AND " .
@@ -202,12 +244,25 @@ class FeeSheetHtml extends FeeSheet
                     "ORDER BY fe.date DESC LIMIT 1";
                   $csrow = sqlQuery($query, array($this->pid));
                 if (empty($csrow)) {
-                    $s .= "<select name='$tagname'>\n";
+                    $s .= "<span class='form-inline'><select class='form-control' name='$tagname'>\n";
                     $s .= " <option value='2'>" . xlt('First Modern Contraceptive Use (Lifetime)') . "</option>\n";
                     $s .= " <option value='1'>" . xlt('First Modern Contraception at this Clinic (with Prior Contraceptive Use)') . "</option>\n";
                     $s .= " <option value='0'>" . xlt('Method Change at this Clinic') . "</option>\n";
-                    $s .= "</select>\n";
+                    $s .= "</select></span>\n";
                 }
+            }
+            **********************************************************/
+            $csrow = sqlQuery(
+                "SELECT COUNT(*) AS count FROM shared_attributes WHERE " .
+                "pid = ? AND field_id = 'cgen_newmauser'",
+                [$this->pid]
+            );
+            if ($csrow['count'] == 0) {
+                $s .= "<span class='form-inline'><select class='form-control' name='" . attr($tagname) . "'>\n";
+                $s .= " <option value='2'>" . xlt('First Modern Contraceptive Use (Lifetime)') . "</option>\n";
+                $s .= " <option value='1'>" . xlt('First Modern Contraception at this Clinic (with Prior Contraceptive Use)') . "</option>\n";
+                $s .= " <option value='0'>" . xlt('Method Change at this Clinic') . "</option>\n";
+                $s .= "</select></span>\n";
             }
         }
 
@@ -218,7 +273,7 @@ class FeeSheetHtml extends FeeSheet
   //
     public function generatePriceLevelSelector($tagname = 'pricelevel', $disabled = false)
     {
-        $s = "<select name='" . attr($tagname) . "'";
+        $s = "<span class='form-inline'><select class='form-control' name='" . attr($tagname) . "'";
         if ($disabled) {
             $s .= " disabled";
         }
@@ -238,7 +293,7 @@ class FeeSheetHtml extends FeeSheet
             $s .= ">" . text(xl_list_label($val)) . "</option>";
         }
 
-        $s .= "</select>";
+        $s .= "</select></span>";
         return $s;
     }
 
@@ -281,16 +336,16 @@ function jsLineItemValidation(f) {
     }
    }
    if (!ndcok) {
-    alert('" . xls('Format incorrect for NDC') . "\"' + ndc +
-     '\", " . xls('should be like nnnnn-nnnn-nn') . "');
+    alert(" . xlj('Format incorrect for NDC') . " + '\"' + ndc +
+     '\", ' + " . xlj('should be like nnnnn-nnnn-nn') . ");
     if (f[pfx+'[ndcnum]'].focus) f[pfx+'[ndcnum]'].focus();
     return false;
    }
    // Check for valid quantity.
    var qty = f[pfx+'[ndcqty]'].value - 0;
    if (isNaN(qty) || qty <= 0) {
-    alert('" . xls('Quantity for NDC') . " \"' + ndc +
-     '\" " . xls('is not valid (decimal fractions are OK).') . "');
+    alert(" . xlj('Quantity for NDC') . " + ' \"' + ndc +
+     '\" ' + " . xlj('is not valid (decimal fractions are OK).') . ");
     if (f[pfx+'[ndcqty]'].focus) f[pfx+'[ndcqty]'].focus();
     return false;
    }
@@ -313,14 +368,14 @@ function jsLineItemValidation(f) {
     tmp_meth == '4450' || // male condoms
     tmp_meth == '4570');  // male vasectomy
    if (!male_compatible_method) {
-    if (!confirm('" . xls('Warning: Contraceptive method is not compatible with a male patient.') . "'))
+    if (!confirm(" . xlj('Warning: Contraceptive method is not compatible with a male patient.') . "))
      return false;
    }
 ";
         } // end if male patient
-        if ($this->patient_age < 10 || $this->patient_age > 50) {
+        if ($this->patient_age < 10 || $this->patient_age > 65) {
             $s .= "
-   if (!confirm('" . xls('Warning: Contraception for a patient under 10 or over 50.') . "'))
+    if (!confirm(" . xlj('Warning: Contraception for a patient under 10 or over 65.') . "))
     return false;
 ";
         } // end if improper age
@@ -340,7 +395,7 @@ function jsLineItemValidation(f) {
      }
     }
     if (!got_prod) {
-     if (!confirm('" . xls('Warning: There is no product matching the contraceptive service.') . "'))
+     if (!confirm(" . xlj('Warning: There is no product matching the contraceptive service.') . "))
       return false;
     }
    }
@@ -370,7 +425,7 @@ function jsLineItemValidation(f) {
     }
    }
    if (!got_svc) {
-    if (!confirm('" . xls('Warning: There is no service matching the contraceptive product.') . "'))
+    if (!confirm(" . xlj('Warning: There is no service matching the contraceptive product.') . "))
      return false;
    }
   }
@@ -381,7 +436,7 @@ function jsLineItemValidation(f) {
         if (isset($GLOBALS['code_types']['MA'])) {
             $s .= "
  if (required_code_count == 0) {
-  if (!confirm('" . xls('You have not entered any clinical services or products. Click Cancel to add them. Or click OK if you want to save as-is.') . "')) {
+  if (!confirm(" . xlj('You have not entered any clinical services or products. Click Cancel to add them. Or click OK if you want to save as-is.') . ")) {
    return false;
   }
  }

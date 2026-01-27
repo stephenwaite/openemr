@@ -1,36 +1,27 @@
 <?php
-/* +-----------------------------------------------------------------------------+
-*    OpenEMR - Open Source Electronic Medical Record
-*    Copyright (C) 2014 Z&H Consultancy Services Private Limited <sam@zhservices.com>
-*
-*    This program is free software: you can redistribute it and/or modify
-*    it under the terms of the GNU Affero General Public License as
-*    published by the Free Software Foundation, either version 3 of the
-*    License, or (at your option) any later version.
-*
-*    This program is distributed in the hope that it will be useful,
-*    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*    GNU Affero General Public License for more details.
-*
-*    You should have received a copy of the GNU Affero General Public License
-*    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*    @author  BASIL PT <basil@zhservices.com>
-* +------------------------------------------------------------------------------+
-*/
+
+/**
+ * interface/modules/zend_modules/module/Application/src/Application/Model/SendtoTable.php
+ *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    BASIL PT <basil@zhservices.com>
+ * @copyright Copyright (c) 2014 Z&H Consultancy Services Private Limited <sam@zhservices.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
 
 namespace Application\Model;
 
-use Zend\Db\TableGateway\AbstractTableGateway;
+use Laminas\Db\TableGateway\AbstractTableGateway;
 use Application\Model\ApplicationTable;
-use Zend\Db\Adapter\Driver\Pdo\Result;
+use Laminas\Db\Adapter\Driver\Pdo\Result;
 
 class SendtoTable extends AbstractTableGateway
 {
     /*
     * getFacility
     * @return array facility
-    * 
+    *
     **/
     public function getFacility()
     {
@@ -39,36 +30,36 @@ class SendtoTable extends AbstractTableGateway
         $result     = $appTable->zQuery($sql);
         return $result;
     }
-    
-    
+
+
     /*
     * getUsers
     * @param String $type
     * @return array
-    * 
+    *
     **/
     public function getUsers($type)
     {
         $appTable   = new ApplicationTable();
         $sql        = "SELECT * FROM users WHERE abook_type = ?";
-        $result     = $appTable->zQuery($sql, array($type));
+        $result     = $appTable->zQuery($sql, [$type]);
         return $result;
     }
-    
-    
+
+
     /*
     * getFaxRecievers
-    * @return array fax reciever types
-    * 
+    * @return array fax receiver types
+    *
     **/
     public function getFaxRecievers()
     {
         $appTable   = new ApplicationTable();
         $sql        = "SELECT option_id, title FROM list_options WHERE list_id = 'abook_type'";
-        $result     = $appTable->zQuery($sql, array($formId));
+        $result     = $appTable->zQuery($sql);
         return $result;
     }
-    
+
     /*
     * CCDA component list
     *
@@ -77,15 +68,43 @@ class SendtoTable extends AbstractTableGateway
     **/
     public function getCCDAComponents($type)
     {
-        $components = array();
-        $query      = "select * from ccda_components where ccda_type = ?";
-        $appTable   = new ApplicationTable();
-        $result     = $appTable->zQuery($query, array($type));
-        
-        foreach ($result as $row) {
-            $components[$row['ccda_components_field']] = $row['ccda_components_name'];
+        $components = [];
+        // removed dependency on the ccda_table_mapping table sjp 07/25/25
+        if ($type == 0) {
+            // sections
+            $components = [
+                'progress_note' => 'Progress Notes',
+                'consultation_note' => 'Consultation Note',
+                'continuity_care_document' => 'Continuity Care Document',
+                'diagnostic_image_reporting' => 'Diagnostic Image Reporting',
+                'discharge_summary' => 'Discharge Summary',
+                'history_physical_note' => 'History and Physical Note',
+                'operative_note' => 'Operative Note',
+                'procedure_note' => 'Procedure Note',
+                'unstructured_document' => 'Unstructured Document',
+            ];
+        } elseif ($type == 1) {
+            // entry components
+            $components = [
+                'allergies' => 'Allergies',
+                'medications' => 'Medications',
+                'problems' => 'Problems',
+                'immunizations' => 'Immunizations',
+                'procedures' => 'Procedures',
+                'results' => 'Results',
+                'plan_of_care' => 'Plan Of Care',
+                'vitals' => 'Vitals',
+                'social_history' => 'Social History',
+                'encounters' => 'Encounters',
+                'functional_status' => 'Functional Status',
+                'referral' => 'Reason for Referral',
+                'instructions' => 'Instructions',
+                'medical_devices' => 'Medical Devices',
+                'goals' => 'Goals',
+                'payers' => 'Health Insurance Providers',
+                'advance_directives' => 'Advance Directives',
+            ];
         }
-
         return $components;
     }
 }

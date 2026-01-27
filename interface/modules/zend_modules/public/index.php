@@ -1,58 +1,71 @@
 <?php
-/* +-----------------------------------------------------------------------------+
-*    OpenEMR - Open Source Electronic Medical Record
-*    Copyright (C) 2013 Z&H Consultancy Services Private Limited <sam@zhservices.com>
-*
-*    This program is free software: you can redistribute it and/or modify
-*    it under the terms of the GNU Affero General Public License as
-*    published by the Free Software Foundation, either version 3 of the
-*    License, or (at your option) any later version.
-*
-*    This program is distributed in the hope that it will be useful,
-*    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*    GNU Affero General Public License for more details.
-*
-*    You should have received a copy of the GNU Affero General Public License
-*    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*    @author  Jacob T.Paul <jacob@zhservices.com>
-*    @author  Shalini Balakrishnan <shalini@zhservices.com>
-* +------------------------------------------------------------------------------+
-*/
+
+/**
+ * openemr/interface/modules/zend_modules/public/index.php
+ *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jacob T.Paul <jacob@zhservices.com>
+ * @author    Shalini Balakrishnan <shalini@zhservices.com>
+ * @copyright Copyright (c) 2013 Z&H Consultancy Services Private Limited <sam@zhservices.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
 
 /**
  * This makes our life easier when dealing with paths. Everything is relative
  * to the application root now.
  */
 
+use OpenEMR\Common\Session\SessionUtil;
 
 //fetching controller name and action name from the SOAP request
-$urlArray = explode('/', $_SERVER['REQUEST_URI']);
+$urlArray = explode('/', ($_SERVER['REQUEST_URI'] ?? ''));
 $countUrlArray = count($urlArray);
-preg_match('/\/(\w*)\?/', $_SERVER['REQUEST_URI'], $matches);
-$actionName = isset($matches[1]) ? $matches[1] : '';
-$controllerName = isset($urlArray[$countUrlArray-2]) ? $urlArray[$countUrlArray-2] : '';
+preg_match('/\/(\w*)\?/', ($_SERVER['REQUEST_URI'] ?? ''), $matches);
+$actionName = $matches[1] ?? '';
+$controllerName = $urlArray[$countUrlArray - 2] ?? '';
 
 //skipping OpenEMR authentication if the controller is SOAP and action is INDEX
-//SOAP authentication is done in the contoller EncounterccdadispatchController
-if (strtolower($controllerName) == 'soap' && strtolower($actionName) == 'index') {
-    $ignoreAuth_offsite_portal = true;
-} elseif ($_REQUEST['recipient'] === 'patient' && $_REQUEST['site'] && $controllerName) {
-    session_id($_REQUEST['me']);
-    session_start();
-    $ignoreAuth_onsite_portal_two = false; // eval'ed in globals but why not...
-    if ($_SESSION['pid'] && $_SESSION['sessionUser']=='-patient-' && $_SESSION['portal_init']) {
+//SOAP authentication is done in the controller EncounterccdadispatchController
+if (!empty($_REQUEST['recipient']) && ($_REQUEST['recipient'] === 'patient') && $_REQUEST['site'] && $controllerName) {
+    $ignoreAuth_onsite_portal = false;
+    if (!empty($_REQUEST['me'])) {
+        // Will continue a session/cookie.
+        //  Need access to classes, so run autoloader now instead of in globals.php.
+        require_once(__DIR__ . "/../../../../vendor/autoload.php");
+        session_id($_REQUEST['me']);
+        SessionUtil::sessionStartWrapper();
+    }
+    if ($_SESSION['pid'] && $_SESSION['sessionUser'] === '-patient-' && $_SESSION['portal_init']) {
         // Onsite portal was validated and patient authorized and re-validated via forwarded session.
-        $ignoreAuth_onsite_portal_two = true;
+        $ignoreAuth_onsite_portal = true;
     }
 }
 
-require_once(dirname(__FILE__)."/../../../globals.php");
-require_once(dirname(__FILE__)."/../../../../library/forms.inc");
-require_once(dirname(__FILE__)."/../../../../library/options.inc.php");
-require_once(dirname(__FILE__)."/../../../../library/acl.inc");
+if (!empty($_REQUEST['me']) && isset($_REQUEST['sent_by_app']) && $_REQUEST['sent_by_app'] === 'core_api') {
+    // pick up already running session from api's
+    //  Need access to classes, so run autoloader now instead of in globals.php.
+    require_once(__DIR__ . "/../../../../vendor/autoload.php");
+    session_id($_REQUEST['me']);
+    SessionUtil::sessionStartWrapper();
+}
+
+require_once(__DIR__ . "/../../../globals.php");
+require_once(__DIR__ . "/../../../../library/forms.inc.php");
+require_once(__DIR__ . "/../../../../library/options.inc.php");
 
 chdir(dirname(__DIR__));
 
 // Run the application!
-Zend\Mvc\Application::init(require 'config/application.config.php')->run();
+/** @var OpenEMR/Core/ModulesApplication
+ * Defined in globals.php
+*/
+if (!empty($GLOBALS['modules_application'])) {
+    // $time_start = microtime(true);
+    // run the request lifecycle.  The application has already inited in the globals.php
+    $GLOBALS['modules_application']->run();
+    // $time_end = microtime(true);
+    // echo "App runtime: " . ($time_end - $time_start) . "<br />";
+} else {
+    die("global modules_application is not defined.  Cannot run zend module request");
+}

@@ -1,4 +1,5 @@
 <?php
+
 /**
  *
  * This is to allow internationalization by OpenEMR of the jquery-datetimepicker.
@@ -47,13 +48,14 @@
  * @copyright Copyright (c) 2017-2018 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
+
 ?>
 
 //datepicker elements
 var datepicker_xlMonths = [<?php echo xlj('January'); ?>, <?php echo xlj('February'); ?>, <?php echo xlj('March'); ?>, <?php echo xlj('April'); ?>, <?php echo xlj('May'); ?>, <?php echo xlj('June'); ?>, <?php echo xlj('July'); ?>, <?php echo xlj('August'); ?>, <?php echo xlj('September'); ?>, <?php echo xlj('October'); ?>, <?php echo xlj('November'); ?>, <?php echo xlj('December'); ?>];
 var datepicker_xlDayofwkshort= [<?php echo xlj('Sun'); ?>, <?php echo xlj('Mon'); ?>, <?php echo xlj('Tue'); ?>, <?php echo xlj('Wed'); ?>, <?php echo xlj('Thu'); ?>, <?php echo xlj('Fri'); ?>, <?php echo xlj('Sat'); ?>];
 var datepicker_xlDayofwk= [<?php echo xlj('Sunday'); ?>, <?php echo xlj('Monday'); ?>, <?php echo xlj('Tuesday'); ?>, <?php echo xlj('Wednesday'); ?>, <?php echo xlj('Thursday'); ?>, <?php echo xlj('Friday'); ?>, <?php echo xlj('Saturday'); ?>];
-var datepicker_rtl = <?php echo ($_SESSION['language_direction'] == 'rtl') ? "true" : "false"; ?>;
+var datepicker_rtl = <?php echo (($_SESSION['language_direction'] ?? '') == 'rtl') ? "true" : "false"; ?>;
 var datepicker_yearStart = '1900';
 var datepicker_format = 'Y-m-d';
 var datepicker_scrollInput = false;
@@ -63,7 +65,7 @@ var datepicker_scrollMonth = false;
 var datetimepicker_xlMonths = [<?php echo xlj('January'); ?>, <?php echo xlj('February'); ?>, <?php echo xlj('March'); ?>, <?php echo xlj('April'); ?>, <?php echo xlj('May'); ?>, <?php echo xlj('June'); ?>, <?php echo xlj('July'); ?>, <?php echo xlj('August'); ?>, <?php echo xlj('September'); ?>, <?php echo xlj('October'); ?>, <?php echo xlj('November'); ?>, <?php echo xlj('December'); ?>];
 var datetimepicker_xlDayofwkshort= [<?php echo xlj('Sun'); ?>, <?php echo xlj('Mon'); ?>, <?php echo xlj('Tue'); ?>, <?php echo xlj('Wed'); ?>, <?php echo xlj('Thu'); ?>, <?php echo xlj('Fri'); ?>, <?php echo xlj('Sat'); ?>];
 var datetimepicker_xlDayofwk= [<?php echo xlj('Sunday'); ?>, <?php echo xlj('Monday'); ?>, <?php echo xlj('Tuesday'); ?>, <?php echo xlj('Wednesday'); ?>, <?php echo xlj('Thursday'); ?>, <?php echo xlj('Friday'); ?>, <?php echo xlj('Saturday'); ?>];
-var datetimepicker_rtl = <?php echo ($_SESSION['language_direction'] == 'rtl') ? "true" : "false"; ?>;
+var datetimepicker_rtl = <?php echo (($_SESSION['language_direction'] ?? '') == 'rtl') ? "true" : "false"; ?>;
 var datetimepicker_yearStart = '1900';
 var datetimepicker_format = 'Y-m-d H:i:s';
 var datetimepicker_step = '30';

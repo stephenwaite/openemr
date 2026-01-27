@@ -1,4 +1,5 @@
 <?php
+
 // Copyright (C) 2011 Ken Chapple <ken@mi-squared.com>
 //
 // This program is free software; you can redistribute it and/or
@@ -12,15 +13,17 @@ class DiabetesInitialPatientPopulation implements CqmFilterIF
     {
         return "Initial Patient Population";
     }
-    
+
     public function test(CqmPatient $patient, $beginDate, $endDate)
     {
         $age = $patient->calculateAgeOnDate($beginDate);
-        if ($age >= 17 &&
-            $age <= 74 ) {
+        if (
+            $age >= 17 &&
+            $age <= 74
+        ) {
             return true;
         }
-        
+
         return false;
     }
 }

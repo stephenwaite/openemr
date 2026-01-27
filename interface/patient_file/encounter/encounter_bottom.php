@@ -1,4 +1,5 @@
 <?php
+
 /**
  * encounter_bottom.php
  *
@@ -9,13 +10,11 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../../globals.php");
-require_once("$srcdir/encounter.inc");
+require_once("$srcdir/encounter.inc.php");
 ?>
 <html>
 <head>
-<?php html_header_show();?>
 </head>
 <frameset rows="*" cols="200,400,*">
     <?php

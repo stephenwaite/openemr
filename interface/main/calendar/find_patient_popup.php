@@ -1,4 +1,5 @@
 <?php
+
 /* Copyright (C) 2005-2007 Rod Roark <rod@sunsetsystems.com>
  *
  * This program is free software; you can redistribute it and/or
@@ -13,18 +14,20 @@
  *
  */
 
-include_once('../../globals.php');
-include_once("$srcdir/patient.inc");
+require_once('../../globals.php');
+require_once("$srcdir/patient.inc.php");
 
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Core\Header;
 
 $info_msg = "";
 
- // If we are searching, search.
- //
-if ($_REQUEST['searchby'] && $_REQUEST['searchparm']) {
+// If we are searching, search.
+// first set $result to empty
+$result = "";
+if (!empty($_REQUEST['searchby']) && !empty($_REQUEST['searchparm'])) {
     $searchby = $_REQUEST['searchby'];
-    $searchparm = trim($_REQUEST['searchparm']);
+    $searchparm = trim((string) $_REQUEST['searchparm']);
 
     if ($searchby == "Last") {
         $result = getPatientLnames("$searchparm", "*");
@@ -43,251 +46,254 @@ if ($_REQUEST['searchby'] && $_REQUEST['searchparm']) {
 <html>
 <head>
     <?php Header::setupHeader(['common', 'datetime-picker', 'opener']); ?>
-<title><?php echo htmlspecialchars(xl('Patient Finder'), ENT_NOQUOTES); ?></title>
+    <title><?php echo text(xl('Patient Finder')); ?></title>
 
-<style>
-form {
-    padding: 0px;
-    margin: 0px;
-}
-#searchCriteria {
-    text-align: center;
-    width: 100%;
-    /*font-size: 0.8em;*/
-    background-color: #ddddff;
-    font-weight: bold;
-    padding: 3px;
-}
-#searchResultsHeader {
-    width: 100%;
-    /*background-color: #fff;*/
-    border-collapse: collapse;
-}
-#searchResultsHeader th {
-    /*font-size: 0.7em;*/
-}
-#searchResults {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: white;
-    overflow: auto;
-}
+    <style>
+      form {
+        padding: 0;
+        margin: 0;
+      }
 
-#searchResults tr {
-    cursor: hand;
-    cursor: pointer;
-}
-#searchResults td {
-    /*font-size: 0.7em;*/
-    border-bottom: 1px solid #eee;
-}
-.oneResult { }
-.billing { color: red; font-weight: bold; }
+      #searchCriteria {
+        text-align: center;
+        width: 100%;
+        font-weight: bold;
+        padding: 3px;
+      }
 
-/* for search results or 'searching' notification */
-#searchstatus {
-    font-size: 0.8em;
-    font-weight: bold;
-    padding: 1px 1px 10px 1px;
-    font-style: italic;
-    color: black;
-    text-align: center;
-}
-.noResults { background-color: #ccc; }
-.tooManyResults { background-color: #fc0; }
-.howManyResults { background-color: #9f6; }
-#searchspinner {
-    display: inline;
-    visibility: hidden;
-}
+      #searchResultsHeader {
+        width: 100%;
+        border-collapse: collapse;
+      }
 
-/* highlight for the mouse-over */
-.highlight {
-    background-color: #336699;
-    color: white;
-}
-</style>
+      #searchResults {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: var(--white);
+        overflow: auto;
+      }
 
-<!-- ViSolve: Verify the noresult parameter -->
-<?php
-if (isset($_GET["res"])) {
-    echo '
-<script language="Javascript">
-			// Pass the variable to parent hidden type and submit
-			opener.document.theform.resname.value = "noresult";
-			opener.document.theform.submit();
-			// Close the window
-			window.self.close();
-</script>';
-}
-?>
-<!-- ViSolve: Verify the noresult parameter -->
+      #searchResults tr {
+        cursor: hand;
+        cursor: pointer;
+      }
 
-<script language="JavaScript">
+      #searchResults td {
+        /*font-size: 0.7em;*/
+        border-bottom: 1px solid var(--light);
+      }
 
- function selpid(pid, lname, fname, dob) {
-  if (opener.closed || ! opener.setpatient)
-   alert("<?php echo htmlspecialchars(xl('The destination form was closed; I cannot act on your selection.'), ENT_QUOTES); ?>");
-  else
-   opener.setpatient(pid, lname, fname, dob);
-  dlgclose();
-  return false;
- }
+      .billing {
+        color: var(--danger);
+        font-weight: bold;
+      }
 
-</script>
+      /* for search results or 'searching' notification */
+      #searchstatus {
+        font-weight: bold;
+        font-style: italic;
+        color: var(--black);
+        text-align: center;
+      }
 
+      #searchspinner {
+        display: inline;
+        visibility: hidden;
+      }
+
+      /* highlight for the mouse-over */
+      .highlight {
+        background-color: #336699;
+        color: var(--white);
+      }
+    </style>
+
+    <!-- ViSolve: Verify the noresult parameter -->
+    <?php if (isset($_GET["res"])) {
+        echo '<script>
+    // Pass the variable to parent hidden type and submit
+    opener.document.theform.resname.value = "noresult";
+    opener.document.theform.submit();
+    // Close the window
+    window.self.close();
+    </script>';
+    } ?>
+    <!-- ViSolve: Verify the noresult parameter -->
 </head>
-
 <body class="body_top">
-<div class="container-responsive">
-<div id="searchCriteria">
-<form class="form-inline" method='post' name='theform' id="theform" action='find_patient_popup.php?<?php if (isset($_GET['pflag'])) {
-    echo "pflag=0";
-} ?>'>
-    <?php echo htmlspecialchars(xl('Search by:'), ENT_NOQUOTES); ?>
-   <select name='searchby' class="input-sm">
-    <option value="Last"><?php echo htmlspecialchars(xl('Name'), ENT_NOQUOTES); ?></option>
-    <!-- (CHEMED) Search by phone number -->
-    <option value="Phone"<?php if ($searchby == 'Phone') {
-        echo ' selected';
-} ?>><?php echo htmlspecialchars(xl('Phone'), ENT_NOQUOTES); ?></option>
-    <option value="ID"<?php if ($searchby == 'ID') {
-        echo ' selected';
-} ?>><?php echo htmlspecialchars(xl('ID'), ENT_NOQUOTES); ?></option>
-    <option value="SSN"<?php if ($searchby == 'SSN') {
-        echo ' selected';
-} ?>><?php echo htmlspecialchars(xl('SSN'), ENT_NOQUOTES); ?></option>
-    <option value="DOB"<?php if ($searchby == 'DOB') {
-        echo ' selected';
-} ?>><?php echo htmlspecialchars(xl('DOB'), ENT_NOQUOTES); ?></option>
-   </select>
-    <?php echo htmlspecialchars(xl('for:'), ENT_NOQUOTES); ?>
-   <input type='text' class="input-sm" id='searchparm' name='searchparm' size='12' value='<?php echo htmlspecialchars($_REQUEST['searchparm'], ENT_QUOTES); ?>'
-    title='<?php echo htmlspecialchars(xl('If name, any part of lastname or lastname,firstname'), ENT_QUOTES); ?>'>
-   &nbsp;
-   <input type='submit' id="submitbtn" value='<?php echo htmlspecialchars(xl('Search'), ENT_QUOTES); ?>'>
-   <div id="searchspinner"><img src="<?php echo $GLOBALS['webroot'] ?>/interface/pic/ajax-loader.gif"></div>
-</form>
-</div>
+    <div class="table-responsive-sm">
+        <div id="searchCriteria" class="bg-light p-2 pt-3">
+            <form method='post' name='theform' id="theform" action='find_patient_popup.php?<?php if (isset($_GET['pflag'])) {
+                echo "pflag=0";
+                                                                                           } ?>'>
+                <div class="form-row">
+                    <label for="searchby" class="col-form-label col-form-label-sm col"><?php echo text(xl('Search by:')); ?></label>
+                    <select name='searchby' id='searchby' class="form-control form-control-sm col">
+                        <option value="Last"><?php echo text(xl('Name')); ?></option>
+                        <!-- (CHEMED) Search by phone number -->
+                        <option value="Phone"<?php if (!empty($searchby) && ($searchby == 'Phone')) {
+                            echo ' selected';
+                                             } ?>><?php echo xlt('Phone'); ?></option>
+                        <option value="ID"<?php if (!empty($searchby) && ($searchby == 'ID')) {
+                            echo ' selected';
+                                          } ?>><?php echo xlt('ID'); ?></option>
+                        <option value="SSN"<?php if (!empty($searchby) && ($searchby == 'SSN')) {
+                            echo ' selected';
+                                           } ?>><?php echo xlt('SSN'); ?></option>
+                        <option value="DOB"<?php if (!empty($searchby) && ($searchby == 'DOB')) {
+                            echo ' selected';
+                                           } ?>><?php echo xlt('DOB'); ?></option>
+                    </select>
+                    <label for="searchparm" class="col-form-label col-form-label-sm col"><?php echo text(xl('for:')); ?></label>
+                    <input type='text' class="form-control form-control-sm col" id='searchparm' name='searchparm' size='12' value='<?php echo attr($_REQUEST['searchparm'] ?? ''); ?>' title='<?php echo xla('If name, any part of lastname or lastname,firstname'); ?>' />
+                    <div class="col">
+                        <input class='btn btn-primary btn-sm' type='submit' id="submitbtn" value='<?php echo xla('Search'); ?>' />
+                        <div id="searchspinner"><img src="<?php echo $GLOBALS['webroot'] ?>/interface/pic/ajax-loader.gif" /></div>
+                    </div>
+                </div>
+            </form>
+        </div>
 
-<?php if (! isset($_REQUEST['searchparm'])) : ?>
-<div id="searchstatus"><?php echo htmlspecialchars(xl('Enter your search criteria above'), ENT_NOQUOTES); ?></div>
-<?php elseif (count($result) == 0) : ?>
-<div id="searchstatus" class="noResults"><?php echo htmlspecialchars(xl('No records found. Please expand your search criteria.'), ENT_NOQUOTES); ?>
-<br>
-<!--VicarePlus :: If pflag is set the new patient create link will not be displayed -->
-<a class="noresult" href='find_patient_popup.php?res=noresult' 
-<?php
-if (isset($_GET['pflag']) || (!acl_check('patients', 'demo', '', array('write','addonly')))) {
-?> style="display:none;" 
-<?php
-}
-?>  >
-<?php echo htmlspecialchars(xl('Click Here to add a new patient.'), ENT_NOQUOTES); ?></a>
-</div>
-<?php elseif (count($result)>=100) : ?>
-<div id="searchstatus" class="tooManyResults"><?php echo htmlspecialchars(xl('More than 100 records found. Please narrow your search criteria.'), ENT_NOQUOTES); ?></div>
-<?php elseif (count($result)<100) : ?>
-<div id="searchstatus" class="howManyResults"><?php echo htmlspecialchars(count($result), ENT_NOQUOTES); ?> <?php echo htmlspecialchars(xl('records found.'), ENT_NOQUOTES); ?></div>
-<?php endif; ?>
+        <?php if (!isset($_REQUEST['searchparm'])) : ?>
+            <div id="searchstatus"><?php echo text(xl('Enter your search criteria above')); ?></div>
+        <?php elseif (!is_countable($result)) : ?>
+            <div id="searchstatus" class="alert alert-danger rounded-0"><?php echo text(xl('No records found. Please expand your search criteria.')); ?>
+                <br />
+                <!--VicarePlus :: If pflag is set the new patient create link will not be displayed -->
+                <a class="noresult" href='find_patient_popup.php?res=noresult'
+                    <?php
+                    if (isset($_GET['pflag']) || (!AclMain::aclCheckCore('patients', 'demo', '', ['write', 'addonly']))) {
+                        ?> style="display: none;"
+                        <?php
+                    }
+                    ?> >
+                    <?php echo text(xl('Click Here to add a new patient.')); ?>
+                </a>
+            </div>
+        <?php elseif (count($result) >= 100) : ?>
+            <div id="searchstatus" class="alert alert-danger rounded-0"><?php echo text(xl('More than 100 records found. Please narrow your search criteria.')); ?></div>
+        <?php elseif (count($result) < 100) : ?>
+            <div id="searchstatus" class="alert alert-success rounded-0"><?php echo text(count($result ?? [])) . ' '; ?><?php echo text(xl('records found.')); ?></div>
+        <?php endif; ?>
 
-<?php if (isset($result)) : ?>
+        <?php if (isset($result)) : ?>
+            <table class="table table-sm">
+                <thead id="searchResultsHeader" class="head">
+                <tr>
+                    <th class="srName"><?php echo xlt('Name'); ?></th>
+                    <th class="srPhone"><?php echo xlt('Home Phone'); ?></th> <!-- (CHEMED) Search by phone number -->
+                    <th class="srCellPhone"><?php echo xlt('Cell Phone'); ?></th>
+                    <th class="srEmail"><?php echo xlt('Email'); ?></th>
+                    <th class="srSS"><?php echo xlt('SS'); ?></th>
+                    <th class="srDOB"><?php echo xlt('DOB'); ?></th>
+                    <th class="srID"><?php echo xlt('ID'); ?></th>
+                </tr>
+                </thead>
+                <tbody id="searchResults">
+                <?php
+                if (is_countable($result)) {
+                    foreach ($result as $iter) {
+                        $iterpid = $iter['pid'];
+                        $iterlname = $iter['lname'];
+                        $iterfname = $iter['fname'];
+                        $itermname = $iter['mname'];
+                        $iterdob = $iter['DOB'];
+                        // If billing note exists, then it gets special coloring and an extra line of output
+                        // in the 'name' column.
+                        $trClass = "oneresult";
+                        if (!empty($iter['billing_note'])) {
+                            $trClass .= " billing";
+                        }
 
-<table class="table table-condensed">
-<thead id="searchResultsHeader" class="head">
- <tr>
-  <th class="srName"><?php echo htmlspecialchars(xl('Name'), ENT_NOQUOTES); ?></th>
-  <th class="srPhone"><?php echo htmlspecialchars(xl('Phone'), ENT_NOQUOTES); ?></th> <!-- (CHEMED) Search by phone number -->
-  <th class="srSS"><?php echo htmlspecialchars(xl('SS'), ENT_NOQUOTES); ?></th>
-  <th class="srDOB"><?php echo htmlspecialchars(xl('DOB'), ENT_NOQUOTES); ?></th>
-  <th class="srID"><?php echo htmlspecialchars(xl('ID'), ENT_NOQUOTES); ?></th>
- </tr>
-</thead>
-<tbody id="searchResults">
-<?php
-foreach ($result as $iter) {
-    $iterpid   = $iter['pid'];
-    $iterlname = $iter['lname'];
-    $iterfname = $iter['fname'];
-    $itermname = $iter['mname'];
-    $iterdob   = $iter['DOB'];
+                        echo " <tr class='" . $trClass . "' id='" .
+                            attr($iterpid . "~" . $iterlname . "~" . $iterfname . "~" . $iterdob) . "'>";
+                        echo "  <td class='srName'>" . text($iterlname . ", " . $iterfname . " " . $itermname);
+                        if (!empty($iter['billing_note'])) {
+                            echo "<br />" . text($iter['billing_note']);
+                        }
+                        echo "</td>\n";
+                        echo "  <td class='srPhone'>" . text($iter['phone_home']) . "</td>\n";
+                        echo "  <td class='srCellPhone'>" . text($iter['phone_cell']) . "</td>\n";
+                        echo "  <td class='srEmail'>" . text($iter['email']) . "</td>\n";
+                        echo "  <td class='srSS'>" . text($iter['ss']) . "</td>\n";
+                        echo "  <td class='srDOB'>" . text($iter['DOB']) . "</td>\n";
+                        echo "  <td class='srID'>" . text($iter['pubpid']) . "</td>\n";
+                        echo " </tr>";
+                    }
+                }
+                ?>
+                </tbody>
+            </table>
 
-    // If billing note exists, then it gets special coloring and an extra line of output
-    // in the 'name' column.
-    $trClass = "oneresult";
-    if (!empty($iter['billing_note'])) {
-        $trClass .= " billing";
-    }
+        <?php endif; ?>
 
-    echo " <tr class='".$trClass."' id='" .
-        htmlspecialchars($iterpid."~".$iterlname."~".$iterfname."~".$iterdob, ENT_QUOTES) . "'>";
-    echo "  <td class='srName'>" . htmlspecialchars($iterlname.", ".$iterfname." ".$itermname, ENT_NOQUOTES);
-    if (!empty($iter['billing_note'])) {
-        echo "<br>" . htmlspecialchars($iter['billing_note'], ENT_NOQUOTES);
-    }
+        <script>
 
-    echo "</td>\n";
-    echo "  <td class='srPhone'>" . htmlspecialchars($iter['phone_home'], ENT_NOQUOTES) . "</td>\n"; //(CHEMED) Search by phone number
-    echo "  <td class='srSS'>" . htmlspecialchars($iter['ss'], ENT_NOQUOTES) . "</td>\n";
-    echo "  <td class='srDOB'>" . htmlspecialchars($iter['DOB'], ENT_NOQUOTES) . "</td>\n";
-    echo "  <td class='srID'>" . htmlspecialchars($iter['pubpid'], ENT_NOQUOTES) . "</td>\n";
-    echo " </tr>";
-}
-?>
-</tbody>
-</table>
+            // jQuery stuff to make the page a little easier to use
 
-<?php endif; ?>
+            $(function () {
+                $("#searchparm").focus();
+                $(".oneresult").mouseover(function () {
+                    $(this).toggleClass("highlight");
+                });
+                $(".oneresult").mouseout(function () {
+                    $(this).toggleClass("highlight");
+                });
+                $(".oneresult").click(function () {
+                    SelectPatient(this);
+                });
+                //ViSolve
+                $(".noresult").click(function () {
+                    SubmitForm(this);
+                });
 
-<script language="javascript">
+                //$(".event").dblclick(function() { EditEvent(this); });
+                $("#theform").submit(function () {
+                    SubmitForm(this);
+                });
 
-// jQuery stuff to make the page a little easier to use
-
-$(document).ready(function(){
-    $("#searchparm").focus();
-    $(".oneresult").mouseover(function() { $(this).toggleClass("highlight"); });
-    $(".oneresult").mouseout(function() { $(this).toggleClass("highlight"); });
-    $(".oneresult").click(function() { SelectPatient(this); });
-    //ViSolve
-    $(".noresult").click(function () { SubmitForm(this);});
-
-    //$(".event").dblclick(function() { EditEvent(this); });
-    $("#theform").submit(function() { SubmitForm(this); });
-
-    $('[name="searchby"').on('change', function () {
-        if($(this).val() === 'DOB'){
-            $('#searchparm').datetimepicker({
-                <?php $datetimepicker_timepicker = false; ?>
-                <?php $datetimepicker_showseconds = false; ?>
-                <?php $datetimepicker_formatInput = true; ?>
-                <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
-                <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
+                $('select[name="searchby"]').on('change', function () {
+                    if ($(this).val() === 'DOB') {
+                        $('#searchparm').datetimepicker({
+                            <?php $datetimepicker_timepicker = false; ?>
+                            <?php $datetimepicker_showseconds = false; ?>
+                            <?php $datetimepicker_formatInput = true; ?>
+                            <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                            <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
+                        });
+                    } else {
+                        $('#searchparm').datetimepicker("destroy");
+                    }
+                });
             });
-        } else {
-            $('#searchparm').datetimepicker("destroy");
-        }
-    });
 
-});
+            function selpid(pid, lname, fname, dob) {
+                if (opener.closed || !opener.setpatient)
+                    alert(<?php echo xlj('The destination form was closed; I cannot act on your selection.'); ?>);
+                else
+                    opener.setpatient(pid, lname, fname, dob);
+                dlgclose();
+                return false;
+            }
 
-// show the 'searching...' status and submit the form
-var SubmitForm = function(eObj) {
-    $("#submitbtn").css("disabled", "true");
-    $("#searchspinner").css("visibility", "visible");
-    return true;
-}
+            // show the 'searching...' status and submit the form
+            var SubmitForm = function (eObj) {
+                $("#submitbtn").css("disabled", "true");
+                $("#searchspinner").css("visibility", "visible");
+                return true;
+            }
 
 
-// another way to select a patient from the list of results
-// parts[] ==>  0=PID, 1=LName, 2=FName, 3=DOB
-var SelectPatient = function (eObj) {
-    objID = eObj.id;
-    var parts = objID.split("~");
-    return selpid(parts[0], parts[1], parts[2], parts[3]);
-}
+            // another way to select a patient from the list of results
+            // parts[] ==>  0=PID, 1=LName, 2=FName, 3=DOB
+            var SelectPatient = function (eObj) {
+                objID = eObj.id;
+                var parts = objID.split("~");
+                return selpid(parts[0], parts[1], parts[2], parts[3]);
+            }
 
-</script>
+        </script>
 
-</div>
+    </div>
 </body>
 </html>

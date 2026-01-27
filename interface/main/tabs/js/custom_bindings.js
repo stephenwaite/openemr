@@ -28,7 +28,7 @@ ko.bindingHandlers.location={
                 }
 
                 if ( cwDocument ) {
-                    $(cwDocument).ready(function () {
+                    $(function () {
                             var jqDocument = $(cwDocument);
                             var titleDocument = jqDocument.attr('title');
                             var titleText = "Unknown";
@@ -78,9 +78,12 @@ ko.bindingHandlers.location={
                             tabData.title(titleText);
                         }
                     );
+                } else {
+                    // need to cancel the loading if we are on another domain
+                    // setting the title will hide the spinner and remove the Loading... text
+                    tabData.title(xl("Unknown"));
                 }
-            }
-            ,true
+            } ,true
         );
 
     },
@@ -89,7 +92,7 @@ ko.bindingHandlers.location={
         var tabData = ko.unwrap(valueAccessor());
         element.src=tabData.url();
     }
-}
+};
 
 ko.bindingHandlers.iframeName = {
     init: function(element,valueAccessor, allBindings,viewModel, bindingContext)
@@ -99,6 +102,4 @@ ko.bindingHandlers.iframeName = {
     {
         element.name=ko.unwrap(valueAccessor());
     }
-}
-
-
+};

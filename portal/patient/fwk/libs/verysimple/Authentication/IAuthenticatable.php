@@ -1,4 +1,5 @@
 <?php
+
 /** @package    verysimple::Authentication */
 
 /**
@@ -19,7 +20,7 @@ interface IAuthenticatable
      * @return bool
      */
     public function IsAnonymous();
-    
+
     /**
      * Verify if the IAuthenticable object has the requested permission
      * and return either true or false
@@ -28,7 +29,7 @@ interface IAuthenticatable
      * @return bool
      */
     public function IsAuthorized($permission);
-    
+
     /**
      * Verify the login information and, if correct, this object will
      * populate itself and return a reference to $this.

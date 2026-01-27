@@ -32,19 +32,12 @@
         <delete dir="${dir.vendor}/adodb/adodb-php/tests" verbose="true"/>
         <delete dir="${dir.vendor}/adodb/adodb-php/docs" verbose="true"/>
         <delete dir="${dir.vendor}/container-interop/container-interop/docs" verbose="true"/>
-        <delete dir="${dir.vendor}/doctrine/cache/docs" verbose="true"/>
-        <delete dir="${dir.vendor}/doctrine/common/docs" verbose="true"/>
-        <delete dir="${dir.vendor}/doctrine/couchdb/tests" verbose="true"/>
-        <delete dir="${dir.vendor}/doctrine/event-manager/docs" verbose="true"/>
-        <delete dir="${dir.vendor}/doctrine/orm/docs" verbose="true"/>
-        <delete dir="${dir.vendor}/doctrine/reflection/docs" verbose="true"/>
         <delete dir="${dir.vendor}/ezyang/htmlpurifier/test" verbose="true"/>
         <delete dir="${dir.vendor}/ezyang/htmlpurifier/maintenance" verbose="true"/>
         <delete dir="${dir.vendor}/ezyang/htmlpurifier/plugins" verbose="true"/>
         <delete dir="${dir.vendor}/illuminate/support/Testing" verbose="true"/>
         <delete dir="${dir.vendor}/knplabs/knp-snappy/doc" verbose="true"/>
         <delete dir="${dir.vendor}/markbaker/complex/examples" verbose="true"/>
-        <delete dir="${dir.vendor}/mobiledetect/mobiledetectlib/docs" verbose="true"/>
         <delete dir="${dir.vendor}/myclabs/deep-copy/doc" verbose="true"/>
         <delete dir="${dir.vendor}/phenx/php-font-lib/tests" verbose="true"/>
         <delete dir="${dir.vendor}/phenx/php-svg-lib/tests" verbose="true"/>
@@ -87,7 +80,6 @@
 
 
     <target name="clean-assets-dir">
-        <delete dir="${dir.assets}/anythingslider/demos" verbose="true"/>
         <delete dir="${dir.assets}/flot/examples" verbose="true"/>
         <delete dir="${dir.assets}/jquery-datetimepicker/tests" verbose="true"/>
         <delete dir="${dir.assets}/numeral/tests" verbose="true"/>

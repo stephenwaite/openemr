@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Print Amendments
  *
@@ -11,51 +12,58 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../../globals.php");
 require_once("$srcdir/options.inc.php");
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
+//ensure user has proper access
+if (!AclMain::aclCheckCore('patients', 'amendment')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Amendment Print")]);
+    exit;
+}
+
 $amendments = $_REQUEST["ids"];
-$amendments = rtrim($amendments, ",");
+$amendments = rtrim((string) $amendments, ",");
 $amendmentsList = explode(",", $amendments);
 
 $patientDetails = getPatientData($pid, "fname,lname");
 $patientName = $patientDetails['lname'] . ", " . $patientDetails['fname'];
 
-function printAmendment($amendmentID, $lastAmendment)
+function printAmendment($amendmentID, $lastAmendment): void
 {
     $query = "SELECT lo.title AS 'amendmentFrom', lo1.title AS 'amendmentStatus',a.* FROM amendments a
 		LEFT JOIN list_options lo ON a.amendment_by = lo.option_id AND lo.list_id = 'amendment_from' AND lo.activity = 1
 		LEFT JOIN list_options lo1 ON a.amendment_status = lo1.option_id AND lo1.list_id = 'amendment_status' AND lo1.activity = 1
 		WHERE a.amendment_id = ?";
-    $resultSet = sqlQuery($query, array($amendmentID));
+    $resultSet = sqlQuery($query, [$amendmentID]);
     echo "<table>";
     echo "<tr class=text>";
     echo "<td class=bold>" . xlt("Requested Date") . ":"  . "</td>";
-    echo "<td>". text(oeFormatShortDate($resultSet['amendment_date'])) . "</td>";
+    echo "<td>" . text(oeFormatShortDate($resultSet['amendment_date'])) . "</td>";
     echo "</tr>";
 
     echo "<tr class=text>";
     echo "<td class=bold>" . xlt("Requested By") . ":"  . "</td>";
-    echo "<td>". generate_display_field(array('data_type'=>'1','list_id'=>'amendment_from'), $resultSet['amendment_by']) . "</td>";
+    echo "<td>" . generate_display_field(['data_type' => '1','list_id' => 'amendment_from'], $resultSet['amendment_by']) . "</td>";
     echo "</tr>";
 
     echo "<tr class=text>";
     echo "<td class=bold>" . xlt("Request Status") . ":"  . "</td>";
-    echo "<td>". generate_display_field(array('data_type'=>'1','list_id'=>'amendment_status'), $resultSet['amendment_status']) . "</td>";
+    echo "<td>" . generate_display_field(['data_type' => '1','list_id' => 'amendment_status'], $resultSet['amendment_status']) . "</td>";
     echo "</tr>";
 
     echo "<tr class=text>";
     echo "<td class=bold>" . xlt("Request Description") . ":"  . "</td>";
-    echo "<td>". text($resultSet['amendment_desc']) . "</td>";
+    echo "<td>" . text($resultSet['amendment_desc']) . "</td>";
     echo "</tr>";
 
     echo "</table>";
 
     echo "<hr>";
-    echo "<span class='bold'>" . xlt("History") . "</span><br>";
+    echo "<span class='bold'>" . xlt("History") . "</span><br />";
     $pageBreak = ( $lastAmendment ) ? "" : "page-break-after:always";
     echo "<table border='1' cellspacing=0 cellpadding=3 style='width:75%;margin-top:10px;margin-bottom:20px;" . $pageBreak . "'>";
     echo "<tr class='text bold'>";
@@ -65,10 +73,10 @@ function printAmendment($amendmentID, $lastAmendment)
     echo "</tr>";
 
     $query = "SELECT u.fname,u.lname,ah.* FROM amendments_history ah INNER JOIN users u ON ah.created_by = u.id WHERE ah.amendment_id = ?";
-    $resultSet = sqlStatement($query, array($amendmentID));
+    $resultSet = sqlStatement($query, [$amendmentID]);
     while ($row = sqlFetchArray($resultSet)) {
         echo "<tr class=text>";
-        $created_date = date('Y-m-d', strtotime($row['created_time']));
+        $created_date = date('Y-m-d', strtotime((string) $row['created_time']));
         echo "<td>" . text(oeFormatShortDate($created_date)) . "</td>";
         echo "<td>" . text($row['lname']) . ", " . text($row['fname']) . "</td>";
         echo "<td>" . text($row['amendment_note']) . "</td>";
@@ -81,7 +89,7 @@ function printAmendment($amendmentID, $lastAmendment)
 ?>
 <html>
 <head>
-    <?php Header::setupHeader(['no_bootstrap', 'no_fontawesome']); ?>
+    <?php Header::setupHeader(); ?>
 </head>
 
 <body class="body_top">
@@ -95,7 +103,7 @@ function printAmendment($amendmentID, $lastAmendment)
     }
     ?>
 
-<script language='JavaScript'>
+<script>
     opener.top.printLogPrint(window);
 </script>
 

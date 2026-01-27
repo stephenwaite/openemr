@@ -17,8 +17,8 @@
 /**
  * Always have these classes available.
  */
-include_once dirname(__FILE__) . '/Savant3/Filter.php';
-include_once dirname(__FILE__) . '/Savant3/Plugin.php';
+include_once __DIR__ . '/Savant3/Filter.php';
+include_once __DIR__ . '/Savant3/Plugin.php';
 
 /**
  *
@@ -41,9 +41,10 @@ include_once dirname(__FILE__) . '/Savant3/Plugin.php';
  *
  *
  */
-class Savant3
+
+#[\AllowDynamicProperties]
+class Savant3 implements \Stringable
 {
-    
     /**
      *
      * Array of configuration parameters.
@@ -53,30 +54,30 @@ class Savant3
      * @var array
      *
      */
-    protected $__config = array (
-            'template_path' => array (),
-            'resource_path' => array (),
+    protected $__config =  [
+            'template_path' =>  [],
+            'resource_path' =>  [],
             'error_text' => "\n\ntemplate error, examine fetch() result\n\n",
             'exceptions' => false,
             'autoload' => false,
             'compiler' => null,
-            'filters' => array (),
-            'plugins' => array (),
+            'filters' =>  [],
+            'plugins' =>  [],
             'template' => null,
-            'plugin_conf' => array (),
+            'plugin_conf' =>  [],
             'extract' => false,
             'fetch' => null,
-            'escape' => array (
+            'escape' =>  [
                     'htmlspecialchars'
-            )
-    );
-    
+            ]
+    ];
+
     // -----------------------------------------------------------------
     //
     // Constructor and magic methods
     //
     // -----------------------------------------------------------------
-    
+
     /**
      *
      * Constructor.
@@ -94,7 +95,7 @@ class Savant3
     {
         // force the config to an array
         settype($config, 'array');
-        
+
         // set the default template search path
         if (isset($config ['template_path'])) {
             // user-defined dirs
@@ -104,7 +105,7 @@ class Savant3
             // default directory only
             $this->setPath('template', null);
         }
-        
+
         // set the default resource search path
         if (isset($config ['resource_path'])) {
             // user-defined dirs
@@ -114,50 +115,50 @@ class Savant3
             // default directory only
             $this->setPath('resource', null);
         }
-        
+
         // set the error reporting text
         if (isset($config ['error_text'])) {
             $this->setErrorText($config ['error_text']);
         }
-        
+
         // set the autoload flag
         if (isset($config ['autoload'])) {
             $this->setAutoload($config ['autoload']);
         }
-        
+
         // set the extraction flag
         if (isset($config ['extract'])) {
             $this->setExtract($config ['extract']);
         }
-        
+
         // set the exceptions flag
         if (isset($config ['exceptions'])) {
             $this->setExceptions($config ['exceptions']);
         }
-        
+
         // set the template to use for output
         if (isset($config ['template'])) {
             $this->setTemplate($config ['template']);
         }
-        
+
         // set the output escaping callbacks
         if (isset($config ['escape'])) {
             $this->setEscape($config ['escape']);
         }
-        
+
         // set the default plugin configs
         if (isset($config ['plugin_conf']) && is_array($config ['plugin_conf'])) {
             foreach ($config ['plugin_conf'] as $name => $opts) {
                 $this->setPluginConf($name, $opts);
             }
         }
-        
+
         // set the default filter callbacks
         if (isset($config ['filters'])) {
             $this->addFilters($config ['filters']);
         }
     }
-    
+
     /**
      *
      * Executes a main plugin method with arbitrary parameters.
@@ -177,40 +178,24 @@ class Savant3
     public function __call($func, $args)
     {
         $plugin = $this->plugin($func);
-        
+
         if ($this->isError($plugin)) {
             return $plugin;
         }
-        
+
         // try to avoid the very-slow call_user_func_array()
         // for plugins with very few parameters. thanks to
         // Andreas Korthaus for profiling the code to find
         // the slowdown.
-        switch (count($args)) {
-            case 0:
-                return $plugin->$func ();
-            
-            case 1:
-                return $plugin->$func ( $args [0] );
-                break;
-            
-            case 2:
-                return $plugin->$func ( $args [0], $args [1] );
-                break;
-            
-            case 3:
-                return $plugin->$func ( $args [0], $args [1], $args [2] );
-                break;
-            
-            default:
-                return call_user_func_array(array (
-                        $plugin,
-                        $func
-                ), $args);
-                break;
-        }
+        return match (count($args)) {
+            0 => $plugin->$func(),
+            1 => $plugin->$func($args [0]),
+            2 => $plugin->$func($args [0], $args [1]),
+            3 => $plugin->$func($args [0], $args [1], $args [2]),
+            default => $plugin->$func(...$args),
+        };
     }
-    
+
     /**
      *
      * Magic method to echo this object as template output.
@@ -224,11 +209,11 @@ class Savant3
      * @return string The template output.
      *
      */
-    public function __toString()
+    public function __toString(): string
     {
         return $this->getOutput();
     }
-    
+
     /**
      *
      * Reports the API version for this class.
@@ -242,7 +227,7 @@ class Savant3
     {
         return '@package_version@';
     }
-    
+
     /**
      *
      * Returns an internal plugin object; creates it as needed.
@@ -262,56 +247,52 @@ class Savant3
         // shorthand reference
         $plugins = & $this->__config ['plugins'];
         $autoload = $this->__config ['autoload'];
-        
+
         // is the plugin method object already instantiated?
         if (! array_key_exists($name, $plugins)) {
             // not already instantiated, so load it up.
             // set up the class name.
             $class = "Savant3_Plugin_$name";
-            
+
             // has the class been loaded?
             if (! class_exists($class, $autoload)) {
                 // class is not loaded, set up the file name.
                 $file = "$class.php";
-                
+
                 // make sure the class file is available from the resource path.
                 $result = $this->findFile('resource', $file);
                 if (! $result) {
                     // not available, this is an error
-                    return $this->error('ERR_PLUGIN', array (
+                    return $this->error('ERR_PLUGIN', [
                             'method' => $name
-                    ));
+                    ]);
                 } else {
                     // available, load the class file
                     include_once $result;
                 }
             }
-            
+
             // get the default configuration for the plugin.
             $plugin_conf = & $this->__config ['plugin_conf'];
-            if (! empty($plugin_conf [$name])) {
-                $opts = $plugin_conf [$name];
-            } else {
-                $opts = array ();
-            }
-            
+            $opts = ! empty($plugin_conf [$name]) ? $plugin_conf [$name] : [];
+
             // add the Savant reference
             $opts ['Savant'] = $this;
-            
+
             // instantiate the plugin with its options.
-            $plugins [$name] = new $class ( $opts );
+            $plugins [$name] = new $class($opts);
         }
-        
+
         // return the plugin object
         return $plugins [$name];
     }
-    
+
     // -----------------------------------------------------------------
     //
     // Public configuration management (getters and setters).
     //
     // -----------------------------------------------------------------
-    
+
     /**
      *
      * Returns a copy of the Savant3 configuration parameters.
@@ -338,7 +319,7 @@ class Savant3
             return $this->__config [$key];
         }
     }
-    
+
     /**
      *
      * Sets __autoload() usage on or off.
@@ -353,9 +334,9 @@ class Savant3
      */
     public function setAutoload($flag)
     {
-        $this->__config ['autoload'] = ( bool ) $flag;
+        $this->__config ['autoload'] = (bool) $flag;
     }
-    
+
     /**
      *
      * Sets a custom compiler/pre-processor callback for template sources.
@@ -377,7 +358,7 @@ class Savant3
     {
         $this->__config ['compiler'] = $compiler;
     }
-    
+
     /**
      *
      * Sets the custom error text for __toString().
@@ -394,7 +375,7 @@ class Savant3
     {
         $this->__config ['error_text'] = $text;
     }
-    
+
     /**
      *
      * Sets whether or not exceptions will be thrown.
@@ -410,9 +391,9 @@ class Savant3
      */
     public function setExceptions($flag)
     {
-        $this->__config ['exceptions'] = ( bool ) $flag;
+        $this->__config ['exceptions'] = (bool) $flag;
     }
-    
+
     /**
      *
      * Sets whether or not variables will be extracted.
@@ -428,9 +409,9 @@ class Savant3
      */
     public function setExtract($flag)
     {
-        $this->__config ['extract'] = ( bool ) $flag;
+        $this->__config ['extract'] = (bool) $flag;
     }
-    
+
     /**
      *
      * Sets config array for a plugin.
@@ -450,7 +431,7 @@ class Savant3
     {
         $this->__config ['plugin_conf'] [$plugin] = $config;
     }
-    
+
     /**
      *
      * Sets the template name to use.
@@ -467,13 +448,13 @@ class Savant3
     {
         $this->__config ['template'] = $template;
     }
-    
+
     // -----------------------------------------------------------------
     //
     // Output escaping and management.
     //
     // -----------------------------------------------------------------
-    
+
     /**
      *
      * Clears then sets the callbacks to use when calling $this->escape().
@@ -497,9 +478,9 @@ class Savant3
      */
     public function setEscape()
     {
-        $this->__config ['escape'] = ( array ) @func_get_args();
+        $this->__config ['escape'] = @func_get_args();
     }
-    
+
     /**
      *
      * Adds to the callbacks used when calling $this->escape().
@@ -523,10 +504,10 @@ class Savant3
      */
     public function addEscape()
     {
-        $args = ( array ) @func_get_args();
+        $args = @func_get_args();
         $this->__config ['escape'] = array_merge($this->__config ['escape'], $args);
     }
-    
+
     /**
      *
      * Gets the array of output-escaping callbacks.
@@ -540,7 +521,7 @@ class Savant3
     {
         return $this->__config ['escape'];
     }
-    
+
     /**
      *
      * Applies escaping to a value.
@@ -584,34 +565,24 @@ class Savant3
             // no, only a value was passed.
             // loop through the predefined callbacks.
             foreach ($this->__config ['escape'] as $func) {
-                // this if() shaves 0.001sec off of 300 calls.
-                if (is_string($func)) {
-                    $value = $func ( $value );
-                } else {
-                    $value = call_user_func($func, $value);
-                }
+                $value = $func($value);
             }
         } else {
             // yes, use the custom callbacks
             $callbacks = func_get_args();
-            
+
             // drop $value
             array_shift($callbacks);
-            
+
             // loop through custom callbacks.
             foreach ($callbacks as $func) {
-                // this if() shaves 0.001sec off of 300 calls.
-                if (is_string($func)) {
-                    $value = $func ( $value );
-                } else {
-                    $value = call_user_func($func, $value);
-                }
+                $value = $func($value);
             }
         }
-        
+
         return $value;
     }
-    
+
     /**
      *
      * Prints a value after escaping it for output.
@@ -652,19 +623,16 @@ class Savant3
             echo $this->escape($value);
         } else {
             $args = func_get_args();
-            echo call_user_func_array(array (
-                    $this,
-                    'escape'
-            ), $args);
+            echo $this->escape(...$args);
         }
     }
-    
+
     // -----------------------------------------------------------------
     //
     // File management
     //
     // -----------------------------------------------------------------
-    
+
     /**
      *
      * Sets an entire array of search paths for templates or resources.
@@ -685,8 +653,8 @@ class Savant3
     public function setPath($type, $path)
     {
         // clear out the prior search dirs
-        $this->__config [$type . '_path'] = array ();
-        
+        $this->__config [$type . '_path'] =  [];
+
         // always add the fallback directories as last resort
         switch (strtolower($type)) {
             case 'template':
@@ -695,14 +663,14 @@ class Savant3
                 break;
             case 'resource':
                 // the Savant3 distribution resources
-                $this->addPath($type, dirname(__FILE__) . '/Savant3/resources/');
+                $this->addPath($type, __DIR__ . '/Savant3/resources/');
                 break;
         }
-        
+
         // actually add the user-specified directories
         $this->addPath($type, $path);
     }
-    
+
     /**
      *
      * Adds to the search path for templates and resources.
@@ -722,7 +690,7 @@ class Savant3
             // the path config is a string, and it's not a stream
             // identifier (the "://" piece). add it as a path string.
             $path = explode(PATH_SEPARATOR, $path);
-            
+
             // typically in path strings, the first one is expected
             // to be searched first. however, Savant3 uses a stack,
             // so the first would be last. reverse the path string
@@ -732,26 +700,26 @@ class Savant3
             // just force to array
             settype($path, 'array');
         }
-        
+
         // loop through the path directories
         foreach ($path as $dir) {
             // no surrounding spaces allowed!
-            $dir = trim($dir);
-            
+            $dir = trim((string) $dir);
+
             // add trailing separators as needed
-            if (strpos($dir, '://') && substr($dir, - 1) != '/') {
+            if (strpos($dir, '://') && !str_ends_with($dir, '/')) {
                 // stream
                 $dir .= '/';
             } elseif (substr($dir, - 1) != DIRECTORY_SEPARATOR) {
                 // directory
                 $dir .= DIRECTORY_SEPARATOR;
             }
-            
+
             // add to the top of the search dirs
             array_unshift($this->__config [$type . '_path'], $dir);
         }
     }
-    
+
     /**
      *
      * Searches the directory paths for a given file.
@@ -770,14 +738,14 @@ class Savant3
     {
         // get the set of paths
         $set = $this->__config [$type . '_path'];
-        
+
         // start looping through the path set
         foreach ($set as $path) {
             // get the path to the file
             $fullname = $path . $file;
-            
+
             // is the path based on a stream?
-            if (strpos($path, '://') === false) {
+            if (!str_contains((string) $path, '://')) {
                 // not a stream, so do a realpath() to avoid
                 // directory traversal attempts on the local file
                 // system. Suggested by Ian Eure, initially
@@ -786,26 +754,26 @@ class Savant3
                 $path = realpath($path); // needed for substr() later
                 $fullname = realpath($fullname);
             }
-            
+
             // the substr() check added by Ian Eure to make sure
             // that the realpath() results in a directory registered
-            // with Savant so that non-registered directores are not
+            // with Savant so that non-registered directories are not
             // accessible via directory traversal attempts.
-            if (file_exists($fullname) && is_readable($fullname) && substr($fullname, 0, strlen($path)) == $path) {
+            if (file_exists($fullname) && is_readable($fullname) && str_starts_with($fullname, (string) $path)) {
                 return $fullname;
             }
         }
-        
+
         // could not find the file in the set of paths
         return false;
     }
-    
+
     // -----------------------------------------------------------------
     //
     // Variable and reference assignment
     //
     // -----------------------------------------------------------------
-    
+
     /**
      *
      * Sets variables for the template (by copy).
@@ -852,7 +820,7 @@ class Savant3
         // get the arguments; there may be 1 or 2.
         $arg0 = @func_get_arg(0);
         $arg1 = @func_get_arg(1);
-        
+
         // assign from object
         if (is_object($arg0)) {
             // assign public properties
@@ -865,7 +833,7 @@ class Savant3
 
             return true;
         }
-        
+
         // assign from associative array
         if (is_array($arg0)) {
             foreach ($arg0 as $key => $val) {
@@ -877,17 +845,17 @@ class Savant3
 
             return true;
         }
-        
+
         // assign by name and value (can't assign to __config).
         if (is_string($arg0) && func_num_args() > 1 && $arg0 != '__config') {
             $this->$arg0 = $arg1;
             return true;
         }
-        
+
         // $arg0 was not object, array, or string.
         return false;
     }
-    
+
     /**
      *
      * Sets variables for the template (by reference).
@@ -920,13 +888,13 @@ class Savant3
             return false;
         }
     }
-    
+
     // -----------------------------------------------------------------
     //
     // Template processing
     //
     // -----------------------------------------------------------------
-    
+
     /**
      *
      * Displays a template directly (equivalent to <code>echo $tpl</code>).
@@ -943,7 +911,7 @@ class Savant3
     {
         echo $this->getOutput($tpl);
     }
-    
+
     /**
      * Returns output, including error_text if an error occurs.
      *
@@ -963,7 +931,7 @@ class Savant3
             return $output;
         }
     }
-    
+
     /**
      *
      * Compiles, executes, and filters a template source.
@@ -983,10 +951,10 @@ class Savant3
         if (is_null($tpl)) {
             $tpl = $this->__config ['template'];
         }
-        
+
         // get a path to the compiled template script
         $result = $this->template($tpl);
-        
+
         // did we get a path?
         if (! $result || $this->isError($result)) {
             // no. return the error result.
@@ -998,16 +966,16 @@ class Savant3
             $this->__config ['fetch'] = $result;
             unset($result);
             unset($tpl);
-            
+
             // are we doing extraction?
             if ($this->__config ['extract']) {
                 // pull variables into the local scope.
                 extract(get_object_vars($this), EXTR_REFS);
             }
-            
+
             // buffer output so we can return it instead of displaying.
             ob_start();
-            
+
             // are we using filters?
             if ($this->__config ['filters']) {
                 // use a second buffer to apply filters. we used to set
@@ -1021,13 +989,13 @@ class Savant3
                 // no filters being used.
                 include $this->__config ['fetch'];
             }
-            
+
             // reset the fetch script value, get the buffer, and return.
             $this->__config ['fetch'] = null;
             return ob_get_clean();
         }
     }
-    
+
     /**
      *
      * Compiles a template and returns path to compiled script.
@@ -1058,49 +1026,46 @@ class Savant3
         if (is_null($tpl)) {
             $tpl = $this->__config ['template'];
         }
-        
+
         // find the template source.
         $file = $this->findFile('template', $tpl);
         if (! $file) {
-            return $this->error('ERR_TEMPLATE', array (
+            return $this->error('ERR_TEMPLATE', [
                     'template' => $tpl
-            ));
+            ]);
         }
-        
+
         // are we compiling source into a script?
         if ($this->__config ['compiler']) {
             // compile the template source and get the path to the
             // compiled script (will be returned instead of the
             // source path)
-            $result = call_user_func(array (
-                    $this->__config ['compiler'],
-                    'compile'
-            ), $file);
+            $result = ($this->__config['compiler'])::compile($file);
         } else {
             // no compiling requested, use the source path
             $result = $file;
         }
-        
+
         // is there a script from the compiler?
         if (! $result || $this->isError($result)) {
             // return an error, along with any error info
             // generated by the compiler.
-            return $this->error('ERR_COMPILER', array (
+            return $this->error('ERR_COMPILER', [
                     'template' => $tpl,
                     'compiler' => $result
-            ));
+            ]);
         } else {
             // no errors, the result is a path to a script
             return $result;
         }
     }
-    
+
     // -----------------------------------------------------------------
     //
     // Filter management and processing
     //
     // -----------------------------------------------------------------
-    
+
     /**
      *
      * Resets the filter stack to the provided list of callbacks.
@@ -1115,9 +1080,9 @@ class Savant3
      */
     public function setFilters()
     {
-        $this->__config ['filters'] = ( array ) @func_get_args();
+        $this->__config ['filters'] = @func_get_args();
     }
-    
+
     /**
      *
      * Adds filter callbacks to the stack of filters.
@@ -1134,30 +1099,25 @@ class Savant3
     {
         // add the new filters to the static config variable
         // via the reference
-        foreach (( array ) @func_get_args() as $callback) {
+        foreach (@func_get_args() as $callback) {
             $this->__config ['filters'] [] = $callback;
         }
     }
-    
+
     /**
-     *
      * Runs all filter callbacks on buffered output.
      *
      * @access protected
-     *
-     * @param
-     *          string The template output.
-     *
-     * @return void
-     *
+     * @param string $buffer The template output.
+     * @return string The filtered template output.
      */
-    protected function applyFilters($buffer)
+    protected function applyFilters(string $buffer): string
     {
         $autoload = $this->__config ['autoload'];
         foreach ($this->__config ['filters'] as $callback) {
             // if the callback is a static Savant3_Filter method,
             // and not already loaded, try to auto-load it.
-            if (is_array($callback) && is_string($callback [0]) && substr($callback [0], 0, 15) == 'Savant3_Filter_' && ! class_exists($callback [0], $autoload)) {
+            if (is_array($callback) && is_string($callback [0]) && str_starts_with($callback [0], 'Savant3_Filter_') && ! class_exists($callback [0], $autoload)) {
                 // load the Savant3_Filter_*.php resource
                 $file = $callback [0] . '.php';
                 $result = $this->findFile('resource', $file);
@@ -1165,20 +1125,20 @@ class Savant3
                     include_once $result;
                 }
             }
-            
+
             // can't pass a third $this param, it chokes the OB system.
-            $buffer = call_user_func($callback, $buffer);
+            $buffer = $callback($buffer);
         }
-        
+
         return $buffer;
     }
-    
+
     // -----------------------------------------------------------------
     //
     // Error handling
     //
     // -----------------------------------------------------------------
-    
+
     /**
      *
      * Returns an error object or throws an exception.
@@ -1202,37 +1162,37 @@ class Savant3
      * @return object Savant3_Error
      *
      */
-    public function error($code, $info = array(), $level = E_USER_ERROR, $trace = true)
+    public function error($code, $info = [], $level = E_USER_ERROR, $trace = true)
     {
         $autoload = $this->__config ['autoload'];
-        
+
         // are we throwing exceptions?
         if ($this->__config ['exceptions']) {
             if (! class_exists('Savant3_Exception', $autoload)) {
-                include_once dirname(__FILE__) . '/Savant3/Exception.php';
+                include_once __DIR__ . '/Savant3/Exception.php';
             }
 
             throw new Savant3_Exception($code);
         }
-        
+
         // the error config array
-        $config = array (
+        $config =  [
                 'code' => $code,
-                'info' => ( array ) $info,
+                'info' => (array) $info,
                 'level' => $level,
                 'trace' => $trace
-        );
-        
+        ];
+
         // make sure the Savant3 error class is available
         if (! class_exists('Savant3_Error', $autoload)) {
-            include_once dirname(__FILE__) . '/Savant3/Error.php';
+            include_once __DIR__ . '/Savant3/Error.php';
         }
-        
+
         // return it
         $err = new Savant3_Error($config);
         return $err;
     }
-    
+
     /**
      *
      * Tests if an object is of the Savant3_Error class.
@@ -1249,7 +1209,7 @@ class Savant3
     public function isError($obj)
     {
         $autoload = $this->__config ['autoload'];
-        
+
         // is it even an object?
         if (! is_object($obj)) {
             // not an object, so can't be a Savant3_Error
@@ -1258,7 +1218,7 @@ class Savant3
             // make sure the Savant3 error class is available for
             // comparison
             if (! class_exists('Savant3_Error', $autoload)) {
-                include_once dirname(__FILE__) . '/Savant3/Error.php';
+                include_once __DIR__ . '/Savant3/Error.php';
             }
 
             // now compare the parentage

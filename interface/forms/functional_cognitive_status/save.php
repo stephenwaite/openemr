@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Functional cognitive status form save.php.
  *
@@ -12,20 +13,21 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+require_once(__DIR__ . "/../../globals.php");
+require_once("$srcdir/api.inc.php");
+require_once("$srcdir/forms.inc.php");
 
-require_once("../../globals.php");
-require_once("$srcdir/api.inc");
-require_once("$srcdir/forms.inc");
+use OpenEMR\Common\Csrf\CsrfUtils;
 
-if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-    csrfNotVerified();
+if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+    CsrfUtils::csrfNotVerified();
 }
 
 if (!$encounter) { // comes from globals.php
     die(xlt("Internal error: we do not seem to be in an encounter!"));
 }
 
-$id = 0 + (isset($_GET['id']) ? $_GET['id'] : '');
+$id = (int) ($_GET['id'] ?? '');
 $code = $_POST["code"];
 $code_text = $_POST["codetext"];
 $code_date = $_POST["code_date"];
@@ -33,16 +35,12 @@ $code_des = $_POST["description"];
 $code_activity = $_POST["activity1"];
 
 if ($id && $id != 0) {
-    sqlStatement("DELETE FROM `form_functional_cognitive_status` WHERE id=? AND pid = ? AND encounter = ?", array($id, $_SESSION["pid"], $_SESSION["encounter"]));
+    sqlStatement("DELETE FROM `form_functional_cognitive_status` WHERE id=? AND pid = ? AND encounter = ?", [$id, $_SESSION["pid"], $_SESSION["encounter"]]);
     $newid = $id;
 } else {
     $res2 = sqlStatement("SELECT MAX(id) as largestId FROM `form_functional_cognitive_status`");
     $getMaxid = sqlFetchArray($res2);
-    if ($getMaxid['largestId']) {
-        $newid = $getMaxid['largestId'] + 1;
-    } else {
-        $newid = 1;
-    }
+    $newid = $getMaxid['largestId'] ? $getMaxid['largestId'] + 1 : 1;
 
     addForm($encounter, "Functional and Cognitive Status Form", $newid, "functional_cognitive_status", $_SESSION["pid"], $userauthorized);
 }
@@ -56,13 +54,13 @@ if (!empty($code_text)) {
             groupname = ?,
             user = ?,
             encounter = ?,
-            authorized = ?, 
-            activity = '?,
+            authorized = ?,
+            activity = ?,
             code = ?,
             codetext = ?,
             description= ?,
             date = ?";
-        sqlInsert(
+        sqlStatement(
             "INSERT INTO form_functional_cognitive_status SET $sets",
             [
                 $newid,
@@ -81,7 +79,6 @@ if (!empty($code_text)) {
     endforeach;
 }
 
-$_SESSION["encounter"] = $encounter;
 formHeader("Redirecting....");
 formJump();
 formFooter();

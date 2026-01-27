@@ -1,26 +1,13 @@
 <?php
-/** @package    Openemr::Model::DAO */
 
 /**
+ * OnsiteDocumentMap.php
  *
- * Copyright (C) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
- *
- * LICENSE: This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @package OpenEMR
- * @author Jerry Padgett <sjpadgett@gmail.com>
- * @link http://www.open-emr.org
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
 /** import supporting libraries */
@@ -43,10 +30,9 @@ require_once("verysimple/Phreeze/IDaoMap2.php");
  */
 class OnsiteDocumentMap implements IDaoMap, IDaoMap2
 {
-
     private static $KM;
     private static $FM;
-    
+
     /**
      * {@inheritdoc}
      */
@@ -55,7 +41,7 @@ class OnsiteDocumentMap implements IDaoMap, IDaoMap2
         self::GetFieldMaps();
         self::$FM[$property] = $map;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -71,7 +57,7 @@ class OnsiteDocumentMap implements IDaoMap, IDaoMap2
     public static function GetFieldMaps()
     {
         if (self::$FM == null) {
-            self::$FM = array();
+            self::$FM = [];
             self::$FM["Id"] = new FieldMap("Id", "onsite_documents", "id", true, FM_TYPE_INT, 10, null, true);
             self::$FM["Pid"] = new FieldMap("Pid", "onsite_documents", "pid", false, FM_TYPE_INT, 10, null, false);
             self::$FM["Facility"] = new FieldMap("Facility", "onsite_documents", "facility", false, FM_TYPE_INT, 10, null, false);
@@ -91,6 +77,7 @@ class OnsiteDocumentMap implements IDaoMap, IDaoMap2
             self::$FM["FullDocument"] = new FieldMap("FullDocument", "onsite_documents", "full_document", false, FM_TYPE_BLOB, null, null, false);
             self::$FM["FileName"] = new FieldMap("FileName", "onsite_documents", "file_name", false, FM_TYPE_VARCHAR, 255, null, false);
             self::$FM["FilePath"] = new FieldMap("FilePath", "onsite_documents", "file_path", false, FM_TYPE_VARCHAR, 255, null, false);
+            self::$FM["TemplateData"] = new FieldMap("TemplateData", "onsite_documents", "template_data", false, FM_TYPE_LONGTEXT, null, null, false);
         }
 
         return self::$FM;
@@ -102,7 +89,7 @@ class OnsiteDocumentMap implements IDaoMap, IDaoMap2
     public static function GetKeyMaps()
     {
         if (self::$KM == null) {
-            self::$KM = array();
+            self::$KM = [];
         }
 
         return self::$KM;

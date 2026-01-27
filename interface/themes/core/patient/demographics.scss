@@ -4,23 +4,33 @@
  * Patient Demographics are a custom layout.
  *============================================================*/
 
-#DEM .groupname {
-    font-weight: bold;
-    color: #080;
-    font-size: 0.8em;
-    padding-right: 5px;
-    vertical-align: top;
-}
-#DEM .label_custom {
-    font-weight: bold;
-    font-size: 0.8em;
-    vertical-align: top;
-    text-align: $right;
-}
-#DEM .data {
-    font-size: 0.8em;
-    vertical-align: top;
-    text-align: $left;
-    padding-right: 6px;
-    /*30px - ie 6 fix*/
+@if $compact-theme == false {
+  #DEM {
+    .groupname {
+      @include font-size("0.8rem");
+      color: $success;
+      font-weight: bold;
+      padding-right: 5px;
+      vertical-align: top;
+    }
+
+    .label_custom {
+      @include font-size("0.8rem");
+      font-weight: bold;
+      text-align: $left;
+      vertical-align: top;
+    }
+
+    .data {
+      @include font-size("0.8rem");
+      padding-right: 6px;
+      text-align: $left;
+      vertical-align: top;
+    }
+
+    .form-control {
+      display: inline;
+      width: auto;
+    }
+  }
 }

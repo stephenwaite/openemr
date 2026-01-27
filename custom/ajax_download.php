@@ -1,70 +1,62 @@
 <?php
+
 /**
  *
  * QRDA Ajax Download
  *
- * Copyright (C) 2015 Ensoftek, Inc
- *
- * LICENSE: This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://opensource.org/licenses/gpl-license.php>;.
- *
- * @package OpenEMR
- * @author  Ensoftek
- * @link    http://www.open-emr.org
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Ensoftek
+ * @author    Stephen Waite <stephen.waite@cmsvt.com
+ * @copyright Copyright (c) 2015 Ensoftek, Inc
+ * @copyright Copyright (c) 2019 Stephen Waite <stephen.waite@cmsvt.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
-
-
 require_once("../interface/globals.php");
-require_once("$srcdir/report_database.inc");
+require_once("$srcdir/report_database.inc.php");
 require_once("../ccr/uuid.php");
 require_once("qrda_category1_functions.php");
-require_once("qrda_category1.inc");
+require_once("qrda_category1.inc.php");
 require_once("qrda_functions.php");
 
-if (!verifyCsrfToken($_REQUEST["csrf_token_form"])) {
-    csrfNotVerified();
+use OpenEMR\Common\Csrf\CsrfUtils;
+
+if (!CsrfUtils::verifyCsrfToken($_REQUEST["csrf_token_form"])) {
+    CsrfUtils::csrfNotVerified();
 }
 
 $reportID = $_POST['reportID'];
 $ruleID = $_POST['ruleID'];
 $counter = $_POST['counter'];
-$fileName = ( isset($_GET['fileName']) ) ? $_GET['fileName'] : "";
+$fileName = $_GET['fileName'] ?? "";
 $provider_id = $_POST['provider_id'];
 
 if ($fileName) {
-    $fileList = explode(",", $fileName);
+    $fileList = explode(",", (string) $fileName);
     //if ( strpos($fileName,",") !== FALSE ) {
     if (count($fileList) > 1) {
         // Multiple files, zip them together
-        $zip = new ZipArchive;
+        $zip = new ZipArchive();
         $currentTime = date("Y-m-d-H-i-s");
         global $qrda_file_path;
         $finalZip = $qrda_file_path . "QRDA_2014_1_" . $currentTime . ".zip";
-        if ($zip->open($finalZip, ZIPARCHIVE::CREATE) != true) {
+        if ($zip->open($finalZip, ZipArchive::CREATE) != true) {
             echo xlt("FAILURE: Couldn't create the zip");
         }
 
         foreach ($fileList as $eachFile) {
             check_file_dir_name($eachFile);
-            $zip->addFile($qrda_file_path.$eachFile, $eachFile);
+            $zip->addFile($qrda_file_path . $eachFile, $eachFile);
         }
 
         $zip->close();
         foreach ($fileList as $eachFile) {
-            unlink($qrda_file_path.$eachFile);
+            unlink($qrda_file_path . $eachFile);
         }
     } else {
-        $finalZip = $qrda_file_path.$fileList[0];
+        check_file_dir_name($fileList[0]);
+        $finalZip = $qrda_file_path . $fileList[0];
     }
 
     header("Pragma: public");
@@ -80,7 +72,7 @@ if ($fileName) {
 }
 
 $report_view = collectReportDatabase($reportID);
-$dataSheet = json_decode($report_view['data'], true);
+$dataSheet = json_decode((string) $report_view['data'], true);
 $target_date = $report_view['date_target'];
 
 $criteriaPatients = getCombinePatients($dataSheet, $reportID);
@@ -88,11 +80,11 @@ $patients = $criteriaPatients[$ruleID];
 
 //var_dump($dataSheet);
 
-$from_date = date('Y', strtotime($target_date))."-01-01";
-$to_date =  date('Y', strtotime($target_date))."-12-31";
+$from_date = date('Y', strtotime((string) $target_date)) . "-01-01";
+$to_date =  date('Y', strtotime((string) $target_date)) . "-12-31";
 
 if (count($patients)) {
-    $zip = new ZipArchive;
+    $zip = new ZipArchive();
     global $qrda_file_path;
     $currentTime = date("Y-m-d-H-i-s");
     $zipFile = $reportID . "_NQF_" . $ruleID . "_" . $currentTime . ".zip";
@@ -107,7 +99,7 @@ if (count($patients)) {
         $files[] = $fileName;
     }
 
-    if ($zip->open($zipFileFullPath, ZIPARCHIVE::CREATE) != true) {
+    if ($zip->open($zipFileFullPath, ZipArchive::CREATE) != true) {
         echo xlt("FAILURE: Couldn't create the zip");
     }
 

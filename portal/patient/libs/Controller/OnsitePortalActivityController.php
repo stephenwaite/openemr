@@ -1,30 +1,19 @@
 <?php
-/** @package    Patient Portal::Controller */
 
 /**
+ * OnsitePortalActivityController.php
  *
- * Copyright (C) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
- *
- * LICENSE: This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @package OpenEMR
- * @author Jerry Padgett <sjpadgett@gmail.com>
- * @link http://www.open-emr.org
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+use OpenEMR\Core\OEGlobalsBag;
+
 /** import supporting libraries */
-require_once("AppBaseController.php");
+require_once("AppBasePortalController.php");
 require_once("Model/OnsitePortalActivity.php");
 
 /**
@@ -36,9 +25,8 @@ require_once("Model/OnsitePortalActivity.php");
  * @author ClassBuilder
  * @version 1.0
  */
-class OnsitePortalActivityController extends AppBaseController
+class OnsitePortalActivityController extends AppBasePortalController
 {
-
     /**
      * Override here for any controller-specific functionality
      *
@@ -64,10 +52,14 @@ class OnsitePortalActivityController extends AppBaseController
     {
         try {
             $criteria = new OnsitePortalActivityCriteria();
-            $pid = RequestUtil::Get('patientId');
+
+            // only allow patient to see their own activity
+            $bootstrapPid = OEGlobalsBag::getInstance()->get('bootstrap_pid');
+            $pid = !empty($bootstrapPid) ? $bootstrapPid : RequestUtil::Get('patientId');
+
             $activity = RequestUtil::Get('activity');
             $doc = RequestUtil::Get('doc');
-            $doc = $doc ? $doc : 0;
+            $doc = $doc ?: 0;
             $criteria->PatientId_Equals = $pid;
             $criteria->Activity_Equals = $activity;
             $criteria->TableArgs_Equals = $doc;
@@ -118,6 +110,12 @@ class OnsitePortalActivityController extends AppBaseController
         try {
             $pk = $this->GetRouter()->GetUrlParam('id');
             $onsiteportalactivity = $this->Phreezer->Get('OnsitePortalActivity', $pk);
+            // only allow patient to update onsiteportalactivity about themself
+            $bootstrapPid = OEGlobalsBag::getInstance()->get('bootstrap_pid');
+            if (!empty($bootstrapPid) && $bootstrapPid != $onsiteportalactivity->PatientId) {
+                $error = 'Unauthorized';
+                throw new Exception($error);
+            }
             $this->RenderJSON($onsiteportalactivity, $this->JSONPCallback(), true, $this->SimpleObjectParams());
         } catch (Exception $ex) {
             $this->RenderExceptionJSON($ex);
@@ -143,8 +141,12 @@ class OnsitePortalActivityController extends AppBaseController
             // this is an auto-increment.  uncomment if updating is allowed
             // $onsiteportalactivity->Id = $this->SafeGetVal($json, 'id');
 
-            $onsiteportalactivity->Date = date('Y-m-d H:i:s', strtotime($this->SafeGetVal($json, 'date')));
-            $onsiteportalactivity->PatientId = $this->SafeGetVal($json, 'patientId');
+            $onsiteportalactivity->Date = date('Y-m-d H:i:s', strtotime((string) $this->SafeGetVal($json, 'date')));
+
+            // only allow patient to create onsiteportalactivity about themself
+            $bootstrapPid = OEGlobalsBag::getInstance()->get('bootstrap_pid');
+            $onsiteportalactivity->PatientId = !empty($bootstrapPid) ? $bootstrapPid : $this->SafeGetVal($json, 'patientId');
+
             $onsiteportalactivity->Activity = $this->SafeGetVal($json, 'activity');
             $onsiteportalactivity->RequireAudit = $this->SafeGetVal($json, 'requireAudit');
             $onsiteportalactivity->PendingAction = $this->SafeGetVal($json, 'pendingAction');
@@ -154,7 +156,7 @@ class OnsitePortalActivityController extends AppBaseController
             $onsiteportalactivity->TableAction = $this->SafeGetVal($json, 'tableAction');
             $onsiteportalactivity->TableArgs = $this->SafeGetVal($json, 'tableArgs');
             $onsiteportalactivity->ActionUser = $this->SafeGetVal($json, 'actionUser');
-            $onsiteportalactivity->ActionTakenTime = date('Y-m-d H:i:s', strtotime($this->SafeGetVal($json, 'actionTakenTime')));
+            $onsiteportalactivity->ActionTakenTime = date('Y-m-d H:i:s', strtotime((string) $this->SafeGetVal($json, 'actionTakenTime')));
             $onsiteportalactivity->Checksum = $this->SafeGetVal($json, 'checksum');
 
             $onsiteportalactivity->Validate();
@@ -186,12 +188,20 @@ class OnsitePortalActivityController extends AppBaseController
             $pk = $this->GetRouter()->GetUrlParam('id');
             $onsiteportalactivity = $this->Phreezer->Get('OnsitePortalActivity', $pk);
 
+            // only allow patient to update onsiteportalactivity about themself
+            $bootstrapPid = OEGlobalsBag::getInstance()->get('bootstrap_pid');
+            if (!empty($bootstrapPid)) {
+                if ($bootstrapPid != $this->SafeGetVal($json, 'patientId', $onsiteportalactivity->PatientId)) {
+                    throw new Exception('Bad PID');
+                }
+            }
+
             // TODO: any fields that should not be updated by the user should be commented out
 
             // this is a primary key.  uncomment if updating is allowed
             // $onsiteportalactivity->Id = $this->SafeGetVal($json, 'id', $onsiteportalactivity->Id);
 
-            $onsiteportalactivity->Date = date('Y-m-d H:i:s', strtotime($this->SafeGetVal($json, 'date', $onsiteportalactivity->Date)));
+            $onsiteportalactivity->Date = date('Y-m-d H:i:s', strtotime((string) $this->SafeGetVal($json, 'date', $onsiteportalactivity->Date)));
             $onsiteportalactivity->PatientId = $this->SafeGetVal($json, 'patientId', $onsiteportalactivity->PatientId);
             $onsiteportalactivity->Activity = $this->SafeGetVal($json, 'activity', $onsiteportalactivity->Activity);
             $onsiteportalactivity->RequireAudit = $this->SafeGetVal($json, 'requireAudit', $onsiteportalactivity->RequireAudit);
@@ -202,7 +212,7 @@ class OnsitePortalActivityController extends AppBaseController
             $onsiteportalactivity->TableAction = $this->SafeGetVal($json, 'tableAction', $onsiteportalactivity->TableAction);
             $onsiteportalactivity->TableArgs = $this->SafeGetVal($json, 'tableArgs', $onsiteportalactivity->TableArgs);
             $onsiteportalactivity->ActionUser = $this->SafeGetVal($json, 'actionUser', $onsiteportalactivity->ActionUser);
-            $onsiteportalactivity->ActionTakenTime = date('Y-m-d H:i:s', strtotime($this->SafeGetVal($json, 'actionTakenTime', $onsiteportalactivity->ActionTakenTime)));
+            $onsiteportalactivity->ActionTakenTime = date('Y-m-d H:i:s', strtotime((string) $this->SafeGetVal($json, 'actionTakenTime', $onsiteportalactivity->ActionTakenTime)));
             $onsiteportalactivity->Checksum = $this->SafeGetVal($json, 'checksum', $onsiteportalactivity->Checksum);
 
             $onsiteportalactivity->Validate();
@@ -225,7 +235,7 @@ class OnsitePortalActivityController extends AppBaseController
     public function Delete()
     {
         try {
-            // TODO: if a soft delete is prefered, change this to update the deleted flag instead of hard-deleting
+            // TODO: if a soft delete is preferred, change this to update the deleted flag instead of hard-deleting
 
             $pk = $this->GetRouter()->GetUrlParam('id');
             $onsiteportalactivity = $this->Phreezer->Get('OnsitePortalActivity', $pk);

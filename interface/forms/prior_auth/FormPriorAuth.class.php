@@ -1,4 +1,5 @@
 <?php
+
 /**
  * prior auth form
  *
@@ -9,14 +10,14 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+ use OpenEMR\Common\ORDataObject\ORDataObject;
 
 /**
  * class PriorAuth
  *
  */
-class FormPriorAuth extends ORDataObject
+class FormPriorAuth extends ORDataObject implements \Stringable
 {
-
     /**
      *
      * @access public
@@ -29,21 +30,24 @@ class FormPriorAuth extends ORDataObject
      * @access private
      */
 
-    var $id;
-    var $date;
-    var $pid;
-    var $activity;
-    var $prior_auth_number;
-    var $comments;
-
+    public $id;
+    public $pid;
+    public $activity;
+    public $date;
+    public $prior_auth_number;
+    public $comments;
+    public $date_from;
+    public $date_to;
 
     /**
      * Constructor sets all Form attributes to their default value
      */
 
-    function __construct($id = "", $_prefix = "")
+    function __construct($id = "")
     {
         parent::__construct();
+
+        $this->_table = "form_prior_auth";
 
         if (is_numeric($id)) {
             $this->id = $id;
@@ -51,17 +55,19 @@ class FormPriorAuth extends ORDataObject
             $id = "";
         }
 
-        $this->_table = "form_prior_auth";
-        $this->date = date("Y-m-d H:i:s");
-        $this->activity = 1;
         $this->pid = $GLOBALS['pid'];
+        $this->activity = 1;
+        $this->date = date("Y-m-d H:i:s");
         $this->prior_auth_number = "";
+        $this->date_from = date("Y-m-d");
+        $this->date_to = null;
+
         if ($id != "") {
             $this->populate();
         }
     }
 
-    function __toString()
+    function __toString(): string
     {
         return "ID: " . $this->id . "\n";
     }
@@ -123,4 +129,25 @@ class FormPriorAuth extends ORDataObject
     {
         return $this->date;
     }
-}   // end of Form
+
+    function get_date_from()
+    {
+        return $this->date_from;
+    }
+
+    function set_date_from($dt)
+    {
+        $this->date_from = $dt;
+    }
+
+    function get_date_to()
+    {
+        return $this->date_to;
+    }
+
+    function set_date_to($dt)
+    {
+        $this->date_to = $dt;
+    }
+}
+// end of Form

@@ -1,9 +1,11 @@
 <?php
+
 /** @package    verysimple::Authentication */
 
 /**
  * import supporting libraries
  */
+use OpenEMR\Common\Session\SessionWrapperFactory;
 require_once("IAuthenticatable.php");
 require_once("AuthenticationException.php");
 
@@ -26,13 +28,14 @@ class Authenticator
     {
         if (! self::$is_initialized) {
             self::$is_initialized = true;
-            
+
             if (session_id() == '') {
-                @session_start();
+                session_start();
+                error_log("DEBUG: This session_start, which is in Authenticator.php, should never be called.");
             }
         }
     }
-    
+
     /**
      * Returns the currently authenticated user or null
      *
@@ -43,15 +46,16 @@ class Authenticator
     {
         if (self::$user == null) {
             self::Init();
-            
-            if (isset($_SESSION [$guid])) {
-                self::$user = unserialize($_SESSION [$guid]);
+            $session = SessionWrapperFactory::getInstance()->getWrapper();
+            $sessionGuid = $session->get($guid);
+            if (!empty($sessionGuid)) {
+                self::$user = unserialize($sessionGuid);
             }
         }
 
         return self::$user;
     }
-    
+
     /**
      * Set the given IAuthenticable object as the currently authenticated user.
      * UnsetAllSessionVars will be called before setting the current user
@@ -65,20 +69,20 @@ class Authenticator
     {
         self::UnsetAllSessionVars(); // this calls Init so we don't have to here
         self::$user = $user;
-        $_SESSION [$guid] = serialize($user);
+        $session = SessionWrapperFactory::getInstance()->getWrapper();
+        $session->set($guid, serialize($user));
     }
-    
+
     /**
      * Unsets all session variables without destroying the session
      */
     public static function UnsetAllSessionVars()
     {
         self::Init();
-        foreach (array_keys($_SESSION) as $key) {
-            unset($_SESSION [$key]);
-        }
+        $session = SessionWrapperFactory::getInstance()->getWrapper();
+        $session->clear();
     }
-    
+
     /**
      * Forcibly clear all _SESSION variables and destroys the session
      *
@@ -89,10 +93,12 @@ class Authenticator
     {
         self::Init();
         self::$user = null;
-        unset($_SESSION [$guid]);
-        
+        $session = SessionWrapperFactory::getInstance()->getWrapper();
+        $session->remove($guid);
+
         self::UnsetAllSessionVars();
-        
-        @session_destroy();
+
+        session_destroy();
+        error_log("DEBUG: This session_destroy, which is in Authenticator.php, should never be called.");
     }
 }

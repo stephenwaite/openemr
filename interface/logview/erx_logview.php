@@ -1,9 +1,10 @@
 <?php
+
 /**
- * interface/logview/erx_logview.php Display NewCrop errors.
+ * interface/logview/erx_logview.php Display Ensora eRx errors.
  *
  * @package    OpenEMR
- * @subpackage NewCrop
+ * @subpackage Ensora
  * @link       http://www.open-emr.org
  * @author     Eldho Chacko <eldho@zhservices.com>
  * @author     Vinish K <vinish@zhservices.com>
@@ -14,16 +15,16 @@
  * @license    https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+require_once(__DIR__ . '/../globals.php');
 
-require_once(__DIR__.'/../globals.php');
-
+use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
 
-$error_log_path = $GLOBALS['OE_SITE_DIR'].'/documents/erx_error';
+$error_log_path = $GLOBALS['OE_SITE_DIR'] . '/documents/erx_error';
 
 if (array_key_exists('filename', $_GET)) {
-    if (!verifyCsrfToken($_GET["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 
     $filename = $_GET['filename'];
@@ -33,8 +34,8 @@ if (array_key_exists('filename', $_GET)) {
 }
 
 if (array_key_exists('start_date', $_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 
     $start_date = $_POST['start_date'];
@@ -46,20 +47,20 @@ if (array_key_exists('start_date', $_POST)) {
 if ($filename) {
     $bat_content = '';
 
-    preg_match('/erx_error-\d{4}-\d{1,2}-\d{1,2}\.log/', $filename, $matches);
+    preg_match('/erx_error-\d{4}-\d{1,2}-\d{1,2}\.log/', (string) $filename, $matches);
 
     if ($matches) {
-        if ($fd = fopen($error_log_path.'/'.$filename, 'r')) {
-            $bat_content = fread($fd, filesize($error_log_path.'/'.$filename));
+        if ($fd = fopen($error_log_path . '/' . $filename, 'r')) {
+            $bat_content = fread($fd, filesize($error_log_path . '/' . $filename));
         }
 
         header('Pragma: public');
         header('Expires: 0');
         header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
         header('Content-Type: application/force-download');
-        header('Content-Disposition: attachment; filename='.$filename);
+        header('Content-Disposition: attachment; filename=' . $filename);
         header('Content-Description: File Transfer');
-        header('Content-Length: '.strlen($bat_content));
+        header('Content-Length: ' . strlen($bat_content));
 
         echo $bat_content;
 
@@ -70,10 +71,10 @@ if ($filename) {
 ?>
 <html>
     <head>
-        <?php Header::setupHeader(['no_bootstrap', 'no_fontawesome', 'no_textformat', 'datetime-picker']); ?>
+        <?php Header::setupHeader('datetime-picker'); ?>
 
-        <script language="JavaScript">
-            $(document).ready(function(){
+        <script>
+            $(function () {
                 $('.datepicker').datetimepicker({
                     <?php $datetimepicker_timepicker = false; ?>
                     <?php $datetimepicker_showseconds = false; ?>
@@ -87,19 +88,19 @@ if ($filename) {
     </head>
     <body class="body_top">
         <form method="post">
-        <input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+        <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
-        <font class="title"><?php echo xlt('eRx Logs'); ?></font><br><br>
+        <span class="title"><?php echo xlt('eRx Logs'); ?></span><br /><br />
         <table>
             <tr>
                 <td>
                     <span class="text"><?php echo xlt('Date'); ?>: </span>
                 </td>
                 <td>
-                    <input type="text" size="10" class='datepicker' name="start_date" id="start_date" value="<?php echo $start_date ? attr(substr($start_date, 0, 10)) : date('Y-m-d'); ?>" title="<?php echo xla('yyyy-mm-dd Date of service'); ?>" />
+                    <input type="text" size="10" class='datepicker' name="start_date" id="start_date" value="<?php echo $start_date ? attr(substr((string) $start_date, 0, 10)) : date('Y-m-d'); ?>" title="<?php echo xla('yyyy-mm-dd Date of service'); ?>" />
                 </td>
                 <td>
-                    <input type="submit" name="search_logs" value="<?php echo xla('Search'); ?>">
+                    <input type="submit" class="btn btn-primary btn-sm" name="search_logs" value="<?php echo xla('Search'); ?>" />
                 </td>
             </tr>
         </table>
@@ -108,22 +109,22 @@ if ($filename) {
 
     $check_for_file = 0;
 if (array_key_exists('search_logs', $_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 
     if ($handle = opendir($error_log_path)) {
         while (false !== ($file = readdir($handle))) {
-            $file_as_in_folder = 'erx_error-'.$start_date.'.log';
+            $file_as_in_folder = 'erx_error-' . $start_date . '.log';
 
             if ($file != '.' && $file != '..' && $file_as_in_folder == $file) {
                 $check_for_file = 1;
-                $fd = fopen($error_log_path.'/'.$file, 'r');
-                $bat_content = fread($fd, filesize($error_log_path.'/'.$file));
-?>
-                <p><?php echo xlt('Download'); ?>: <a href="erx_logview.php?filename=<?php echo attr_url($file); ?>&csrf_token_form=<?php echo attr_url(collectCsrfToken()); ?>"><?php echo text($file); ?></a></p>
+                $fd = fopen($error_log_path . '/' . $file, 'r');
+                $bat_content = fread($fd, filesize($error_log_path . '/' . $file));
+                ?>
+                <p><?php echo xlt('Download'); ?>: <a href="erx_logview.php?filename=<?php echo attr_url($file); ?>&csrf_token_form=<?php echo attr_url(CsrfUtils::collectCsrfToken()); ?>"><?php echo text($file); ?></a></p>
                 <textarea rows="35" cols="132"><?php echo text($bat_content); ?></textarea>
-<?php
+                <?php
             }
         }
     }

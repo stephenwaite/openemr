@@ -1,69 +1,78 @@
 <?php
-/* +-----------------------------------------------------------------------------+
-*    OpenEMR - Open Source Electronic Medical Record
-*    Copyright (C) 2013 Z&H Consultancy Services Private Limited <sam@zhservices.com>
-*
-*    This program is free software: you can redistribute it and/or modify
-*    it under the terms of the GNU Affero General Public License as
-*    published by the Free Software Foundation, either version 3 of the
-*    License, or (at your option) any later version.
-*
-*    This program is distributed in the hope that it will be useful,
-*    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*    GNU Affero General Public License for more details.
-*
-*    You should have received a copy of the GNU Affero General Public License
-*    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*    @author  Jacob T.Paul <jacob@zhservices.com>
-*    @author  Shalini Balakrishnan  <shalini@zhservices.com>
-*
-* +------------------------------------------------------------------------------+
-*/
 
-return array(
-    'controllers' => array(
-        'invokables' => array(
-            'Installer\Controller\Installer' => 'Installer\Controller\InstallerController',
-        ),
-    ),
+/**
+ * interface/modules/zend_modules/module/Installer/config/module.config.php
+ *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jacob T.Paul <jacob@zhservices.com>
+ * @author    Shalini Balakrishnan  <shalini@zhservices.com>
+ * @copyright Copyright (c) 2013 Z&H Consultancy Services Private Limited <sam@zhservices.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
 
-    'router' => array(
-        'routes' => array(
-            'Installer' => array(
-                'type'    => 'segment',
-                'options' => array(
+use Interop\Container\ContainerInterface;
+use Laminas\ServiceManager\Factory\InvokableFactory;
+use Laminas\Router\Http\Segment;
+use Laminas\ServiceManager\AbstractPluginManager;
+use Laminas\Db\ResultSet\ResultSet;
+use Installer\Model\InstModule;
+use Laminas\Db\Adapter\Adapter;
+
+return [
+    'controllers' => [
+        'factories' => [
+            Installer\Controller\InstallerController::class => function (ContainerInterface $container, $requestedName) {
+                $dbAdapter = $container->get(Adapter::class);
+                $resultSetPrototype = new ResultSet();
+                $resultSetPrototype->setArrayObjectPrototype(new InstModule());
+                $tableGateway = new Installer\Model\InstModuleTableGateway('InstModule', $dbAdapter, null, $resultSetPrototype);
+                $InstModuleTable = new Installer\Model\InstModuleTable($tableGateway, $container);
+                return new Installer\Controller\InstallerController($InstModuleTable);
+            },
+        ]
+    ],
+    'service_manager' => [
+        'factories' => [
+            Installer\Model\InstModuleTable::class => function (ContainerInterface $container, $requestedName) {
+                $dbAdapter = $container->get(Adapter::class);
+                $resultSetPrototype = new ResultSet();
+                $resultSetPrototype->setArrayObjectPrototype(new InstModule());
+                $tableGateway = new Installer\Model\InstModuleTableGateway('InstModule', $dbAdapter, null, $resultSetPrototype);
+                return new Installer\Model\InstModuleTable($tableGateway, $container);
+            },
+        ]
+    ],
+    'router' => [
+        'routes' => [
+            'Installer' => [
+                'type'    => Segment::class,
+                'options' => [
                     'route'    => '/Installer[/:action][/:id]',
-                    'constraints' => array(
+                    'constraints' => [
                         'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
                         'id'     => '[0-9]+',
-                    ),
-                    'defaults' => array(
-                        'controller' => 'Installer\Controller\Installer',
+                    ],
+                    'defaults' => [
+                        'controller' => Installer\Controller\InstallerController::class,
                         'action'     => 'index',
-                    ),
-                ),
-            ),
-          
-                ),
-            ),
+                    ],
+                ],
+            ],
 
-    'view_manager' => array(
-        'template_map' => array(
+        ],
+    ],
+    'view_manager' => [
+        'template_map' => [
              'site/layout' => __DIR__ . '/../view/layout/layout.phtml',
-        ),
-        'template_path_stack' => array(
+        ],
+        'template_path_stack' => [
             'installer' => __DIR__ . '/../view',
-        ),
+        ],
         'layout' => 'site/layout',
-    ),
-    'session' => array(
-                    'remember_me_seconds' => 2419200,
-                    'use_cookies' => true,
-                    'cookie_httponly' => true,
-    ),
-    'moduleconfig' => array(
+    ],
+    'moduleconfig' => [
 
-    ),
+    ],
 
-);
+];

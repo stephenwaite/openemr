@@ -1,172 +1,174 @@
 <?php
-/*
+
+/**
  * Download documents from OpenEMR to the patient portal in a zip file(get_patient_documents.php)
- *
  * This program is used to download patient documents in a zip file in the Patient Portal.
+ * Added parse and show documents for selection instead of all by default
  * The original author did not pursue this but I thought it would be a good addition to
  * the patient portal
  *
- * Copyright (C) 2015-2017 Terry Hill <terry@lillysystems.com>
- * Copyright (C) 2012 Giorgos Vasilakos <giorg.vasilakos@gmail.com>
- *
- * LICENSE: This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 3
- * of the License, or (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://opensource.org/licenses/gpl-license.php>;.
- *
- * @package OpenEMR
- * @author Terry Hill <terry@lilysystems.com>
- * @author Giorgos Vasilakos <giorg.vasilakos@gmail.com>
- * @link http://www.open-emr.org
- *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Giorgos Vasilakos <giorg.vasilakos@gmail.com>
+ * @author    Terry Hill <terry@lilysystems.com>
+ * @author    Stephen Waite <stephen.waite@cmsvt.com>
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2012 Giorgos Vasilakos <giorg.vasilakos@gmail.com>
+ * @copyright Copyright (c) 2015-2017 Terry Hill <terry@lillysystems.com>
+ * @copyright Copyright (c) 2019 Stephen Waite <stephen.waite@cmsvt.com>
+ * @copyright Copyright (c) 2017-2024 Jerry Padgett <sjpadgett@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-    require_once("verify_session.php");
-    include_once("$srcdir/documents.php");
-    require_once($GLOBALS['fileroot'] . "/controllers/C_Document.class.php");
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Core\Header;
+use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Common\Session\SessionWrapperFactory;
 
-    // TODO: see if this can be removed (test in PHP 5 and 7)... throwing a warning
-    use C_Document;
+// Need access to classes, so run autoloader now instead of in globals.php.
+require_once(__DIR__ . "/../vendor/autoload.php");
+$globalsBag = OEGlobalsBag::getInstance();
+$session = SessionWrapperFactory::getInstance()->getWrapper();
 
-    // get the temporary folder
-    $tmp = $GLOBALS['temporary_files_dir'];
-    // get all the documents of the patient
-    $sql = "SELECT url, id, mimetype FROM `documents` WHERE `foreign_id` = ?";
-    $fres = sqlStatement($sql, array($pid));
+require_once("./verify_session.php");
+/**
+ * @Global $srcdir openemr src folder, setup during verify_session.php
+ */
+require_once("{$globalsBag->getString('srcdir')}/documents.php");
+require_once($globalsBag->getString('fileroot') . "/controllers/C_Document.class.php");
 
-    // for every document
+
+
+// Get all the documents of the patient
+$sql = "SELECT url, id, mimetype, `name` FROM `documents` WHERE `foreign_id` = ? AND `deleted` = 0";
+/**
+ * @Global $pid Patient id setup during verify_session.php
+ */
+$fres = sqlStatement($sql, [$pid]);
+
+$documents = [];
 while ($file = sqlFetchArray($fres)) {
-    // find the document category
+    // Find the document category
     $sql = "SELECT name, lft, rght FROM `categories`, `categories_to_documents`
-				WHERE `categories_to_documents`.`category_id` = `categories`.`id`
-				AND `categories_to_documents`.`document_id` = ?";
-    $catres = sqlStatement($sql, array($file['id']));
+            WHERE `categories_to_documents`.`category_id` = `categories`.`id`
+            AND `categories_to_documents`.`document_id` = ?";
+    $catres = sqlStatement($sql, [$file['id']]);
     $cat = sqlFetchArray($catres);
 
-    // find the tree of the documents category
+    // Find the tree of the document's category
     $sql = "SELECT name FROM categories WHERE lft < ? AND rght > ? ORDER BY lft ASC";
-    $pathres = sqlStatement($sql, array($cat['lft'], $cat['rght']));
+    $pathres = sqlStatement($sql, [$cat['lft'], $cat['rght']]);
 
-    // create the tree of the categories
-    $path = "";
+    // Create the tree of the categories
+    $displayPath = "";
     while ($parent = sqlFetchArray($pathres)) {
-        $path .= convert_safe_file_dir_name($parent['name'])."/";
+        $displayPath .= $parent['name'] . "/";
     }
 
-    $path .= convert_safe_file_dir_name($cat['name'])."/";
-    // create the folder structure at the temporary dir
-    if (!is_dir($tmp."/".$pid."/".$path)) {
-        if (!mkdir($tmp."/".$pid."/".$path, 0777, true)) {
-            echo xlt("Error creating directory!")."<br />";
-        }
+    $displayPath .= $cat['name'] . "/";
+
+    // Store documents under their categories
+    $category = $displayPath;
+    if (!isset($documents[$category])) {
+        $documents[$category] = [];
     }
-
-    // copy the document
-    $documentId = $file['id'];
-    $obj = new \C_Document();
-    $document = $obj->retrieve_action("", $documentId, true, true, true);
-    if ($document) {
-        $pos = strpos(substr($file['url'], -5), '.');
-        // check if has an extension or find it from the mimetype
-        if ($pos === false) {
-            $file['url'] = $file['url'].get_extension($file['mimetype']);
-        }
-
-        $dest = $tmp."/".$pid."/".$path."/".convert_safe_file_dir_name(basename($file['url']));
-        if (file_exists($dest)) {
-            $x = 1;
-            do {
-                $dest = $tmp."/".$pid."/".$path."/". $x ."_".convert_safe_file_dir_name(basename($file['url']));
-                $x++;
-            } while (file_exists($dest));
-        }
-
-        file_put_contents($dest, $document);
-    } else {
-        echo xlt("Can't find file!")."<br />";
-    }
+    $documents[$category][] = [
+        'id' => $file['id'],
+        'name' => $file['name'],
+        'displayPath' => $displayPath
+    ];
 }
+?>
 
-    // zip the folder
-    Zip($tmp."/".$pid."/", $tmp."/".$pid.'.zip');
-
-    // serve it to the patient
-    header('Content-type: application/zip');
-    header('Content-Disposition: attachment; filename="patient_documents.zip"');
-    readfile($tmp."/".$pid.'.zip');
-
-    // remove the temporary folders and files
-    recursive_remove_directory($tmp."/".$pid);
-    unlink($tmp."/".$pid.'.zip');
-
-function recursive_remove_directory($directory, $empty = false)
-{
-    if (substr($directory, -1) == '/') {
-        $directory = substr($directory, 0, -1);
-    }
-
-    if (!file_exists($directory) || !is_dir($directory)) {
-        return false;
-    } elseif (is_readable($directory)) {
-        $handle = opendir($directory);
-        while (false !== ($item = readdir($handle))) {
-            if ($item != '.' && $item != '..') {
-                $path = $directory.'/'.$item;
-                if (is_dir($path)) {
-                    recursive_remove_directory($path);
-                } else {
-                    unlink($path);
-                }
+<!DOCTYPE html>
+<html>
+<head>
+    <title><?php echo xlt("Download On File Documents"); ?></title>
+    <?php Header::setupHeader(['no_main-theme', 'portal-theme']); ?>
+    <script>
+        // Function to toggle all checkboxes
+        function toggleCheckboxes(className, sourceCheckbox) {
+            let checkboxes = document.querySelectorAll('.' + className);
+            for (let i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = sourceCheckbox.checked;
             }
         }
 
-        closedir($handle);
-        if ($empty == false) {
-            if (!rmdir($directory)) {
-                return false;
+        // Function to toggle all checkboxes in the form
+        function toggleAllCheckboxes(sourceCheckbox) {
+            let checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            for (let i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = sourceCheckbox.checked;
             }
         }
-    }
 
-    return true;
-}
+        // Function to normalize category names for use as class names
+        function normalizeClassName(category) {
+            return category.replace(/[^a-zA-Z0-9]/g, '-');
+        }
 
-
-function Zip($source, $destination)
-{
-    if (!extension_loaded('zip') || !file_exists($source)) {
-        return false;
-    }
-
-    $zip = new ZipArchive();
-    if (!$zip->open($destination, ZIPARCHIVE::CREATE)) {
-        return false;
-    }
-
-    $source = str_replace('\\', '/', realpath($source));
-    if (is_dir($source) === true) {
-        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($source), RecursiveIteratorIterator::SELF_FIRST);
-        foreach ($files as $file) {
-            if ($file == $source."/..") {
-                continue;
-            }
-
-            $file = str_replace('\\', '/', realpath($file));
-            if (is_dir($file) === true) {
-                $zip->addEmptyDir(str_replace($source . '/', '', $file . '/'));
-            } else if (is_file($file) === true) {
-                $zip->addFromString(str_replace($source . '/', '', $file), file_get_contents($file));
+        // Function to validate form submission
+        function validateForm(event) {
+            let checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                alert(<?php echo xlj("Please select at least one document to download.") ?>);
+                event.preventDefault(); // Prevent form submission
             }
         }
-    } else if (is_file($source) === true) {
-        $zip->addFromString(basename($source), file_get_contents($source));
-    }
+    </script>
+</head>
+<body>
+    <div class="container-fluid">
+        <h4><?php echo xlt("Select Documents to Download"); ?></h4>
+        <form id="download-form" action="report/document_downloads_action.php" method="post" onsubmit="validateForm(event)">
+            <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken('default', $session->getSymfonySession())); ?>" />
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="selectAll" onclick="toggleAllCheckboxes(this)">
+                <label class="form-check-label" for="selectAll"><?php echo xlt("Select All Documents"); ?></label>
+            </div>
+            <div class="row">
+                <?php foreach ($documents as $category => $docs) {
+                    $title = str_replace("Categories/", "", $category);
+                    if (empty($title)) { // files stored in the root folder so we just set it to be '/'
+                        $normalizedTitle = "/";
+                    } else {
+                        $normalizedTitle = $title;
+                    }
+                    $normalizedCategory = preg_replace('/[^a-zA-Z0-9]/', '', $title);
+                    ?>
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><?php echo text($normalizedTitle); ?></h5>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="selectAll<?php echo attr($normalizedCategory); ?>" onclick="toggleCheckboxes('category-<?php echo attr($normalizedCategory); ?>', this)">
+                                    <label class="form-check-label" for="selectAll<?php echo attr($normalizedCategory); ?>"><?php echo xlt("Select All"); ?></label>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <?php foreach ($docs as $doc) { ?>
+                                    <div class="form-check">
+                                        <input class="form-check-input category-<?php echo attr($normalizedCategory); ?>" type="checkbox" name="documents[]" value="<?php echo attr($doc['id']); ?>" id="doc<?php echo attr($doc['id']); ?>">
+                                        <label class="form-check-label" for="doc<?php echo attr($doc['id']); ?>">
+                                            <?php echo text($doc['name']); ?>
+                                        </label>
+                                    </div>
+                                <?php } ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php } ?>
+            </div>
+            <div class="row">
+                <div class="col-12 text-right mb-2">
+                    <button type="submit" class="btn btn-primary mt-1"><?php echo xlt("Download Selected Documents"); ?></button>
+                </div>
+                <div class="col-12">
+                    <p class="alert alert-info"><i class="fa fa-info-circle"></i><?php echo xlt("Your files will download as a zip file"); ?></p>
+                </div>
+            </div>
 
-    return $zip->close();
-}
+        </form>
+    </div>
+</body>
+</html>

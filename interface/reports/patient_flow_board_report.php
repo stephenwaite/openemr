@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Patient Flow Board (Patient Tracker) (Report Based on the appointment report)
  *
@@ -14,22 +15,22 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
-require_once("../../library/patient.inc");
+require_once("../../library/patient.inc.php");
 require_once "$srcdir/options.inc.php";
 require_once "$srcdir/appointments.inc.php";
 require_once("$srcdir/patient_tracker.inc.php");
 
+use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
 
 if (!empty($_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 }
 
-$patient = $_POST['patient'];
+$patient = $_POST['patient'] ?? null;
 
 if ($patient && !isset($_POST['form_from_date'])) {
     // If a specific patient, default to 2 years ago.
@@ -43,31 +44,31 @@ if ($patient && !isset($_POST['form_from_date'])) {
 
 # check box information
 $chk_show_details = false;
-if ($_POST['show_details']) {
+if (!empty($_POST['show_details'])) {
     $chk_show_details = true;
 }
 
 $chk_show_drug_screens = false;
-if ($_POST['show_drug_screens']) {
+if (!empty($_POST['show_drug_screens'])) {
     $chk_show_drug_screens = true;
 }
 
 $chk_show_completed_drug_screens = false;
-if ($_POST['show_completed_drug_screens']) {
+if (!empty($_POST['show_completed_drug_screens'])) {
     $chk_show_completed_drug_screens = true;
 }
 
 # end check box information
 
-$provider  = $_POST['form_provider'];
-$facility  = $_POST['form_facility'];  #(CHEMED) facility filter
-$form_orderby = getComparisonOrder($_POST['form_orderby']) ?  $_POST['form_orderby'] : 'date';
-if ($_POST["form_patient"]) {
-    $form_patient = isset($_POST['form_patient']) ? $_POST['form_patient'] : '';
+$provider  = $_POST['form_provider'] ?? null;
+$facility  = $_POST['form_facility'] ?? null;  #(CHEMED) facility filter
+$form_orderby = (!empty($_POST['form_orderby']) && getComparisonOrder($_POST['form_orderby'])) ?  $_POST['form_orderby'] : 'date';
+if (!empty($_POST["form_patient"])) {
+    $form_patient = $_POST['form_patient'] ?? '';
 }
 
-$form_pid = isset($_POST['form_pid']) ? $_POST['form_pid'] : '';
-if ($form_patient == '') {
+$form_pid = $_POST['form_pid'] ?? '';
+if (empty($form_patient)) {
     $form_pid = '';
 }
 ?>
@@ -79,8 +80,8 @@ if ($form_patient == '') {
 
     <?php Header::setupHeader(['datetime-picker', 'report-helper']); ?>
 
-    <script type="text/javascript">
-        $(document).ready(function() {
+    <script>
+        $(function () {
             var win = top.printLogSetup ? top : opener.top;
             win.printLogSetup(document.getElementById('printbutton'));
 
@@ -113,7 +114,7 @@ if ($form_patient == '') {
         }
     </script>
 
-    <style type="text/css">
+    <style>
         /* specifically include & exclude from printing */
         @media print {
             #report_parameters {
@@ -151,11 +152,11 @@ if ($form_patient == '') {
 <?php } ?>
 
 
-<div id="report_parameters_daterange"><?php echo text(oeFormatShortDate($from_date)) ." &nbsp; " . xlt('to') . " &nbsp; ". text(oeFormatShortDate($to_date)); #sets date range for calendars ?>
+<div id="report_parameters_daterange"><?php echo text(oeFormatShortDate($from_date)) . " &nbsp; " . xlt('to{{Range}}') . " &nbsp; " . text(oeFormatShortDate($to_date)); #sets date range for calendars ?>
 </div>
 
 <form method='post' name='theform' id='theform' action='patient_flow_board_report.php' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
 <div id="report_parameters">
 
@@ -166,16 +167,16 @@ if ($form_patient == '') {
 
         <table class='text'>
             <tr>
-                <td class='control-label'><?php echo xlt('Facility'); ?>:</td>
+                <td class='col-form-label'><?php echo xlt('Facility'); ?>:</td>
                 <td><?php dropdown_facility($facility, 'form_facility'); ?>
                 </td>
-                <td class='control-label'><?php echo xlt('Provider'); ?>:</td>
+                <td class='col-form-label'><?php echo xlt('Provider'); ?>:</td>
                 <td><?php
 
                 # Build a drop-down list of providers.
                 #
 
-                $query = "SELECT id, lname, fname FROM users WHERE ".
+                $query = "SELECT id, lname, fname FROM users WHERE " .
                   "authorized = 1  ORDER BY lname, fname"; #(CHEMED) facility filter
 
                 $ures = sqlStatement($query);
@@ -186,7 +187,7 @@ if ($form_patient == '') {
                 while ($urow = sqlFetchArray($ures)) {
                     $provid = $urow['id'];
                     echo "    <option value='" . attr($provid) . "'";
-                    if ($provid == $_POST['form_provider']) {
+                    if (!empty($_POST['form_provider']) && ($provid == $_POST['form_provider'])) {
                         echo " selected";
                     }
 
@@ -200,34 +201,30 @@ if ($form_patient == '') {
             </tr>
 
             <tr>
-                <td class='control-label'><?php echo xlt('From'); ?>:</td>
-                <td><input type='text' name='form_from_date' id="form_from_date"
-                    class='datepicker form-control'
-                    size='10' value='<?php echo attr(oeFormatShortDate($from_date)); ?>'>
+                <td class='col-form-label'><?php echo xlt('From'); ?>:</td>
+                <td><input type='text' name='form_from_date' id="form_from_date" class='datepicker form-control' size='10' value='<?php echo attr(oeFormatShortDate($from_date)); ?>'>
                 </td>
-                <td class='control-label'><?php echo xlt('To'); ?>:</td>
-                <td><input type='text' name='form_to_date' id="form_to_date"
-                    class='datepicker form-control'
-                    size='10' value='<?php echo attr(oeFormatShortDate($to_date)); ?>'>
+                <td class='col-form-label'><?php echo xlt('To{{Range}}'); ?>:</td>
+                <td><input type='text' name='form_to_date' id="form_to_date" class='datepicker form-control' size='10' value='<?php echo attr(oeFormatShortDate($to_date)); ?>'>
                 </td>
             </tr>
 
             <tr>
-                <td class='control-label'><?php echo xlt('Status'); # status code drop down creation ?>:</td>
-                <td><?php generate_form_field(array('data_type'=>1,'field_id'=>'apptstatus','list_id'=>'apptstat','empty_title'=>'All'), $_POST['form_apptstatus']);?></td>
+                <td class='col-form-label'><?php echo xlt('Status'); # status code drop down creation ?>:</td>
+                <td><?php generate_form_field(['data_type' => 1,'field_id' => 'apptstatus','list_id' => 'apptstat','empty_title' => 'All'], ($_POST['form_apptstatus'] ?? ''));?></td>
                 <td><?php echo xlt('Category') #category drop down creation ?>:</td>
                 <td>
                                     <select id="form_apptcat" name="form_apptcat" class="form-control">
                                         <?php
-                                            $categories=fetchAppointmentCategories();
-                                            echo "<option value='ALL'>".xlt("All")."</option>";
-                                        while ($cat=sqlFetchArray($categories)) {
-                                            echo "<option value='".attr($cat['id'])."'";
-                                            if ($cat['id']==$_POST['form_apptcat']) {
+                                            $categories = fetchAppointmentCategories();
+                                            echo "<option value='ALL'>" . xlt("All") . "</option>";
+                                        while ($cat = sqlFetchArray($categories)) {
+                                            echo "<option value='" . attr($cat['id']) . "'";
+                                            if (!empty($_POST['form_apptcat']) && ($cat['id'] == $_POST['form_apptcat'])) {
                                                 echo " selected='true' ";
                                             }
 
-                                            echo    ">".text(xl_appt_category($cat['category']))."</option>";
+                                            echo    ">" . text(xl_appt_category($cat['category'])) . "</option>";
                                         }
                                         ?>
                                     </select>
@@ -238,7 +235,7 @@ if ($form_patient == '') {
             &nbsp;&nbsp;<span class='text'><?php echo xlt('Patient'); ?>: </span>
             </td>
             <td>
-            <input type='text' size='20' name='form_patient' class='form-control' style='cursor:pointer;cursor:hand' value='<?php echo ($form_patient) ? attr($form_patient) : xla('Click To Select'); ?>' onclick='sel_patient()' title='<?php echo xla('Click to select patient'); ?>' />
+            <input type='text' size='20' name='form_patient' class='form-control' style='cursor:pointer' value='<?php echo (!empty($form_patient)) ? attr($form_patient) : xla('Click To Select'); ?>' onclick='sel_patient()' title='<?php echo xla('Click to select patient'); ?>' />
             <input type='hidden' name='form_pid' value='<?php echo attr($form_pid); ?>' />
             </td>
 
@@ -253,7 +250,7 @@ if ($form_patient == '') {
             </tr>
             <?php if ($GLOBALS['drug_screen']) { ?>
             <tr>
-            <?php # these two selects will are for the drug screen entries the Show Selected for Drug Screens will show all
+                <?php # these two selects will are for the drug screen entries the Show Selected for Drug Screens will show all
                   # that have a yes for selected. If you just check the Show Status of Drug Screens all drug screens will be displayed
                   # if both are selected then only completed drug screens will be displayed. ?>
             <td colspan="2">
@@ -274,17 +271,17 @@ if ($form_patient == '') {
         </div>
 
         </td>
-        <td align='left' valign='middle' height="100%">
-        <table style='border-left: 1px solid; width: 100%; height: 100%'>
+        <td class='h-100' align='left' valign='middle'>
+        <table class='w-100 h-100' style='border-left: 1px solid;'>
             <tr>
                 <td>
                     <div class="text-center">
                         <div class="btn-group" role="group">
-                            <a href='#' class='btn btn-default btn-save' onclick='$("#form_refresh").attr("value","true"); $("#theform").submit();'>
+                            <a href='#' class='btn btn-secondary btn-save' onclick='$("#form_refresh").attr("value","true"); $("#theform").submit();'>
                                 <?php echo xlt('Submit'); ?>
                             </a>
-                            <?php if ($_POST['form_refresh'] || $_POST['form_orderby']) { ?>
-                                <a href='#' class='btn btn-default btn-print' id='printbutton'>
+                            <?php if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) { ?>
+                                <a href='#' class='btn btn-secondary btn-print' id='printbutton'>
                                     <?php echo xlt('Print'); ?>
                                 </a>
                             <?php } ?>
@@ -300,44 +297,42 @@ if ($form_patient == '') {
 
 </div>
 <!-- end of search parameters --> <?php
-if ($_POST['form_refresh'] || $_POST['form_orderby']) {
+if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
     ?>
 <div id="report_results">
-<table>
-
-    <thead>
+<table class='table'>
+    <thead class='thead-light'>
     <?php if (!$chk_show_drug_screens && !$chk_show_completed_drug_screens) { # the first part of this block is for the Patient Flow Board report ?>
         <th><a href="nojs.php" onclick="return dosort('doctor')"
-        <?php echo ($form_orderby == "doctor") ? " style=\"color:#00cc00\"" : ""; ?>><?php  echo xlt('Provider'); ?>
+        <?php echo ($form_orderby == "doctor") ? " style=\"color: var(--success)\"" : ""; ?>><?php  echo xlt('Provider'); ?>
         </a></th>
 
-        <th><a href="nojs.php" onclick="return dosort('date')"
-        <?php echo ($form_orderby == "date") ? " style=\"color:#00cc00\"" : ""; ?>><?php  echo xlt('Date'); ?></a>
+        <th><a href="nojs.php" onclick="return dosort('date')" <?php echo ($form_orderby == "date") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('Date'); ?></a>
         </th>
 
         <th><a href="nojs.php" onclick="return dosort('time')"
-        <?php echo ($form_orderby == "time") ? " style=\"color:#00cc00\"" : ""; ?>><?php  echo xlt('Time'); ?></a>
+        <?php echo ($form_orderby == "time") ? " style=\"color: var(--success)\"" : ""; ?>><?php  echo xlt('Time'); ?></a>
         </th>
 
         <th><a href="nojs.php" onclick="return dosort('patient')"
-        <?php echo ($form_orderby == "patient") ? " style=\"color:#00cc00\"" : ""; ?>>&nbsp;&nbsp;&nbsp;<?php  echo xlt('Patient'); ?></a>
+        <?php echo ($form_orderby == "patient") ? " style=\"color: var(--success)\"" : ""; ?>>&nbsp;&nbsp;&nbsp;<?php  echo xlt('Patient'); ?></a>
         </th>
 
         <th><a href="nojs.php" onclick="return dosort('pubpid')"
-        <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>>&nbsp;<?php  echo xlt('ID'); ?></a>
+        <?php echo ($form_orderby == "pubpid") ? " style=\"color: var(--success)\"" : ""; ?>>&nbsp;<?php  echo xlt('ID'); ?></a>
         </th>
 
         <th><a href="nojs.php" onclick="return dosort('type')"
-        <?php echo ($form_orderby == "type") ? " style=\"color:#00cc00\"" : ""; ?>><?php  echo xlt('Type'); ?></a>
+        <?php echo ($form_orderby == "type") ? " style=\"color: var(--success)\"" : ""; ?>><?php  echo xlt('Type'); ?></a>
         </th>
 
         <?php if ($chk_show_details) { ?>
         <th><a href="nojs.php" onclick="return dosort('trackerstatus')"
-        <?php echo ($form_orderby == "trackerstatus") ? " style=\"color:#00cc00\"" : ""; ?>><?php  echo xlt('Status'); ?></a>
+            <?php echo ($form_orderby == "trackerstatus") ? " style=\"color: var(--success)\"" : ""; ?>><?php  echo xlt('Status'); ?></a>
         </th>
         <?php } else { ?>
         <th><a href="nojs.php" onclick="return dosort('trackerstatus')"
-        <?php echo ($form_orderby == "trackerstatus") ? " style=\"color:#00cc00\"" : ""; ?>><?php  echo xlt('Final Status'); ?></a>
+            <?php echo ($form_orderby == "trackerstatus") ? " style=\"color: var(--success)\"" : ""; ?>><?php  echo xlt('Final Status'); ?></a>
         </th>
         <?php } ?>
 
@@ -359,30 +354,29 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
         <th><?php echo xlt('Total Time'); # not adding Sorting by Total Time yet but can see that it might be useful ?></th>
 
     <?php } else { # this section is for the drug screen report ?>
-
         <th><a href="nojs.php" onclick="return dosort('doctor')"
-        <?php echo ($form_orderby == "doctor") ? " style=\"color:#00cc00\"" : ""; ?>><?php  echo xlt('Provider'); ?>
+        <?php echo ($form_orderby == "doctor") ? " style=\"color: var(--success)\"" : ""; ?>><?php  echo xlt('Provider'); ?>
         </a></th>
 
         <th><a href="nojs.php" onclick="return dosort('date')"
-        <?php echo ($form_orderby == "date") ? " style=\"color:#00cc00\"" : ""; ?>><?php  echo xlt('Date'); ?></a>
+        <?php echo ($form_orderby == "date") ? " style=\"color: var(--success)\"" : ""; ?>><?php  echo xlt('Date'); ?></a>
         </th>
 
         <th><a href="nojs.php" onclick="return dosort('time')"
-        <?php echo ($form_orderby == "time") ? " style=\"color:#00cc00\"" : ""; ?>><?php  echo xlt('Time'); ?></a>
+        <?php echo ($form_orderby == "time") ? " style=\"color: var(--success)\"" : ""; ?>><?php  echo xlt('Time'); ?></a>
         </th>
 
         <th><a href="nojs.php" onclick="return dosort('patient')"
-        <?php echo ($form_orderby == "patient") ? " style=\"color:#00cc00\"" : ""; ?>>&nbsp;&nbsp;&nbsp;&nbsp;<?php  echo xlt('Patient'); ?></a>
+        <?php echo ($form_orderby == "patient") ? " style=\"color: var(--success)\"" : ""; ?>>&nbsp;&nbsp;&nbsp;&nbsp;<?php  echo xlt('Patient'); ?></a>
         </th>
 
         <?php if (!$chk_show_completed_drug_screens) { ?>
         <th><a href="nojs.php" onclick="return dosort('pubpid')"
-        <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>>&nbsp;<?php  echo xlt('ID'); ?></a>
+            <?php echo ($form_orderby == "pubpid") ? " style=\"color: var(--success)\"" : ""; ?>>&nbsp;<?php  echo xlt('ID'); ?></a>
         </th>
         <?php } else { ?>
         <th><a href="nojs.php" onclick="return dosort('pubpid')"
-        <?php echo ($form_orderby == "pubpid") ? " style=\"color:#00cc00\"" : ""; ?>>&nbsp;<?php  echo xlt('ID'); ?></a>
+            <?php echo ($form_orderby == "pubpid") ? " style=\"color: var(--success)\"" : ""; ?>>&nbsp;<?php  echo xlt('ID'); ?></a>
         </th>
         <?php } ?>
 
@@ -392,7 +386,7 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
          <th>&nbsp;</th>
         <?php } else { ?>
          <th><a href="nojs.php" onclick="return dosort('completed')"
-        <?php echo ($form_orderby == "completed") ? " style=\"color:#00cc00\"" : ""; ?>><?php  echo xlt('Completed'); ?></a>
+            <?php echo ($form_orderby == "completed") ? " style=\"color: var(--success)\"" : ""; ?>><?php  echo xlt('Completed'); ?></a>
          </th>
         <?php } ?>
 
@@ -407,10 +401,10 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
     $lastdocname = "";
     #Appointment Status Checking
     $form_apptstatus = $_POST['form_apptstatus'];
-    $form_apptcat=null;
+    $form_apptcat = null;
     if (isset($_POST['form_apptcat'])) {
-        if ($form_apptcat!="ALL") {
-            $form_apptcat=intval($_POST['form_apptcat']);
+        if ($form_apptcat != "ALL") {
+            $form_apptcat = intval($_POST['form_apptcat']);
         }
     }
 
@@ -423,7 +417,7 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
     # sort the appointments by the appointment time
     $appointments = sortAppointments($appointments, $form_orderby);
     # $j is used to count the number of patients that match the selected criteria.
-    $j=0;
+    $j = 0;
     //print_r2($appointments);
     foreach ($appointments as $appointment) {
         $patient_id = $appointment['pid'];
@@ -436,14 +430,14 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
         }
 
         # only get the drug screens that are set to yes.
-        if ($chk_show_drug_screens ==1) {
+        if ($chk_show_drug_screens == 1) {
             if ($appointment['random_drug_test'] != '1') {
                 continue;
             }
         }
 
         #if a patient id is entered just get that patient.
-        if (strlen($form_pid) !=0) {
+        if (strlen($form_pid) != 0) {
             if ($appointment['pid'] != $form_pid) {
                 continue;
             }
@@ -470,13 +464,13 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
         # Get the tracker elements.
         $tracker_elements = collect_Tracker_Elements($tracker_id);
         # $j is incremented for a patient that made it for display.
-        $j=$j+1;
+        $j += 1;
         ?>
 
-    <tr bgcolor='<?php echo attr($bgcolor); ?>'>
+    <tr bgcolor='<?php echo attr($bgcolor ?? ''); ?>'>
         <?php
         if (!$chk_show_drug_screens && !$chk_show_completed_drug_screens) { # the first part of this block is for the Patient Flow Board report ?>
-        <td class="detail">&nbsp;<?php echo ($docname == $lastdocname) ? "" : $docname ?>
+        <td class="detail">&nbsp;<?php echo text(($docname == $lastdocname) ? "" : $docname) ?>
         </td>
 
         <td class="detail"><?php echo text(oeFormatShortDate($appointment['pc_eventDate'])) ?>
@@ -509,101 +503,100 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
             ?>
         </td>
 
-        <td class="detail">&nbsp;<?php echo text(substr($newarrive, 11)) ?>
+        <td class="detail">&nbsp;<?php echo text(substr((string) $newarrive, 11)) ?>
         </td>
 
-        <td class="detail">&nbsp;<?php echo text(substr($newend, 11)) ?>
+        <td class="detail">&nbsp;<?php echo text(substr((string) $newend, 11)) ?>
         </td>
 
-        <?php if ($no_visit != 1) { ?>
+            <?php if ($no_visit != 1) { ?>
         <td class="detail">&nbsp;<?php echo text($timecheck2) ?></td>
         <?php } else { ?>
         <td class="detail">&nbsp;</td>
         <?php } ?>
-        <?php
-        if ($chk_show_details) { # lets show the detail lines
-              $i = '0';
-              $k = '0';
-            for ($x = 1; $x <= $last_seq; $x++) {
-        ?>
+            <?php
+            if ($chk_show_details) { # lets show the detail lines
+                  $i = '0';
+                  $k = '0';
+                for ($x = 1; $x <= $last_seq; $x++) {
+                    ?>
         <tr valign='top' class="detail" >
         <td colspan="6" class="detail" align='left'>
 
-        <?php
-            # get the verbiage for the status code
-            $track_stat = $tracker_elements[$i][status];
-            # Get Interval alert time and status color.
-            $colorevents = (collectApptStatusSettings($track_stat));
-            $alert_time = '0';
-            $alert_color = $colorevents['color'];
-            $alert_time = $colorevents['time_alert'];
-        if (is_checkin($track_stat) || is_checkout($track_stat)) {  #bold the check in and check out times in this block.
-            ?>
-            <td class="detail"><b>
-        <?php
-        } else { ?>
+                    <?php
+                # get the verbiage for the status code
+                    $track_stat = $tracker_elements[$i]['status'];
+                # Get Interval alert time and status color.
+                    $colorevents = (collectApptStatusSettings($track_stat));
+                    $alert_time = '0';
+                    $alert_color = $colorevents['color'];
+                    $alert_time = $colorevents['time_alert'];
+                    if (is_checkin($track_stat) || is_checkout($track_stat)) {  #bold the check in and check out times in this block.
+                        ?>
+            <td class="detail font-weight-bold">
+                        <?php
+                    } else { ?>
             <td class="detail">
-            <?php
-        }
+                        <?php
+                    }
 
-            echo text(getListItemTitle("apptstat", $track_stat));
-        ?>
-            </b></td>
-            <?php
-            if (is_checkin($track_stat) || is_checkout($track_stat)) {  #bold the check in and check out times in this block.
-                ?>
-             <td class="detail"><b>&nbsp;<?php echo text(substr($tracker_elements[$i][start_datetime], 11)); ?></b></td>
-            <?php
-            } else { ?>
-            <td class="detail">&nbsp;<?php echo text(substr($tracker_elements[$i][start_datetime], 11)); ?></td>
-            <?php # figure out the next time of the status
-            }
+                    echo text(getListItemTitle("apptstat", $track_stat));
+                    ?>
+            </td>
+                    <?php
+                    if (is_checkin($track_stat) || is_checkout($track_stat)) {  #bold the check in and check out times in this block.
+                        ?>
+             <td class="detail"><b>&nbsp;<?php echo text(substr((string) $tracker_elements[$i]['start_datetime'], 11)); ?></b></td>
+                        <?php
+                    } else { ?>
+            <td class="detail">&nbsp;<?php echo text(substr((string) $tracker_elements[$i]['start_datetime'], 11)); ?></td>
+                        <?php # figure out the next time of the status
+                    }
 
-            $k = $i+1;
-            if ($k < $last_seq) {
-            # get the start time of the next status to determine the total time in this status
-                $start_tracker_time = $tracker_elements[$i][start_datetime];
-                $next_tracker_time = $tracker_elements[$k][start_datetime];
-            } else {
-            # since this is the last status the start and end are equal
-                $start_tracker_time = $tracker_elements[$i][start_datetime];
-                $next_tracker_time = $tracker_elements[$i][start_datetime];
-            }
+                    $k = $i + 1;
+                    if ($k < $last_seq) {
+                    # get the start time of the next status to determine the total time in this status
+                        $start_tracker_time = $tracker_elements[$i]['start_datetime'];
+                        $next_tracker_time = $tracker_elements[$k]['start_datetime'];
+                    } else {
+                    # since this is the last status the start and end are equal
+                        $start_tracker_time = $tracker_elements[$i]['start_datetime'];
+                        $next_tracker_time = $tracker_elements[$i]['start_datetime'];
+                    }
 
-            if (is_checkin($track_stat) || is_checkout($track_stat)) {  #bold the check in and check out times in this block. ?>
-                <td class="detail"><b>&nbsp;<?php echo text(substr($next_tracker_time, 11)) ?></b></td><?php
-            } else { ?>
-            <td class="detail">&nbsp;<?php echo text(substr($next_tracker_time, 11)) ?></td>
-            <?php # compute the total time of the status
-            }
+                    if (is_checkin($track_stat) || is_checkout($track_stat)) {  #bold the check in and check out times in this block. ?>
+                <td class="detail font-weight-bold">&nbsp;<?php echo text(substr((string) $next_tracker_time, 11)) ?></td><?php
+                    } else { ?>
+            <td class="detail">&nbsp;<?php echo text(substr((string) $next_tracker_time, 11)) ?></td>
+                        <?php # compute the total time of the status
+                    }
 
-            $tracker_time = get_Tracker_Time_Interval($start_tracker_time, $next_tracker_time);
-            # add code to alert if over time interval for status
-            $timecheck = round(abs(strtotime($start_tracker_time) -  strtotime($next_tracker_time)) / 60, 0);
-            if ($timecheck > $alert_time && ($alert_time != '0')) {
-                if (is_checkin($track_stat) || is_checkout($track_stat)) {  #bold the check in and check out times in this block. ?>
- <td class="detail" bgcolor='<?php echo attr($alert_color) ?>'><b>&nbsp;<?php echo text($tracker_time); ?></b></td><?php
-                } else { ?>
+                    $tracker_time = get_Tracker_Time_Interval($start_tracker_time, $next_tracker_time);
+                # add code to alert if over time interval for status
+                    $timecheck = round(abs(strtotime((string) $start_tracker_time) -  strtotime((string) $next_tracker_time)) / 60, 0);
+                    if ($timecheck > $alert_time && ($alert_time != '0')) {
+                        if (is_checkin($track_stat) || is_checkout($track_stat)) {  #bold the check in and check out times in this block. ?>
+ <td class="detail font-weight-bold" bgcolor='<?php echo attr($alert_color) ?>'>&nbsp;<?php echo text($tracker_time); ?></td><?php
+                        } else { ?>
             <td class="detail" bgcolor='<?php echo attr($alert_color) ?>'>&nbsp;<?php echo text($tracker_time); ?></td><?php
-                }
-            } else {
-                if (is_checkin($track_stat) || is_checkout($track_stat)) { #bold the check in and check out times in this block. ?>
-                    <td class="detail"><b>&nbsp;<?php echo text($tracker_time); ?></b></td><?php
-                } else { ?>
+                        }
+                    } else {
+                        if (is_checkin($track_stat) || is_checkout($track_stat)) { #bold the check in and check out times in this block. ?>
+                    <td class="detail font-weight-bold">&nbsp;<?php echo text($tracker_time); ?></td><?php
+                        } else { ?>
                     <td class="detail">&nbsp;<?php echo text($tracker_time); ?></td><?php
+                        }
+                    }
+
+                    $i++;
                 }
             }
-
-            $i++;
-            }
-        }
-        ?>
+            ?>
         </td>
         </tr>
 
-        <?php
+            <?php
         } else { # this section is for the drug screen report ?>
-
         <td class="detail">&nbsp;<?php echo ($docname == $lastdocname) ? "" : text($docname); ?>
         </td>
 
@@ -618,15 +611,15 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 
         <td class="detail">&nbsp;<?php echo text($appointment['pubpid']) ?></td>
 
-        <td class="detail" align = >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<?php echo ($appointment['random_drug_test'] == '1') ? xlt('Yes') : xlt('No'); ?></td>
+        <td class="detail">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<?php echo ($appointment['random_drug_test'] == '1') ? xlt('Yes') : xlt('No'); ?></td>
 
-        <?php if ($chk_show_completed_drug_screens) { ?>
+            <?php if ($chk_show_completed_drug_screens) { ?>
           <td class="detail">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<?php echo ($appointment['drug_screen_completed'] == '1') ? xlt('Yes') : xlt('No'); ?></td>
         <?php } else { ?>
           <td class="detail">&nbsp; </td>
         <?php } ?>
 
-        <?php # these last items are used to complete the screen ?>
+            <?php # these last items are used to complete the screen ?>
         <td class="detail">&nbsp;</td>
 
         <td class="detail">&nbsp;</td>
@@ -635,8 +628,8 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
         <?php } ?>
     </tr>
 
-    <?php
-    $lastdocname = $docname;
+        <?php
+        $lastdocname = $docname;
     } # end for
     ?>
     <tr>
@@ -653,10 +646,10 @@ if ($_POST['form_refresh'] || $_POST['form_orderby']) {
 <?php } else { ?>
 <div class='text'><?php echo xlt('Please input search criteria above, and click Submit to view results.'); ?>
 </div>
-<?php } ?> <input type="hidden" name="form_orderby"
-value="<?php echo attr($form_orderby) ?>" /> <input type="hidden"
-name="patient" value="<?php echo attr($patient) ?>" /> <input type='hidden'
-name='form_refresh' id='form_refresh' value='' /></form>
+<?php } ?>
+<input type="hidden" name="form_orderby" value="<?php echo attr($form_orderby) ?>" /> <input type="hidden" name="patient" value="<?php echo attr($patient) ?>" />
+<input type='hidden' name='form_refresh' id='form_refresh' value='' />
+</form>
 
 </body>
 

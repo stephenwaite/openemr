@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Notification Settings Script
  *
@@ -10,51 +11,52 @@
  * @copyright Copyright (c) 2017 Jason 'Toolbox' Oettinger <jason@oettinger.email>
  * @license https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
+
 require_once("../globals.php");
-require_once("$srcdir/registry.inc");
-require_once("../../library/acl.inc");
+require_once("$srcdir/registry.inc.php");
 require_once("batchcom.inc.php");
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
 // gacl control
-if (!acl_check('admin', 'notification')) {
-    echo "<html>\n<body>\n<h1>";
-    echo xlt('You are not authorized for this.');
-    echo "</h1>\n</body>\n</html>\n";
-    exit();
+if (!AclMain::aclCheckCore('admin', 'notification')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Notification Settings")]);
+    exit;
 }
 
  $type = 'SMS/Email Settings';
 // process form
-if ($_POST['form_action']=='save') {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+if (!empty($_POST['form_action']) && ($_POST['form_action'] == 'save')) {
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 
-    if ($_POST['Send_SMS_Before_Hours']=="") {
-        $form_err .= xl('Empty value in "SMS Hours"') . '<br>';
+    if ($_POST['Send_SMS_Before_Hours'] == "") {
+        $form_err .= xl('Empty value in "SMS Hours"') . '<br />';
     }
 
-    if ($_POST['Send_Email_Before_Hours']=="") {
-        $form_err .= xl('Empty value in "Email Hours"') . '<br>';
+    if ($_POST['Send_Email_Before_Hours'] == "") {
+        $form_err .= xl('Empty value in "Email Hours"') . '<br />';
     }
 
-    if ($_POST['SMS_gateway_username']=="") {
-        $form_err .= xl('Empty value in "Username"') . '<br>';
+    if ($_POST['SMS_gateway_username'] == "") {
+        $form_err .= xl('Empty value in "Username"') . '<br />';
     }
 
-    if ($_POST['SMS_gateway_password']=="") {
-        $form_err .= xl('Empty value in "Password"') . '<br>';
+    if ($_POST['SMS_gateway_password'] == "") {
+        $form_err .= xl('Empty value in "Password"') . '<br />';
     }
 
     //process sql
     if (!$form_err) {
         $sql_text = " ( `SettingsId` , `Send_SMS_Before_Hours` , `Send_Email_Before_Hours` , `SMS_gateway_password` , `SMS_gateway_apikey` , `SMS_gateway_username` , `type` ) ";
         $sql_value = " (?, ?, ?, ?, ?, ?, ?) ";
-        $values = array($_POST['SettingsId'], $_POST['Send_SMS_Before_Hours'], $_POST['Send_Email_Before_Hours'],
+        $values = [$_POST['SettingsId'], $_POST['Send_SMS_Before_Hours'], $_POST['Send_Email_Before_Hours'],
                         $_POST['SMS_gateway_password'], $_POST['SMS_gateway_apikey'], $_POST['SMS_gateway_username'],
-                        $type);
+                        $type];
         $query = "REPLACE INTO `notification_settings` $sql_text VALUES $sql_value";
         //echo $query;
         $id = sqlInsert($query, $values);
@@ -66,7 +68,7 @@ if ($_POST['form_action']=='save') {
 }
 
 // fetch data from table
-$sql="select * from notification_settings where type='SMS/Email Settings'";
+$sql = "select * from notification_settings where type='SMS/Email Settings'";
 $result = sqlQuery($sql);
 if ($result) {
     $SettingsId = $result['SettingsId'];
@@ -93,18 +95,18 @@ if ($result) {
             <small><?php echo xlt('SMS/Email Alert Settings'); ?></small>
         </h1>
     </header>
-    <main>
+    <main class="mx-4">
         <?php
-        if ($form_err) {
+        if (!empty($form_err)) {
             echo '<div class="alert alert-danger">' . xlt('The following errors occurred') . ': ' . text($form_err) . '</div>';
         }
 
-        if ($sql_msg) {
+        if (!empty($sql_msg)) {
             echo '<div class="alert alert-info">' . xlt('The following occurred') . ': ' . text($sql_msg) . '</div>';
         }
         ?>
         <form name="select_form" method="post" action="">
-            <input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+            <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
             <input type="hidden" name="type" value="SMS">
             <input type="Hidden" name="SettingsId" value="<?php echo attr($SettingsId);?>">
 
@@ -136,7 +138,7 @@ if ($result) {
             </div>
             <div class="row">
                 <div class="col-md-12 form-group">
-                    <button class="btn btn-default btn-save" type="submit" name="form_action" value="save"><?php echo xlt('Save'); ?></button>
+                    <button class="btn btn-secondary btn-save" type="submit" name="form_action" value="save"><?php echo xlt('Save'); ?></button>
                 </div>
             </div>
 

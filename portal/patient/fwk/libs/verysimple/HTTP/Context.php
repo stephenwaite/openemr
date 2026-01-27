@@ -1,8 +1,11 @@
 <?php
+
 /** @package    verysimple::HTTP */
 
+use OpenEMR\Common\Session\SessionWrapperFactory;
+
 /**
- * Context Persistance Storage
+ * Context Persistence Storage
  *
  * The context provides an object that can be uses globally for
  * dependency injection when passing information that should be
@@ -17,17 +20,18 @@
 class Context
 {
     public $GUID;
-    
+
     /**
      * Constructor initializes the session
      */
     public function __construct()
     {
         if (session_id() == '') {
-            @session_start();
+            session_start();
+            error_log("DEBUG: This session_start, which is in Context.php, should never be called.");
         }
     }
-    
+
     /**
      * Returns a persisted object or value
      *
@@ -39,9 +43,10 @@ class Context
      */
     public function Get($var, $default = null)
     {
-        return (isset($_SESSION [$this->GUID . "_" . $var])) ? unserialize($_SESSION [$this->GUID . "_" . $var]) : null;
+        $session = SessionWrapperFactory::getInstance()->getWrapper();
+        return $session->has($this->GUID . "_" . $var) ? unserialize($session->get($this->GUID . "_" . $var)) : null;
     }
-    
+
     /**
      * Persists an object or value
      *
@@ -54,6 +59,7 @@ class Context
      */
     public function Set($var, $val)
     {
-        $_SESSION [$this->GUID . "_" . $var] = serialize($val);
+        $session = SessionWrapperFactory::getInstance()->getWrapper();
+        $session->set($this->GUID . "_" . $var, serialize($val));
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Upload designated service codes as "services=" attributes for designated layouts.
  * This supports specifying related codes to determine the service codes to be used.
@@ -7,27 +8,31 @@
  * @link      http://www.open-emr.org
  * @author    Rod Roark <rod@sunsetsystems.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
- * @copyright Copyright (c) 2016 Rod Roark <rod@sunsetsystems.com>
+ * @copyright Copyright (c) 2016-2021 Rod Roark <rod@sunsetsystems.com>
  * @copyright Copyright (c) 2018 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once('../globals.php');
-require_once($GLOBALS['srcdir'] . '/acl.inc');
 require_once($GLOBALS['fileroot'] . '/custom/code_types.inc.php');
 
-if (!acl_check('admin', 'super')) {
-    die(xlt('Not authorized'));
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
+use OpenEMR\Core\Header;
+
+if (!AclMain::aclCheckCore('admin', 'super')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Install Layout Service Codes")]);
+    exit;
 }
 
 $form_dryrun = !empty($_POST['form_dryrun']);
 
-function applyCode($layoutid, $codetype, $code, $description)
+function applyCode($layoutid, $codetype, $code, $description): void
 {
     global $thecodes;
     if (!isset($thecodes[$layoutid])) {
-        $thecodes[$layoutid] = array();
+        $thecodes[$layoutid] = [];
     }
     $thecodes[$layoutid]["$codetype:$code"] = $description;
 }
@@ -37,11 +42,21 @@ function applyCode($layoutid, $codetype, $code, $description)
 
 <head>
 <title><?php echo xlt('Install Layout Service Codes'); ?></title>
-<link rel="stylesheet" href='<?php echo $css_header ?>' type='text/css'>
+<?php Header::setupHeader(); ?>
 
-<style type="text/css">
- .dehead { color:#000000; font-family:sans-serif; font-size:10pt; font-weight:bold }
- .detail { color:#000000; font-family:sans-serif; font-size:10pt; font-weight:normal }
+<style>
+ .dehead {
+   color: var(--black);
+   font-family: sans-serif;
+   font-size: 0.8125rem;
+   font-weight: bold;
+  }
+ .detail {
+   color: var(--black);
+   font-family: sans-serif;
+   font-size: 0.8125rem;
+   font-weight:normal;
+ }
 </style>
 
 </head>
@@ -52,11 +67,11 @@ function applyCode($layoutid, $codetype, $code, $description)
 // Handle uploads.
 if (!empty($_POST['bn_upload'])) {
     //verify csrf
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 
-    $thecodes = array();
+    $thecodes = [];
     $tmp_name = $_FILES['form_file']['tmp_name'];
 
     if (is_uploaded_file($tmp_name) && $_FILES['form_file']['size']) {
@@ -76,9 +91,9 @@ if (!empty($_POST['bn_upload'])) {
             if (count($acsv) < 3) {
                 continue;
             }
-            $layoutid = trim($acsv[0]);
-            $codetype = trim($acsv[1]);
-            $code     = trim($acsv[2]);
+            $layoutid = trim((string) $acsv[0]);
+            $codetype = trim((string) $acsv[1]);
+            $code     = trim((string) $acsv[2]);
             if (empty($layoutid) || empty($codetype) || empty($code)) {
                 continue;
             }
@@ -97,7 +112,7 @@ if (!empty($_POST['bn_upload'])) {
                     "SELECT code, code_text FROM codes WHERE code_type = ? AND " .
                     "(related_code LIKE ? OR related_code LIKE ? OR related_code LIKE ? OR related_code LIKE ?) " .
                     "AND active = 1 ORDER BY code",
-                    array($ct_arr['id'], $tmp, "$tmp;%", "%;$tmp", "%;$tmp;%")
+                    [$ct_arr['id'], $tmp, "$tmp;%", "%;$tmp", "%;$tmp;%"]
                 );
                 while ($relrow = sqlFetchArray($relres)) {
                     applyCode($layoutid, $ct_key, $relrow['code'], $relrow['code_text']);
@@ -123,7 +138,7 @@ if (!empty($_POST['bn_upload'])) {
                 sqlStatement(
                     "UPDATE layout_group_properties SET grp_services = ? WHERE " .
                     "grp_form_id = ? AND grp_group_id = ''",
-                    array($services, $layoutid)
+                    [$services, $layoutid]
                 );
             }
         }
@@ -133,7 +148,7 @@ if (!empty($_POST['bn_upload'])) {
 ?>
 <form method='post' action='layout_service_codes.php' enctype='multipart/form-data'
  onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
 <center>
 
@@ -185,15 +200,18 @@ if (!empty($_POST['bn_upload'])) {
 $lastcat = '';
 $lastlayout = '';
 
-$res = sqlStatement("SELECT grp_form_id, grp_title, grp_mapping, grp_services FROM layout_group_properties " .
-  "WHERE grp_group_id = '' AND grp_activity = 1 AND grp_services != '' ORDER BY grp_mapping, grp_title, grp_form_id");
+$res = sqlStatement(
+    "SELECT grp_form_id, grp_title, grp_mapping, grp_services, grp_activity " .
+    "FROM layout_group_properties WHERE " .
+    "grp_group_id = '' AND grp_services != '' ORDER BY grp_mapping, grp_title, grp_form_id"
+);
 
 while ($row = sqlFetchArray($res)) {
   // $jobj = json_decode($row['notes'], true);
     if ($row['grp_services'] == '*') {
         $row['grp_services'] = '';
     }
-    $codes = explode(';', $row['grp_services']);
+    $codes = explode(';', (string) $row['grp_services']);
     foreach ($codes as $codestring) {
         echo " <tr>\n";
 
@@ -207,7 +225,8 @@ while ($row = sqlFetchArray($res)) {
         echo "  <td class='detail'>";
         if ($row['grp_form_id'] != $lastlayout) {
             $lastlayout = $row['grp_form_id'];
-            echo text($row['grp_title']);
+            $suffix = $row['grp_activity'] ? '' : (' (' . xl('inactive') . ')');
+            echo text($row['grp_title'] . $suffix);
         }
         echo "&nbsp;</td>\n";
 
@@ -216,12 +235,12 @@ while ($row = sqlFetchArray($res)) {
         echo "</td>\n";
 
         echo "  <td class='detail'>\n";
-        list ($codetype, $code) = explode(':', $codestring);
+        [$codetype, $code] = explode(':', $codestring);
         $crow = sqlQuery(
             "SELECT code_text FROM codes WHERE " .
             "code_type = ? AND code = ? AND active = 1 " .
             "ORDER BY id LIMIT 1",
-            array($code_types[$codetype]['id'], $code)
+            [$code_types[$codetype]['id'], $code]
         );
         echo text($crow['code_text']);
         echo "&nbsp;</td>\n";

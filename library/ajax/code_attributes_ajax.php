@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Given a code type, code, selector and price level for a service or product, this creates
  * JavaScript that will call the user's handler passing the following arguments:
@@ -7,7 +8,7 @@
  * This supports specifying related codes to determine the service codes to be used.
  *
  * @package   OpenEMR
- * @link      http://www.open-emr.org
+ * @link      https://www.open-emr.org
  * @author    Rod Roark <rod@sunsetsystems.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2015-2017 Rod Roark <rod@sunsetsystems.com>
@@ -19,12 +20,14 @@ require_once("../../interface/globals.php");
 require_once("$fileroot/custom/code_types.inc.php");
 require_once("$fileroot/interface/drugs/drugs.inc.php");
 
+use OpenEMR\Common\Csrf\CsrfUtils;
+
 //verify csrf
-if (!verifyCsrfToken($_GET["csrf_token_form"])) {
-    csrfNotVerified();
+if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
+    CsrfUtils::csrfNotVerified();
 }
 
-function write_code_info($codetype, $code, $selector, $pricelevel)
+function write_code_info($codetype, $code, $selector, $pricelevel): void
 {
     global $code_types;
 
@@ -33,7 +36,7 @@ function write_code_info($codetype, $code, $selector, $pricelevel)
     if ($codetype == 'PROD') {
         $wrow = sqlQuery(
             "SELECT default_warehouse FROM users WHERE username = ?",
-            array($_SESSION['authUser'])
+            [$_SESSION['authUser']]
         );
         $defaultwh = empty($wrow['default_warehouse']) ? '' : $wrow['default_warehouse'];
       //
@@ -42,7 +45,7 @@ function write_code_info($codetype, $code, $selector, $pricelevel)
             "FROM drugs AS d " .
             "LEFT JOIN prices AS p ON p.pr_id = d.drug_id AND p.pr_selector = ? AND p.pr_level = ? " .
             "WHERE d.drug_id = ?",
-            array($selector, $pricelevel, $code)
+            [$selector, $pricelevel, $code]
         );
         $desc = $crow['name'];
         $price = empty($crow['pr_price']) ? 0 : (0 + $crow['pr_price']);
@@ -53,9 +56,11 @@ function write_code_info($codetype, $code, $selector, $pricelevel)
         while ($lrow = sqlFetchArray($lres)) {
             $wh .= "<option value='" . attr($lrow['option_id']) . "'";
             $has_inventory = sellDrug($code, 1, 0, 0, 0, 0, '', '', $lrow['option_id'], true);
-            if ($has_inventory && (
-            (strlen($defaultwh) == 0 && $lrow['is_default']           ) ||
-            (strlen($defaultwh)  > 0 && $lrow['option_id'] == $default))) {
+            if (
+                $has_inventory && (
+                (strlen((string) $defaultwh) == 0 && $lrow['is_default']           ) ||
+                (strlen((string) $defaultwh)  > 0 && $lrow['option_id'] == $default))
+            ) {
                 $wh .= " selected";
             } else {
               // Disable this warehouse option if not selected and has no inventory.
@@ -71,14 +76,14 @@ function write_code_info($codetype, $code, $selector, $pricelevel)
         $desc = '';
         $price = 0;
         if ($crow = sqlFetchArray($cres)) {
-            $desc = trim($crow['code_text']);
+            $desc = trim((string) $crow['code_text']);
             if ($code_types[$codetype]['fee']) {
                 if ($code_types[$codetype]['external'] == 0) {
                     $prow = sqlQuery(
                         "SELECT pr_price " .
                         "FROM prices WHERE pr_id = ? AND pr_selector = '' AND pr_level = ? " .
                         "LIMIT 1",
-                        array($crow['id'], $pricelevel)
+                        [$crow['id'], $pricelevel]
                     );
                     if (!empty($prow['pr_price'])) {
                         $price = 0 + $prow['pr_price'];
@@ -101,25 +106,25 @@ function write_code_info($codetype, $code, $selector, $pricelevel)
     js_escape($wh) . ");";
 }
 
-$pricelevel = isset($_GET['pricelevel']) ? $_GET['pricelevel'] : '';
+$pricelevel = $_GET['pricelevel'] ?? '';
 
 if (!empty($_GET['list'])) {
   // This case supports packages of codes.
-    $arrcodes = explode('~', $_GET['list']);
+    $arrcodes = explode('~', (string) $_GET['list']);
     foreach ($arrcodes as $codestring) {
         if ($codestring === '') {
             continue;
         }
         $arrcode = explode('|', $codestring);
         $codetype = $arrcode[0];
-        list($code, $modifier) = explode(":", $arrcode[1]);
-        $selector = isset($arrcode[2]) ? $arrcode[2] : '';
+        [$code, $modifier] = explode(":", $arrcode[1]);
+        $selector = $arrcode[2] ?? '';
         write_code_info($codetype, $code, $selector, $pricelevel);
     }
 } else {
   // This is the normal case of adding a single code.
-    $codetype   = isset($_GET['codetype'  ]) ? $_GET['codetype'  ] : '';
-    $code       = isset($_GET['code'      ]) ? $_GET['code'      ] : '';
-    $selector   = isset($_GET['selector'  ]) ? $_GET['selector'  ] : '';
+    $codetype   = $_GET['codetype'  ] ?? '';
+    $code       = $_GET['code'      ] ?? '';
+    $selector   = $_GET['selector'  ] ?? '';
     write_code_info($codetype, $code, $selector, $pricelevel);
 }

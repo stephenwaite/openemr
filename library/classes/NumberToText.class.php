@@ -4,13 +4,14 @@
 
 /** Serialized Array of big names, thousand, million, etc
 * @package NumberToText */
-define("N2T_BIG", serialize(array('thousand', 'million', 'billion', 'trillion', 'quadrillion', 'quintillion', 'sextillion', 'septillion', 'octillion', 'nonillion', 'decillion', 'undecillion', 'duodecillion', 'tredecillion', 'quattuordecillion', 'quindecillion', 'sexdecillion', 'septendecillion', 'octodecillion', 'novemdecillion', 'vigintillion')));
+
+define("N2T_BIG", serialize(['thousand', 'million', 'billion', 'trillion', 'quadrillion', 'quintillion', 'sextillion', 'septillion', 'octillion', 'nonillion', 'decillion', 'undecillion', 'duodecillion', 'tredecillion', 'quattuordecillion', 'quindecillion', 'sexdecillion', 'septendecillion', 'octodecillion', 'novemdecillion', 'vigintillion']));
 /** Serialized Array of medium names, twenty, thirty, etc
 * @package NumberToText */
-define("N2T_MEDIUM", serialize(array(2=>'twenty', 3=>'thirty', 4=>'forty', 5=>'fifty', 6=>'sixty', 7=>'seventy', 8=>'eighty', 9=>'ninety')));
+define("N2T_MEDIUM", serialize([2 => 'twenty', 3 => 'thirty', 4 => 'forty', 5 => 'fifty', 6 => 'sixty', 7 => 'seventy', 8 => 'eighty', 9 => 'ninety']));
 /** Serialized Array of small names, zero, one, etc.. up to eighteen, nineteen
 * @package NumberToText */
-define("N2T_SMALL", serialize(array('zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen')));
+define("N2T_SMALL", serialize(['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen']));
 /** Word for "dollars"
 * @package NumberToText */
 define("N2T_DOLLARS", "dollars");
@@ -32,19 +33,8 @@ define("N2T_NEGATIVE", "negative");
 
 class NumberToText
 {
-
-
-    var $number;
-    var $currency;
-    var $capatalize;
-    var $and;
-
-    function __construct($number, $currency = false, $capatalize = false, $and = false)
+    function __construct(public $number, public $currency = false, public $capitalize = false, public $and = false)
     {
-        $this->number = $number;
-        $this->currency = $currency;
-        $this->capatalize = $capatalize;
-        $this->and = $and;
     }
 
     /** Number to text converter. Converts a number into a textual description, such as
@@ -57,7 +47,7 @@ class NumberToText
     * @version 1.1
     * @param int  $number      The number to convert
     * @param bool $currency    True to convert as a dollar amount
-    * @param bool $capatalize  True to capatalize every word (except "and")
+    * @param bool $capitalize  True to capitalize every word (except "and")
     * @param bool $and         True to use "and"  (ie. "one hundred AND six")
     * @return The textual description of the number, as a string.
     * @package NumberToText
@@ -67,18 +57,18 @@ class NumberToText
     {
         $number = $this->number;
         $currency = $this->currency;
-        $capatalize = $this->capatalize;
+        $capitalize = $this->capitalize;
         $and = $this->and;
 
-        $big = unserialize(N2T_BIG);
-        $small = unserialize(N2T_SMALL);
+        $big = unserialize(N2T_BIG, ['allowed_classes' => false]);
+        $small = unserialize(N2T_SMALL, ['allowed_classes' => false]);
 
         // get rid of leading 0's
         /*
-	    while ($number{0} == 0) {
-	        $number = substr($number,1);
-	    }
-	    */
+        while ($number{0} == 0) {
+            $number = substr($number,1);
+        }
+        */
 
         if ($number === 0) {
             return "zero";
@@ -88,18 +78,18 @@ class NumberToText
 
         //$negative = ($number < 0); // check for negative
         //$number = abs($number); // make sure we have a +ve number
-        if (substr($number, 0, 1) == "-") {
+        if (str_starts_with((string) $number, "-")) {
             $negative = true;
-            $number = substr($number, 1); // abs()
+            $number = substr((string) $number, 1); // abs()
         } else {
             $negative = false;
         }
 
         // get the integer and decimal parts
         //$int_o = $int = floor($number); // store into two vars
-        if ($pos = strpos($number, ".")) {
-            $int_o = $int = substr($number, 0, $pos);
-            $decimal_o = $decimal = substr($number, $pos + 1);
+        if ($pos = strpos((string) $number, ".")) {
+            $int_o = $int = substr((string) $number, 0, $pos);
+            $decimal_o = $decimal = substr((string) $number, $pos + 1);
         } else {
             $int_o = $int = $number;
             $decimal_o = $decimal = 0;
@@ -117,23 +107,23 @@ class NumberToText
 
             if ($section > count($big) - 1) {
                 // ran out of names for numbers this big, call recursively
-                $text = NumberToText($int, false, false, $and)." ".$big[$section-1]." ".$text;
+                $text = NumberToText($int, false, false, $and) . " " . $big[$section - 1] . " " . $text;
                 $int = 0;
             } else {
                 // we can handle it
 
-                if (strlen($int)<3) {
+                if (strlen((string) $int) < 3) {
                       $convert = $int;
                       $int = 0;
                 } else {
-                      $convert = substr($int, -3); // grab the last 3 digits
-                      $int = substr($int, 0, -1 * strlen($convert));
+                      $convert = substr((string) $int, -3); // grab the last 3 digits
+                      $int = substr((string) $int, 0, -1 * strlen($convert));
                 }
 
                 if ($convert > 0) {
                     // we have something here, put it in
                     if ($section > 0) {
-                        $text = $this->n2t_convertthree($convert, $and, ($int > 0))." ".$big[$section-1]." ".$text;
+                        $text = $this->n2t_convertthree($convert, $and, ($int > 0)) . " " . $big[$section - 1] . " " . $text;
                     } else {
                         $text = $this->n2t_convertthree($convert, $and, ($int > 0));
                     }
@@ -147,13 +137,13 @@ class NumberToText
 
         if ($currency && floor($number)) {
             // add " dollars"
-            $text .= " ".($int_o == 1 ? N2T_DOLLARS_ONE : N2T_DOLLARS)." ";
+            $text .= " " . ($int_o == 1 ? N2T_DOLLARS_ONE : N2T_DOLLARS) . " ";
         }
 
         if ($decimal && $currency) {
             // if we have any cents, add those
             if ($int_o > 0) {
-                $text .= " ".N2T_AND." ";
+                $text .= " " . N2T_AND . " ";
             }
 
             $cents = substr($decimal, 0, 2); // (0.)2342 -> 23
@@ -167,28 +157,28 @@ class NumberToText
             $text .= " point";
             for ($i = 0; $i < strlen($decimal); $i++) {
                 // go through one number at a time
-                $text .= " ".$small[$decimal{$i}];
+                $text .= " " . $small[$decimal[$i]];
             }
         }
 
 
         if ($decimal_o && $currency) {
             // add " cents" (if we're doing currency and had decimals)
-            $text .= " ".($decimal_o == 1 ? N2T_CENTS_ONE : N2T_CENTS);
+            $text .= " " . ($decimal_o == 1 ? N2T_CENTS_ONE : N2T_CENTS);
         }
 
         // check for negative
         if ($negative) {
-            $text = N2T_NEGATIVE." ".$text;
+            $text = N2T_NEGATIVE . " " . $text;
         }
 
-        // capatalize words
-        if ($capatalize) {
-            // easier to capatalize all words then un-capatalize "and"
-            $text = str_replace(ucwords(N2T_AND), N2T_AND, ucwords($text));
+        // capitalize words
+        if ($capitalize) {
+            // easier to capitalize all words then un-capitalize "and"
+            $text = str_replace(ucwords(N2T_AND), N2T_AND, ucwords((string) $text));
         }
 
-        return trim($text);
+        return trim((string) $text);
     }
 
     /** This is a utility function of n2t. It converts a 3-digit number
@@ -203,29 +193,29 @@ class NumberToText
     */
     function n2t_convertthree($number, $and, $preceding)
     {
-        $small = unserialize(N2T_SMALL);
-        $medium = unserialize(N2T_MEDIUM);
+        $small = unserialize(N2T_SMALL, ['allowed_classes' => false]);
+        $medium = unserialize(N2T_MEDIUM, ['allowed_classes' => false]);
 
         $text = "";
 
         if ($hundreds = floor($number / 100)) {
             // we have 100's place
-            $text .= $small[$hundreds]." hundred ";
+            $text .= $small[$hundreds] . " hundred ";
         }
 
         $tens = $number % 100;
         if ($tens) {
             // we still have values
             if ($and && ($hundreds || $preceding)) {
-                $text .= " ".N2T_AND." ";
+                $text .= " " . N2T_AND . " ";
             }
 
             if ($tens < 20) {
                 $text .= $small[$tens];
             } else {
-                $text .= $medium[floor($tens/10)];
+                $text .= $medium[floor($tens / 10)];
                 if ($ones = $tens % 10) {
-                    $text .= "-".$small[$ones];
+                    $text .= "-" . $small[$ones];
                 }
             }
         }
@@ -235,7 +225,7 @@ class NumberToText
 
     function getmicrotime()
     {
-        list($usec, $sec) = explode(" ", microtime());
+        [$usec, $sec] = explode(" ", microtime());
         return ((float)$usec + (float)$sec);
     }
 }

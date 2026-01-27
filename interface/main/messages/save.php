@@ -1,4 +1,5 @@
 <?php
+
 /**
  * /interface/main/messages/save.php
  *
@@ -6,51 +7,61 @@
  * @link    http://www.MedExBank.com
  * @author  MedEx <support@MedExBank.com>
  * @copyright Copyright (c) 2017 MedEx <support@MedExBank.com>
- * @license https://www.gnu.org/licenses/agpl-3.0.en.html GNU Affero General Public License 3
+ * @license https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
 require_once "../../globals.php";
-require_once "$srcdir/acl.inc";
-require_once "$srcdir/lists.inc";
-require_once "$srcdir/forms.inc";
-require_once "$srcdir/patient.inc";
+require_once "$srcdir/lists.inc.php";
+require_once "$srcdir/forms.inc.php";
+require_once "$srcdir/patient.inc.php";
 require_once "$srcdir/MedEx/API.php";
+
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Session\SessionUtil;
 
 $MedEx = new MedExApi\MedEx('MedExBank.com');
 if ($_REQUEST['go'] == 'sms_search') {
     $param = "%" . $_GET['term'] . "%";
     $query = "SELECT * FROM patient_data WHERE fname LIKE ? OR lname LIKE ?";
-    $result = sqlStatement($query, array($param, $param));
+    $result = sqlStatement($query, [$param, $param]);
     while ($frow = sqlFetchArray($result)) {
-        $data['Label'] = 'Name';
-        $data['value'] = $frow['fname'] . " " . $frow['lname'];
-        $data['pid'] = $frow['pid'];
-        $data['mobile'] = $frow['phone_cell'];
-        $data['allow'] = $frow['hipaa_allowsms'];
+        $data['Label']  = 'Name';
+        $data['value']  = text($frow['fname'] . " " . $frow['lname']);
+        $data['pid']    = text($frow['pid']);
+        $data['mobile'] = text($frow['phone_cell']);
+        $data['allow']  = text($frow['hipaa_allowsms']);
+        $sql = "SELECT * FROM `medex_outgoing` where msg_pid=? ORDER BY `medex_outgoing`.`msg_uid` DESC LIMIT 1";
+        $data['sql'] = $sql;
+        $result2 = sqlQuery($sql, [$frow['pid']]);
+        $data['msg_last_updated'] = $result2['msg_date'];
+        $data['medex_uid'] = $result2['medex_uid'];
         $results[] = $data;
     }
+
     echo json_encode($results);
     exit;
 }
 //you need admin privileges to update this.
 if ($_REQUEST['go'] == 'Preferences') {
-    if (acl_check('admin', 'super')) {
+    if (AclMain::aclCheckCore('admin', 'super')) {
         $sql = "UPDATE `medex_prefs` SET `ME_facilities`=?,`ME_providers`=?,`ME_hipaa_default_override`=?,
-			`PHONE_country_code`=? ,`MSGS_default_yes`=?,
+			`PHONE_country_code`=?,
 			`POSTCARDS_local`=?,`POSTCARDS_remote`=?,
 			`LABELS_local`=?,`LABELS_choice`=?,
 			`combine_time`=?, postcard_top=?";
 
         $facilities = implode("|", $_REQUEST['facilities']);
         $providers = implode("|", $_REQUEST['providers']);
-        $HIPAA = ($_REQUEST['ME_hipaa_default_override'] ? $_REQUEST['ME_hipaa_default_override'] : '');
-        $MSGS = ($_REQUEST['MSGS_default_yes'] ? $_REQUEST['MSGS_default_yes'] : '');
-        $country_code = ($_REQUEST['PHONE_country_code'] ? $_REQUEST['PHONE_country_code'] : '1');
+        $HIPAA = ($_REQUEST['ME_hipaa_default_override'] ?: '');
+        $country_code = ($_REQUEST['PHONE_country_code'] ?: '1');
 
-        $myValues = array($facilities, $providers, $HIPAA, $country_code, $MSGS, $_REQUEST['POSTCARDS_local'], $_REQUEST['POSTCARDS_remote'], $_REQUEST['LABELS_local'], $_REQUEST['chart_label_type'], $_REQUEST['combine_time'], $_REQUEST['postcard_top']);
+        $myValues = [$facilities, $providers, $HIPAA, $country_code, $_REQUEST['POSTCARDS_local'], $_REQUEST['POSTCARDS_remote'], $_REQUEST['LABELS_local'], $_REQUEST['chart_label_type'], $_REQUEST['combine_time'], $_REQUEST['postcard_top']];
 
         $_GLOBALS['chart_label_type'] = $_REQUEST['chart_label_type'];
-        sqlStatement('UPDATE `globals` SET gl_value = ? WHERE gl_name LIKE "chart_label_type" ', array($_REQUEST['chart_label_type']));
+        sqlStatement('UPDATE `globals` SET gl_value = ? WHERE gl_name LIKE "chart_label_type" ', [$_REQUEST['chart_label_type']]);
+
+        $query = "UPDATE `background_services` SET `active`='1',`execute_interval`=?, `running`='0', `require_once`='/library/MedEx/MedEx_background.php' WHERE `name`='MedEx'";
+        sqlQuery($query, [$_POST['execute_interval']]);
 
         $result['output'] = sqlQuery($sql, $myValues);
         if ($result['output'] == false) {
@@ -62,9 +73,9 @@ if ($_REQUEST['go'] == 'Preferences') {
     exit;
 }
 if ($_REQUEST['MedEx'] == "start") {
-    if (acl_check('admin', 'super')) {
+    if (AclMain::aclCheckCore('admin', 'super')) {
         $query = "SELECT * FROM users WHERE id = ?";
-        $user_data = sqlQuery($query, array($_SESSION['authUserID']));
+        $user_data = sqlQuery($query, [$_SESSION['authUserID']]);
         $query = "SELECT * FROM facility WHERE primary_business_entity='1' LIMIT 1";
         $facility = sqlFetchArray(sqlStatement($query));
 
@@ -115,60 +126,60 @@ if ($_REQUEST['MedEx'] == "start") {
             $providers = implode("|", $providers);
             $sqlINSERT = "INSERT INTO `medex_prefs` (
 								MedEx_id,ME_api_key,ME_username,
-								ME_facilities,ME_providers,ME_hipaa_default_override,MSGS_default_yes,
+								ME_facilities,ME_providers,ME_hipaa_default_override,
 								PHONE_country_code,LABELS_local,LABELS_choice)
-							VALUES (?,?,?,?,?,?,?,?,?,?)";
-            sqlStatement($sqlINSERT, array($response['customer_id'], $response['API_key'], $_POST['new_email'], $facilities, $providers, "1", "1", "1", "1", "5160"));
-            sqlQuery("UPDATE `background_services` SET `active`='1',`execute_interval`='5' WHERE `name`='MedEx'");
-        }
+							VALUES (?,?,?,?,?,?,?,?,?)";
+            sqlStatement($sqlINSERT, [$response['customer_id'], $response['API_key'], $_POST['new_email'], $facilities, $providers, "1", "1", "1", "5160"]);
+            $query = "UPDATE `background_services` SET `active`='1',`execute_interval`='29', `running`='0', `require_once`='/library/MedEx/MedEx_background.php' WHERE `name`='MedEx'";
+            sqlQuery($query);
+            $info = $MedEx->login('2');
 
-        $info = $MedEx->login('1');
-
-        if ($info['status']['token']) {
-            $info['status']['show'] = xlt("Sign-up successful for") . " " . $data['company'] . ".<br />" . xlt("Proceeding to Preferences") . ".<br />" .
-                xlt("If this page does not refresh, reload the Messages page manually") . ".<br />";
-            //get js to reroute user to preferences.
-            echo json_encode($info['status']);
-            sqlQuery("UPDATE `background_services` SET `active`='1',`execute_interval`='29' WHERE `name`='MedEx'");
+            if ($info['token']) {
+                $info['show'] = xlt("Sign-up successful for") . " " . $data['company'] . ".<br />" . xlt("Proceeding to Preferences") . ".<br />" . xlt("If this page does not refresh, reload the Messages page manually") . ".<br />";
+                //get js to reroute user to preferences.
+                echo json_encode($info);
+            }
         } else {
-            $response_prob = array();
+            $response_prob = [];
             $response_prob['show'] = xlt("We ran into some problems connecting your EHR to the MedEx servers") . ".<br >
-				" .xlt('Most often this is due to a Username/Password mismatch')."<br />"
-                .xlt('Run Setup again or contact support for assistance').
+				" . xlt('Most often this is due to a Username/Password mismatch') . "<br />"
+                . xlt('Run Setup again or contact support for assistance') .
                 " <a href='https://medexbank.com/cart/upload/'>MedEx Bank</a>.<br />";
             echo json_encode($response_prob);
             sqlQuery("UPDATE `background_services` SET `active`='0' WHERE `name`='MedEx'");
         }
         //then redirect user to preferences with a success message!
     } else {
-        echo xlt("Sorry you are not privileged enough. Enrollment is limited to Adminstrator accounts.");
+        echo xlt("Sorry you are not privileged enough. Enrollment is limited to Administrator accounts.");
     }
     exit;
 }
 
 if (($_REQUEST['pid']) && ($_REQUEST['action'] == "new_recall")) {
     $query = "SELECT * FROM patient_data WHERE pid=?";
-    $result = sqlQuery($query, array($_REQUEST['pid']));
+    $result = sqlQuery($query, [$_REQUEST['pid']]);
     $result['age'] = $MedEx->events->getAge($result['DOB']);
+    // uuid is binary and will break json_encode in binary form (not needed, so will remove it from $result array)
+    unset($result['uuid']);
 
     /**
      *  Did the clinician create a PLAN at the last visit?
      *  To do an in office test, and get paid for it,
      *  we must have an order (and a report of the findings).
-     *  If the practice is using the eye form then uncomment the 3 lines below.
+     *  If the practice is using the eye form then uncomment the 5 lines below.
      *  It provides the PLAN and orders for next visit.
      *  As forms mature, there should be a uniform way to find the PLAN?
      *  And when that day comes we'll put it here...
      *  The other option is to use Visit Categories here.  Maybe both?  Consensus?
      */
-    $query = "SELECT ORDER_DETAILS FROM form_eye_mag_orders WHERE PID=? AND ORDER_DATE_PLACED < NOW() ORDER BY ORDER_DATE_PLACED DESC LIMIT 1";
-    $result2 = sqlQuery($query, array($_REQUEST['pid']));
+    $query = "SELECT ORDER_DETAILS FROM form_eye_mag_orders WHERE pid=? AND ORDER_DATE_PLACED < NOW() ORDER BY ORDER_DATE_PLACED DESC LIMIT 1";
+    $result2 = sqlQuery($query, [$_REQUEST['pid']]);
     if (!empty($result2)) {
         $result['PLAN'] = $result2['ORDER_DETAILS'];
     }
 
     $query = "SELECT * FROM openemr_postcalendar_events WHERE pc_pid =? ORDER BY pc_eventDate DESC LIMIT 1";
-    $result2 = sqlQuery($query, array($_REQUEST['pid']));
+    $result2 = sqlQuery($query, [$_REQUEST['pid']]);
     if ($result2) { //if they were never actually scheduled this would be blank
         $result['DOLV']     = oeFormatShortDate($result2['pc_eventDate']);
         $result['provider'] = $result2['pc_aid'];
@@ -179,7 +190,7 @@ if (($_REQUEST['pid']) && ($_REQUEST['action'] == "new_recall")) {
      * If so we need to use that info...
      */
     $query = "SELECT * from medex_recalls where r_pid=?";
-    $result3 = sqlQuery($query, array($_REQUEST['pid']));
+    $result3 = sqlQuery($query, [$_REQUEST['pid']]);
     if ($result3) {
         $result['recall_date']  = $result3['r_eventDate'];
         $result['PLAN']         = $result3['r_reason'];
@@ -206,35 +217,37 @@ if (($_REQUEST['action'] == 'delete_Recall') && ($_REQUEST['pid'])) {
 // $_SESSION['pidList'] will hold array of patient ids
 // which is then used to print 'postcards' and 'Address Labels'
 // Thanks Terry!
-unset($_SESSION['pidList']);
-$pid_list = array();
+SessionUtil::unsetSession('pidList');
+$pid_list = [];
 
 if ($_REQUEST['action'] == "process") {
-    $new_pid = json_decode($_POST['parameter'], true);
-    $new_pc_eid = json_decode($_POST['pc_eid'], true);
+    $new_pid = json_decode((string) $_POST['parameter'], true);
+    $new_pc_eid = json_decode((string) $_POST['pc_eid'], true);
 
     if (($_POST['item'] == "phone") || (($_POST['item'] == "notes") && ($_POST['msg_notes'] > ''))) {
         $sql = "INSERT INTO medex_outgoing (msg_pc_eid, msg_type, msg_reply, msg_extra_text) VALUES (?,?,?,?)";
-        sqlQuery($sql, array('recall_' . $new_pid[0], $_POST['item'], $_SESSION['authUserID'], $_POST['msg_notes']));
+        sqlQuery($sql, ['recall_' . $new_pid[0], $_POST['item'], $_SESSION['authUserID'], $_POST['msg_notes']]);
         return "done";
     }
-    $pc_eidList = json_decode($_POST['pc_eid'], true);
-    $_SESSION['pc_eidList'] = $pc_eidList[0];
-    $pidList = json_decode($_POST['parameter'], true);
-    $_SESSION['pidList'] = $pidList;
+    $pc_eidList = json_decode((string) $_POST['pc_eid'], true);
+    $pidList = json_decode((string) $_POST['parameter'], true);
+    $sessionSetArray['pc_eidList'] = $pc_eidList[0];
+    $sessionSetArray['pidList'] = $pidList;
+    SessionUtil::setSession($sessionSetArray);
+
     if ($_POST['item'] == "postcards") {
         foreach ($pidList as $pid) {
             $sql = "INSERT INTO medex_outgoing (msg_pc_eid, msg_type, msg_reply, msg_extra_text) VALUES (?,?,?,?)";
-            sqlQuery($sql, array('recall_' . $pid, $_POST['item'], $_SESSION['authUserID'], 'Postcard printed locally'));
+            sqlQuery($sql, ['recall_' . $pid, $_POST['item'], $_SESSION['authUserID'], 'Postcard printed locally']);
         }
     }
     if ($_POST['item'] == "labels") {
         foreach ($pidList as $pid) {
             $sql = "INSERT INTO medex_outgoing (msg_pc_eid, msg_type, msg_reply, msg_extra_text) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE msg_extra_text='Label repeat'";
-            sqlQuery($sql, array('recall_' . $pid, $_POST['item'], $_SESSION['authUserID'], 'Label printed locally'));
+            sqlQuery($sql, ['recall_' . $pid, $_POST['item'], $_SESSION['authUserID'], 'Label printed locally']);
         }
     }
-    echo json_encode($pidList);
+    echo text(json_encode($pidList));
     exit;
 }
 if ($_REQUEST['go'] == "Messages") {

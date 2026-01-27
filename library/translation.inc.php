@@ -1,66 +1,90 @@
 <?php
 
-// Translation function
-// This is the translation engine
-//  Note that it is recommended to no longer use the mode, prepend, or append
-//  parameters, since this is not compatible with the htmlspecialchars() php
-//  function.
-//
-//  Note there are cases in installation where this function has already been
-//   declared, so check to ensure has not been declared yet.
-//
-if (!(function_exists('xl'))) {
-    function xl($constant, $mode = 'r', $prepend = '', $append = '')
+use OpenEMR\Common\Translation\TranslationCache;
+use OpenEMR\Common\Session\SessionWrapperFactory;
+
+if (!(function_exists('xlWarmCache'))) {
+    /**
+     * Warm the translation cache by loading all translations for the current language.
+     * Call this early in the request lifecycle for best performance.
+     */
+    function xlWarmCache(): void
     {
+        $session = SessionWrapperFactory::getInstance()->getWrapper();
+        $language_choice = $session->get('language_choice');
+        $lang_id = !empty($language_choice) ? (int)$language_choice : 1;
+        TranslationCache::warm($lang_id);
+    }
+}
+
+if (!(function_exists('xl'))) {
+    /**
+     * Translation function - the translation engine for OpenEMR
+     *
+     * Translates a given constant string into the current session language.
+     * Note: In some installation scenarios this function may already be declared,
+     * so we check to ensure it hasn't been declared yet.
+     *
+     * @param string $constant The text constant to translate
+     * @return string The translated string
+     */
+    function xl($constant)
+    {
+        if (!empty($GLOBALS['disable_translation']) || !empty($GLOBALS['temp_skip_translations'])) {
+            return $constant;
+        }
+        $session = SessionWrapperFactory::getInstance()->getWrapper();
+        $language_choice = $session->get('language_choice');
         // set language id
-        if (!empty($_SESSION['language_choice'])) {
-             $lang_id = $_SESSION['language_choice'];
+        $lang_id = !empty($language_choice) ? $language_choice : 1;
+
+        // TRANSLATE
+        // first, clean lines
+        // convert new lines to spaces and remove windows end of lines
+        $patterns =  ['/\n/','/\r/'];
+        $replace =  [' ',''];
+        $constant = preg_replace($patterns, $replace, $constant);
+
+        // Check cache first
+        if (TranslationCache::has($lang_id, $constant)) {
+            $string = TranslationCache::get($lang_id, $constant);
+        } elseif (TranslationCache::isWarmed()) {
+            // Cache is warmed but constant not found - no translation exists
+            $string = '';
         } else {
-             $lang_id = 1;
+            // Cache not warmed, query database
+            $sql = <<<'SQL'
+                SELECT lang_definitions.definition
+                  FROM lang_definitions
+                  JOIN lang_constants
+                 USING (cons_id)
+                 WHERE lang_definitions.lang_id = ?
+                   AND lang_constants.constant_name = ?
+                 LIMIT 1
+                SQL;
+            $res = sqlStatementNoLog($sql, [$lang_id, $constant]);
+            $row = sqlFetchArray($res);
+            $string = $row['definition'] ?? '';
+            // Cache for future lookups this request
+            TranslationCache::set($lang_id, $constant, $string);
         }
 
-        if ($lang_id == 1 && !empty($GLOBALS['skip_english_translation'])) {
-             // language id = 1, so no need to translate
-             //  -- remove comments
-             $string = preg_replace('/\{\{.*\}\}/', '', $constant);
+        if ($string == '') {
+            $string = "$constant";
+        }
+        // remove dangerous characters and remove comments
+        if (!empty($GLOBALS['translate_no_safe_apostrophe'])) {
+            $patterns =  ['/\n/','/\r/','/\{\{.*\}\}/'];
+            $replace =  [' ','',''];
+            $string = preg_replace($patterns, $replace, (string) $string);
         } else {
-             // TRANSLATE
-             // first, clean lines
-             // convert new lines to spaces and remove windows end of lines
-             $patterns = array ('/\n/','/\r/');
-             $replace = array (' ','');
-             $constant = preg_replace($patterns, $replace, $constant);
-
-             // second, attempt translation
-             $sql="SELECT * FROM lang_definitions JOIN lang_constants ON " .
-            "lang_definitions.cons_id = lang_constants.cons_id WHERE " .
-            "lang_id=? AND constant_name = ? LIMIT 1";
-             $res = sqlStatementNoLog($sql, array($lang_id,$constant));
-             $row = SqlFetchArray($res);
-             $string = $row['definition'];
-            if ($string == '') {
-                $string = "$constant";
-            }
-
-             // remove dangerous characters and remove comments
-            if ($GLOBALS['translate_no_safe_apostrophe']) {
-                $patterns = array ('/\n/','/\r/','/\{\{.*\}\}/');
-                $replace = array (' ','','');
-                $string = preg_replace($patterns, $replace, $string);
-            } else {
-                // convert apostrophes and quotes to safe apostrophe
-                $patterns = array ('/\n/','/\r/','/"/',"/'/",'/\{\{.*\}\}/');
-                $replace = array (' ','','`','`','');
-                $string = preg_replace($patterns, $replace, $string);
-            }
+            // convert apostrophes and quotes to safe apostrophe
+            $patterns =  ['/\n/','/\r/','/"/',"/'/",'/\{\{.*\}\}/'];
+            $replace =  [' ','','`','`',''];
+            $string = preg_replace($patterns, $replace, (string) $string);
         }
 
-        $string = "$prepend" . "$string" . "$append";
-        if ($mode=='e') {
-             echo $string;
-        } else {
-             return $string;
-        }
+        return $string;
     }
 }
 
@@ -77,131 +101,88 @@ if (!(function_exists('xl'))) {
 //    xl_document_category()
 //    xl_appt_category()
 //
-// Added 5-09 by BM for translation of list labels (when applicable)
-// Only translates if the $GLOBALS['translate_lists'] is set to true.
-function xl_list_label($constant, $mode = 'r', $prepend = '', $append = '')
+/**
+ * Conditionally translates list labels based on global setting
+ *
+ * Only translates if $GLOBALS['translate_lists'] is set to true.
+ * Added 5-09 by BM.
+ *
+ * @param string $constant The text constant to translate
+ * @return string The translated or original string
+ */
+function xl_list_label($constant)
 {
-    if ($GLOBALS['translate_lists']) {
-        // TRANSLATE
-        if ($mode == "e") {
-            xl($constant, $mode, $prepend, $append);
-        } else {
-            return xl($constant, $mode, $prepend, $append);
-        }
-    } else {
-        // DO NOT TRANSLATE
-        if ($mode == "e") {
-            echo $prepend.$constant.$append;
-        } else {
-            return $prepend.$constant.$append;
-        }
-    }
+    return $GLOBALS['translate_lists'] ? xl($constant) : $constant;
 }
-// Added 5-09 by BM for translation of layout labels (when applicable)
-// Only translates if the $GLOBALS['translate_layout'] is set to true.
-function xl_layout_label($constant, $mode = 'r', $prepend = '', $append = '')
+
+/**
+ * Conditionally translates layout labels based on global setting
+ *
+ * Only translates if $GLOBALS['translate_layout'] is set to true.
+ * Added 5-09 by BM.
+ *
+ * @param string $constant The text constant to translate
+ * @return string The translated or original string
+ */
+function xl_layout_label($constant)
 {
-    if ($GLOBALS['translate_layout']) {
-        // TRANSLATE
-        if ($mode == "e") {
-            xl($constant, $mode, $prepend, $append);
-        } else {
-            return xl($constant, $mode, $prepend, $append);
-        }
-    } else {
-        // DO NOT TRANSLATE
-        if ($mode == "e") {
-            echo $prepend.$constant.$append;
-        } else {
-            return $prepend.$constant.$append;
-        }
-    }
+    return $GLOBALS['translate_layout'] ? xl($constant) : $constant;
 }
-// Added 6-2009 by BM for translation of access control group labels
-//  (when applicable)
-// Only translates if the $GLOBALS['translate_gacl_groups'] is set to true.
-function xl_gacl_group($constant, $mode = 'r', $prepend = '', $append = '')
+
+/**
+ * Conditionally translates access control group labels based on global setting
+ *
+ * Only translates if $GLOBALS['translate_gacl_groups'] is set to true.
+ * Added 6-2009 by BM.
+ *
+ * @param string $constant The text constant to translate
+ * @return string The translated or original string
+ */
+function xl_gacl_group($constant)
 {
-    if ($GLOBALS['translate_gacl_groups']) {
-        // TRANSLATE
-        if ($mode == "e") {
-            xl($constant, $mode, $prepend, $append);
-        } else {
-            return xl($constant, $mode, $prepend, $append);
-        }
-    } else {
-        // DO NOT TRANSLATE
-        if ($mode == "e") {
-            echo $prepend.$constant.$append;
-        } else {
-            return $prepend.$constant.$append;
-        }
-    }
+    return $GLOBALS['translate_gacl_groups'] ? xl($constant) : $constant;
 }
-// Added 6-2009 by BM for translation of patient form (notes) titles
-//  (when applicable)
-// Only translates if the $GLOBALS['translate_form_titles'] is set to true.
-function xl_form_title($constant, $mode = 'r', $prepend = '', $append = '')
+
+/**
+ * Conditionally translates patient form (notes) titles based on global setting
+ *
+ * Only translates if $GLOBALS['translate_form_titles'] is set to true.
+ * Added 6-2009 by BM.
+ *
+ * @param string $constant The text constant to translate
+ * @return string The translated or original string
+ */
+function xl_form_title($constant)
 {
-    if ($GLOBALS['translate_form_titles']) {
-        // TRANSLATE
-        if ($mode == "e") {
-            xl($constant, $mode, $prepend, $append);
-        } else {
-            return xl($constant, $mode, $prepend, $append);
-        }
-    } else {
-        // DO NOT TRANSLATE
-        if ($mode == "e") {
-            echo $prepend.$constant.$append;
-        } else {
-            return $prepend.$constant.$append;
-        }
-    }
+    return $GLOBALS['translate_form_titles'] ? xl($constant) : $constant;
 }
-//
-// Added 6-2009 by BM for translation of document categories
-//  (when applicable)
-// Only translates if the $GLOBALS['translate_document_categories'] is set to true.
-function xl_document_category($constant, $mode = 'r', $prepend = '', $append = '')
+
+/**
+ * Conditionally translates document categories based on global setting
+ *
+ * Only translates if $GLOBALS['translate_document_categories'] is set to true.
+ * Added 6-2009 by BM.
+ *
+ * @param string $constant The text constant to translate
+ * @return string The translated or original string
+ */
+function xl_document_category($constant)
 {
-    if ($GLOBALS['translate_document_categories']) {
-        // TRANSLATE
-        if ($mode == "e") {
-            xl($constant, $mode, $prepend, $append);
-        } else {
-            return xl($constant, $mode, $prepend, $append);
-        }
-    } else {
-        // DO NOT TRANSLATE
-        if ($mode == "e") {
-            echo $prepend.$constant.$append;
-        } else {
-            return $prepend.$constant.$append;
-        }
-    }
+    return $GLOBALS['translate_document_categories'] ? xl($constant) : $constant;
 }
-//
-// Added 6-2009 by BM for translation of appointment categories
-//  (when applicable)
-// Only translates if the $GLOBALS['translate_appt_categories'] is set to true.
-function xl_appt_category($constant, $mode = 'r', $prepend = '', $append = '')
+
+/**
+ * Conditionally translates appointment categories based on global setting
+ *
+ * Only translates if $GLOBALS['translate_appt_categories'] is set to true.
+ * Added 6-2009 by BM.
+ *
+ * @param string $constant The text constant to translate
+ * @return string The translated or original string
+ */
+function xl_appt_category($constant)
 {
-    if ($GLOBALS['translate_appt_categories']) {
-        // TRANSLATE
-        if ($mode == "e") {
-            xl($constant, $mode, $prepend, $append);
-        } else {
-            return xl($constant, $mode, $prepend, $append);
-        }
-    } else {
-        // DO NOT TRANSLATE
-        if ($mode == "e") {
-            echo $prepend.$constant.$append;
-        } else {
-            return $prepend.$constant.$append;
-        }
-    }
+    return $GLOBALS['translate_appt_categories'] ? xl($constant) : $constant;
 }
 // ---------------------------------------------------------------------------
 
@@ -215,18 +196,14 @@ function getLanguageTitle($val)
 {
 
  // validate language id
-    if (!empty($val)) {
-         $lang_id = $val;
-    } else {
-         $lang_id = 1;
-    }
+    $lang_id = !empty($val) ? $val : 1;
 
  // get language title
-    $res = sqlStatement("select lang_description from lang_languages where lang_id =?", array($lang_id));
+    $res = sqlStatement("select lang_description from lang_languages where lang_id =?", [$lang_id]);
     for ($iter = 0; $row = sqlFetchArray($res); $iter++) {
         $result[$iter] = $row;
     };
-    $languageTitle = $result[0]{"lang_description"};
+    $languageTitle = $result[0]["lang_description"];
     return $languageTitle;
 }
 
@@ -244,29 +221,7 @@ function getLanguageDir($lang_id)
     // validate language id
     $lang_id = empty($lang_id) ? 1 : $lang_id;
     // get language code
-    $row = sqlQuery('SELECT * FROM lang_languages WHERE lang_id = ?', array($lang_id));
+    $row = sqlQuery('SELECT * FROM lang_languages WHERE lang_id = ?', [$lang_id]);
 
     return !empty($row['lang_is_rtl']) ? 'rtl' : 'ltr';
-}
-
-//----------------------------------
-
-// ----------------------------------------------------------------------------
-/**
-HEADER HTML
-
-shows some informations for pages html header
-
-@param none
-@return void
-*/
-function html_header_show()
-{
-
-    // Below line was commented by the UTF-8 project on 05-2009 by BM.
-    //  We commented this out since we are now standardizing encoding
-    //  in the globals.php file.
-    // echo '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/> '."\n";
-    //
-    // Keeping this function, since it may prove useful for user interface improvements
 }

@@ -7,7 +7,7 @@
         "pid":"false",
         "children": [],
         "requirement": 0
-    },	
+    },
 	{
         "label": "History",
         "menu_id": "history",
@@ -26,7 +26,11 @@
         "url": "interface/patient_file/report/patient_report.php",
         "pid":"false",
         "children": [],
-        "requirement": 0
+        "requirement": 0,
+        "acl_req": [
+            "patients",
+            "pat_rep"
+        ]
     },
     {
         "label": "Documents",
@@ -79,15 +83,19 @@
         "requirement": 0
     },
     {
-        "label": "Publish",
-        "menu_id": "publish",
+        "label": "PRO{{Patient Reported Outcomes}}",
+        "menu_id": "patient_reported_outcomes",
         "target": "main",
-        "on_click":"doPublish();return false;",
-        "url": "",
+        "on_click":"top.restoreSession()",
+        "url": "interface/easipro/pro.php",
         "pid":"false",
         "children": [],
         "requirement": 0,
-        "global_req":"fhir_enable"
+        "global_req": [
+            "easipro_enable",
+            "easipro_server",
+            "easipro_name"
+        ]
     },
     {
         "label": "Modules",

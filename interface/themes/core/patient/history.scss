@@ -1,21 +1,26 @@
 /* Patient History */
+@if $compact-theme == false {
+  #HIS {
+    .groupname {
+      @include font-size("0.75rem");
+      color: $success;
+      font-weight: bold;
+      height: 2em;
+      padding-right: 1px;
+      vertical-align: top;
+    }
 
-#HIS .groupname {
-    font-weight: bold;
-    color: #080;
-    font-size: 9pt;
-    padding-right: 1px;
-    vertical-align: top;
-    height: 2em;
-}
-#HIS .label_custom {
-    font-weight: bold;
-    font-size: 9pt;
-    vertical-align: top;
-}
-#HIS .data {
-    font-size: 9pt;
-    vertical-align: top;
-    text-align: $left;
-    padding-right: 10px;
+    .label_custom {
+      @include font-size("0.75rem");
+      font-weight: bold;
+      vertical-align: top;
+    }
+
+    .data {
+      @include font-size("0.75rem");
+      padding-right: 10px;
+      text-align: $left;
+      vertical-align: top;
+    }
+  }
 }

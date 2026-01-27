@@ -1,4 +1,5 @@
 <?php
+
 /**
  * lab_results_messages.php
  *
@@ -10,17 +11,17 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("$include_root/globals.php");
-require_once("$srcdir/pnotes.inc");
-require_once("$srcdir/patient.inc");
-require_once("$srcdir/auth.inc");
+require_once("$srcdir/pnotes.inc.php");
+require_once("$srcdir/patient.inc.php");
 
-function lab_results_messages($set_pid, $rid, $provider_id = "")
+use OpenEMR\Common\Acl\AclMain;
+
+function lab_results_messages($set_pid, $rid, $provider_id = ""): void
 {
     global $userauthorized;
 
-    $sqlBindArray = array();
+    $sqlBindArray = [];
     if ($provider_id != "") {
         $where = "AND id = ?";
         array_push($sqlBindArray, $provider_id);
@@ -35,12 +36,12 @@ function lab_results_messages($set_pid, $rid, $provider_id = "")
     if (!empty($result)) {
         foreach ($result as $user_detail) {
             unset($thisauth); // Make sure it is empty.
-            // Check user authorization. Only send the panding review message to authorised user.
-            // $thisauth = acl_check('patients', 'sign', $user_detail['username']);
+            // Check user authorization. Only send the pending review message to authorised user.
+            // $thisauth = AclMain::aclCheckCore('patients', 'sign', $user_detail['username']);
 
             // Route message to administrators if there is no provider match.
             if ($provider_id == "") {
-                $thisauth = acl_check('admin', 'super', $user_detail['username']);
+                $thisauth = AclMain::aclCheckCore('admin', 'super', $user_detail['username']);
             } else {
                 $thisauth = true;
             }

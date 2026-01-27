@@ -1,78 +1,94 @@
 <?php
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Twig\TwigContainer;
 
-
+// TODO: @adunsulag move these into src/
 class Controller extends Smarty
 {
+    public $template_mod;
+    public $_current_action;
+    public $_state;
+    public $_args = [];
+    protected $form = null;
 
-       var $_current_action;
-       var $_state;
-       var $_args = array();
-
-    function __construct()
+    public function __construct()
     {
          parent::__construct();
          $this->template_mod = "general";
          $this->_current_action = "";
          $this->_state = true;
-         $this->compile_dir = $GLOBALS['fileroot'] . "/interface/main/calendar/modules/PostCalendar/pntemplates/compiled";
-         $this->compile_check = true;
-         $this->plugins_dir = array(dirname(__FILE__) . "/../smarty/plugins", $GLOBALS['vendor_dir'] . "/smarty/smarty/libs/plugins");
+         $this->setCompileDir($GLOBALS['OE_SITE_DIR'] . '/documents/smarty/main');
+         $this->setCompileCheck(true);
+         $this->setPluginsDir([__DIR__ . "/../smarty/plugins", $GLOBALS['vendor_dir'] . "/smarty/smarty/libs/plugins"]);
          $this->assign("PROCESS", "true");
-         $this->assign("HEADER", "<html><head><?php html_header_show();?></head><body>");
+         $this->assign("HEADER", "<html><head></head><body>");
          $this->assign("FOOTER", "</body></html>");
          $this->assign("CONTROLLER", "controller.php?");
-         $this->assign("CONTROLLER_THIS", "controller.php?" . $_SERVER['QUERY_STRING']);
+         $this->assign("CONTROLLER_THIS", "controller.php?" . ($_SERVER['QUERY_STRING'] ?? ''));
          $this->assign('GLOBALS', $GLOBALS);
     }
 
-    function set_current_action($action)
+    public function set_current_action($action)
     {
          $this->_current_action = $action;
     }
 
-    function default_action()
+    public function default_action()
     {
          echo "<html><body></body></html>";
     }
 
-    function process_action()
+    public function process_action()
     {
          $this->default_action();
     }
 
-    function populate_object(&$obj)
+    public function populate_object(&$obj)
     {
         if (!is_object($obj)) {
             $this->function_argument_error();
         }
 
         foreach ($_POST as $varname => $var) {
-            $varname = preg_replace("/[^A-Za-z0-9_]/", "", $varname);
+            $varname = preg_replace("/[^A-Za-z0-9_]/", "", (string) $varname);
             $func = "set_" . $varname;
-            if ((!(strpos("_", $varname) === 0)) && is_callable(array($obj,$func))) {
+            if ((!(str_starts_with("_", (string) $varname))) && is_callable([$obj,$func])) {
                 //echo "c: $func on w: "  . $var . "<br />";
 
-                call_user_func_array(array(&$obj,$func), array($var, $_POST));
+                $obj->$func($var, $_POST);
             }
         }
 
             return true;
     }
 
-    function function_argument_error()
+    public function function_argument_error(): never
     {
          $this->display($GLOBALS['template_dir'] . "error/" . $this->template_mod . "_function_argument.html");
          exit;
     }
 
-    function i_once($file)
+    public function i_once($file)
     {
          return include_once($file);
     }
 
-    function act($qarray)
+    public function act($qarray)
     {
+        if ((array_key_first($qarray) ?? '') == 'practice_settings') {
+            if (!AclMain::aclCheckCore('admin', 'practice')) {
+                echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Practice Settings")]);
+                exit;
+            }
+        }
+
+        if ((array_key_first($qarray) ?? '') == 'prescription') {
+            if (!AclMain::aclCheckCore('patients', 'rx')) {
+                echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Prescriptions")]);
+                exit;
+            }
+        }
 
         if (isset($_GET['process'])) {
             unset($_GET['process']);
@@ -80,20 +96,20 @@ class Controller extends Smarty
             $_POST['process'] = "true";
         }
 
-            $args = array_reverse(array_keys($qarray));
-            $c_name = preg_replace("/[^A-Za-z0-9_]/", "", array_pop($args));
-            $parts = explode("_", $c_name);
-            $name = "";
+        $args = array_reverse(array_keys($qarray));
+        $c_name = preg_replace("/[^A-Za-z0-9_]/", "", (string) array_pop($args));
+        $parts = explode("_", (string) $c_name);
+        $name = "";
 
         foreach ($parts as $p) {
             $name .= ucfirst($p);
         }
 
             $c_name = $name;
-            $c_action = preg_replace("/[^A-Za-z0-9_]/", "", array_pop($args));
+            $c_action = preg_replace("/[^A-Za-z0-9_]/", "", (string) array_pop($args));
             $args = array_reverse($args);
 
-        if (!call_user_func(array("Controller","i_once"), $GLOBALS['fileroot'] ."/controllers/C_" . $c_name . ".class.php")) {
+        if (!$this->i_once($GLOBALS['fileroot'] . "/controllers/C_" . $c_name . ".class.php")) {
             echo "Unable to load controller $name\n, please check the first argument supplied in the URL and try again";
             exit;
         }
@@ -106,53 +122,54 @@ class Controller extends Smarty
         }
 
             $c_obj->_current_action = $c_action;
-            $args_array = array();
+            $args_array = [];
 
         foreach ($args as $arg) {
-            $arg = preg_replace("/[^A-Za-z0-9_]/", "", $arg);
+            $arg = preg_replace("/[^A-Za-z0-9_]/", "", (string) $arg);
             //this is a workaround because call user func does funny things with passing args if they have no assigned value
             //2013-02-10 EMR Direct: workaround modified since "0" is also considered empty;
-            if (empty($qarray[$arg]) && $qarray[$arg]!="0") {
-                //if argument is empty pass null as value and arg as assoc array key
-                $args_array[$arg] = null;
+            if (empty($qarray[$arg]) && $qarray[$arg] != "0") {
+                //if argument is empty pass null as value
+                $args_array[] = null;
             } else {
-                $args_array[$arg] = $qarray[$arg];
+                $args_array[] = $qarray[$arg];
             }
         }
 
             $output = "";
             //print_r($args_array);
-        if (isset($_POST['process']) && ($_POST['process']== "true")) {
-            if (is_callable(array(&$c_obj,$c_action . "_action_process"))) {
+        // can no longer rely on is_callable since smarty 4 invokes a __call function deep within
+        //  its classes, thus is_callable() is always true. so need to do both the is_callable
+        //  and a method_exists() check.
+        if (isset($_POST['process']) && ($_POST['process'] == "true")) {
+            if (is_callable([&$c_obj, $c_action . "_action_process"]) && method_exists($c_obj, $c_action . "_action_process")) {
                 //echo "ca: " . $c_action . "_action_process";
-                $output .= call_user_func_array(array(&$c_obj,$c_action . "_action_process"), $args_array);
+                $output .= $c_obj->{$c_action . "_action_process"}(...$args_array);
                 if ($c_obj->_state == false) {
                     return $output;
                 }
             }
 
             //echo "ca: " . $c_action . "_action";
-            $output .=  call_user_func_array(array(&$c_obj,$c_action . "_action"), $args_array);
+            $output .=  $c_obj->{$c_action . "_action"}(...$args_array);
+        } elseif (is_callable([&$c_obj, $c_action . "_action"]) && method_exists($c_obj, $c_action . "_action")) {
+            //echo "ca: " . $c_action . "_action";
+            $output .=  $c_obj->{$c_action . "_action"}(...$args_array);
         } else {
-            if (is_callable(array(&$c_obj,$c_action . "_action"))) {
-                //echo "ca: " . $c_action . "_action";
-                $output .=  call_user_func_array(array(&$c_obj,$c_action . "_action"), $args_array);
-            } else {
-                echo "The action trying to be performed: " . $c_action ." does not exist controller: ". $name;
-            }
+            echo "The action trying to be performed: " . $c_action . " does not exist controller: " . $name;
         }
 
 
             return $output;
     }
 
-    function _link($action = "default", $inlining = false)
+    public function _link($action = "default", $inlining = false)
     {
-         $url_parts = explode("&", $_SERVER['REQUEST_URI']);
+         $url_parts = explode("&", (string) $_SERVER['REQUEST_URI']);
          $link = array_shift($url_parts);
          //print_r($url_parts);
 
-        if (strpos($url_parts[0], "=") === false) {
+        if (!str_contains($url_parts[0], "=")) {
             $inline_arg = $url_parts[0];
             $url_parts[0] = $action;
         } else {
@@ -160,14 +177,14 @@ class Controller extends Smarty
         }
 
         if ($inlining) {
-            $link .= "&" . $inline_arg;
-            $link .= "&action=" . $url_parts[0];
+            $link .= "&" . urlencode($inline_arg);
+            $link .= "&action=" . urlencode((string) $url_parts[0]);
         } else {
-            $link .= "&" . $url_parts[0];
+            $link .= "&" . urlencode((string) $url_parts[0]);
         }
 
         foreach ($this->_args as $arg_name => $arg) {
-            $link .= "&" . $arg_name . "=" . $arg;
+            $link .= "&" . urlencode((string) $arg_name) . "=" . urlencode((string) $arg);
         }
 
             $link .= "&";

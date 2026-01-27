@@ -1,4 +1,5 @@
 <?php
+
 /** @package    verysimple::Authentication */
 
 /**
@@ -13,7 +14,6 @@
  */
 class Auth401
 {
-    
     /**
      * Send 401 headers to the browser
      *
@@ -31,7 +31,7 @@ class Auth401
             die();
         }
     }
-    
+
     /**
      * Returns the server AUTH_USERNAME if provided or returns empty string
      *
@@ -39,9 +39,9 @@ class Auth401
      */
     static function GetUsername()
     {
-        return isset($_SERVER ["PHP_AUTH_USER"]) ? $_SERVER ["PHP_AUTH_USER"] : "";
+        return $_SERVER ["PHP_AUTH_USER"] ?? "";
     }
-    
+
     /**
      * Returns the server AUTH_PASSWORD if provided or returns empty string
      *
@@ -49,6 +49,6 @@ class Auth401
      */
     static function GetPassword()
     {
-        return isset($_SERVER ["PHP_AUTH_PW"]) ? $_SERVER ["PHP_AUTH_PW"] : "";
+        return $_SERVER ["PHP_AUTH_PW"] ?? "";
     }
 }

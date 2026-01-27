@@ -1,4 +1,5 @@
 <?php
+
 /**
  *  $Id$
  *
@@ -24,67 +25,67 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
-function smarty_function_pc_sort_events($params, &$smarty)
+function smarty_function_pc_sort_events($params, &$smarty): void
 {
     extract($params);
 
     if (empty($var)) {
-        $smarty->trigger_error("sort_array: missing 'var' parameter");
+        trigger_error("sort_array: missing 'var' parameter", E_USER_WARNING);
         return;
     }
 
     if (!in_array('value', array_keys($params))) {
-        $smarty->trigger_error("sort_array: missing 'value' parameter");
+        trigger_error("sort_array: missing 'value' parameter", E_USER_WARNING);
         return;
     }
-    
+
     if (!in_array('sort', array_keys($params))) {
-        $smarty->trigger_error("sort_array: missing 'sort' parameter");
+        trigger_error("sort_array: missing 'sort' parameter", E_USER_WARNING);
         return;
     }
-    
+
     if (!in_array('order', array_keys($params))) {
         $order = 'asc';
     }
-    
+
     switch ($sort) {
         case 'category':
-            if (strtolower($order) == 'asc') {
+            if (strtolower((string) $order) == 'asc') {
                 $function = 'sort_byCategoryA';
             }
 
-            if (strtolower($order) == 'desc') {
+            if (strtolower((string) $order) == 'desc') {
                 $function = 'sort_byCategoryD';
             }
             break;
-            
+
         case 'title':
-            if (strtolower($order) == 'asc') {
+            if (strtolower((string) $order) == 'asc') {
                 $function = 'sort_byTitleA';
             }
 
-            if (strtolower($order) == 'desc') {
+            if (strtolower((string) $order) == 'desc') {
                 $function = 'sort_byTitleD';
             }
             break;
-            
+
         case 'time':
-            if (strtolower($order) == 'asc') {
+            if (strtolower((string) $order) == 'asc') {
                 $function = 'sort_byTimeA';
             }
 
-            if (strtolower($order) == 'desc') {
+            if (strtolower((string) $order) == 'desc') {
                 $function = 'sort_byTimeD';
             }
             break;
     }
 
-    $newArray = array();
+    $newArray = [];
     foreach ($value as $date => $events) {
         usort($events, $function);
-        $newArray[$date] = array();
+        $newArray[$date] = [];
         $newArray[$date] = $events;
     }
-    
+
     $smarty->assign_by_ref($var, $newArray);
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  *
  * AMC 302f 4 STAGE1
@@ -33,12 +34,12 @@ class AMC_302f_4_STG1 extends AbstractAmcReport
     {
         return "patients";
     }
- 
+
     public function createDenominator()
     {
         return new AMC_302f_4_STG1_Denominator();
     }
-    
+
     public function createNumerator()
     {
         return new AMC_302f_4_STG1_Numerator();

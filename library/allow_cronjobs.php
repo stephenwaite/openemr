@@ -1,9 +1,10 @@
 <?php
+
 /**
  * cronjob mapping to allow seamless use of scripts in background.
  *
  * @package   OpenEMR
- * @link      http://www.open-emr.org
+ * @link      https://www.open-emr.org
  * @author    MD Support <mdsupport@users.sf.net>
  * @copyright Copyright (c) 2017 MD Support <mdsupport@users.sf.net>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
@@ -20,7 +21,7 @@ if (php_sapi_name() !== 'cli') {
  *
  * Code below translates $argv to $_REQUEST
  */
-foreach ($argv as $argk => $argval) {
+foreach (($argv ?? []) as $argk => $argval) {
     if ($argk == 0) {
         continue;
     }
@@ -28,7 +29,7 @@ foreach ($argv as $argk => $argval) {
     $_REQUEST[trim($pair[0])] = (isset($pair[1]) ? trim($pair[1]) : null);
 }
 
-// Every job must have at least one argument specifing site
+// Every job must have at least one argument specifying site
 if (!isset($_REQUEST['site'])) {
     exit("site=?");
 }
@@ -39,3 +40,6 @@ $_POST = $_REQUEST;
 
 // Ignore auth checks
 $ignoreAuth = true;
+
+// Since from command line, set $sessionAllowWrite since need to set site_id session and no benefit to set to false
+$sessionAllowWrite = true;

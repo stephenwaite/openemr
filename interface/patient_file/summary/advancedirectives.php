@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Advance directives gui.
  *
@@ -12,7 +13,14 @@
 require_once("../../globals.php");
 require_once("$srcdir/options.inc.php");
 
+use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
+use OpenEMR\Common\Database\QueryUtils;
+use OpenEMR\Services\UserService;
+use OpenEMR\Common\Session\SessionWrapperFactory;
+
+$session = SessionWrapperFactory::getInstance()->getWrapper();
+
 ?>
 
 <html>
@@ -22,16 +30,21 @@ use OpenEMR\Core\Header;
     <?php Header::setupHeader(['datetime-picker','opener']); ?>
 
     <?php
+    if (!isset($pid)) {
+        $pid = $session->get('pid');
+    }
     if ($_POST['form_yesno']) {
-        if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-            csrfNotVerified();
+        if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"], 'default', $session->getSymfonySession())) {
+            CsrfUtils::csrfNotVerified();
         }
 
         $form_yesno = filter_input(INPUT_POST, 'form_yesno');
-        $form_adreviewed = DateToYYYYMMDD(filter_input(INPUT_POST, 'form_adreviewed'));
-        sqlQuery("UPDATE patient_data SET completed_ad = ?, ad_reviewed = ? where pid = ?", array($form_yesno,$form_adreviewed,$pid));
+        $form_adreviewed = DateTimeToYYYYMMDDHHMMSS(filter_input(INPUT_POST, 'form_adreviewed'));
+        QueryUtils::sqlStatementThrowException("UPDATE patient_data SET completed_ad = ?, ad_reviewed = ?"
+        . " ,advance_directive_user_authenticator = ? where pid = ?"
+            , [$form_yesno,$form_adreviewed, $session->get('authUserID'), $pid]);
         // Close this window and refresh the calendar display.
-        echo "</head><body>\n<script language='JavaScript'>\n";
+        echo "</head><body>\n<script>\n";
         echo " if (!opener.closed && opener.refreshme) opener.refreshme();\n";
         echo " dlgclose();\n";
         echo "</script>\n</body>\n</html>\n";
@@ -39,14 +52,16 @@ use OpenEMR\Core\Header;
     }
 
     $sql = "select completed_ad, ad_reviewed from patient_data where pid = ?";
-    $myrow = sqlQuery($sql, array($pid));
+    $userService = new UserService();
+    $userRecord = $userService->getUser($session->get('authUserID'));
+    $myrow = sqlQuery($sql, [$pid]);
     if ($myrow) {
         $form_completedad = $myrow['completed_ad'];
         $form_adreviewed = $myrow['ad_reviewed'];
     }
     ?>
 
-    <script type="text/javascript" language="JavaScript">
+    <script>
         function validate(f) {
             if (f.form_adreviewed.value == "") {
                   alert(<?php echo xlj('Please enter a date for Last Reviewed.'); ?>);
@@ -56,12 +71,12 @@ use OpenEMR\Core\Header;
             return true;
         }
 
-        $(document).ready(function(){
+        $(function () {
             $("#cancel").click(function() { dlgclose(); });
 
-            $('.datepicker').datetimepicker({
-                <?php $datetimepicker_timepicker = false; ?>
-                <?php $datetimepicker_showseconds = false; ?>
+            $('.datetimepicker').datetimepicker({
+                <?php $datetimepicker_timepicker = true; ?>
+                <?php $datetimepicker_showseconds = true; ?>
                 <?php $datetimepicker_formatInput = true; ?>
                 <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
@@ -73,27 +88,25 @@ use OpenEMR\Core\Header;
 <body class="body_top">
     <div class="container">
         <div class="row">
-            <div class="col-xs-12">
-                <div class="page-header">
-                    <h3><?php echo xlt('Advance Directives'); ?></h3>
-                </div>
+            <div class="col-12">
+                <h3><?php echo xlt('Advance Directives'); ?></h3>
             </div>
         </div>
         <div class="row">
-            <div class="col-xs-12">
+            <div class="col-12">
                 <form action='advancedirectives.php' method='post' onsubmit='return validate(this)'>
-                    <input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+                    <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken('default', $session->getSymfonySession())); ?>" />
                     <div class="form-group">
                         <label for="form_yesno"><?php echo xlt('Completed'); ?></label>
-                        <?php generate_form_field(array('data_type'=>1,'field_id'=>'yesno','list_id'=>'yesno','empty_title'=>'SKIP'), $form_completedad); ?>
+                        <?php generate_form_field(['data_type' => 1,'field_id' => 'yesno','list_id' => 'yesno','empty_title' => 'SKIP'], $form_completedad); ?>
                     </div>
                     <div class="form-group">
                         <label for="form_adreviewed"><?php echo xlt('Last Reviewed'); ?></label>
-                        <?php generate_form_field(array('data_type'=>4,'field_id'=>'adreviewed'), oeFormatShortDate($form_adreviewed)); ?>
+                        <?php generate_form_field(['data_type' => 4,'field_id' => 'adreviewed', 'edit_options' => 'F'], $form_adreviewed); ?>
                     </div>
                     <div class="form-group">
                         <div class="btn-group" role="group">
-                            <button type="submit" id="create" class="btn btn-default btn-save"><?php echo xla('Save'); ?></button>
+                            <button type="submit" id="create" class="btn btn-secondary btn-save"><?php echo xla('Save'); ?></button>
                             <button type="button" id="cancel" class="btn btn-link btn-cancel"><?php echo xla('Cancel'); ?></button>
                         </div>
                     </div>
@@ -102,14 +115,14 @@ use OpenEMR\Core\Header;
         </div>
         <hr>
         <div class="row">
-            <div class="col-xs-12">
+            <div class="col-12">
                 <?php
                 $query = "SELECT id FROM categories WHERE name='Advance Directive'";
                 $myrow2 = sqlQuery($query);
                 if ($myrow2) {
                     $parentId = $myrow2['id'];
                     $query = "SELECT id, name FROM categories WHERE parent = ?";
-                    $resNew1 = sqlStatement($query, array($parentId));
+                    $resNew1 = sqlStatement($query, [$parentId]);
                     while ($myrows3 = sqlFetchArray($resNew1)) {
                         $categoryId = $myrows3['id'];
                         $nameDoc = $myrows3['name'];
@@ -118,15 +131,15 @@ use OpenEMR\Core\Header;
                                  "INNER JOIN categories_to_documents " .
                                  "ON categories_to_documents.document_id=documents.id " .
                                    "WHERE categories_to_documents.category_id=? " .
-                                   "AND documents.foreign_id=? " .
+                                   "AND documents.foreign_id=? AND documents.deleted = 0 " .
                                 "ORDER BY documents.date DESC";
-                        $resNew2 = sqlStatement($query, array($categoryId, $pid));
+                        $resNew2 = sqlStatement($query, [$categoryId, $pid]);
                           $counterFlag = false; //flag used to check for empty categories
                         while ($myrows4 = sqlFetchArray($resNew2)) {
                             $dateTimeDoc = $myrows4['date'];
                             $idDoc = $myrows4['id'];
                             ?>
-                            <br>
+                            <br />
                             <a href='<?php echo $web_root; ?>/controller.php?document&retrieve&patient_id=<?php echo attr_url($pid); ?>&document_id=<?php echo attr_url($idDoc); ?>&as_file=true'>
                                 <?php echo text(xl_document_category($nameDoc)); ?>
                             </a>
@@ -137,7 +150,7 @@ use OpenEMR\Core\Header;
                           // if no associated docs with category then show it's empty
                         if (!$counterFlag) {
                             ?>
-                            <br><?php echo text($nameDoc); ?><span style='color:red;'>[<?php echo xlt('EMPTY'); ?>]</span>
+                            <br /><?php echo text($nameDoc); ?><span style='color:red;'>[<?php echo xlt('EMPTY'); ?>]</span>
                             <?php
                         }
                     }
@@ -145,6 +158,15 @@ use OpenEMR\Core\Header;
                 ?>
             </div>
         </div>
+        <?php if (empty($userRecord['npi'])) : ?>
+        <!-- API will not be able to provide the legal attestation for which user that reviewed this information without a valid medical license number (NPI) -->
+        <div class="row mt-2">
+            <div class="col-12 alert-danger">
+                <p><?php echo xlt("No national provider number is setup for your account."); ?></p>
+                <p><?php echo xlt("The system will not be able to provide legal attestation that you have reviewed this information without a valid national provider number."); ?></p>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 </body>
 </html>

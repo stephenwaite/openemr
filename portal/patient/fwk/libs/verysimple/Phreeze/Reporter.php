@@ -1,5 +1,8 @@
 <?php
+
 /** @package    verysimple::Phreeze */
+
+require_once("SerializableTrait.php");
 
 /**
  * Reporter allows creating dynamic objects that do not necessarily reflect
@@ -13,25 +16,25 @@
  * @license http://www.gnu.org/licenses/lgpl.html LGPL
  * @version 1.0
  */
-abstract class Reporter implements Serializable
+abstract class Reporter
 {
-    protected $_phreezer;
+    use SerializableTrait;
     private $_isLoaded;
     private $_isPartiallyLoaded;
     private $_cacheLevel = 0;
     private $_noCache = false;
-    
+
     /** @var these properties will never be cached */
-    private static $NoCacheProperties = array (
+    private static $NoCacheProperties = [
             "_cache",
             "_phreezer",
             "_val_errors",
             "_base_validation_complete"
-    );
-    
+    ];
+
     /** @var cache of public properties for each type for improved performance when enumerating */
-    private static $PublicPropCache = array ();
-    
+    private static array $PublicPropCache = [];
+
     /**
      * Returns true if the current object has been loaded
      *
@@ -48,7 +51,7 @@ abstract class Reporter implements Serializable
 
         return $this->_isLoaded;
     }
-    
+
     /**
      * Returns true if the current object has been partially loaded
      *
@@ -65,7 +68,7 @@ abstract class Reporter implements Serializable
 
         return $this->_isPartiallyLoaded;
     }
-    
+
     /**
      * Returns 0 if this was loaded from the DB, 1 if from 1st level cache and 2 if 2nd level cache
      *
@@ -82,7 +85,7 @@ abstract class Reporter implements Serializable
 
         return $this->_cacheLevel;
     }
-    
+
     /**
      * Returns true if the current object should never be cached
      *
@@ -99,75 +102,21 @@ abstract class Reporter implements Serializable
 
         return $this->_noCache;
     }
-    
+
     /**
      * constructor
      *
      * @access public
-     * @param Phreezer $phreezer
+     * @param Phreezer $_phreezer
      * @param Array $row
      */
-    final function __construct(&$phreezer, $row = null)
+    final function __construct(protected $_phreezer, $row = null)
     {
-        $this->_phreezer = $phreezer;
-        
         if ($row) {
             $this->Load($row);
         }
     }
-    
-    /**
-     * When serializing, make sure that we ommit certain properties that
-     * should never be cached or serialized.
-     */
-    function serialize()
-    {
-        $propvals = array ();
-        $ro = new ReflectionObject($this);
-        
-        foreach ($ro->getProperties() as $rp) {
-            $propname = $rp->getName();
-            
-            if (! in_array($propname, self::$NoCacheProperties)) {
-                if (method_exists($rp, "setAccessible")) {
-                    $rp->setAccessible(true);
-                    $propvals [$propname] = $rp->getValue($this);
-                } elseif (! $rp->isPrivate()) {
-                    // if < php 5.3 we can't serialize private vars
-                    $propvals [$propname] = $rp->getValue($this);
-                }
-            }
-        }
-        
-        return serialize($propvals);
-    }
-    
-    /**
-     * Reload the object when it awakes from serialization
-     *
-     * @param
-     *          $data
-     */
-    function unserialize($data)
-    {
-        $propvals = unserialize($data);
-        
-        $ro = new ReflectionObject($this);
-        
-        foreach ($ro->getProperties() as $rp) {
-            $propname = $rp->name;
-            if (array_key_exists($propname, $propvals)) {
-                if (method_exists($rp, "setAccessible")) {
-                    $rp->setAccessible(true);
-                    $rp->setValue($this, $propvals [$propname]);
-                } elseif (! $rp->isPrivate()) {
-                    // if < php 5.3 we can't serialize private vars
-                    $rp->setValue($this, $propvals [$propname]);
-                }
-            }
-        }
-    }
-    
+
     /**
      * Returns an array with all public properties, excluding any internal
      * properties used by the Phreeze framework.
@@ -178,34 +127,34 @@ abstract class Reporter implements Serializable
      */
     public function GetPublicProperties()
     {
-        $className = get_class($this);
-        
+        $className = static::class;
+
         if (! array_key_exists($className, self::$PublicPropCache)) {
-            $props = array ();
+            $props =  [];
             $ro = new ReflectionObject($this);
-            
+
             foreach ($ro->getProperties() as $rp) {
                 $propname = $rp->getName();
-                
+
                 if (! in_array($propname, self::$NoCacheProperties)) {
                     if (! ($rp->isPrivate() || $rp->isStatic())) {
                         $props [] = $propname;
                     }
                 }
             }
-            
+
             self::$PublicPropCache [$className] = $props;
         }
-        
+
         return self::$PublicPropCache [$className];
     }
-    
+
     /**
      * Return an object with a limited number of properties from this Phreezable object.
      * This can be used if not all properties are necessary, for example rendering as JSON
      *
-     * This can be overriden per class for custom JSON output. the overridden method may accept
-     * additional option parameters that are not supported by the base Phreezable calss
+     * This can be overridden per class for custom JSON output. the overridden method may accept
+     * additional option parameters that are not supported by the base Phreezable class
      *
      * @param
      *          array assoc array of options. This is passed through from Controller->RenderJSON
@@ -217,25 +166,25 @@ abstract class Reporter implements Serializable
     function ToObject($options = null)
     {
         if ($options === null) {
-            $options = array ();
+            $options =  [];
         }
 
         $props = array_key_exists('props', $options) ? $options ['props'] : $this->GetPublicProperties();
-        $omit = array_key_exists('omit', $options) ? $options ['omit'] : array ();
+        $omit = array_key_exists('omit', $options) ? $options ['omit'] :  [];
         $camelCase = array_key_exists('camelCase', $options) ? $options ['camelCase'] : false;
-        
+
         $obj = new stdClass();
-        
+
         foreach ($props as $prop) {
             if (! in_array($prop, $omit)) {
-                $newProp = ($camelCase) ? lcfirst($prop) : $prop;
+                $newProp = ($camelCase) ? lcfirst((string) $prop) : $prop;
                 $obj->$newProp = $this->$prop;
             }
         }
-        
+
         return $obj;
     }
-    
+
     /**
      * Restores the object's connection to the datastore, for example after serialization
      *
@@ -247,14 +196,14 @@ abstract class Reporter implements Serializable
     function Refresh(Phreezer $phreezer, $row = null)
     {
         $this->_phreezer = $phreezer;
-        
+
         if ($row) {
             $this->Load($row);
         }
-        
+
         $this->OnRefresh();
     }
-    
+
     /**
      * Called after object is refreshed, may be overridden
      *
@@ -263,7 +212,7 @@ abstract class Reporter implements Serializable
     public function OnRefresh()
     {
     }
-    
+
     /**
      * This static function can be overridden to populate this object with
      * results of a custom query
@@ -276,7 +225,7 @@ abstract class Reporter implements Serializable
     {
         return "";
     }
-    
+
     /**
      * This may be overridden to return SQL used for counting the number of rows
      * in a result.
@@ -295,7 +244,7 @@ abstract class Reporter implements Serializable
     {
         return "";
     }
-    
+
     /**
      * Returns this object as an associative array with properties as keys and
      * values as values
@@ -305,17 +254,17 @@ abstract class Reporter implements Serializable
      */
     function GetArray()
     {
-        $fms = $this->_phreezer->GetFieldMaps(get_class($this));
-        $cols = array ();
-        
+        $fms = $this->_phreezer->GetFieldMaps(static::class);
+        $cols =  [];
+
         foreach ($fms as $fm) {
             $prop = $fm->PropertyName;
             $cols [$fm->ColumnName] = $this->$prop;
         }
-        
+
         return $cols;
     }
-    
+
     /**
      * Loads the object with data given in the row array.
      *
@@ -324,15 +273,15 @@ abstract class Reporter implements Serializable
      */
     function Load(&$row)
     {
-        $this->_phreezer->Observe("Loading " . get_class($this), OBSERVE_DEBUG);
-        
+        $this->_phreezer->Observe("Loading " . static::class, OBSERVE_DEBUG);
+
         foreach (array_keys($row) as $prop) {
             $this->$prop = $row [$prop];
         }
-        
+
         $this->OnLoad();
     }
-    
+
     /**
      * Called after object is loaded, may be overridden
      *

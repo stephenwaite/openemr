@@ -1,62 +1,75 @@
 <?php
-/* +-----------------------------------------------------------------------------+
-*    OpenEMR - Open Source Electronic Medical Record
-*    Copyright (C) 2013 Z&H Consultancy Services Private Limited <sam@zhservices.com>
-*
-*    This program is free software: you can redistribute it and/or modify
-*    it under the terms of the GNU Affero General Public License as
-*    published by the Free Software Foundation, either version 3 of the
-*    License, or (at your option) any later version.
-*
-*    This program is distributed in the hope that it will be useful,
-*    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*    GNU Affero General Public License for more details.
-*
-*    You should have received a copy of the GNU Affero General Public License
-*    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*    @author  Jacob T.Paul <jacob@zhservices.com>
-*    @author  Basil PT <basil@zhservices.com>  
-*
-* +------------------------------------------------------------------------------+
-*/
 
-return array(
-    'controllers' => array(
-        'invokables' => array(
-            'Acl' => 'Acl\Controller\AclController',
-        ),
-    ),
+/**
+ * interface/modules/zend_modules/module/Acl/config/module.config.php
+ *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jacob T.Paul <jacob@zhservices.com>
+ * @author    Basil PT <basil@zhservices.com>
+ * @copyright Copyright (c) 2013 Z&H Consultancy Services Private Limited <sam@zhservices.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
 
-    'router' => array(
-        'routes' => array(
-            'acl' => array(
-                'type'    => 'segment',
-                'options' => array(
+namespace Acl;
+
+use Laminas\ServiceManager\Factory\InvokableFactory;
+use Laminas\Router\Http\Segment;
+use Interop\Container\ContainerInterface;
+
+return [
+    'controllers' => [
+        'factories' => [
+            Controller\AclController::class => function (ContainerInterface $container, $requestedName) {
+                /**
+                 * @see https://stackoverflow.com/a/49275531/7884612 on tips for getting the view helpers from zf2 to zf3
+                 * @see https://github.com/zendframework/zend-view/blob/master/src/Helper/EscapeHtml.php
+                 */
+                $escapeHtml = $container->get('ViewHelperManager')->get('escapeHtml');
+                $aclTable = $container->get(Model\AclTable::class);
+                return new Controller\AclController($escapeHtml, $aclTable);
+            },
+        ],
+    ],
+
+    'router' => [
+        'routes' => [
+            'acl' => [
+                'type'    => Segment::class,
+                'options' => [
                     'route'    => '/acl[/:action][/:id]',
-                    'constraints' => array(
+                    'constraints' => [
                         'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
                         'id'     => '[0-9]+',
-                    ),
-                    'defaults' => array(
-                        'controller' => 'Acl',
+                    ],
+                    'defaults' => [
+                        'controller' => Controller\AclController::class,
                         'action'     => 'index',
-                    ),
-                ),
-            ),
-        ),
-    ),
+                    ],
+                ],
+            ],
+        ],
+    ],
 
-    'view_manager' => array(
-        'template_path_stack' => array(
+    'view_manager' => [
+        'template_path_stack' => [
             'acl' => __DIR__ . '/../view/',
-        ),
-        'template_map' => array(
+        ],
+        'template_map' => [
             'acl/layout/layout' => __DIR__ . '/../view/layout/layout.phtml',
-        ),
-        'strategies' => array(
+        ],
+        'strategies' => [
             'ViewJsonStrategy',
             'ViewFeedStrategy',
-        ),
-    ),
-);
+        ],
+    ],
+    'service_manager' => [
+        'factories' => [
+            Model\AclTable::class =>  function (ContainerInterface $container, $requestedName) {
+                $dbAdapter = $container->get(\Laminas\Db\Adapter\Adapter::class);
+                $table = new Model\AclTable($dbAdapter);
+                return $table;
+            },
+        ]
+    ]
+];

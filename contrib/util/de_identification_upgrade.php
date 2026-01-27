@@ -1,4 +1,5 @@
 <?php
+
 /********************************************************************************\
  * Copyright (C) ViCarePlus, Visolve (vicareplus_engg@visolve.com)              *
  *                                                                              *
@@ -27,6 +28,8 @@ $de_identification_config = 0;
 
 require_once('../../interface/globals.php');
 
+use OpenEMR\Common\Csrf\CsrfUtils;
+
 function tableExists_de($tblname)
 {
     $row = sqlQuery("SHOW TABLES LIKE '" . add_escape_custom($tblname) . "'");
@@ -37,7 +40,7 @@ function tableExists_de($tblname)
     return true;
 }
 
-function upgradeFromSqlFile_de($filename)
+function upgradeFromSqlFile_de($filename): void
 {
     global $webserver_root;
 
@@ -81,7 +84,7 @@ function upgradeFromSqlFile_de($filename)
 
             echo xlt('Skipping section');
             echo " " . text($line) . "</font><br />\n";
-        } else if (preg_match('/^#EndIf/', $line)) {
+        } elseif (preg_match('/^#EndIf/', $line)) {
             $skipping = false;
         }
 
@@ -97,9 +100,9 @@ function upgradeFromSqlFile_de($filename)
             $query .= "\n";
         }
 
-        $query = $query . $line;
+        $query .= $line;
 
-        if (substr($query, -1) == '$') {
+        if (str_ends_with($query, '$')) {
             $query = rtrim($query, '$');
             if ($proc == 0) {
                 $proc = 1;
@@ -117,7 +120,7 @@ function upgradeFromSqlFile_de($filename)
             }
         }
 
-        if (substr($query, -1) == ';'and $proc == 0) {
+        if (str_ends_with($query, ';') and $proc == 0) {
             $query = rtrim($query, ';');
             echo text($query) . "<br />\n";  //executes sql statements
             if (!sqlStatement($query)) {
@@ -149,15 +152,15 @@ closedir($dh);
 <title><?php echo xlt('OpenEMR Database Upgrade'); ?></title>
 <link rel='STYLESHEET' href='../../interface/themes/style_sky_blue.css'>
 </head>
-<body> <br>
+<body> <br />
 <center>
 <span class='title'><?php echo xlt('OpenEMR Database Upgrade for De-identification'); ?></span>
-<br>
+<br />
 </center>
 <?php
 if (!empty($_POST['form_submit'])) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 
     upgradeFromSqlFile_de("database_de_identification.sql");
@@ -170,9 +173,10 @@ if (!empty($_POST['form_submit'])) {
         echo "\n";
         echo "<p>" . text(getSqlLastError()) . " (#" . text(getSqlLastErrorNo()) . ")\n";
         exit();
-    }  $login=$sqlconf["login"];
-    $loginhost=$sqlconf["host"];
-    generic_sql_select_db($sqlconf['dbase']) or die(text(getSqlLastError()));
+    }
+    $login = $sqlconf["login"];
+    $loginhost = $sqlconf["host"];
+    generic_sql_select_db($sqlconf['dbase']);
     if (sqlStatement("GRANT FILE ON *.* TO '$login'@'$loginhost'") == false) {
         echo xlt("Error when granting file privilege to the OpenEMR user.");
         echo "\n";
@@ -185,7 +189,7 @@ if (!empty($_POST['form_submit'])) {
     }
 
     echo xlt("File privilege granted to OpenEMR user.");
-    echo "<br></font>\n";
+    echo "<br /></font>\n";
 
     echo "<p><font color='green'>";
     echo xlt("Database upgrade finished.");
@@ -197,22 +201,22 @@ if (!empty($_POST['form_submit'])) {
     echo xlt("Please set de_identification_config variable back to zero");
     echo "</font></p>\n";
     echo "</body></html>\n";
-    sqlClose($dbh);
+    sqlClose();
     exit();
 }
 ?>
 
-<script language="JavaScript">
+<script>
 function form_validate()
 {
  if(document.forms[0].root_user_name.value == "")
  {
-  alert("<?php echo xls('Enter Database root Username');?>");
+  alert(<?php echo xlj('Enter Database root Username');?>);
   return false;
  }
  /*if(document.forms[0].root_user_pass.value == "")
  {
-  alert("<?php echo xls('Enter Database root Password');?>");
+  alert(<?php echo xlj('Enter Database root Password');?>);
   return false;
  }*/
  return true;
@@ -221,17 +225,17 @@ function form_validate()
 
 <center>
 <form method='post' action='de_identification_upgrade.php' onsubmit="return form_validate();">
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
-</br>
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
+<br />
 <p><?php  if ($de_identification_config != 1) {
     echo "<p><font color='red'>";
     echo xlt("Please set");
     echo " 'de_identification_config' ";
     echo xlt("variable to one to run de-identification upgrade script");
-    echo "</br></br>";
+    echo "<br /><br />";
     echo "([OPENEMR]/contrib/util/de_identification_upgrade.php)";
-} else {
-    echo xlt('Upgrades the OpenEMR database to include Procedures, Functions and tables needed for De-identification process');?></p></br>
+   } else {
+       echo xlt('Upgrades the OpenEMR database to include Procedures, Functions and tables needed for De-identification process');?></p><br />
         <table class="de_id_upgrade_login" align="center">
     <tr><td>&nbsp;</td><td colspan=3 align=center>&nbsp;</td><td>&nbsp;</td></tr>
     <tr valign="top">
@@ -254,7 +258,7 @@ function form_validate()
 
     </table>
 <p><input type='submit' name='form_submit' value="<?php echo xla('Upgrade Database');?>"  /></p>
-<?php } ?>
+    <?php } ?>
 </form>
 </center>
 </body>

@@ -1,401 +1,419 @@
 <?php
+
 /**
- * Patient Portal
+ * Patient Portal Home
  *
  * @package   OpenEMR
  * @link      http://www.open-emr.org
  * @author    Jerry Padgett <sjpadgett@gmail.com>
- * @copyright Copyright (c) 2016-2019 Jerry Padgett <sjpadgett@gmail.com>
+ * @author    Brady Miller <brady.g.miller@gmail.com>
+ * @author    Shiqiang Tao <StrongTSQ@gmail.com>
+ * @author    Ben Marte <benmarte@gmail.com>
+ * @copyright Copyright (c) 2016-2024 Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2019-2021 Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2020 Shiqiang Tao <StrongTSQ@gmail.com>
+ * @copyright Copyright (c) 2021 Ben Marte <benmarte@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
- require_once("verify_session.php");
- require_once("$srcdir/patient.inc");
- require_once("$srcdir/options.inc.php");
- require_once("lib/portal_mail.inc");
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Logging\SystemLogger;
+use OpenEMR\Common\Session\SessionUtil;
+use OpenEMR\Common\Session\SessionWrapperFactory;
+use OpenEMR\Common\Twig\TwigContainer;
+use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\PatientPortal\AppointmentFilterEvent;
+use OpenEMR\Events\PatientReport\PatientReportFilterEvent;
+use OpenEMR\Events\PatientPortal\RenderEvent;
+use OpenEMR\Services\LogoService;
+use OpenEMR\Services\Utils\TranslationService;
+use OpenEMR\Telemetry\TelemetryService;
+use Twig\Error\LoaderError;
+use Twig\Error\RuntimeError;
+use Twig\Error\SyntaxError;
 
+// Need access to classes, so run autoloader now instead of in globals.php.
+require_once(__DIR__ . "/../vendor/autoload.php");
+$globalsBag = OEGlobalsBag::getInstance();
+$srcdir = $globalsBag->getString('srcdir');
+$web_root = $globalsBag->getString('web_root');
 
-if ($_SESSION['register'] === true) {
-    session_destroy();
-    header('Location: '.$landingpage.'&w');
+require_once('verify_session.php');
+require_once("$srcdir/patient.inc.php");
+require_once("$srcdir/options.inc.php");
+require_once('lib/portal_mail.inc.php');
+require_once(__DIR__ . '/../library/appointments.inc.php');
+
+$session = SessionWrapperFactory::getInstance()->getWrapper();
+
+if ($session->has('register') && $session->get('register') === true) {
+    SessionUtil::portalSessionCookieDestroy();
+    header('Location: ' . $landingpage . '&w');
     exit();
 }
 
-if (!isset($_SESSION['portal_init'])) {
-    $_SESSION['portal_init'] = true;
+if (!$session->has('portal_init')) {
+    $session->set('portal_init', true);
 }
 
-$whereto = 'profilepanel';
-if (isset($_SESSION['whereto'])) {
-    $whereto = $_SESSION['whereto'];
+// Example https://localhost/openemr/portal/index.php?site=default&landOn=BillingSummary
+// landOn query is used to redirect to a specific section of the portal.
+$landOnHref = [
+    'ClinicalDocuments' => '#onsitedocuments',
+    'Appointments' => '#appointmentcard',
+    'MakePayment' => '#paymentcard',
+    'SecureMessaging' => '#secure-msgs-card',
+    'HealthSnapshot' => '#lists',
+    'Profile' => '#profilecard',
+    'BillingSummary' => '#ledgercard',
+    'MedicalReports' => '#reports-list-card',
+    'PROAssessment' => '#procard',
+    'Settings' => '#settings-card',
+    'Help' => '#help-card',
+    'Logout' => '#logout.php'
+];
+// redirect using the interface query landOn or last page visited
+// TODO sjp - qualify if redirect feature is enabled!
+$whereto = $session->get('whereto', null);
+// set the landOn session variable to the redirected card.
+$session->set('landOn', $_REQUEST['landOn'] ?? null);
+$landWhere = $_REQUEST['landOn'] ?? null;
+// Set the landOn href query from lookup.
+$where = $landOnHref[$landWhere] ?? null;
+if (!empty($where)) {
+    $session->set('whereto', $where);
 }
-//$whereto = 'paymentpanel';
 
- $user = isset($_SESSION['sessionUser']) ? $_SESSION['sessionUser'] : 'portal user';
- $result = getPatientData($pid);
+$logoService = new LogoService();
 
- $msgs = getPortalPatientNotes($_SESSION['portal_username']);
- $msgcnt = count($msgs);
- $newcnt = 0;
+// Get language definitions for js
+$language_defs = TranslationService::getLanguageDefinitionsForSession();
+
+$user = $session->get('sessionUser', 'portal user');
+$result = getPatientData($pid);
+
+$msgs = getPortalPatientNotes($session->get('portal_username'));
+$msgcnt = count($msgs);
+$newcnt = 0;
 foreach ($msgs as $i) {
     if ($i['message_status'] == 'New') {
         $newcnt += 1;
     }
 }
 
-require_once '_header.php';
+// force to message page if new messages.
+/*if ($newcnt > 0 && $_SESSION['portal_init']) {
+    $whereto = $_SESSION['whereto'] = '#secure-msgs-card';
+}*/
+$messagesURL = "$web_root/portal/messaging/messages.php";
 
-echo "<script>var cpid='" . attr($pid) . "';var cuser='" . attr($user) . "';var webRoot='" . $GLOBALS['web_root'] . "';var ptName='" . attr($_SESSION['ptName']) . "';</script>";
-?>
-<script type="text/javascript">
-var webroot_url = webRoot;
+$isEasyPro = $globalsBag->get('easipro_enable') && !empty($globalsBag->get('easipro_server')) && !empty($globalsBag->get('easipro_name'));
 
-$(document).ready(function () {
+$current_date2 = date('Y-m-d');
+$apptLimit = 10;
+$appts = fetchNextXAppts($current_date2, $pid, $apptLimit);
+$past_appts = fetchXPastAppts($pid, 10);
 
-    $("#profilereport").load("./get_profile.php", {}, function () {
-        $("table").addClass("table  table-responsive");
-        $(".demographics td").removeClass("label");
-        $(".demographics td").addClass("bold");
-        $(".insurance table").addClass("table-sm table-striped");
-        $("#editDems").click(function () {
-            showProfileModal()
-        });
-    });
-
-    $("#medicationlist").load("./get_medications.php", {}, function () {});
-    $("#labresults").load("./get_lab_results.php", {}, function () {});
-    $("#amendmentslist").load("./get_amendments.php", {}, function () {});
-    $("#problemslist").load("./get_problems.php", {}, function () {});
-    $("#allergylist").load("./get_allergies.php", {}, function () {});
-    $("#reports").load("./report/portal_patient_report.php?pid='<?php echo attr($pid) ?>'", {}, function () {});
-
-    <?php if ($GLOBALS['portal_two_payments']) { ?>
-    $("#payment").load("./portal_payment.php", {}, function () {});
-    <?php } ?>
-
-    $('.sigPad').signaturePad({drawOnly: true});
-    $(".generateDoc_download").click(function () {
-        $("#doc_form").submit();
-    });
-
-    function showProfileModal() {
-        var title = '<?php echo xla('Demographics Legend Red: Charted Values. Blue: Patient Edits'); ?> ';
-
-        var params = {
-            buttons: [
-                {text: '<?php echo xla('Help'); ?>', close: false, style: 'info', id: 'formHelp'},
-                {text: '<?php echo xla('Cancel'); ?>', close: true, style: 'default'},
-                {text: '<?php echo xla('Revert Edits'); ?>', close: false, style: 'danger', id: 'replaceAllButton'},
-                {text: '<?php echo xla('Send for Review'); ?>', close: false, style: 'success', id: 'donePatientButton'}
-                ],
-            onClosed: 'reload',
-            type: 'GET',
-            url: webRoot + '/portal/patient/patientdata?pid=' + cpid + '&user=' + cuser
-        };
-        dlgopen('','','modal-xl', 500, '', title, params);
-    }
-
-    function saveProfile() {
-        page.updateModel();
-    }
-
-    var gowhere = '#<?php echo $whereto?>';
-    $(gowhere).collapse('show');
-
-    var $doHides = $('#panelgroup');
-    $doHides.on('show.bs.collapse', '.collapse', function () {
-        $doHides.find('.collapse.in').collapse('hide');
-    });
-    //Enable sidebar toggle
-    $("[data-toggle='offcanvas']").click(function (e) {
-        e.preventDefault();
-        //If window is small enough, enable sidebar push menu
-        if ($(window).width() <= 992) {
-            $('.row-offcanvas').toggleClass('active');
-            $('.left-side').removeClass("collapse-left");
-            $(".right-side").removeClass("strech");
-            $('.row-offcanvas').toggleClass("relative");
-        } else {
-            //Else, enable content streching
-            $('.left-side').toggleClass("collapse-left");
-            $(".right-side").toggleClass("strech");
+$appointments = $past_appointments = [];
+if ($appts) {
+    $stringCM = '(' . xl('Comments field entry present') . ')';
+    $stringR = '(' . xl('Recurring appointment') . ')';
+    $count = 0;
+    foreach ($appts as $row) {
+        $status_title = getListItemTitle('apptstat', $row['pc_apptstatus']);
+        $count++;
+        $dayname = xl(date('l', strtotime((string) $row['pc_eventDate'])));
+        $dispampm = 'am';
+        $disphour = (int)substr((string) $row['pc_startTime'], 0, 2);
+        $dispmin = substr((string) $row['pc_startTime'], 3, 2);
+        if ($disphour >= 12) {
+            $dispampm = 'pm';
+            if ($disphour > 12) {
+                $disphour -= 12;
+            }
         }
-    });
-    $(function () {
-        $('#popwait').hide();
-        $('#callccda').click(function () {
-            $('#popwait').show();
-        })
-    });
-});
 
-function editAppointment(mode,deid){
-    if(mode == 'add'){
-        var title = '<?php echo xla('Request New Appointment'); ?>';
-        var mdata = {pid:deid};
+        $etitle = $row['pc_hometext'] != '' ? xl('Comments') . ': ' . $row['pc_hometext'] . "\r\n" : '';
+
+        $formattedRecord = [
+            'appointmentDate' => $dayname . ', ' . oeFormatShortDate($row['pc_eventDate']) . ' ' . $disphour . ':' . $dispmin . ' ' . $dispampm,
+            'appointmentType' => xl('Type') . ': ' . $row['pc_catname'],
+            'provider' => xl('Provider') . ': ' . $row['ufname'] . ' ' . $row['ulname'],
+            'status' => xl('Status') . ': ' . $status_title,
+            'mode' => (int)$row['pc_recurrtype'] > 0 ? 'recurring' : $row['pc_recurrtype'],
+            'icon_type' => (int)$row['pc_recurrtype'] > 0,
+            'etitle' => $etitle,
+            'pc_eid' => $row['pc_eid'],
+        ];
+        $filteredEvent = $globalsBag->get('kernel')->getEventDispatcher()->dispatch(new AppointmentFilterEvent($row, $formattedRecord), AppointmentFilterEvent::EVENT_NAME);
+        $appointments[] = $filteredEvent->getAppointment() ?? $formattedRecord;
     }
-    else{
-        var title = '<?php echo xla('Edit Appointment'); ?>';
-        var mdata = {eid:deid};
+}
+if ($past_appts) {
+    $stringCM = '(' . xl('Comments field entry present') . ')';
+    $stringR = '(' . xl('Recurring appointment') . ')';
+    $pastCount = 0;
+    foreach ($past_appts as $row) {
+        $status_title = getListItemTitle('apptstat', $row['pc_apptstatus']);
+        $pastCount++;
+        $dayname = xl(date('l', strtotime((string) $row['pc_eventDate'])));
+        $dispampm = 'am';
+        $disphour = (int)substr((string) $row['pc_startTime'], 0, 2);
+        $dispmin = substr((string) $row['pc_startTime'], 3, 2);
+        if ($disphour >= 12) {
+            $dispampm = 'pm';
+            if ($disphour > 12) {
+                $disphour -= 12;
+            }
+        }
+
+        $etitle = $row['pc_hometext'] != '' ? xl('Comments') . ': ' . $row['pc_hometext'] . "\r\n" : '';
+
+        $formattedRecord = [
+            'appointmentDate' => $dayname . ', ' . oeFormatShortDate($row['pc_eventDate']) . ' ' . $disphour . ':' . $dispmin . ' ' . $dispampm,
+            'appointmentType' => xl('Type') . ': ' . $row['pc_catname'],
+            'provider' => xl('Provider') . ': ' . $row['ufname'] . ' ' . $row['ulname'],
+            'status' => xl('Status') . ': ' . $status_title,
+            'mode' => (int)$row['pc_recurrtype'] > 0 ? 'recurring' : $row['pc_recurrtype'],
+            'icon_type' => (int)$row['pc_recurrtype'] > 0,
+            'etitle' => $etitle,
+            'pc_eid' => $row['pc_eid'],
+        ];
+        $filteredEvent = $globalsBag->get('kernel')->getEventDispatcher()->dispatch(new AppointmentFilterEvent($row, $formattedRecord), AppointmentFilterEvent::EVENT_NAME);
+        $past_appointments[] = $filteredEvent->getAppointment() ?? $formattedRecord;
     }
-    var params = {
-        dialogId: 'editpop',
-        buttons: [
-            { text: '<?php echo xla('Cancel'); ?>', close: true, style: 'default' }
-            //{ text: 'Print', close: false, style: 'success', click: showCustom }
-        ],
-        type:'GET',
-        dataType: 'text',
-        url: './add_edit_event_user.php',
-        data: mdata
-    };
+}
+$current_theme = sqlQuery("SELECT `setting_value` FROM `patient_settings` WHERE setting_patient = ? AND `setting_label` = ?", [$pid, 'portal_theme'])['setting_value'] ?? '';
+function collectStyles(): array
+{
+    global $webserver_root;
+    $theme_dir = "$webserver_root/public/themes";
+    $dh = opendir($theme_dir);
+    $styleArray = [];
+    while (false !== ($tfname = readdir($dh))) {
+        if (
+            $tfname == 'style_blue.css' ||
+            $tfname == 'style_pdf.css' ||
+            !preg_match("/^" . 'style_' . ".*\.css$/", $tfname)
+        ) {
+            continue;
+        }
+        $styleDisplayName = str_replace("_", " ", substr($tfname, 6));
+        $styleDisplayName = ucfirst(str_replace(".css", "", $styleDisplayName));
+        $styleArray[$tfname] = $styleDisplayName;
+    }
+    asort($styleArray);
+    closedir($dh);
+    return $styleArray;
+}
 
-    dlgopen('', 'apptModal', 610, 300, '', title, params);
-};
+function buildNav($newcnt, $pid, $result): array
+{
+    global $globalsBag;
 
-</script>
-    <!-- Right side column. Contains content of the page -->
-    <aside class="right-side">
-        <!-- Main content -->
-        <section class="container-fluid content panel-group" id="panelgroup">
-        <div id="popwait" class="alert alert-warning" style="font-size:18px"><strong><?php echo xlt('Working!'); ?></strong> <?php echo xlt('Please wait...'); ?></div>
-            <div class="row collapse" id="lists">
-                <div class="col-sm-6">
-                    <div class="panel panel-primary">
-                        <header class="panel-heading"><?php echo xlt('Medications'); ?> </header>
-                        <div id="medicationlist" class="panel-body"></div>
+    $hideLedger = false;
+    $hidePayment = false;
+    if (empty($globalsBag->get('portal_two_ledger'))) {
+        $hideLedger = true;
+    }
 
-                        <div class="panel-footer"></div>
-                    </div>
+    if (empty($globalsBag->get('portal_two_payments'))) {
+        $hidePayment = true;
+    }
+    $navItems = [
+        [
+            'url' => '#',
+            'label' => xl('Menu'),
+            'icon' => 'fa-user',
+            'dropdownID' => 'account',
+            'messageCount' => $newcnt ?? 0,
+            'children' => [
+                [
+                    'url' => '#quickstart-card',
+                    'id' => 'quickstart_id',
+                    'label' => xl('Dashboard'),
+                    'icon' => 'fa-tasks',
+                    'dataToggle' => 'collapse',
+                ],
+                [
+                    'url' => '#secure-msgs-card',
+                    'label' => xl('Secure Messaging'),
+                    'icon' => 'fa-envelope',
+                    'dataToggle' => 'collapse',
+                    'messageCount' => $newcnt ?? 0,
+                ],
+                [
+                    'url' => $globalsBag->getString('web_root') . '/portal/patient/onsitedocuments?pid=' . urlencode((string) $pid),
+                    'label' => xl('Forms and Documents'),
+                    'icon' => 'fa-file',
+                ],
+                [
+                    'url' => '#profilecard',
+                    'label' => xl('Profile'),
+                    'icon' => 'fa-user',
+                    'dataToggle' => 'collapse',
+                ],
+                [
+                    'url' => '#lists',
+                    'label' => xl('Health Snapshot'),
+                    'icon' => 'fa-list',
+                    'dataToggle' => 'collapse'
+                ],
+                /*[
+                    'url' => '#ledgercard',
+                    'label' => xl('Billing Summary'),
+                    'icon' => 'fa-folder-open',
+                    'dataToggle' => 'collapse',
+                    'hide' => $hideLedger
+                ],
+                [
+                    'url' => '#paymentcard',
+                    'label' => xl('Make Payment'),
+                    'icon' => 'fa-credit-card',
+                    'dataToggle' => 'collapse',
+                    'hide' => $hidePayment
+                ],*/
+            ],
+        ]
+    ];
 
-                    <div class="panel panel-primary">
-                        <header class="panel-heading"><?php echo xlt('Medications Allergy List'); ?>  </header>
-                        <div id="allergylist" class="panel-body"></div>
+    // Build sub nav items
 
-                        <div class="panel-footer"></div>
-                    </div>
-                </div><!-- /.col -->
-                <div class="col-sm-6">
-                    <div class="panel panel-primary">
-                        <header class="panel-heading"><?php echo xlt('Issues List'); ?></header>
-                        <div id="problemslist" class="panel-body"></div>
+    for ($i = 0, $iMax = count($navItems); $i < $iMax; $i++) {
+        if ($globalsBag->get('allow_portal_appointments') && $navItems[$i]['label'] === xl('Menu')) {
+            $navItems[$i]['children'][] = [
+                'url' => '#appointmentcard',
+                'label' => xl('Appointments'),
+                'icon' => 'fa-calendar-check',
+                'dataToggle' => 'collapse'
+            ];
+        }
 
-                        <div class="panel-footer"></div>
-                    </div>
-                    <div class="panel panel-primary">
-                        <header class="panel-heading"><?php echo xlt('Amendment List'); ?> </header>
-                        <div id="amendmentslist" class="panel-body"></div>
+        if ($navItems[$i]['label'] === xl('Menu')) {
+            array_push(
+                $navItems[$i]['children'],
+                [
+                    'url' => 'javascript:changeCredentials(event)',
+                    'label' => xl('Manage Login Credentials'),
+                    'icon' => 'fa-cog fa-fw',
+                ],
+                [
+                    'url' => '#openSignModal',
+                    'label' => xl('Manage Signature'),
+                    'icon' => 'fa-file-signature',
+                    'dataToggle' => 'modal',
+                    'dataType' => 'patient-signature'
+                ],
+                [
+                    'url' => 'logout.php',
+                    'label' => xl('Logout'),
+                    'icon' => 'fa-ban fa-fw',
+                ]
+            );
+        }
+    }
+    return $navItems;
+}
 
-                        <div class="panel-footer"></div>
-                    </div>
-                </div><!-- /.col -->
-                    <div class="col-sm-12">
-                        <div class="panel panel-primary">
-                            <header class="panel-heading"><?php echo xlt('Lab Results'); ?>  </header>
-                            <div id="labresults" class="panel-body"></div>
-                            <div class="panel-footer"></div>
-                        </div><!-- /.panel -->
-                    </div><!-- /.col -->
+// Build our navigation
+$navMenu = buildNav($newcnt, $pid, $result);
 
-            </div><!-- /.lists -->
-            <?php if ($GLOBALS['allow_portal_appointments']) { ?>
-            <div class="row">
-                <div class="col-sm-6">
-                    <div class="panel panel-primary collapse" id="appointmentpanel">
-                        <header class="panel-heading"><?php echo xlt('Appointments'); ?>  </header>
-                        <div id="appointmentslist" class="panel-body">
-                        <?php
-                            $query = "SELECT e.pc_eid, e.pc_aid, e.pc_title, e.pc_eventDate, " .
-                                "e.pc_startTime, e.pc_hometext, e.pc_apptstatus, u.fname, u.lname, u.mname, " .
-                                "c.pc_catname " . "FROM openemr_postcalendar_events AS e, users AS u, " .
-                                "openemr_postcalendar_categories AS c WHERE " . "e.pc_pid = ? AND e.pc_eventDate >= CURRENT_DATE AND " .
-                                "u.id = e.pc_aid AND e.pc_catid = c.pc_catid " . "ORDER BY e.pc_eventDate, e.pc_startTime";
-                            $res = sqlStatement($query, array(
-                                $pid
-                            ));
+// Fetch immunization records
+$query = "SELECT im.*, cd.code_text, DATE(administered_date) AS administered_date,
+    DATE_FORMAT(administered_date,'%m/%d/%Y') AS administered_formatted, lo.title as route_of_administration,
+    u.title, u.fname, u.mname, u.lname, u.npi, u.street, u.streetb, u.city, u.state, u.zip, u.phonew1,
+    f.name, f.phone, lo.notes as route_code
+    FROM immunizations AS im
+    LEFT JOIN codes AS cd ON cd.code = im.cvx_code
+    JOIN code_types AS ctype ON ctype.ct_key = 'CVX' AND ctype.ct_id=cd.code_type
+    LEFT JOIN list_options AS lo ON lo.list_id = 'drug_route' AND lo.option_id = im.route
+    LEFT JOIN users AS u ON u.id = im.administered_by_id
+    LEFT JOIN facility AS f ON f.id = u.facility_id
+    WHERE im.patient_id=?";
+$result = sqlStatement($query, [$pid]);
+$immunRecords = [];
+while ($row = sqlFetchArray($result)) {
+    $immunRecords[] = $row;
+}
+// CCDA Alt Service
+$ccda_alt_service_enable = $globalsBag->get('ccda_alt_service_enable');
+$ccdaOk = ($ccda_alt_service_enable == 2 || $ccda_alt_service_enable == 3);
+// Available Themes
+$styleArray = collectStyles();
+// Is telemetry enabled?
+$isTelemetryAllowed = (new TelemetryService())->isTelemetryEnabled();
 
-                        if (sqlNumRows($res) > 0) {
-                            $count = 0;
-                            echo '<table id="appttable" style="width:100%;background:#eee;" class="table table-striped fixedtable"><thead>
-                                </thead><tbody>';
-                            while ($row = sqlFetchArray($res)) {
-                                $status_title = getListItemTitle('apptstat', $row['pc_apptstatus']);
-                                $count++;
-                                $dayname = xl(date("l", strtotime($row ['pc_eventDate'])));
-                                $dispampm = "am";
-                                $disphour = substr($row ['pc_startTime'], 0, 2) + 0;
-                                $dispmin = substr($row ['pc_startTime'], 3, 2);
-                                if ($disphour >= 12) {
-                                    $dispampm = "pm";
-                                    if ($disphour > 12) {
-                                        $disphour -= 12;
-                                    }
-                                }
+// Render Home Page
+$twig = (new TwigContainer('', $globalsBag->get('kernel')))->getTwig();
+try {
+    $healthSnapshot = [
+        'immunizationRecords' => $immunRecords,
+        'patientID' => $pid
+    ];
+    $patientReportEvent = new PatientReportFilterEvent();
+    $patientReportEvent->setDataElement('healthSnapshot', $healthSnapshot);
+    $filteredEvent = $globalsBag->get('kernel')->getEventDispatcher()->dispatch($patientReportEvent, PatientReportFilterEvent::FILTER_PORTAL_HEALTHSNAPSHOT_TWIG_DATA);
+    $data = [
+        'user' => $user,
+        'whereto' => ($session->get('whereto', null)) ?: ($whereto ?? '#quickstart-card'),
+        'result' => $result,
+        'msgs' => $msgs,
+        'msgcnt' => $msgcnt,
+        'newcnt' => $newcnt,
+        'menuLogo' => $logoService->getLogo('portal/menu/primary'),
+        'allow_portal_appointments' => $globalsBag->get('allow_portal_appointments'),
+        'web_root' => $globalsBag->get('web_root'),
+        'payment_gateway' => $globalsBag->get('payment_gateway'),
+        'gateway_mode_production' => $globalsBag->get('gateway_mode_production'),
+        'portal_two_payments' => $globalsBag->get('portal_two_payments'),
+        'allow_portal_chat' => $globalsBag->get('allow_portal_chat') ?? false,
+        'portal_onsite_document_download' => $globalsBag->get('portal_onsite_document_download'),
+        'portal_two_ledger' => $globalsBag->get('portal_two_ledger'),
+        'images_static_relative' => $globalsBag->get('images_static_relative'),
+        'youHave' => xl('You have'),
+        'navMenu' => $navMenu,
+        'primaryMenuLogoHeight' => $globalsBag->get('portal_primary_menu_logo_height') ?? '30',
+        'pagetitle' => $globalsBag->get('openemr_name') . ' ' . xl('Portal'),
+        'messagesURL' => $messagesURL,
+        'patientID' => $pid,
+        'patientName' => $session->get('ptName', null),
+        'csrfUtils' => CsrfUtils::collectCsrfToken('default', $session->getSymfonySession()),
+        'isEasyPro' => $isEasyPro,
+        'appointments' => $appointments,
+        'pastAppointments' => $past_appointments,
+        'appts' => $appts,
+        'appointmentLimit' => $apptLimit,
+        'appointmentCount' => $count ?? null,
+        'pastAppointmentCount' => $pastCount ?? null,
+        'displayLimitLabel' => xl('Display limit reached'),
+        'site_id' => $session->get('site_id', null) ?? ($_GET['site'] ?? 'default'), // one way or another, we will have a site_id.
+        'portal_timeout' => $globalsBag->get('portal_timeout') ?? 1800, // timeout is in seconds
+        'language_defs' => $language_defs,
+        'current_theme' => $current_theme,
+        'styleArray' => $styleArray,
+        'ccdaOk' => $ccdaOk,
+        'allow_custom_report' => $globalsBag->get('allow_custom_report') ?? '0',
+        'healthSnapshot' => $filteredEvent->getDataElement('healthSnapshot'),
+        'languageDirection' => $session->get('language_direction', 'ltr'),
+        'dateDisplayFormat' => $globalsBag->get('date_display_format'),
+        'timeDisplayFormat' => $globalsBag->get('time_display_format'),
+        'timezone' => $globalsBag->get('gbl_time_zone') ?? '',
+        'assetVersion' => $globalsBag->get('v_js_includes'),
+        'extendVisit' => $session->get('portal_visit_extended', 1),
+        'isTelemetryAllowed' => $isTelemetryAllowed,
+        'eventNames' => [
+            'sectionRenderPost' => RenderEvent::EVENT_SECTION_RENDER_POST,
+            'scriptsRenderPre' => RenderEvent::EVENT_SCRIPTS_RENDER_PRE,
+            'dashboardInjectCard' => RenderEvent::EVENT_DASHBOARD_INJECT_CARD,
+            'dashboardRenderScripts' => RenderEvent::EVENT_DASHBOARD_RENDER_SCRIPTS
+        ]
+    ];
 
-                                if ($row ['pc_hometext'] != "") {
-                                    $etitle = 'Comments' . ": " . $row ['pc_hometext'] . "\r\n";
-                                } else {
-                                    $etitle = "";
-                                }
-
-                                echo "<tr><td><p>";
-                                echo "<a href='#' onclick='editAppointment(0," . htmlspecialchars($row ['pc_eid'], ENT_QUOTES) . ')' .
-                                    "' title='" . htmlspecialchars($etitle, ENT_QUOTES) . "'>";
-                                echo "<b>" . htmlspecialchars($dayname . ", " . $row ['pc_eventDate'], ENT_NOQUOTES) . "&nbsp;";
-                                echo htmlspecialchars("$disphour:$dispmin " . $dispampm, ENT_NOQUOTES) . "</b><br>";
-                                echo htmlspecialchars($row ['pc_catname'], ENT_NOQUOTES) . "<br><b>";
-                                echo xlt("Provider") . ":</b> " . htmlspecialchars($row ['fname'] . " " . $row ['lname'], ENT_NOQUOTES) . "<br><b>";
-                                echo xlt("Status") . ":</b> " . htmlspecialchars($status_title, ENT_NOQUOTES);
-                                echo "</a></p></td></tr>";
-                            }
-
-                            if (isset($res) && $res != null) {
-                                if ($count < 1) {
-                                    echo "&nbsp;&nbsp;" . xlt('None');
-                                }
-                            }
-                        } else { // if no appts
-                            echo xlt('No Appointments');
-                        }
-
-                            echo '</tbody></table>';
-                        ?>
-                            <div style='margin: 5px 0 5px'>
-                                <a href='#' onclick="editAppointment('add',<?php echo attr($pid); ?>)">
-                                    <button class='btn btn-primary pull-right'><?php echo xlt('Schedule New Appointment'); ?></button>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="panel-footer"></div>
-                    </div><!-- /.panel -->
-                </div><!-- /.col -->
-            </div><!-- /.row -->
-            <?php } ?>
-            <?php if ($GLOBALS['portal_two_payments']) { ?>
-            <div class="row">
-               <div class="col-sm-12">
-                    <div class="panel panel-primary collapse" id="paymentpanel">
-                        <header class="panel-heading"> <?php echo xlt('Payments'); ?> </header>
-                        <div id="payment" class="panel-body"></div>
-                        <div class="panel-footer">
-                        </div>
-                    </div>
-                </div> <!--/.col  -->
-            </div>
-            <?php } ?>
-            <?php if ($GLOBALS['allow_portal_chat']) { ?>
-            <div class="row">
-                <div class="col-sm-12">
-                    <div class="panel panel-primary collapse" style="padding-top:0;padding-bottom:0;" id="messagespanel">
-                        <!-- <header class="panel-heading"><?php //echo xlt('Secure Chat'); ?>  </header>-->
-                        <div id="messages" class="panel-body" style="height:calc(100vh - 120px);overflow:auto;padding:0 0 0 0;" >
-                             <iframe src="./messaging/secure_chat.php" width="100%" height="100%"></iframe>
-                        </div>
-                    </div>
-                </div><!-- /.col -->
-            </div>
-            <?php } ?>
-            <div class="row">
-                <div class="col-sm-8">
-                    <div class="panel panel-primary collapse" id="reportpanel">
-                        <header class="panel-heading"><?php echo xlt('Reports'); ?>  </header>
-                        <div id="reports" class="panel-body"></div>
-                        <div class="panel-footer"></div>
-                    </div>
-                </div>
-                <!-- /.col -->
-                <?php if (!empty($GLOBALS['portal_onsite_document_download'])) { ?>
-                <div class="col-sm-6">
-                    <div class="panel panel-primary collapse" id="downloadpanel">
-                        <header class="panel-heading"> <?php echo xlt('Download Documents'); ?> </header>
-                        <div id="docsdownload" class="panel-body">
-                            <div>
-                                <span class="text"><?php echo xlt('Download all patient documents');?></span>
-                                <form name='doc_form' id='doc_form' action='./get_patient_documents.php' method='post'>
-                                <input type="button" class="generateDoc_download" value="<?php echo xla('Download'); ?>" />
-                                </form>
-                            </div>
-                        </div><!-- /.panel-body -->
-                        <div class="panel-footer"></div>
-                    </div>
-                </div><!-- /.col -->
-                <?php } ?>
-            </div>
-            <?php if ($GLOBALS['portal_two_ledger']) { ?>
-            <div class="row">
-                <div class="col-sm-12">
-                    <div class="panel panel-primary collapse" id="ledgerpanel">
-                        <header class="panel-heading"><?php echo xlt('Ledger');?> </header>
-                        <div id="patledger" class="panel-body"></div>
-                        <div class="panel-footer">
-                          <iframe src="./report/pat_ledger.php?form=1&patient_id=<?php echo attr($pid);?>" width="100%" height="475" scrolling="yes"></iframe>
-                        </div>
-                    </div>
-                </div><!-- /.col -->
-            </div>
-            <?php } ?>
-            <div class="row">
-                <div class="col-sm-12">
-                    <div class="panel panel-primary collapse" id="profilepanel">
-                        <header class="panel-heading"><?php echo xlt('Profile'); ?></header>
-                        <div id="profilereport" class="panel-body"></div>
-                    <div class="panel-footer"></div>
-                    </div>
-              </div>
-            </div>
-
-        </section>
-        <!-- /.content -->
-        <!--<div class="footer-main">Onsite Patient Portal Beta v3.0 Copyright &copy By sjpadgett@gmail.com, 2016 All Rights Reserved and Recorded</div>-->
-    </aside><!-- /.right-side -->
-    </div><!-- ./wrapper -->
-<div id="openSignModal" class="modal fade" role="dialog">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <div class="input-group">
-                    <span class="input-group-addon"
-                          onclick="getSignature(document.getElementById('patientSignaturem'))"><em> <?php echo xlt('Show Current Signature On File'); ?>
-                            <br>
-                            <?php echo xlt('As appears on documents'); ?>.</em></span> <img
-                        class="signature form-control" type="patient-signature"
-                        id="patientSignaturem" onclick="getSignature(this)"
-                        alt="Signature On File" src="">
-                </div>
-            </div>
-            <div class="modal-body">
-                <form name="signit" id="signit" class="sigPad">
-                    <input type="hidden" name="name" id="name" class="name">
-                    <ul class="sigNav">
-                        <label style='display: none;'><input style='display: none;'
-                            type="checkbox" class="" id="isAdmin" name="isAdmin" /><?php echo xlt('Is Authorizing Signature');?></label>
-                        <li class="clearButton"><a href="#clear"><button><?php echo xlt('Clear Signature');?></button></a></li>
-                    </ul>
-                    <div class="sig sigWrapper">
-                        <div class="typed"></div>
-                        <canvas class="spad" id="drawpad" width="765" height="325"
-                            style="border: 1px solid #000000; left: 0px;"></canvas>
-                        <img id="loading"
-                            style="display: none; position: absolute; TOP: 150px; LEFT: 315px; WIDTH: 100px; HEIGHT: 100px"
-                            src="sign/assets/loading.gif" /> <input type="hidden" id="output"
-                            name="output" class="output">
-                    </div>
-                    <input type="hidden" name="type" id="type"
-                        value="patient-signature">
-                    <button type="button" onclick="signDoc(this)"><?php echo xlt('Acknowledge as my Electronic Signature');?>.</button>
-                </form>
-            </div>
-        </div>
-        <!-- <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        </div> -->
-    </div>
-</div><!-- Modal -->
-<img id="waitend"
-    style="display: none; position: absolute; top: 100px; left: 260px; width: 100px; height: 100px"
-    src="sign/assets/loading.gif" />
-
-
-</body>
-</html>
+    echo $twig->render('portal/home.html.twig', $data);
+} catch (LoaderError | RuntimeError | SyntaxError $e) {
+    SessionUtil::portalSessionCookieDestroy();
+    if ($e instanceof SyntaxError) {
+        (new SystemLogger())->error($e->getMessage(), ['file' => $e->getFile(), 'trace' => $e->getTraceAsString()]);
+    }
+    die(text($e->getMessage()));
+}

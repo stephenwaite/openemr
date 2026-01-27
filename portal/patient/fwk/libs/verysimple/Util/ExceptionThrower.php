@@ -1,4 +1,5 @@
 <?php
+
 /** @package    verysimple::Util */
 
 /**
@@ -26,7 +27,7 @@
 class ExceptionThrower
 {
     static $IGNORE_DEPRECATED = true;
-    
+
     /**
      * Start redirecting PHP errors
      *
@@ -45,12 +46,12 @@ class ExceptionThrower
             }
         }
 
-        set_error_handler(array (
+        set_error_handler([
                 "ExceptionThrower",
                 "HandleError"
-        ), $level);
+        ], $level);
     }
-    
+
     /**
      * Stop redirecting PHP errors
      */
@@ -58,12 +59,12 @@ class ExceptionThrower
     {
         restore_error_handler();
     }
-    
+
     /**
      * Fired by the PHP error handler function.
      * Calling this function will
      * always throw an exception unless error_reporting == 0. If the
-     * PHP command is called with @ preceeding it, then it will be ignored
+     * PHP command is called with @ preceding it, then it will be ignored
      * here as well.
      *
      * @param string $code
@@ -72,9 +73,9 @@ class ExceptionThrower
      * @param string $line
      * @param string $context
      */
-    static function HandleError($code, $string, $file, $line, $context)
+    static function HandleError($code, $string, $file, $line, $context = '')
     {
-        // ignore supressed errors
+        // ignore suppressed errors
         if (error_reporting() == 0) {
             return;
         }
@@ -82,7 +83,7 @@ class ExceptionThrower
         if (self::$IGNORE_DEPRECATED && strpos($string, "deprecated") === true) {
             return true;
         }
-        
+
         throw new Exception($string . " in " . basename($file) . " at line $line", $code);
     }
 }

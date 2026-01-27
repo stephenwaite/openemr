@@ -1,4 +1,5 @@
 <?php
+
 /**
  * interface/therapy_groups/therapy_groups_models/group_statuses_model.php contains the model for therapy group statuses.
  *
@@ -26,7 +27,6 @@
 
 class Group_Statuses
 {
-
     const TABLE = 'list_options';
 
     /**
@@ -36,8 +36,8 @@ class Group_Statuses
     public function getGroupStatuses()
     {
         $sql = 'SELECT  option_id, title FROM ' . self::TABLE . ' WHERE list_id = ?;';
-        $result = sqlStatement($sql, array('groupstat'));
-        $final_result =array();
+        $result = sqlStatement($sql, ['groupstat']);
+        $final_result = [];
         while ($row = sqlFetchArray($result)) {
             $final_result[] = $row;
         }
@@ -52,10 +52,10 @@ class Group_Statuses
     public function getGroupAttendanceStatuses()
     {
         $sql = 'SELECT  option_id, title FROM ' . self::TABLE . ' WHERE list_id = ?;';
-        $result = sqlStatement($sql, array('attendstat'));
-        $final_result =array();
+        $result = sqlStatement($sql, ['attendstat']);
+        $final_result = [];
         while ($row = sqlFetchArray($result)) {
-            $row['title']=xla(trim($row['title']));
+            $row['title'] = xla(trim((string) $row['title']));
             $final_result[] = $row;
         }
 

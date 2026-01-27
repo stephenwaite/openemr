@@ -1,76 +1,64 @@
 <?php
-/* +-----------------------------------------------------------------------------+
-*    OpenEMR - Open Source Electronic Medical Record
-*    Copyright (C) 2013 Z&H Consultancy Services Private Limited <sam@zhservices.com>
-*
-*    This program is free software: you can redistribute it and/or modify
-*    it under the terms of the GNU Affero General Public License as
-*    published by the Free Software Foundation, either version 3 of the
-*    License, or (at your option) any later version.
-*
-*    This program is distributed in the hope that it will be useful,
-*    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*    GNU Affero General Public License for more details.
-*
-*    You should have received a copy of the GNU Affero General Public License
-*    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*    @author  Jacob T.Paul <jacob@zhservices.com>
-*    @author  Basil PT <basil@zhservices.com>  
-*
-* +------------------------------------------------------------------------------+
-*/
+
+/**
+ * interface/modules/zend_modules/module/Acl/Module.php
+ *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jacob T.Paul <jacob@zhservices.com>
+ * @author    Basil PT <basil@zhservices.com>
+ * @copyright Copyright (c) 2013 Z&H Consultancy Services Private Limited <sam@zhservices.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
 
 namespace Acl;
 
 use Acl\Model\AclTable;
-use Zend\ModuleManager\ModuleManager;
+use Laminas\ModuleManager\ModuleManager;
 
 class Module
 {
     public function getAutoloaderConfig()
     {
-        return array(
-            'Zend\Loader\ClassMapAutoloader' => array(
-                __DIR__ . '/autoload_classmap.php',
-                ),
-            'Zend\Loader\StandardAutoloader' => array(
-                'namespaces' => array(
+        // TODO: verify that we need this namespace autoloader... it should be on by default...
+        return [
+            \Laminas\Loader\StandardAutoloader::class => [
+                'namespaces' => [
                     __NAMESPACE__ => __DIR__ . '/src/' . __NAMESPACE__,
-                ),
-            ),
-        );
+                ],
+            ],
+        ];
     }
-    
+
     public function getServiceConfig()
     {
-        return array(
-            'factories' => array(
-                'Acl\Model\AclTable' =>  function ($sm) {
-                    $dbAdapter = $sm->get('Zend\Db\Adapter\Adapter');
+        return [
+            'factories' => [
+                \Acl\Model\AclTable::class =>  function ($sm) {
+                    $dbAdapter = $sm->get(\Laminas\Db\Adapter\Adapter::class);
                     $table = new AclTable($dbAdapter);
                     return $table;
                 },
-            ),
-        );
+            ],
+        ];
     }
 
     public function getConfig()
     {
         return include __DIR__ . '/config/module.config.php';
     }
-    
+
     public function init(ModuleManager $moduleManager)
     {
         $sharedEvents = $moduleManager->getEventManager()->getSharedManager();
-        $sharedEvents->attach(__NAMESPACE__, 'dispatch', function ($e) {
+        $sharedEvents->attach(__NAMESPACE__, 'dispatch', function ($e): void {
             $controller = $e->getTarget();
             $controller->layout('acl/layout/layout');
             $route = $controller->getEvent()->getRouteMatch();
-            $controller->getEvent()->getViewModel()->setVariables(array(
+            $controller->getEvent()->getViewModel()->setVariables([
                 'current_controller' => $route->getParam('controller'),
                 'current_action' => $route->getParam('action'),
-            ));
+            ]);
         }, 100);
     }
 }

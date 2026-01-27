@@ -1,26 +1,13 @@
 <?php
-/** @package    Openemr::Model::DAO */
 
 /**
+ * OnsiteActivityViewMap-query.php
  *
- * Copyright (C) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
- *
- * LICENSE: This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @package OpenEMR
- * @author Jerry Padgett <sjpadgett@gmail.com>
- * @link http://www.open-emr.org
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
 /**
@@ -70,7 +57,7 @@ class OnsiteActivityViewMap implements IDaoMap, IDaoMap2
     public static function GetFieldMaps()
     {
         if (self::$FM == null) {
-            self::$FM = array ();
+            self::$FM =  [];
             self::$FM["Id"] = new FieldMap("Id", "onsite_portal_activity", "id", true, FM_TYPE_BIGINT, 20, null, false);
             self::$FM["Date"] = new FieldMap("Date", "onsite_portal_activity", "date", false, FM_TYPE_DATETIME, null, null, false);
             self::$FM["PatientId"] = new FieldMap("PatientId", "onsite_portal_activity", "patient_id", false, FM_TYPE_BIGINT, 20, null, false);
@@ -99,7 +86,7 @@ class OnsiteActivityViewMap implements IDaoMap, IDaoMap2
             self::$FM["Providerid"] = new FieldMap("Providerid", "patient_data", "providerID", false, FM_TYPE_INT, 11, null, false);
             self::$FM["RefProviderid"] = new FieldMap("RefProviderid", "patient_data", "ref_providerID", false, FM_TYPE_INT, 11, null, false);
             self::$FM["Pubpid"] = new FieldMap("Pubpid", "patient_data", "pubpid", false, FM_TYPE_VARCHAR, 255, null, false);
-            self::$FM["CareTeam"] = new FieldMap("CareTeam", "patient_data", "care_team", false, FM_TYPE_INT, 11, null, false);
+            self::$FM["CareTeam"] = new FieldMap("CareTeam", "patient_data", "care_team_provider", false, FM_TYPE_INT, 11, null, false);
             self::$FM["Username"] = new FieldMap("Username", "users", "username", false, FM_TYPE_VARCHAR, 255, null, false);
             self::$FM["Authorized"] = new FieldMap("Authorized", "users", "authorized", false, FM_TYPE_TINYINT, 4, null, false);
             self::$FM["Ufname"] = new FieldMap("Ufname", "users", "ufname", false, FM_TYPE_VARCHAR, 255, null, false);
@@ -122,7 +109,7 @@ class OnsiteActivityViewMap implements IDaoMap, IDaoMap2
     public static function GetKeyMaps()
     {
         if (self::$KM == null) {
-            self::$KM = array ();
+            self::$KM =  [];
         }
 
         return self::$KM;

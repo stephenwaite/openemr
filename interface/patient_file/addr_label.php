@@ -1,4 +1,5 @@
 <?php
+
 /**
 * interface/patient_file/addr_label.php Displaying a PDF file of Labels for printing.
 *
@@ -13,7 +14,6 @@
 * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
 */
 
-
 require_once("../globals.php");
 
 //Get the data to place on labels
@@ -23,7 +23,7 @@ $patdata = sqlQuery("SELECT " .
   "p.fname, p.mname, p.lname, p.pubpid, p.DOB, " .
   "p.street, p.city, p.state, p.postal_code, p.pid " .
   "FROM patient_data AS p " .
-  "WHERE p.pid = ? LIMIT 1", array($pid));
+  "WHERE p.pid = ? LIMIT 1", [$pid]);
 
 // re-order the dates
 //
@@ -45,7 +45,7 @@ $black    = '000000'; // color in hexa
 
 //Format of the address
 //This number increases the spacing between the line printed on the envelope
-$xt       = .2*$font_size;
+$xt       = .2 * $font_size;
 
 //ymargin of printed text. The smaller the number, the further from the left edge edge the address is printed
 $yt       = 0;
@@ -54,14 +54,14 @@ $text1 = sprintf("%s %s\n", $patdata['fname'], $patdata['lname']);
 $text2 = sprintf("%s \n", $patdata['street']);
 $text3 = sprintf("%s , %s %s", $patdata['city'], $patdata['state'], $patdata['postal_code']);
 
-$pdf = new eFPDF('P', 'mm', array($x_width, $y_height)); // set the orentation, unit of measure and size of the page
+$pdf = new eFPDF('P', 'mm', [$x_width, $y_height]); // set the orentation, unit of measure and size of the page
 $pdf->AddPage();
 $pdf->SetFont('Arial', '', $font_size);
 $pdf->TextWithRotation($x, $y + $yt, $text1, $angle);
 $xt += $xt;
 $pdf->TextWithRotation($x + $xt, $y + $yt, $text2, $angle);
-$xt +=$xt;
+$xt += $xt;
 $pdf->TextWithRotation($x + $xt, $y + $yt, $text3, $angle);
-$xt +=$xt;
+$xt += $xt;
 
 $pdf->Output();

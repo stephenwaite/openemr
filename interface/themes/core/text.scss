@@ -1,105 +1,114 @@
-.text {
-    color: #000000;
+@if $compact-theme == false {
+  .text {
+    @include font-size("0.9rem");
     text-decoration: none;
-    font-size: 0.9em;
-}
-.required {
-    text-decoration: none;
-    font-size: 0.9em;
-    color: #880000;
+  }
+
+  .required {
+    @include font-size("0.9rem");
+    color: $danger;
     font-weight: bold;
-}
-.bold {
     text-decoration: none;
-    font-size: 0.9em;
-    color: #000000;
+  }
+
+  /* Deprecated - Please use font-weight-bold class - Will be removed soon */
+  .bold {
+    @include font-size("0.9rem");
     font-weight: bold;
-}
-.small {
     text-decoration: none;
-    color: #000000;
-    font-size: 0.8em;
-}
-.sellistclass {
+  }
+
+  .small {
+    @include font-size("0.8rem");
+    text-decoration: none;
+  }
+
+  .sellistclass {
     float: $left;
-}
-.disabled_button {
-    color: grey;
-}
-a.disabled_button:hover {
-    color: grey;
-}
-/* Password alert styles */
+  }
 
-.pwdalert {
+  .disabled_button,
+  a.disabled_button:hover {
+    color: $gray;
+  }
+
+  /* Password alert styles */
+
+  .pwdalert {
     display: block;
-    width: 390pt;
-    margin-left: 100px;
     padding: 10px 10px 10px 15px;
-    color: black;
-}
-.alertmsg1 {
-    border: 3px solid #fe7b7a;
-    background-color: #ffd6d6;
-}
-.alertmsg2 {
-    border: 3px solid #f56fff;
-    background-color: #fabfff;
-}
-.alertmsg3 {
-    border: 3px solid #9acc2e;
-    background-color: #eef7dd;
-}
-/* Password alert styles */
+    width: 520px;
+    margin-#{$left}: 100px;
+  }
 
-/* Style for red font */
+  .alertmsg1 {
+    background-color: rgba(lighten($orange, 60%), 0.5);
+    border: 3px solid $danger;
+  }
 
-.redtext {
+  .alertmsg2 {
+    background-color: lighten($pink, 30%);
+    border: 3px solid lighten($pink, 20%);
+  }
+
+  .alertmsg3 {
+    background-color: lighten($yellow, 60%);
+    border: 3px solid $yellow;
+  }
+
+  /* Password alert styles */
+
+  /* Style for red font */
+
+  .redtext {
+    color: $danger;
     text-decoration: none;
-    color: #FF0000;
-}
-/* Style for red font */
+  }
 
-.de_identification_status_message {
+  /* Style for red font */
+
+  .de_identification_status_message {
+    border: 1px solid $primary;
     width: 50%;
-    border: 1px solid #0000FF;
-}
-.de_identification_input_controls_box {
+  }
+
+  .de_identification_input_controls_box {
+    border: 1px solid $primary;
     width: 100%;
-    border: 1px solid #0000FF;
-}
-.de_id_upgrade_login {
+  }
+
+  .de_id_upgrade_login {
+    background-color: $white;
+    border: 1px solid $black;
     width: 40%;
-    border: 1px solid Black;
-    background-color: #ffffff;
-}
-body.admin-layout input[type="button"] {
+  }
+
+  body.admin-layout input[type="button"] {
     display: inline-block;
     float: none;
-}
-/* error message = new validation */
+  }
 
-.error-message {
-    color: red;
+  /* error message = new validation */
+
+  .error-message {
+    color: $danger;
     display: block;
-    white-space: nowrap;
     font-weight: normal;
-}
-.error-border {
-    border: 1px solid red !important;
-}
-.tinylogocontainer {
+    white-space: nowrap;
+  }
+
+  .error-border {
+    border: 1px solid $danger !important;
+  }
+
+  .tinylogocontainer {
+    border: 0;
     display: inline-block;
-    border: none;
-}
-.tinylogopng {
+  }
+
+  .tinylogopng {
     display: inline-block;
-    width: 44px;
     height: 22px;
-}
-.oe-text-to-right{
-    text-align: $right;
-}
-.oe-text-to-left{
-    text-align: $left;
+    width: 44px;
+  }
 }

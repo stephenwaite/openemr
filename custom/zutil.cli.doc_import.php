@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Command-line / Unattended document import utility.
  *
@@ -33,39 +34,39 @@
  */
 
 // Allow this script to be run as a cronjob
-require_once(dirname(__FILE__, 2)."/library/allow_cronjobs.php");
+require_once(dirname(__FILE__, 2) . "/library/allow_cronjobs.php");
 
 // Defaults
-$arg = array(
+$arg = [
     'path' => 'scanner_output_directory',
     'pid' => '00',
     'category' => 1,
     'owner' => '',
     'limit' => 10,
     'in_situ' => 0,
-);
+];
 
 foreach ($arg as $key => $def) {
+    if ($key == "path") {
+        // do not let setting of path via GET for security reasons
+        continue;
+    }
     if (isset($_GET[$key])) {
         $arg[$key] = $_GET[$key];
     }
 }
 
-require_once(dirname(__FILE__, 2)."/interface/globals.php");
+require_once(dirname(__FILE__, 2) . "/interface/globals.php");
 require_once("$srcdir/documents.php");
 
-if (isset($GLOBALS[$arg['path']])) {
-    $arg['path'] = $GLOBALS[$arg['path']];
-}
-
 if ($arg['category'] != 1) {
-    $rec_cat = sqlQuery('SELECT id FROM categories WHERE name=?', array(urldecode($arg['category'])));
+    $rec_cat = sqlQuery('SELECT id FROM categories WHERE name=?', [urldecode((string) $arg['category'])]);
     if (isset($rec_cat['id'])) {
         $arg['category'] = $rec_cat['id'];
     }
 }
 // Defined here as fallback
-$ext2mime = array(
+$ext2mime = [
     "pdf" => "application/pdf",
     "exe" => "application/octet-stream",
     "zip" => "application/zip",
@@ -91,7 +92,7 @@ $ext2mime = array(
     "php" => "text/html",
     "htm" => "text/html",
     "html" => "text/html"
-);
+];
 
 printf('%s %s %s (%s)%s', xlt('Import'), text($arg['limit']), xlt('documents'), text($arg['path']), "\n");
 
@@ -102,7 +103,7 @@ foreach ($docs as $doc) {
     }
 
     $doc_pathname = $doc->getPathname();
-    $doc_url = "file://".$doc_pathname;
+    $doc_url = "file://" . $doc_pathname;
 
     $finfo = finfo_open();
     $str_mime = finfo_file($finfo, $doc_pathname, FILEINFO_MIME_TYPE);
@@ -115,7 +116,7 @@ foreach ($docs as $doc) {
     if ($arg['in_situ']) {
         // Skip prior documents
         // mdsupport - Check both formats since there is no consistent code for managing urls.
-        $rec_doc = sqlQuery('SELECT id FROM documents WHERE url=? or url=?', array($doc_pathname, $doc_url));
+        $rec_doc = sqlQuery('SELECT id FROM documents WHERE url=? or url=?', [$doc_pathname, $doc_url]);
         if (isset($rec_doc['id'])) {
             continue;
         }
@@ -126,7 +127,7 @@ foreach ($docs as $doc) {
         $objDoc->set_mimetype($str_mime);
         $objDoc->set_url($doc_url);
         $objDoc->set_size($doc->getSize());
-        $objDoc->set_hash(sha1_file($doc_pathname));
+        $objDoc->set_hash(hash_file('sha3-512', $doc_pathname));
         $objDoc->set_type($objDoc->type_array['file_url']);
         $objDoc->set_owner($arg['owner']);
         $objDoc->set_foreign_id($arg['pid']);
@@ -134,24 +135,23 @@ foreach ($docs as $doc) {
         $objDoc->populate();
         // mdsupport - Need set_category method for the Document
         if (is_numeric($objDoc->get_id())) {
-            sqlInsert("INSERT INTO categories_to_documents(category_id, document_id) VALUES(?,?)", array($arg['category'], $objDoc->get_id()));
+            sqlStatement("INSERT INTO categories_to_documents(category_id, document_id) VALUES(?,?)", [$arg['category'], $objDoc->get_id()]);
         }
         printf('%s - %s%s', text($doc_pathname), (is_numeric($objDoc->get_id()) ? text($objDoc->get_url()) : xlt('Documents setup error')), "\n");
     } else {
-        // Too many parameters for the function make the following setup necessary for readability.
-        $doc_params = array(
-            'name' => $doc->getFilename(),
-            'mime_type' => $str_mime,
-            'full_path' => $doc_pathname,
-            'upload_error' => '',
-            'size' => $doc->getSize(),
-            'owner' => $arg['owner'],
-            'patient_id' => $arg['pid'],
-            'category_id' => '1',
-            'higher_level_path' => '',
-            'path_depth' => '1',
+        $new_doc = addNewDocument(
+            name: $doc->getFilename(),
+            type: $str_mime,
+            tmp_name: $doc_pathname,
+            error: '',
+            size: $doc->getSize(),
+            owner: $arg['owner'],
+            patient_id_or_simple_directory: $arg['pid'],
+            category_id: '1',
+            higher_level_path: '',
+            path_depth: '1',
+            skip_acl_check: true,
         );
-        $new_doc = call_user_func_array('addNewDocument', $doc_params);
         printf('%s - %s%s', text($doc_pathname), (isset($new_doc) ? text($new_doc->get_url()) : xlt('Documents setup error')), "\n");
         if (!$new_doc) {
             die();

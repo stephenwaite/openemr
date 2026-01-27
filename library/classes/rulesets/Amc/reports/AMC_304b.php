@@ -1,4 +1,5 @@
 <?php
+
 // Copyright (C) 2011 Brady Miller <brady.g.miller@gmail.com>
 //
 // This program is free software; you can redistribute it and/or
@@ -19,12 +20,12 @@ class AMC_304b extends AbstractAmcReport
     {
         return "prescriptions";
     }
- 
+
     public function createDenominator()
     {
         return new AMC_304b_Denominator();
     }
-    
+
     public function createNumerator()
     {
         return new AMC_304b_Numerator();

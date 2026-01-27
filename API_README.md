@@ -1,801 +1,397 @@
-![img](./public/images/openemr-rest-api.png)
+# OpenEMR REST API Documentation
 
-### Goal
+> **📚 Complete documentation has moved to [Documentation/api/](Documentation/api/README.md)**
 
-This project aims to provide an easy-to-use JSON-based REST API for OpenEMR's most common functions. All code will be done in classes and separate from the view to help with codebase modernization efforts.
+This project provides comprehensive REST and FHIR APIs for OpenEMR, supporting:
+- **FHIR R4** - Full FHIR Release 4 implementation
+- **US Core 8.0** - US healthcare compliance
+- **SMART on FHIR v2.2.0** - Advanced app integration
+- **OAuth 2.0 / OpenID Connect** - Secure authentication
+- **Bulk Data Export** - Population health analytics
 
-### Team
+## 🚀 Quick Start
 
-- [@matthewvita](https://github.com/matthewvita)
-- [@sjpadgett](https://github.com/sjpadgett)
-- [@juggernautsei](https://github.com/juggernautsei)
-- [@kofiav](https://github.com/kofiav)
-- [@bradymiller](https://github.com/bradymiller)
+### 1. Enable the API
+**Administration → Config → Connectors**
+- ☑ Enable OpenEMR Standard REST API
+- ☑ Enable OpenEMR Standard FHIR REST API
 
-### Prerequsite
-Enable this API service in OpenEMR menu: Administration->Globals->Connectors->"Enable OpenEMR REST API"
+### 2. Configure SSL
+Set your base URL at:
+**Administration → Config → Connectors → Site Address (required for OAuth2 and FHIR)**
 
-### Using API Internally
-There are several ways to make API calls from an authorized session and maintain security:
-* cURL or Guzzle requests
-* oeHttp OpenEMR Http Rest Client
-
-### Endpoints
-Note: FHIR endpoints follow normal FHIR REST endpoints. Use `https://domain/apis/fhir as base URI.`
-
-_Example:_ `https://domain/apis/fhir/Patient` returns a Patients bundle resource and etc..
-
-#### POST /api/auth
-
-Obtain an API token with your login (returns an API token). For FHIR replace Uri component 'api' with 'fhir':
-
-```
-curl -X POST -H 'Content-Type: application/json' 'https://localhost:8300/apis/api/auth' \
--d '{
-    "grant_type":"password",
-    "username": "ServiceUser",
-    "password": "password",
-    "scope":"site id"
-}'
-```
-Response:
-```
-{
-"token_type":"Bearer",
-"access_token":"d2870cb522230dbb8946b2f47d2c7e6664656661756c74",
-"expires_in":"3600"
-}
-```
-Each call must include the token:
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/medical_problem' \
-  -H 'Authorization: Bearer d2870cb522230dbb8946b2f47d2c7e6664656661756c74'
-```
-
-#### POST /api/facility
-
-```
-curl -X POST 'http://localhost:8300/apis/api/facility' -d \
-'{
-    "name": "Aquaria",
-    "phone": "808-606-3030",
-    "fax": "808-606-3031",
-    "street": "1337 Bit Shifter Ln",
-    "city": "San Lorenzo",
-    "state": "ZZ",
-    "postal_code": "54321",
-    "email": "foo@bar.com",
-    "service_location": "1",
-    "billing_location": "1",
-    "color": "#FF69B4"
-}'
-```
-
-#### PUT /api/facility/:fid
-
-```
-curl -X PUT 'http://localhost:8300/apis/api/facility/1' -d \
-'{
-    "name": "Aquaria",
-    "phone": "808-606-3030",
-    "fax": "808-606-3031",
-    "street": "1337 Bit Shifter Ln",
-    "city": "San Lorenzo",
-    "state": "AZ",
-    "postal_code": "54321",
-    "email": "foo@bar.com",
-    "service_location": "1",
-    "billing_location": "1",
-    "color": "#FF69B4"
-}'
-```
-
-#### GET /api/facility
-
-```
-curl -X GET 'http://localhost:8300/apis/api/facility'
-```
-
-#### GET /api/facility/:fid
-
-```
-curl -X GET 'http://localhost:8300/apis/api/facility/1'
-```
-
-#### GET /api/provider
-
-```
-curl -X GET 'http://localhost:8300/apis/api/provider'
-```
-
-#### GET /api/provider/:prid
-
-```
-curl -X GET 'http://localhost:8300/apis/api/provider/1'
-```
-
-#### POST /api/patient
-
-```
-curl -X POST 'http://localhost:8300/apis/api/patient' -d \
-'{
-    "title": "Mr",
-    "fname": "Foo",
-    "mname": "",
-    "lname": "Bar",
-    "street": "456 Tree Lane",
-    "postal_code": "08642",
-    "city": "FooTown",
-    "state": "FL",
-    "country_code": "US",
-    "phone_contact": "123-456-7890",
-    "dob": "1992-02-02",
-    "sex": "Male",
-    "race": "",
-    "ethnicity": ""
-}'
-```
-
-#### PUT /api/patient/:pid
-
-```
-curl -X PUT 'http://localhost:8300/apis/api/patient/1' -d \
-'{
-    "title": "Mr",
-    "fname": "Baz",
-    "mname": "",
-    "lname": "Bop",
-    "street": "456 Tree Lane",
-    "postal_code": "08642",
-    "city": "FooTown",
-    "state": "FL",
-    "country_code": "US",
-    "phone_contact": "123-456-7890",
-    "dob": "1992-02-03",
-    "sex": "Male",
-    "race": "",
-    "ethnicity": ""
-}'
-```
-
-#### GET /api/patient
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient'
-```
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient&fname=...&lname=...&dob=...'
-```
-
-#### GET /api/patient/:pid
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1'
-```
-
-#### GET /api/patient/:pid/encounter
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/encounter'
-```
-
-#### GET /api/patient/:pid/encounter/:eid
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/encounter/1'
-```
-
-#### POST /api/patient/:pid/encounter/:eid/vital
-
-```
-curl -X POST 'http://localhost:8300/apis/api/patient/1/encounter/1/vital' -d \
-'{
-    "bps": "130",
-    "bpd": "80",
-    "weight": "220",
-    "height": "70",
-    "temperature": "98",
-    "temp_method": "Oral",
-    "pulse": "60",
-    "respiration": "20",
-    "note": "...",
-    "waist_circ": "37",
-    "head_circ": "22.2",
-    "oxygen_saturation": "80"
-}'
-```
-
-#### PUT /api/patient/:pid/encounter/:eid/vital/:vid
-
-```
-curl -X PUT 'http://localhost:8300/apis/api/patient/1/encounter/1/vital/1' -d \
-'{
-    "bps": "140",
-    "bpd": "80",
-    "weight": "220",
-    "height": "70",
-    "temperature": "98",
-    "temp_method": "Oral",
-    "pulse": "60",
-    "respiration": "20",
-    "note": "...",
-    "waist_circ": "37",
-    "head_circ": "22.2",
-    "oxygen_saturation": "80"
-}'
-```
-
-#### GET /api/patient/:pid/encounter/:eid/vital
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/encounter/1/vital'
-```
-
-#### GET /api/patient/:pid/encounter/:eid/vital/:vid
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/encounter/1/vital/1'
-```
-
-#### POST /api/patient/:pid/encounter/:eid/soap_note
-
-```
-curl -X POST 'http://localhost:8300/apis/api/patient/1/encounter/1/soap_note' -d \
-'{
-    "subjective": "...",
-    "objective": "...",
-    "assessment": "...",
-    "plan": "..."
-}'
-```
-
-#### PUT /api/patient/:pid/encounter/:eid/soap_note/:sid
-
-```
-curl -X PUT 'http://localhost:8300/apis/api/patient/1/encounter/1/soap_note/1' -d \
-'{
-    "subjective": "...",
-    "objective": "...",
-    "assessment": "...",
-    "plan": "..."
-}'
-```
-
-#### GET /api/patient/:pid/encounter/:eid/soap_note
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/encounter/1/soap_note'
-```
-
-#### GET /api/patient/:pid/encounter/:eid/soap_note/:sid
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/encounter/1/soap_note/1'
-```
-
-#### POST /api/patient/:pid/medical_problem
-
-```
-curl -X POST 'http://localhost:8300/apis/api/patient/1/medical_problem' -d \
-'{
-    "title": "Dermatochalasis",
-    "begdate": "2010-04-13",
-    "enddate": null,
-    "diagnosis": "ICD10:H02.839"
-}'
+### 3. Register Your Application
+```bash
+curl -X POST https://localhost:9300/oauth2/default/registration \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "client_name": "My App",
+    "redirect_uris": ["https://myapp.example.com/callback"],
+    "scope": "openid api:fhir patient/Patient.rs patient/Observation.rs"
+  }'
 ```
 
-#### PUT /api/patient/:pid/medical_problem/:mid
-
-```
-curl -X PUT 'http://localhost:8300/apis/api/patient/1/medical_problem/1' -d \
-'{
-    "title": "Dermatochalasis",
-    "begdate": "2010-04-13",
-    "enddate": "2018-03-12",
-    "diagnosis": "ICD10:H02.839"
-}'
-```
-
-#### GET /api/patient/:pid/medical_problem
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/medical_problem'
-```
-
-#### GET /api/patient/:pid/medical_problem/:mid
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/medical_problem/1'
-```
-
-#### DELETE /api/patient/:pid/medical_problem/:mid
-
-```
-curl -X DELETE 'http://localhost:8300/apis/api/patient/1/medical_problem/1'
-```
-
-#### POST /api/patient/:pid/allergy
-
-```
-curl -X POST 'http://localhost:8300/apis/api/patient/1/allergy' -d \
-'{
-    "title": "Iodine",
-    "begdate": "2010-10-13",
-    "enddate": null
-}'
-```
-
-#### PUT /api/patient/:pid/allergy/:aid
-
-```
-curl -X PUT 'http://localhost:8300/apis/api/patient/1/allergy/1' -d \
-'{
-    "title": "Iodine",
-    "begdate": "2012-10-13",
-    "enddate": null
-}'
-```
-
-#### GET /api/patient/:pid/allergy
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/allergy'
-```
-
-#### GET /api/patient/:pid/allergy/:aid
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/allergy/1'
-```
-
-#### DELETE /api/patient/:pid/allergy/:aid
-
-```
-curl -X DELETE 'http://localhost:8300/apis/api/patient/1/allergy/1'
-```
-
-#### POST /api/patient/:pid/medication
-
+### 4. Make Your First Request
+```bash
+curl -X GET 'https://localhost:9300/apis/default/fhir/Patient' \
+  -H 'Authorization: Bearer YOUR_ACCESS_TOKEN'
 ```
-curl -X POST 'http://localhost:8300/apis/api/patient/1/medication' -d \
-'{
-    "title": "Norvasc",
-    "begdate": "2013-10-13",
-    "enddate": null
-}'
-```
-
-#### PUT /api/patient/:pid/medication/:mid
 
-```
-curl -X PUT 'http://localhost:8300/apis/api/patient/1/medication/1' -d \
-'{
-    "title": "Norvasc",
-    "begdate": "2013-04-13",
-    "enddate": null
-}'
-```
+## 📖 Documentation
 
-#### GET /api/patient/:pid/medication
+### Core Documentation
+- **[📘 Complete API Documentation](Documentation/api/README.md)** - Start here for overview
+- **[🔐 Authentication Guide](Documentation/api/AUTHENTICATION.md)** - OAuth2, tokens, and client registration
+- **[🔑 Authorization & Scopes](Documentation/api/AUTHORIZATION.md)** - Permissions and access control
+- **[🏥 FHIR API Reference](Documentation/api/FHIR_API.md)** - FHIR R4 endpoints and resources
+- **[⚡ SMART on FHIR](Documentation/api/SMART_ON_FHIR.md)** - App integration and launch flows
+- **[🛠️ Standard API Reference](Documentation/api/STANDARD_API.md)** - OpenEMR REST endpoints
+- **[👨‍💻 Developer Guide](Documentation/api/DEVELOPER_GUIDE.md)** - Internal usage and development
 
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/medication'
-```
+## 🎯 Common Tasks
 
-#### GET /api/patient/:pid/medication/:mid
+### Authenticate Your Application
+→ [Authorization Code Grant](Documentation/api/AUTHENTICATION.md#authorization-code-grant)
 
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/medication/1'
-```
+### Understand Scopes
+→ [Scopes Reference](Documentation/api/AUTHORIZATION.md#scopes)
 
-#### DELETE /api/patient/:pid/medication/:mid
+### Access Patient Data
+→ [FHIR Patient Resource](Documentation/api/FHIR_API.md#patient-resources)
 
-```
-curl -X DELETE 'http://localhost:8300/apis/api/patient/1/medication/1'
-```
+### Integrate a SMART App
+→ [SMART Registration](Documentation/api/SMART_ON_FHIR.md#app-registration)
 
-#### POST /api/patient/:pid/surgery
+### Launch Apps from EHR
+→ [EHR Launch Flow](Documentation/api/SMART_ON_FHIR.md#ehr-launch)
 
-```
-curl -X POST 'http://localhost:8300/apis/api/patient/1/surgery' -d \
-'{
-    "title": "Blepharoplasty",
-    "begdate": "2013-10-13",
-    "enddate": null,
-    "diagnosis": "CPT4:15823-50"
-}'
-```
+### Export Bulk Data
+→ [Bulk FHIR Exports](Documentation/api/FHIR_API.md#bulk-fhir-exports)
 
-#### PUT /api/patient/:pid/surgery/:sid
+### Generate Care Documents (CCD)
+→ [DocumentReference $docref](Documentation/api/FHIR_API.md#documentreference-docref-operation)
 
-```
-curl -X PUT 'http://localhost:8300/apis/api/patient/1/surgery/1' -d \
-'{
-    "title": "Blepharoplasty",
-    "begdate": "2013-10-14",
-    "enddate": null,
-    "diagnosis": "CPT4:15823-50"
-}'
-```
+## ✨ What's New in SMART v2.2.0
 
-#### GET /api/patient/:pid/surgery
+### Enhanced Security & Permissions
+- ✨ **[Granular Scopes](Documentation/api/AUTHORIZATION.md#granular-scopes)** - Fine-grained permissions (`.cruds` syntax)
+- ✨ **[POST-Based Authorization](Documentation/api/AUTHENTICATION.md#post-based-authorization)** - More secure auth requests
+- ✨ **[Asymmetric Authentication](Documentation/api/AUTHENTICATION.md#asymmetric-client-authentication)** - JWKS support
+- ✨ **[Token Introspection](Documentation/api/AUTHENTICATION.md#token-introspection)** - Validate token status
 
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/surgery'
-```
+### Enhanced Context & Discovery
+- ✨ **[EHR Launch with Encounter Context](Documentation/api/SMART_ON_FHIR.md#encounter-context)** - Context-aware apps
+- ✨ **[SMART Configuration Endpoint](Documentation/api/SMART_ON_FHIR.md#smart-configuration)** - Dynamic capability discovery
 
-#### GET /api/patient/:pid/surgery/:sid
+### New FHIR Resources
+- ✨ **[ServiceRequest](Documentation/api/FHIR_API.md#servicerequest-)** - Lab orders, imaging requests, referrals
+- ✨ **[Specimen](Documentation/api/FHIR_API.md#specimen-)** - Laboratory specimen tracking
+- ✨ **[MedicationDispense](Documentation/api/FHIR_API.md#medicationdispense-)** - Pharmacy dispensing records
+- ✨ **[RelatedPerson](Documentation/api/FHIR_API.md#relatedperson-)** - Patient relationships and contacts
 
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/surgery/1'
-```
+See complete resource list in [FHIR API Documentation](Documentation/api/FHIR_API.md#supported-resources)
 
-#### DELETE /api/patient/:pid/surgery/:sid
+## 📚 API Endpoints
 
+### FHIR API (FHIR R4)
 ```
-curl -X DELETE 'http://localhost:8300/apis/api/patient/1/surgery/1'
+https://localhost:9300/apis/default/fhir
 ```
+**[→ Full FHIR Documentation](Documentation/api/FHIR_API.md)**
 
-#### POST /api/patient/:pid/dental_issue
+**Key Endpoints:**
+- `GET /fhir/metadata` - Capability statement (no auth required)
+- `GET /fhir/Patient` - Patient search
+- `GET /fhir/Observation?patient=123` - Patient observations
+- `POST /fhir/DocumentReference/$docref` - Generate CCD
+- `GET /fhir/$export` - Bulk data export
 
+### Standard API (OpenEMR REST)
 ```
-curl -X POST 'http://localhost:8300/apis/api/patient/1/dental_issue' -d \
-'{
-    "title": "Halitosis",
-    "begdate": "2015-03-17",
-    "enddate": null
-}'
+https://localhost:9300/apis/default/api
 ```
+**[→ Full Standard API Documentation](Documentation/api/STANDARD_API.md)**
 
-#### PUT /api/patient/:pid/dental_issue/:did
+**Key Endpoints:**
+- `GET /api/patient` - List patients
+- `GET /api/patient/123` - Get patient details
+- `GET /api/patient/123/encounter` - Patient encounters
+- `POST /api/patient` - Create patient
 
+### Patient Portal API (Experimental)
 ```
-curl -X PUT 'http://localhost:8300/apis/api/patient/1/dental_issue/1' -d \
-'{
-    "title": "Halitosis",
-    "begdate": "2015-03-17",
-    "enddate": "2018-03-20"
-}'
+https://localhost:9300/apis/default/portal
 ```
+**[→ Portal API Documentation](Documentation/api/STANDARD_API.md#patient-portal-api)**
 
-#### GET /api/patient/:pid/dental_issue
+## 🔒 Security & Compliance
 
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/dental_issue'
-```
+### Required Security Measures
+- ✅ **HTTPS/TLS Required** - All API communication must be encrypted
+- ✅ **OAuth 2.0** - Industry-standard authorization
+- ✅ **Granular Scopes** - Principle of least privilege
+- ✅ **PKCE for Public Apps** - Enhanced security for native/browser apps
+- ✅ **Token Validation** - Introspection support
 
-#### GET /api/patient/:pid/dental_issue/:did
+### Standards Compliance
+- ✅ **HIPAA** - Protected health information safeguards
+- ✅ **ONC Cures Update** - Information blocking compliance
+- ✅ **FHIR R4** - HL7 FHIR Release 4
+- ✅ **US Core 8.0** - US healthcare requirements
+- ✅ **SMART v2.2.0** - App launch framework
 
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/dental_issue/1'
-```
+**[→ Security Best Practices](Documentation/api/DEVELOPER_GUIDE.md#security)**
 
-#### DELETE /api/patient/:pid/dental_issue/:did
+## 🧪 Testing & Development
 
+### Interactive Testing
+Test endpoints interactively with Swagger UI:
 ```
-curl -X DELETE 'http://localhost:8300/apis/api/patient/1/dental_issue/1'
+https://your-openemr-install/swagger/
 ```
 
-#### GET /api/patient/:pid/insurance
+### Online Demos
+Try the API on live demo instances:
+- **Demo URL:** https://www.open-emr.org/wiki/index.php/Development_Demo
+- **Click:** "API (Swagger) User Interface" link
 
+### Configure Swagger OAuth
+When testing with Swagger, set your client's redirect URI to:
 ```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/insurance'
+<OpenEMR base URI>/swagger/oauth2-redirect.html
 ```
 
-#### GET /api/patient/:pid/insurance/:type
-
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/insurance/secondary'
-```
+## 🌐 Multisite Support
 
-#### POST /api/patient/:pid/insurance/:type
+OpenEMR supports multiple sites with site-specific endpoints:
 
+**Default site:**
 ```
-curl -X POST 'http://localhost:8300/apis/api/patient/10/insurance/primary' -d \
-'{
-    "type": "primary",
-    "provider": "33",
-    "plan_name": "Some Plan",
-    "policy_number": "12345",
-    "group_number": "252412",
-    "subscriber_lname": "Tester",
-    "subscriber_mname": "Xi",
-    "subscriber_fname": "Foo",
-    "subscriber_relationship": "other",
-    "subscriber_ss": "234231234",
-    "subscriber_DOB": "2018-10-03",
-    "subscriber_street": "183 Cool St",
-    "subscriber_postal_code": "23418",
-    "subscriber_city": "Cooltown",
-    "subscriber_state": "AZ",
-    "subscriber_country": "USA",
-    "subscriber_phone": "234-598-2123",
-    "subscriber_employer": "Some Employer",
-    "subscriber_employer_street": "123 Heather Lane",
-    "subscriber_employer_postal_code": "23415",
-    "subscriber_employer_state": "AZ",
-    "subscriber_employer_country": "USA",
-    "subscriber_employer_city": "Cooltown",
-    "copay": "35",
-    "date": "2018-10-15",
-    "subscriber_sex": "Female",
-    "accept_assignment": "TRUE",
-    "policy_type": "a"
-}'
+https://localhost:9300/apis/default/fhir
+https://localhost:9300/apis/default/api
 ```
-
-Notes:
-- `provider` is the insurance company id
-- `state` can be found by querying `resource=/api/list/state`
-- `country` can be found by querying `resource=/api/list/country`
-
 
-#### PUT /api/patient/:pid/insurance/:type
-
+**Alternate site:**
 ```
-curl -X PUT 'http://localhost:8300/apis/api/patient/10/insurance/primary' -d \
-'{
-    "type": "primary",
-    "provider": "33",
-    "plan_name": "Some Plan",
-    "policy_number": "12345",
-    "group_number": "252412",
-    "subscriber_lname": "Tester",
-    "subscriber_mname": "Xi",
-    "subscriber_fname": "Foo",
-    "subscriber_relationship": "other",
-    "subscriber_ss": "234231234",
-    "subscriber_DOB": "2018-10-03",
-    "subscriber_street": "183 Cool St",
-    "subscriber_postal_code": "23418",
-    "subscriber_city": "Cooltown",
-    "subscriber_state": "AZ",
-    "subscriber_country": "USA",
-    "subscriber_phone": "234-598-2123",
-    "subscriber_employer": "Some Employer",
-    "subscriber_employer_street": "123 Heather Lane",
-    "subscriber_employer_postal_code": "23415",
-    "subscriber_employer_state": "AZ",
-    "subscriber_employer_country": "USA",
-    "subscriber_employer_city": "Cooltown",
-    "copay": "35",
-    "date": "2018-10-15",
-    "subscriber_sex": "Female",
-    "accept_assignment": "TRUE",
-    "policy_type": "a"
-}'
+https://localhost:9300/apis/alternate/fhir
+https://localhost:9300/apis/alternate/api
 ```
 
-Notes:
-- `provider` is the insurance company id
-- `state` can be found by querying `resource=/api/list/state`
-- `country` can be found by querying `resource=/api/list/country`
+**[→ Multisite Documentation](Documentation/api/DEVELOPER_GUIDE.md#multisite-support)**
 
-#### GET /api/list/:list_name
+## 📋 Scope Examples
 
+### Patient-Facing App (Vital Signs Tracker)
 ```
-curl -X GET 'http://localhost:8300/apis/api/list/medical_problem_issue_list'
+openid
+offline_access
+patient/Patient.rs
+patient/Observation.rs?category=http://terminology.hl7.org/CodeSystem/observation-category|vital-signs
 ```
 
-#### GET /api/version
-
+### Provider App (Clinical Documentation)
 ```
-curl -X GET 'http://localhost:8300/apis/api/version'
+openid
+fhirUser
+launch
+launch/patient
+launch/encounter
+user/Patient.rs
+user/Encounter.cruds
+user/Observation.crs
+user/DocumentReference.crs
 ```
-
-#### GET /api/product
 
+### Backend Service (Analytics)
 ```
-curl -X GET 'http://localhost:8300/apis/api/product'
+system/Patient.$export
+system/*.$bulkdata-status
+system/Binary.read
 ```
 
-#### GET /api/insurance_company
+**[→ Complete Scope Reference](Documentation/api/AUTHORIZATION.md#fhir-api-scopes-apifhir)**
 
-```
-curl -X GET 'http://localhost:8300/apis/api/insurance_company'
-```
-
-#### GET /api/insurance_type
+## 🆘 Support & Resources
 
-```
-curl -X GET 'http://localhost:8300/apis/api/insurance_type'
-```
+### Documentation
+- **[Complete API Docs](Documentation/api/README.md)** - All documentation
+- **[Quick Start Guide](Documentation/api/README.md#quick-start)** - Get started fast
+- **[FAQ & Troubleshooting](Documentation/api/SMART_ON_FHIR.md#troubleshooting)** - Common issues
 
-#### POST /api/insurance_company
+### Community
+- **[Community Forum](https://community.open-emr.org/)** - Ask questions, share knowledge
+- **[Development Thread](https://community.open-emr.org/t/v6-authorization-and-api-changes-afoot/15450)** - API development discussion
+- **[GitHub Issues](https://github.com/openemr/openemr/issues)** - Report bugs, request features
 
-```
-curl -X POST 'http://localhost:8300/apis/api/insurance_company' -d \
-'{
-    "name": "Cool Insurance Company",
-    "attn": null,
-    "cms_id": null,
-    "ins_type_code": "2",
-    "x12_receiver_id": null,
-    "x12_default_partner_id": null,
-    "alt_cms_id": "",
-    "line1": "123 Cool Lane",
-    "line2": "Suite 123",
-    "city": "Cooltown",
-    "state": "CA",
-    "zip": "12245",
-    "country": "USA"
-}'
-```
+### Standards & Specifications
+- **[FHIR R4 Spec](https://hl7.org/fhir/R4/)** - HL7 FHIR specification
+- **[US Core 8.0 IG](https://hl7.org/fhir/us/core/STU8/)** - US Core Implementation Guide
+- **[SMART App Launch](http://hl7.org/fhir/smart-app-launch/)** - SMART on FHIR specification
+- **[OAuth 2.0](https://oauth.net/2/)** - OAuth 2.0 framework
 
-Notes: `ins_type_code` can be found by inspecting the above route (/api/insurance_type).
+## 🔄 Migration from Previous Versions
 
-#### PUT /api/insurance_company/:iid
+### V1 to V2 Scope Migration
 
+**V1 Scopes (Deprecated but supported):**
 ```
-curl -X PUT 'http://localhost:8300/apis/api/insurance_company/1' -d \
-'{
-    "name": "Super Insurance Company",
-    "attn": null,
-    "cms_id": null,
-    "ins_type_code": "2",
-    "x12_receiver_id": null,
-    "x12_default_partner_id": null,
-    "alt_cms_id": "",
-    "line1": "123 Cool Lane",
-    "line2": "Suite 123",
-    "city": "Cooltown",
-    "state": "CA",
-    "zip": "12245",
-    "country": "USA"
-}'
+patient/Patient.read
+patient/Observation.read
 ```
 
-Notes: `ins_type_code` can be found by inspecting the above route (/api/insurance_type).
-
-#### GET /api/appointment
-
+**V2 Scopes (Recommended):**
 ```
-curl -X GET 'http://localhost:8300/apis/api/appointment'
+patient/Patient.rs
+patient/Observation.rs
 ```
-
-#### GET /api/appointment/:eid
 
-```
-curl -X GET 'http://localhost:8300/apis/api/appointment/1'
-```
+**Mapping:**
+- `.read` → `.rs` (read + search)
+- `.write` → `.cud` (create + update + delete)
 
-#### GET /api/patient/:pid/appointment
+**[→ V1 Compatibility Guide](Documentation/api/AUTHORIZATION.md#v1-scope-compatibility)**
 
-```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/appointment'
-```
+## 📝 Example Code
 
-#### GET /api/patient/:pid/appointment/:eid
+### JavaScript/Node.js
+```javascript
+// Fetch patient data
+const response = await fetch('https://localhost:9300/apis/default/fhir/Patient/123', {
+  headers: {
+    'Authorization': `Bearer ${accessToken}`,
+    'Accept': 'application/fhir+json'
+  }
+});
 
+const patient = await response.json();
+console.log(`Patient: ${patient.name[0].given[0]} ${patient.name[0].family}`);
 ```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/appointment/1'
-```
-
-#### POST /api/patient/:pid/appointment
 
-```
-curl -X POST 'http://localhost:8300/apis/api/patient/1/appointment' -d \
-'{
-    "pc_eid":"1",
-    "pc_catid": "5",
-    "pc_title": "Office Visit",
-    "pc_duration": "900",
-    "pc_hometext": "Test",
-    "pc_apptstatus": "-",
-    "pc_eventDate": "2018-10-19",
-    "pc_startTime": "09:00",
-    "pc_facility": "9",
-    "pc_billing_location": "10"
-}'
-```
+### Python
+```python
+import requests
 
-#### DELETE /api/patient/:pid/appointment/:eid
+# Fetch observations
+response = requests.get(
+    'https://localhost:9300/apis/default/fhir/Observation',
+    headers={
+        'Authorization': f'Bearer {access_token}',
+        'Accept': 'application/fhir+json'
+    },
+    params={'patient': '123', 'category': 'vital-signs'}
+)
 
-```
-curl -X DELETE 'http://localhost:8300/apis/api/patient/1/appointment/1' -d \
+observations = response.json()
 ```
 
-#### GET /api/patient/:pid/document
-
+### cURL
+```bash
+# Get patient medications
+curl -X GET 'https://localhost:9300/apis/default/fhir/MedicationRequest?patient=123' \
+  -H 'Authorization: Bearer YOUR_TOKEN' \
+  -H 'Accept: application/fhir+json'
 ```
-curl -X GET 'http://localhost:8300/apis/api/patient/1/document&path=/eye_module/imaging-eye/drawings-eye'
-```
-
-Note: The `path` query string represents the OpenEMR documents paths with two exceptions:
 
-- Spaces are represented with `_`
-- All characters are lowercase
-
-#### POST /api/patient/:pid/document
-
-```
-curl -X POST 'http://localhost:8300/apis/api/patient/1/document&path=/eye_module/imaging-eye/drawings-eye' \
- -F document=@/home/someone/Desktop/drawing.jpg
-```
+**[→ More Examples](Documentation/api/FHIR_API.md#examples)**
 
-Note: The `path` query string represents the OpenEMR documents paths with two exceptions:
+## 🏗️ For Developers
 
-- Spaces are represented with `_`
-- All characters are lowercase
+### Internal API Usage
+- **[Internal API Guide](Documentation/api/DEVELOPER_GUIDE.md#internal-api-usage)** - Using APIs from within OpenEMR
+- **[Example Code](tests/api/InternalApiTest.php)** - Internal API examples
 
-#### GET /api/patient/:pid/document/:did
+### Extending the API
+- **[Adding Endpoints](Documentation/api/DEVELOPER_GUIDE.md#adding-endpoints)** - Create new API endpoints
+- **[Controllers](Documentation/api/DEVELOPER_GUIDE.md#controllers)** - Controller architecture
+- **[Services](Documentation/api/DEVELOPER_GUIDE.md#services)** - Business logic layer
+- **[Routing](Documentation/api/DEVELOPER_GUIDE.md#routing)** - Route definitions
 
+### Architecture
 ```
-wget 'http://localhost:8300/apis/api/patient/1/document/1'
+Request → Authentication → Authorization → Controller → Service → Database
+                                              ↓
+Response ← JSON Formatting ← Validation ← Processing
 ```
 
-#### POST /api/patient/:pid/message
+**[→ Developer Guide](Documentation/api/DEVELOPER_GUIDE.md)**
 
-```
-curl -X POST 'http://localhost:8300/apis/api/patient/1/message' -d \
-'{
-    "body": "Test 123",
-    "groupname": "Default",
-    "from": "admin",
-    "to": "Matthew",
-    "title": "Other",
-    "message_status": "New"
-}'
-```
+## 📊 API Coverage
 
-Notes:
-- For `title`, use `resource=/api/list/note_type`
-- For `message_type`, use `resource=/api/list/message_status`
+### FHIR Resources (30+)
+✅ Patient, Practitioner, Organization, Location
+✅ Observation, Condition, Procedure, AllergyIntolerance
+✅ MedicationRequest, MedicationDispense, Immunization
+✅ Encounter, Appointment, CarePlan, CareTeam
+✅ DiagnosticReport, ServiceRequest, Specimen
+✅ DocumentReference, Binary, Provenance
+✅ Goal, Device, Coverage, RelatedPerson
 
-#### PUT /api/patient/:pid/message/:mid
+**[→ Complete Resource List](Documentation/api/FHIR_API.md#supported-resources)**
 
-```
-curl -X PUT 'http://localhost:8300/apis/api/patient/1/message/1' -d \
-'{
-    "body": "Test 456",
-    "groupname": "Default",
-    "from": "Matthew",
-    "to": "admin",
-    "title": "Other",
-    "message_status": "New"
-}'
-```
+### Operations
+✅ Read, Search, Create, Update, Delete (per resource)
+✅ Bulk Export ($export)
+✅ CCD Generation ($docref)
+✅ Token Introspection
+✅ Capability Statement
 
-Notes:
-- For `title`, use `resource=/api/list/note_type`
-- For `message_type`, use `resource=/api/list/message_status`
+## 🎓 Tutorials
 
-#### DELETE /api/patient/:pid/message/:mid
+### Getting Started
+1. **[Register Your First App](Documentation/api/AUTHENTICATION.md#client-registration)**
+2. **[Obtain an Access Token](Documentation/api/AUTHENTICATION.md#authorization-code-grant)**
+3. **[Make Your First API Call](Documentation/api/FHIR_API.md#examples)**
+4. **[Handle Token Refresh](Documentation/api/AUTHENTICATION.md#refresh-token-grant)**
 
-```
-curl -X DELETE 'http://localhost:8300/apis/api/patient/1/message/1'
-```
+### Advanced Topics
+1. **[Implement EHR Launch](Documentation/api/SMART_ON_FHIR.md#ehr-launch)**
+2. **[Use Granular Scopes](Documentation/api/AUTHORIZATION.md#granular-scopes)**
+3. **[Export Bulk Data](Documentation/api/FHIR_API.md#bulk-fhir-exports)**
+4. **[Generate Clinical Documents](Documentation/api/FHIR_API.md#documentreference-docref-operation)**
 
-### Dev Notes
+## 📜 License
 
-- For business logic, make or use the services [here](https://github.com/openemr/openemr/tree/master/services)
-- For controller logic, make or use the classes [here](https://github.com/openemr/openemr/tree/master/rest_controllers)
-- For routing declarations, use the class [here](https://github.com/openemr/openemr/blob/master/_rest_routes.inc.php).
+OpenEMR is licensed under [GPL v3](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
+API integrations must comply with:
+- HIPAA requirements
+- State/federal healthcare regulations
+- OpenEMR license terms
 
-### Project Management
+## 🔗 Quick Links
 
-- TODO(team): Consider using Symfony's router
-- TODO(sherwin): Encounter POST
-- TODO(matthew): Fix authorization piece
-- TODO(?): Support CouchDB with document API
-- TODO(?): Prevent `ListService` from using `enddate` of `0000-00-00` by default
-- TODO(?): API for fee sheets
-- TODO(?): API for pharmacies
-- TODO(?): API for immunizations
-- TODO(?): API for prescriptions
-- TODO(?): Drug search API
-- TODO(?): API for onotes
+| Topic | Documentation |
+|-------|---------------|
+| Authentication | [AUTHENTICATION.md](Documentation/api/AUTHENTICATION.md) |
+| Scopes & Permissions | [AUTHORIZATION.md](Documentation/api/AUTHORIZATION.md) |
+| FHIR Endpoints | [FHIR_API.md](Documentation/api/FHIR_API.md) |
+| SMART Apps | [SMART_ON_FHIR.md](Documentation/api/SMART_ON_FHIR.md) |
+| Standard API | [STANDARD_API.md](Documentation/api/STANDARD_API.md) |
+| Development | [DEVELOPER_GUIDE.md](Documentation/api/DEVELOPER_GUIDE.md) |
 
+---
+## Documentation Attribution
 
-### What is that dog drawing?
+### Authorship
+This documentation represents the collective knowledge and contributions of the OpenEMR open-source community. The content is based on:
+- Original documentation by OpenEMR developers and contributors
+- Technical specifications from the OpenEMR codebase
+- Community feedback and real-world implementation experience
 
-That is Peppy, an old OpenEMR mascot. Long live Peppy!
+### AI Assistance
+The organization, structure, and presentation of this documentation was enhanced using Claude AI (Anthropic) to:
+- Reorganize content into a more accessible modular structure
+- Add comprehensive examples and use cases
+- Improve navigation and cross-referencing
+- Enhance clarity and consistency across documents
 
+All technical accuracy is maintained from the original community-authored documentation.
 
-### License
+### Contributing
+OpenEMR is an open-source project. To contribute to this documentation:
+- **Report Issues:** [GitHub Issues](https://github.com/openemr/openemr/issues)
+- **Discuss:** [Community Forum](https://community.open-emr.org/)
+- **Submit Changes:** [Pull Requests](https://github.com/openemr/openemr/pulls)
 
-[GNU GPL](../LICENSE)
+**Last Updated:** November 2025
+**License:** GPL v3

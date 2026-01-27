@@ -1,4 +1,5 @@
 <?php
+
 /**
  *
  * EXPORT QRDA
@@ -21,20 +22,20 @@
  * @link    http://www.open-emr.org
  */
 
-
-
 require_once("../interface/globals.php");
 require_once("../ccr/uuid.php");
-require_once("../library/patient.inc");
+require_once("../library/patient.inc.php");
 require_once "../library/options.inc.php";
 require_once("../library/clinical_rules.php");
-require_once "$srcdir/report_database.inc";
+require_once "$srcdir/report_database.inc.php";
 require_once "qrda_functions.php";
 
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Core\Header;
 use OpenEMR\Services\FacilityService;
 
-if (!verifyCsrfToken($_GET["csrf_token_form"])) {
-    csrfNotVerified();
+if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
+    CsrfUtils::csrfNotVerified();
 }
 
 $facilityService = new FacilityService();
@@ -43,11 +44,11 @@ $facilityService = new FacilityService();
 set_time_limit(0);
 
 //DENEXCEP NOT NEEDED rules
-$denExcepNotNeedRules = array('0002', '0018', '0024', '0038', '0043', '0059', '0421');
+$denExcepNotNeedRules = ['0002', '0018', '0024', '0038', '0043', '0059', '0421'];
 
 //Predefined QRDA HQMF ID's for CQM rules
-$preDefinedUniqIDRules = array();
-$preDefPopIdArr = array();
+$preDefinedUniqIDRules = [];
+$preDefPopIdArr = [];
 
 // CMS147v4/0041 - Preventive Care and Screening: Influenza Immunization HQMF ID: 40280381-4600-425F-0146-EE66F0005509
 $preDefinedUniqIDRules['0041'] = '40280381-4600-425F-0146-EE66F0005509';
@@ -193,20 +194,20 @@ $preDefPopIdArr['0024']['STRAT1'] = '40280381-3D61-56A7-013E-5D53298E6DA3';
 $preDefPopIdArr['0024']['STRAT2'] = '40280381-3D61-56A7-013E-5D532AF06DA5';
 
 //Multiple Numerator NQF# Array declaration
-$multNumNQFArr = array('0421', '0024');
-$countNumNQFArr = array();
+$multNumNQFArr = ['0421', '0024'];
+$countNumNQFArr = [];
 $countNumNQFArr['0421'] = 2;//two Numerators
 $countNumNQFArr['0024'] = 9;//Nine Numerators
 
 //Initiation of all QRDA needed elements
-$CQMeausesArr = array();
+$CQMeausesArr = [];
 $CQMeausesArr['init_patients'] = "Initial Patient Population";
 $CQMeausesArr['exclude_patients'] = "Denominator Exclusions";
 $CQMeausesArr['denom_patients'] = "Denominator";
 $CQMeausesArr['numer_patients'] = "Numerator";
 $CQMeausesArr['exception_patients'] = "Denominator Exceptions";
 
-$cqmItemizedArr = array();
+$cqmItemizedArr = [];
 $cqmItemizedArr['init_patients'] = "init_patients";
 $cqmItemizedArr['exclude_patients'] = "exclude";
 $cqmItemizedArr['denom_patients'] = "all";
@@ -214,14 +215,14 @@ $cqmItemizedArr['numer_patients'] = "pass";
 $cqmItemizedArr['exception_patients'] = "exception";
 
 //QRDA Needed Ethnicity
-$mainEthiArr = array(0=>'Not Hispanic or Latino', 1=>'Hispanic or Latino');
-$mainEthiCodeArr =  array(0=>'2186-5', 1=>'2135-2');
+$mainEthiArr = [0 => 'Not Hispanic or Latino', 1 => 'Hispanic or Latino'];
+$mainEthiCodeArr =  [0 => '2186-5', 1 => '2135-2'];
 
 //QRDA Needed Race
-$mainQrdaRaceArr = array(0=>'American Indian or Alaska Native', 1=>'Asian', 2=>'Black or African American', 3=>'Native Hawaiian or Other Pacific Islander', 4=>'White', 5=>'Other');
-$mainQrdaRaceCodeArr =  array(0=>'1002-5', 1=>'2028-9', 2=>'2054-5', 3=>'2076-8', 4=>'2106-3', 5=>'2131-1');
+$mainQrdaRaceArr = [0 => 'American Indian or Alaska Native', 1 => 'Asian', 2 => 'Black or African American', 3 => 'Native Hawaiian or Other Pacific Islander', 4 => 'White', 5 => 'Other'];
+$mainQrdaRaceCodeArr =  [0 => '1002-5', 1 => '2028-9', 2 => '2054-5', 3 => '2076-8', 4 => '2106-3', 5 => '2131-1'];
 
-$mainQrdaPopulationIncArr = array();
+$mainQrdaPopulationIncArr = [];
 $mainQrdaPopulationIncArr['init_patients'] = "IPP";
 $mainQrdaPopulationIncArr['exclude_patients'] = "DENEX";
 $mainQrdaPopulationIncArr['denom_patients'] = "DENOM";
@@ -231,20 +232,20 @@ $mainQrdaPopulationIncArr['measure_population'] = "MSRPOPL";
 $mainQrdaPopulationIncArr['numer_exclusion'] = "NUMEX";
 
 //QRDA Needed Gender
-$mainQrdaGenderCodeArr = array();
+$mainQrdaGenderCodeArr = [];
 $mainQrdaGenderCodeArr['F'] = "Female";
 $mainQrdaGenderCodeArr['M'] = "Male";
 $mainQrdaGenderCodeArr['UN'] = "Unknown";
 
 //QRDA Needed Payer Info
-$mainQrdaPayerCodeArr = array();
+$mainQrdaPayerCodeArr = [];
 $mainQrdaPayerCodeArr['A'] = "Medicare";
 $mainQrdaPayerCodeArr['B'] = "Medicaid";
 $mainQrdaPayerCodeArr['C'] = "Private Health Insurance";
 $mainQrdaPayerCodeArr['D'] = "Other";
 
 //Payer Codes According to Cypress Codes
-$mainQrdaPayerCodeSendArr = array();
+$mainQrdaPayerCodeSendArr = [];
 $mainQrdaPayerCodeSendArr['A'] = "1";
 $mainQrdaPayerCodeSendArr['B'] = "2";
 $mainQrdaPayerCodeSendArr['C'] = "5";
@@ -257,10 +258,10 @@ $form_provider = $_GET['form_provider'];
 $report_id = $_GET['report_id'];
 $report_view = collectReportDatabase($report_id);
 $target_date = $report_view['date_target'];
-$dataSheet = json_decode($report_view['data'], true);
+$dataSheet = json_decode((string) $report_view['data'], true);
 
 //Needed array for Rule NQF#0024 Stratification
-$stratumCheckArr = array();
+$stratumCheckArr = [];
 if (count($dataSheet) > 0) {
     //Inner Data Loop
     foreach ($dataSheet as $row) {
@@ -273,44 +274,44 @@ if (count($dataSheet) > 0) {
                     $stratum_1_exclude  = $row['excluded'];
                     $stratum_1_denom    = $row['pass_filter'];
                     $stratum_1_numer1  = $row['pass_target'];
-                } else if ($row['numerator_label'] == "Numerator 2") {
+                } elseif ($row['numerator_label'] == "Numerator 2") {
                     $stratum_1_numer2 = $row['pass_target'];
-                } else if ($row['numerator_label'] == "Numerator 3") {
+                } elseif ($row['numerator_label'] == "Numerator 3") {
                     $stratum_1_numer3 = $row['pass_target'];
                 }
-            } else if ($row['population_label'] == "Population Criteria 3") {
+            } elseif ($row['population_label'] == "Population Criteria 3") {
                 if ($row['numerator_label'] == "Numerator 1") {
                     $stratum_2_ipp      = $row['initial_population'];
                     $stratum_2_exclude  = $row['excluded'];
                     $stratum_2_denom    = $row['pass_filter'];
                     $stratum_2_numer1  = $row['pass_target'];
-                } else if ($row['numerator_label'] == "Numerator 2") {
+                } elseif ($row['numerator_label'] == "Numerator 2") {
                     $stratum_2_numer2 = $row['pass_target'];
-                } else if ($row['numerator_label'] == "Numerator 3") {
+                } elseif ($row['numerator_label'] == "Numerator 3") {
                     $stratum_2_numer3 = $row['pass_target'];
                 }
             }
         }
 
-        $stratum = array();
-        $stratum[1] = array('init_patients' => $stratum_1_ipp,
+        $stratum = [];
+        $stratum[1] = ['init_patients' => $stratum_1_ipp,
                             'exclude_patients' => $stratum_1_exclude,
                             'denom_patients' => $stratum_1_denom,
                             'numer_patients' => $stratum_1_numer1,
                             'numer2' => $stratum_1_numer2,
-                            'numer3' => $stratum_1_numer3);
+                            'numer3' => $stratum_1_numer3];
 
-        $stratum[2] = array('init_patients' => $stratum_2_ipp,
+        $stratum[2] = ['init_patients' => $stratum_2_ipp,
                             'exclude_patients' => $stratum_2_exclude,
                             'denom_patients' => $stratum_2_denom,
                             'numer_patients' => $stratum_2_numer1,
                             'numer2' => $stratum_2_numer2,
-                            'numer3' => $stratum_2_numer3);
+                            'numer3' => $stratum_2_numer3];
     }
 }
 
-$from_date = date('Y', strtotime($target_date))."-01-01";
-$to_date =  date('Y', strtotime($target_date))."-12-31";
+$from_date = date('Y', strtotime((string) $target_date)) . "-01-01";
+$to_date =  date('Y', strtotime((string) $target_date)) . "-12-31";
 $xml = new QRDAXml();
 
 #################################################################################################
@@ -335,7 +336,7 @@ $main_title = "QRDA Calculated Summary Report";
 $xml->add_title($main_title);
 
 //Effective date and time
-$eff_datetime = date('Ymdhis', strtotime($target_date));
+$eff_datetime = date('Ymdhis', strtotime((string) $target_date));
 $xml->self_efftime($eff_datetime);
 
 $xml->self_confidentcode();
@@ -343,7 +344,7 @@ $xml->self_confidentcode();
 //Language
 $xml->self_lang();
 
-$setidVal =getUuid();
+$setidVal = getUuid();
 $xml->self_setid($setidVal);
 
 //Version
@@ -364,7 +365,7 @@ $xml->open_assignAuthor();
 $authorsetid = getUuid();
 $xml->self_customId($authorsetid);
 if ($form_provider != "") {
-    $userRow = sqlQuery("SELECT facility, facility_id, federaltaxid, npi, phone,fname, lname FROM users WHERE id=?", array($form_provider));
+    $userRow = sqlQuery("SELECT facility, facility_id, federaltaxid, npi, phone,fname, lname FROM users WHERE id=?", [$form_provider]);
     $facility_name = $userRow['facility'];
     $facility_id = $userRow['facility_id'];
 }
@@ -413,7 +414,7 @@ $xml->self_customId($assignedEntityId);
 $xml->open_customTag('assignedPerson');
 
 //Provider Name
-$userNameArr = array('fname' =>$userRow['fname'], 'lname'=>$userRow['lname']);
+$userNameArr = ['fname' => $userRow['fname'], 'lname' => $userRow['lname']];
 $xml->add_providerName($userNameArr);
 
 //assignedPerson Close
@@ -454,26 +455,26 @@ $xml->close_participant_data();
 ############### documentationOf  START  #######################
 $xml->open_customTag('documentationOf');
 
-$xml->open_customTag('serviceEvent', array('classCode'=>'PCPR'));
+$xml->open_customTag('serviceEvent', ['classCode' => 'PCPR']);
 
-$timeArr = array('low'=>date('Ymd', strtotime($from_date)), 'high'=>date('Ymd', strtotime($to_date)));
+$timeArr = ['low' => date('Ymd', strtotime($from_date)), 'high' => date('Ymd', strtotime($to_date))];
 $xml->add_entryEffectTime($timeArr);
 
-$xml->open_customTag('performer', array('typeCode'=>'PRF'));
+$xml->open_customTag('performer', ['typeCode' => 'PRF']);
 
 $xml->open_customTag('assignedEntity');
 
 $npi_provider = !empty($userRow['npi']) ? $userRow['npi'] : '123456789';
-$xml->self_customTag('id', array('root' => '2.16.840.1.113883.4.6', 'extension' =>$npi_provider));
+$xml->self_customTag('id', ['root' => '2.16.840.1.113883.4.6', 'extension' => $npi_provider]);
 
 if ($userRow['phone'] != "") {
-    $xml->self_customTag('telecom', array('value' => $userRow['phone'], 'use'=>'WP'));
+    $xml->self_customTag('telecom', ['value' => $userRow['phone'], 'use' => 'WP']);
 }
 
 $xml->open_customTag('assignedPerson');
 
 //Provider Name
-$userNameArr = array('fname' =>$userRow['fname'], 'lname'=>$userRow['lname']);
+$userNameArr = ['fname' => $userRow['fname'], 'lname' => $userRow['lname']];
 $xml->add_providerName($userNameArr);
 
 //assignedPerson Close
@@ -483,7 +484,7 @@ $xml->open_customTag('representedOrganization');
 
 $tin_provider = $userRow['federaltaxid'];
 if ($tin_provider != "") {
-    $xml->self_customTag('id', array('root' => '2.16.840.1.113883.4.2', 'extension' =>$tin_provider));
+    $xml->self_customTag('id', ['root' => '2.16.840.1.113883.4.2', 'extension' => $tin_provider]);
 }
 
 $xml->add_facilName($facility_name);
@@ -538,21 +539,21 @@ $xml->self_templateid($tempID);
 
 $tempID = '2.16.840.1.113883.10.20.27.2.6';
 $xml->self_templateid($tempID);
-$arr = array('code'=>'55187-9', 'codeSystem'=>'2.16.840.1.113883.6.1');
+$arr = ['code' => '55187-9', 'codeSystem' => '2.16.840.1.113883.6.1'];
 $xml->self_codeCustom($arr);
 $title = "Reporting Parameters";
 $xml->add_title($title);
 
 $xml->open_text();
 $xml->open_list();
-$item_title = "Reporting period: ".date('d M Y', strtotime($from_date))." - ".date('d M Y', strtotime($to_date));
+$item_title = "Reporting period: " . date('d M Y', strtotime($from_date)) . " - " . date('d M Y', strtotime($to_date));
 $xml->add_item($item_title);
 $xml->close_list();
 $xml->close_text();
 
 $typeCode = 'DRIV';
 $xml->open_entry($typeCode);
-$arr = array('classCode'=>'ACT', 'moodCode'=>'EVN');
+$arr = ['classCode' => 'ACT', 'moodCode' => 'EVN'];
 $xml->open_act($arr);
 
 $tempID = '2.16.840.1.113883.10.20.17.3.8';
@@ -564,10 +565,10 @@ $xml->self_templateid($tempID);
 $actId = getUuid();
 $xml->self_customId($actId);
 
-$arr = array('code'=>'252116004', 'codeSystem'=>'2.16.840.1.113883.6.96', 'displayName'=>'Observation Parameters');
+$arr = ['code' => '252116004', 'codeSystem' => '2.16.840.1.113883.6.96', 'displayName' => 'Observation Parameters'];
 $xml->self_codeCustom($arr);
 
-$timeArr = array('low'=>date('Ymd', strtotime($from_date)), 'high'=>date('Ymd', strtotime($to_date)));
+$timeArr = ['low' => date('Ymd', strtotime($from_date)), 'high' => date('Ymd', strtotime($to_date))];
 $xml->add_entryEffectTime($timeArr);
 
 $xml->close_act();
@@ -592,17 +593,17 @@ $xml->self_templateid($tempID);
 $tempID = '2.16.840.1.113883.10.20.27.2.3';
 $xml->self_templateid($tempID);
 
-$arr = array('code'=>'55186-1', 'codeSystem'=>'2.16.840.1.113883.6.1');
+$arr = ['code' => '55186-1', 'codeSystem' => '2.16.840.1.113883.6.1'];
 $xml->self_codeCustom($arr);
 $title = "Measure Section";
 $xml->add_title($title);
 
 $xml->open_text();
-$cnt=1;
+$cnt = 1;
 
-$tabArr = array('border'=>1, 'width'=>'100%');
+$tabArr = ['border' => 1, 'width' => '100%'];
 if (count($dataSheet) > 0) {
-    $uniqIdArr = array();
+    $uniqIdArr = [];
 
     //Inner Data Loop
     foreach ($dataSheet as $row) {
@@ -632,7 +633,7 @@ if (count($dataSheet) > 0) {
         $xml->open_customTag('tbody');
         $xml->open_customTag('tr');
 
-        $tdTitle = generate_display_field(array('data_type'=>'1','list_id'=>'clinical_rules'), $row['id']);
+        $tdTitle = generate_display_field(['data_type' => '1','list_id' => 'clinical_rules'], $row['id']);
 
         if (!empty($row['cqm_pqri_code'])) {
             $tdTitle .= " " . xlt('PQRI') . ":" . text($row['cqm_pqri_code']) . " ";
@@ -651,7 +652,7 @@ if (count($dataSheet) > 0) {
         if ($preDefinedUniqIDRules[$row['cqm_nqf_code']] != "") {
             if (($row['cqm_nqf_code'] == "0421" )) {
                 $tdVersionSpecific = $preDefinedUniqIDRules[$row['cqm_nqf_code']][$row['numerator_label']];
-            } else if ($row['cqm_nqf_code'] == "0024") {
+            } elseif ($row['cqm_nqf_code'] == "0024") {
                 $tdVersionSpecific = $preDefinedUniqIDRules[$row['cqm_nqf_code']][$row['population_label']][$row['numerator_label']];
             } else {
                 $tdVersionSpecific = $preDefinedUniqIDRules[$row['cqm_nqf_code']];
@@ -663,7 +664,7 @@ if (count($dataSheet) > 0) {
             $uniqIdArr[] = $tdVersionSpecific;
         }
 
-        $dataArr = array(0=>$tdTitle, 1=>$tdVersionNeutral, 2=>$tdVersionSpecific);
+        $dataArr = [0 => $tdTitle, 1 => $tdVersionNeutral, 2 => $tdVersionSpecific];
         $xml->add_trElementsValues($dataArr);
 
         //TR close
@@ -678,7 +679,7 @@ if (count($dataSheet) > 0) {
 
         //Performance Rate
         $xml->open_customTag('item');
-        $arrContent = array('name'=>'Performance Rate', 'value'=>$row['percentage']);
+        $arrContent = ['name' => 'Performance Rate', 'value' => $row['percentage']];
         $xml->innerContent($arrContent);
         $xml->close_customTag();
 
@@ -697,14 +698,14 @@ if (count($dataSheet) > 0) {
                 $itemPatArr = collectItemizedPatientsCdrReport($report_id, $itemized_test_id, $cqmItemizedArr[$cqmKey], $numerator_label);
             }
 
-            $fullPatArr = array();
+            $fullPatArr = [];
             foreach ($itemPatArr as $itemPatInfo) {
                 $fullPatArr[] = $itemPatInfo['pid'];
             }
 
             //Initial Patient Population
             $xml->open_customTag('item');
-            $arrContent = array('name'=>$cqmVal, 'value'=>count($fullPatArr));
+            $arrContent = ['name' => $cqmVal, 'value' => count($fullPatArr)];
             $xml->innerContent($arrContent);
 
             $detailsArr = getQRDAPatientNeedInfo($fullPatArr);
@@ -713,37 +714,37 @@ if (count($dataSheet) > 0) {
             $xml->open_list();
 
             //Gender Section Display
-            foreach ($mainQrdaGenderCodeArr as $GKey => $GVal) {
+            foreach ($mainQrdaGenderCodeArr as $GVal) {
                 $xml->open_customTag('item');
                 $genderInfo = $detailsArr['gender'][$GVal];
-                $arrContent = array('name'=>$GVal, 'value'=>$genderInfo);
+                $arrContent = ['name' => $GVal, 'value' => $genderInfo];
                 $xml->innerContent($arrContent);
                 $xml->close_customTag();
             }
 
             //Ethnicity Section Display
-            foreach ($mainEthiArr as $ethKey => $ethVal) {
+            foreach ($mainEthiArr as $ethVal) {
                 $ethnicity_data = $detailsArr['ethnicity'][$ethVal];
                 $xml->open_customTag('item');
-                $arrContent = array('name'=>'Ethnicity - '.$ethVal, 'value'=>$ethnicity_data);
+                $arrContent = ['name' => 'Ethnicity - ' . $ethVal, 'value' => $ethnicity_data];
                 $xml->innerContent($arrContent);
                 $xml->close_customTag();
             }
 
             //Race Section Display
-            foreach ($mainQrdaRaceArr as $RKey => $RVal) {
+            foreach ($mainQrdaRaceArr as $RVal) {
                 $race_data = $detailsArr['race'][$RVal];
                 $xml->open_customTag('item');
-                $arrContent = array('name'=>'Race - '.$RVal, 'value'=>$race_data);
+                $arrContent = ['name' => 'Race - ' . $RVal, 'value' => $race_data];
                 $xml->innerContent($arrContent);
                 $xml->close_customTag();
             }
 
             //Payer Type Section Display
             $payerCheckArr = getQRDAPayerInfo($fullPatArr);
-            foreach ($mainQrdaPayerCodeArr as $PKey => $PVal) {
+            foreach ($mainQrdaPayerCodeArr as $PVal) {
                 $xml->open_customTag('item');
-                $arrContent = array('name'=>'Payer - '.$PVal, 'value'=>$payerCheckArr[$PVal]);
+                $arrContent = ['name' => 'Payer - ' . $PVal, 'value' => $payerCheckArr[$PVal]];
                 $xml->innerContent($arrContent);
                 $xml->close_customTag();
             }
@@ -764,8 +765,8 @@ $xml->close_text();
 #######################################################################
 if (count($dataSheet) > 0) {
     $innrCnt = 0;
-    $skipMultNumArr = array();
-    $dataChkArr = array();
+    $skipMultNumArr = [];
+    $dataChkArr = [];
     foreach ($multNumNQFArr as $multNumVal) {
         $skipMultNumArr[$multNumVal] = false;
         $dataChkArr[$multNumVal] = 0;
@@ -779,7 +780,7 @@ if (count($dataSheet) > 0) {
         //if($row['cqm_nqf_code'] == "0028a") continue;
 
         //if($row['cqm_nqf_code'] == "0038"){
-        //	if(in_array($row['numerator_label'], $NQF38NumArr)) continue;
+        //  if(in_array($row['numerator_label'], $NQF38NumArr)) continue;
         //}
 
         if (in_array($row['cqm_nqf_code'], $multNumNQFArr)) {
@@ -791,7 +792,7 @@ if (count($dataSheet) > 0) {
             $row['cqm_nqf_code'] = "0018";
         }
 
-        $tdTitle = generate_display_field(array('data_type'=>'1','list_id'=>'clinical_rules'), $row['id']);
+        $tdTitle = generate_display_field(['data_type' => '1','list_id' => 'clinical_rules'], $row['id']);
         if (!empty($row['cqm_pqri_code'])) {
             $tdTitle .= " " . xlt('PQRI') . ":" . text($row['cqm_pqri_code']) . " ";
         }
@@ -810,7 +811,7 @@ if (count($dataSheet) > 0) {
             $xml->open_entry();
 
             //Organizer Start
-            $arr = array('classCode'=>'CLUSTER', 'moodCode'=>'EVN');
+            $arr = ['classCode' => 'CLUSTER', 'moodCode' => 'EVN'];
             $xml->open_customTag('organizer', $arr);
 
             $tempID = "2.16.840.1.113883.10.20.24.3.98";
@@ -824,23 +825,23 @@ if (count($dataSheet) > 0) {
             $actId = getUuid();
             $xml->self_customId($actId);
 
-            $arr = array('code'=>'completed');
+            $arr = ['code' => 'completed'];
             $xml->self_customTag('statusCode', $arr);
 
             //reference Start
-            $arr = array('typeCode'=>'REFR');
+            $arr = ['typeCode' => 'REFR'];
             $xml->open_customTag('reference', $arr);
 
             //externalDocument Start
-            $arr = array('classCode'=>'DOC', 'moodCode'=>'EVN');
+            $arr = ['classCode' => 'DOC', 'moodCode' => 'EVN'];
             $xml->open_customTag('externalDocument', $arr);
 
             //$exDocID = getUuid();
             $exDocID = $uniqIdArr[$innrCnt];
             //$xml->self_customId($exDocID);
-            $xml->self_customTag('id', array('root' => '2.16.840.1.113883.4.738', 'extension' =>$exDocID));
+            $xml->self_customTag('id', ['root' => '2.16.840.1.113883.4.738', 'extension' => $exDocID]);
 
-            $arr = array('code'=>'57024-2', 'displayName'=>'Health Quality Measure Document', 'codeSystem'=>'2.16.840.1.113883.6.1', 'codeSystemName'=>'LOINC');
+            $arr = ['code' => '57024-2', 'displayName' => 'Health Quality Measure Document', 'codeSystem' => '2.16.840.1.113883.6.1', 'codeSystemName' => 'LOINC'];
             $xml->self_codeCustom($arr);
 
             $dispContntTitle = str_replace("&", '', $tdTitle);
@@ -857,7 +858,7 @@ if (count($dataSheet) > 0) {
             $xml->open_loopComponent();
 
             //observation Open
-            $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+            $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
             $tempID = "2.16.840.1.113883.10.20.27.3.14";
             $xml->self_templateid($tempID);
@@ -865,22 +866,22 @@ if (count($dataSheet) > 0) {
             $tempID = "2.16.840.1.113883.10.20.27.3.25";
             $xml->self_templateid($tempID);
 
-            $arr = array('code'=>'72510-1', 'displayName'=>'Performance Rate', 'codeSystem'=>'2.16.840.1.113883.6.1', 'codeSystemName'=>'SNOMED-CT');
+            $arr = ['code' => '72510-1', 'displayName' => 'Performance Rate', 'codeSystem' => '2.16.840.1.113883.6.1', 'codeSystemName' => 'SNOMED-CT'];
             $xml->self_codeCustom($arr);
 
-            $arr = array('code'=>'completed');
+            $arr = ['code' => 'completed'];
             $xml->self_customTag('statusCode', $arr);
 
             $percentage = str_replace("%", '', $row['percentage']);
-            $arr = array('xsi:type'=>'REAL', 'value'=>$percentage/100);
+            $arr = ['xsi:type' => 'REAL', 'value' => $percentage / 100];
             $xml->self_customTag('value', $arr);
 
             //reference Start
-            $arr = array('typeCode'=>'REFR');
+            $arr = ['typeCode' => 'REFR'];
             $xml->open_customTag('reference', $arr);
 
             //externalObservation Start
-            $arr = array('classCode'=>'OBS', 'moodCode'=>'EVN');
+            $arr = ['classCode' => 'OBS', 'moodCode' => 'EVN'];
             $xml->open_customTag('externalObservation', $arr);
 
             //Modified HQMF_ID
@@ -889,7 +890,7 @@ if (count($dataSheet) > 0) {
 
             if (($row['cqm_nqf_code'] == "0421" )) {
                 $exDocID = $preDefPopIdArr[$row['cqm_nqf_code']][$row['numerator_label']]["NUMER"];
-            } else if (($row['cqm_nqf_code'] == "0024")) {
+            } elseif (($row['cqm_nqf_code'] == "0024")) {
                 $exDocID = $preDefPopIdArr[$row['cqm_nqf_code']][$row['population_label']][$row['numerator_label']]["NUMER"];
             } else {
                 if ($preDefPopIdArr[$row['cqm_nqf_code']]["NUMER"] != "") {
@@ -901,7 +902,7 @@ if (count($dataSheet) > 0) {
 
             $xml->self_customId($exDocID);
 
-            $arr = array('code'=>'NUMER', 'displayName'=>'Numerator', 'codeSystem'=>'2.16.840.1.113883.5.1063', 'codeSystemName'=>'ObservationValue');
+            $arr = ['code' => 'NUMER', 'displayName' => 'Numerator', 'codeSystem' => '2.16.840.1.113883.5.1063', 'codeSystemName' => 'ObservationValue'];
             $xml->self_codeCustom($arr);
 
             //externalObservation Close
@@ -941,7 +942,7 @@ if (count($dataSheet) > 0) {
                 $itemPatArr = collectItemizedPatientsCdrReport($report_id, $itemized_test_id, $cqmItemizedArr[$cqmKey], $numerator_label);
             }
 
-            $fullPatArr = array();
+            $fullPatArr = [];
             foreach ($itemPatArr as $itemPatInfo) {
                 $fullPatArr[] = $itemPatInfo['pid'];
             }
@@ -951,7 +952,7 @@ if (count($dataSheet) > 0) {
             $xml->open_loopComponent();
 
             //observation Open
-            $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+            $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
             $tempID = "2.16.840.1.113883.10.20.27.3.5";
             $xml->self_templateid($tempID);
@@ -959,20 +960,20 @@ if (count($dataSheet) > 0) {
             $tempID = "2.16.840.1.113883.10.20.27.3.16";
             $xml->self_templateid($tempID);
 
-            $arr = array('code'=>'ASSERTION', 'displayName'=>'Assertion', 'codeSystem'=>'2.16.840.1.113883.5.4', 'codeSystemName'=>'ActCode');
+            $arr = ['code' => 'ASSERTION', 'displayName' => 'Assertion', 'codeSystem' => '2.16.840.1.113883.5.4', 'codeSystemName' => 'ActCode'];
             $xml->self_codeCustom($arr);
 
-            $arr = array('code'=>'completed');
+            $arr = ['code' => 'completed'];
             $xml->self_customTag('statusCode', $arr);
 
-            $arr = array('xsi:type'=>'CD', 'code'=>$mainQrdaPopulationIncArr[$cqmKey], 'displayName'=>$cqmVal, 'codeSystem' =>'2.16.840.1.113883.5.1063', 'codeSystemName'=>'ObservationValue');
+            $arr = ['xsi:type' => 'CD', 'code' => $mainQrdaPopulationIncArr[$cqmKey], 'displayName' => $cqmVal, 'codeSystem' => '2.16.840.1.113883.5.1063', 'codeSystemName' => 'ObservationValue'];
             $xml->self_customTag('value', $arr);
 
             //entryRelationship Open
-            $xml->open_customTag('entryRelationship', array('typeCode'=>'SUBJ', 'inversionInd'=>'true'));
+            $xml->open_customTag('entryRelationship', ['typeCode' => 'SUBJ', 'inversionInd' => 'true']);
 
             //observation Open
-            $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+            $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
             $tempID = "2.16.840.1.113883.10.20.27.3.3";
             $xml->self_templateid($tempID);
@@ -980,16 +981,16 @@ if (count($dataSheet) > 0) {
             $tempID = "2.16.840.1.113883.10.20.27.3.24";
             $xml->self_templateid($tempID);
 
-            $arr = array('code'=>'MSRAGG', 'displayName'=>'rate aggregation', 'codeSystem'=>'2.16.840.1.113883.5.4', 'codeSystemName'=>'ActCode');
+            $arr = ['code' => 'MSRAGG', 'displayName' => 'rate aggregation', 'codeSystem' => '2.16.840.1.113883.5.4', 'codeSystemName' => 'ActCode'];
             $xml->self_codeCustom($arr);
 
             //$arr = array('code'=>'completed');
             //$xml->self_customTag('statusCode', $arr);
 
-            $arr = array('xsi:type'=>'INT', 'value'=>count($fullPatArr));
+            $arr = ['xsi:type' => 'INT', 'value' => count($fullPatArr)];
             $xml->self_customTag('value', $arr);
 
-            $arr = array('code'=>'COUNT', 'displayName'=>'Count', 'codeSystem'=>'2.16.840.1.113883.5.84', 'codeSystemName'=>'ObservationMethod');
+            $arr = ['code' => 'COUNT', 'displayName' => 'Count', 'codeSystem' => '2.16.840.1.113883.5.84', 'codeSystemName' => 'ObservationMethod'];
             $xml->self_customTag('methodCode', $arr);
 
             //observation Close
@@ -1006,15 +1007,15 @@ if (count($dataSheet) > 0) {
 
                     if ($row['numerator_label'] == "Numerator 2") {
                         $strata_value = $stratum[$strat_count]['numer2'];
-                    } else if ($row['numerator_label'] == "Numerator 3") {
+                    } elseif ($row['numerator_label'] == "Numerator 3") {
                         $strata_value = $stratum[$strat_count]['numer3'];
                     }
 
                         //entryRelationship Open
-                        $xml->open_customTag('entryRelationship', array('typeCode'=>'COMP'));
+                        $xml->open_customTag('entryRelationship', ['typeCode' => 'COMP']);
 
                         //observation Open
-                        $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+                        $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
                         $tempID = "2.16.840.1.113883.10.20.27.3.4";
                         $xml->self_templateid($tempID);
@@ -1022,37 +1023,37 @@ if (count($dataSheet) > 0) {
                         $tempID = "2.16.840.1.113883.10.20.27.3.20";
                         $xml->self_templateid($tempID);
 
-                        $arr = array('code'=>'ASSERTION', 'displayName'=>'Assertion', 'codeSystem'=>'2.16.840.1.113883.5.4', 'codeSystemName'=>'ActCode');
+                        $arr = ['code' => 'ASSERTION', 'displayName' => 'Assertion', 'codeSystem' => '2.16.840.1.113883.5.4', 'codeSystemName' => 'ActCode'];
                         $xml->self_codeCustom($arr);
 
-                        $arr = array('code'=>'completed');
+                        $arr = ['code' => 'completed'];
                         $xml->self_customTag('statusCode', $arr);
 
                         //value open
-                        $xml->open_customTag('value', array('xsi:type'=>'CD', 'nullFlavor'=>'OTH'));
+                        $xml->open_customTag('value', ['xsi:type' => 'CD', 'nullFlavor' => 'OTH']);
 
                         $stratumText = $preDefPopIdArr[$row['cqm_nqf_code']][$row['population_label']][$row['numerator_label']]['DISPLAY_TEXT'];
-                        $xml->element('originalText', "Stratum ".$strat_count);
+                        $xml->element('originalText', "Stratum " . $strat_count);
 
                         //value Close
                         $xml->close_customTag();
 
                         //entryRelationship Open
-                        $xml->open_customTag('entryRelationship', array('typeCode'=>'SUBJ', 'inversionInd' => 'true'));
+                        $xml->open_customTag('entryRelationship', ['typeCode' => 'SUBJ', 'inversionInd' => 'true']);
 
                         //observation Open
-                        $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+                        $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
                         $tempID = "2.16.840.1.113883.10.20.27.3.3";
                         $xml->self_templateid($tempID);
 
-                        $arr = array('code'=>'MSRAGG', 'displayName'=>'rate aggregation', 'codeSystem'=>'2.16.840.1.113883.5.4', 'codeSystemName'=>'ActCode');
+                        $arr = ['code' => 'MSRAGG', 'displayName' => 'rate aggregation', 'codeSystem' => '2.16.840.1.113883.5.4', 'codeSystemName' => 'ActCode'];
                         $xml->self_codeCustom($arr);
 
-                        $arr = array('xsi:type'=>'INT', 'value'=>$strata_value);
+                        $arr = ['xsi:type' => 'INT', 'value' => $strata_value];
                         $xml->self_customTag('value', $arr);
 
-                        $arr = array('code'=>'COUNT', 'displayName'=>'Count', 'codeSystem'=>'2.16.840.1.113883.5.84', 'codeSystemName'=>'ObservationMethod');
+                        $arr = ['code' => 'COUNT', 'displayName' => 'Count', 'codeSystem' => '2.16.840.1.113883.5.84', 'codeSystemName' => 'ObservationMethod'];
                         $xml->self_customTag('methodCode', $arr);
 
                         //observation Close
@@ -1062,16 +1063,16 @@ if (count($dataSheet) > 0) {
                         $xml->close_customTag();
 
                         //reference Start
-                        $arr = array('typeCode'=>'REFR');
+                        $arr = ['typeCode' => 'REFR'];
                         $xml->open_customTag('reference', $arr);
 
                         //externalObservation Start
-                        $arr = array('classCode'=>'OBS', 'moodCode'=>'EVN');
+                        $arr = ['classCode' => 'OBS', 'moodCode' => 'EVN'];
                         $xml->open_customTag('externalObservation', $arr);
 
                         //Modified HQMF_ID for CQM IDS
                         //$refID = $preDefPopIdArr[$row['cqm_nqf_code']][$row['population_label']][$row['numerator_label']]['STRAT'];
-                        $refID = $preDefPopIdArr[$row['cqm_nqf_code']]['STRAT'.$strat_count];
+                        $refID = $preDefPopIdArr[$row['cqm_nqf_code']]['STRAT' . $strat_count];
 
                         $xml->self_customId($refID);
 
@@ -1099,10 +1100,10 @@ if (count($dataSheet) > 0) {
 
             foreach ($mainQrdaGenderCodeArr as $GKey => $GVal) {
                 //entryRelationship Open
-                $xml->open_customTag('entryRelationship', array('typeCode'=>'COMP'));
+                $xml->open_customTag('entryRelationship', ['typeCode' => 'COMP']);
 
                 //observation Open
-                $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+                $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
                 $tempID = "2.16.840.1.113883.10.20.27.3.6";
                 $xml->self_templateid($tempID);
@@ -1110,20 +1111,20 @@ if (count($dataSheet) > 0) {
                 $tempID = "2.16.840.1.113883.10.20.27.3.21";
                 $xml->self_templateid($tempID);
 
-                $arr = array('code'=>'184100006', 'displayName'=>'patient sex', 'codeSystem'=>'2.16.840.1.113883.6.96', 'codeSystemName'=>'SNOMED-CT');
+                $arr = ['code' => '184100006', 'displayName' => 'patient sex', 'codeSystem' => '2.16.840.1.113883.6.96', 'codeSystemName' => 'SNOMED-CT'];
                 $xml->self_codeCustom($arr);
 
-                $arr = array('code'=>'completed');
+                $arr = ['code' => 'completed'];
                 $xml->self_customTag('statusCode', $arr);
 
-                $arr = array('xsi:type'=>'CD', 'code'=>$GKey, 'codeSystem' =>'2.16.840.1.113883.5.1', 'codeSystemName'=>'AdministrativeGenderCode');
+                $arr = ['xsi:type' => 'CD', 'code' => $GKey, 'codeSystem' => '2.16.840.1.113883.5.1', 'codeSystemName' => 'AdministrativeGenderCode'];
                 $xml->self_customTag('value', $arr);
 
                 //entryRelationship Open
-                $xml->open_customTag('entryRelationship', array('typeCode'=>'SUBJ', 'inversionInd'=>'true'));
+                $xml->open_customTag('entryRelationship', ['typeCode' => 'SUBJ', 'inversionInd' => 'true']);
 
                 //observation Open
-                $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+                $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
                 $tempID = "2.16.840.1.113883.10.20.27.3.3";
                 $xml->self_templateid($tempID);
@@ -1131,16 +1132,16 @@ if (count($dataSheet) > 0) {
                 $tempID = "2.16.840.1.113883.10.20.27.3.24";
                 $xml->self_templateid($tempID);
 
-                $arr = array('code'=>'MSRAGG', 'displayName'=>'rate aggregation', 'codeSystem'=>'2.16.840.1.113883.5.4', 'codeSystemName'=>'ActCode');
+                $arr = ['code' => 'MSRAGG', 'displayName' => 'rate aggregation', 'codeSystem' => '2.16.840.1.113883.5.4', 'codeSystemName' => 'ActCode'];
                 $xml->self_codeCustom($arr);
 
                 //$arr = array('code'=>'completed');
                 //$xml->self_customTag('statusCode', $arr);
 
-                $arr = array('xsi:type'=>'INT', 'value'=>$detailsArr['gender'][$GVal]);
+                $arr = ['xsi:type' => 'INT', 'value' => $detailsArr['gender'][$GVal]];
                 $xml->self_customTag('value', $arr);
 
-                $arr = array('code'=>'COUNT', 'displayName'=>'Count', 'codeSystem'=>'2.16.840.1.113883.5.84', 'codeSystemName'=>'ObservationMethod');
+                $arr = ['code' => 'COUNT', 'displayName' => 'Count', 'codeSystem' => '2.16.840.1.113883.5.84', 'codeSystemName' => 'ObservationMethod'];
                 $xml->self_customTag('methodCode', $arr);
 
                 //observation Close
@@ -1171,10 +1172,10 @@ if (count($dataSheet) > 0) {
 
             foreach ($mainEthiArr as $ethKey => $ethVal) {
                 //entryRelationship Open
-                $xml->open_customTag('entryRelationship', array('typeCode'=>'COMP'));
+                $xml->open_customTag('entryRelationship', ['typeCode' => 'COMP']);
 
                 //observation Open
-                $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+                $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
                 $tempID = "2.16.840.1.113883.10.20.27.3.7";
                 $xml->self_templateid($tempID);
@@ -1182,20 +1183,20 @@ if (count($dataSheet) > 0) {
                 $tempID = "2.16.840.1.113883.10.20.27.3.22";
                 $xml->self_templateid($tempID);
 
-                $arr = array('code'=>'364699009', 'displayName'=>'Ethnic Group', 'codeSystem'=>'2.16.840.1.113883.6.96', 'codeSystemName'=>'SNOMED-CT');
+                $arr = ['code' => '364699009', 'displayName' => 'Ethnic Group', 'codeSystem' => '2.16.840.1.113883.6.96', 'codeSystemName' => 'SNOMED-CT'];
                 $xml->self_codeCustom($arr);
 
-                $arr = array('code'=>'completed');
+                $arr = ['code' => 'completed'];
                 $xml->self_customTag('statusCode', $arr);
 
-                $arr = array('xsi:type'=>'CD', 'code'=>$mainEthiCodeArr[$ethKey], 'displayName'=>$ethVal, 'codeSystem' =>'2.16.840.1.113883.6.238', 'codeSystemName'=>'Race &amp; Ethnicity - CDC');
+                $arr = ['xsi:type' => 'CD', 'code' => $mainEthiCodeArr[$ethKey], 'displayName' => $ethVal, 'codeSystem' => '2.16.840.1.113883.6.238', 'codeSystemName' => 'Race &amp; Ethnicity - CDC'];
                 $xml->self_customTag('value', $arr);
 
                 //entryRelationship Open
-                $xml->open_customTag('entryRelationship', array('typeCode'=>'SUBJ', 'inversionInd'=>'true'));
+                $xml->open_customTag('entryRelationship', ['typeCode' => 'SUBJ', 'inversionInd' => 'true']);
 
                 //observation Open
-                $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+                $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
                 $tempID = "2.16.840.1.113883.10.20.27.3.3";
                 $xml->self_templateid($tempID);
@@ -1203,16 +1204,16 @@ if (count($dataSheet) > 0) {
                 $tempID = "2.16.840.1.113883.10.20.27.3.24";
                 $xml->self_templateid($tempID);
 
-                $arr = array('code'=>'MSRAGG', 'displayName'=>'rate aggregation', 'codeSystem'=>'2.16.840.1.113883.5.4', 'codeSystemName'=>'ActCode');
+                $arr = ['code' => 'MSRAGG', 'displayName' => 'rate aggregation', 'codeSystem' => '2.16.840.1.113883.5.4', 'codeSystemName' => 'ActCode'];
                 $xml->self_codeCustom($arr);
 
                 //$arr = array('code'=>'completed');
                 //$xml->self_customTag('statusCode', $arr);
 
-                $arr = array('xsi:type'=>'INT', 'value'=>$detailsArr['ethnicity'][$ethVal]);
+                $arr = ['xsi:type' => 'INT', 'value' => $detailsArr['ethnicity'][$ethVal]];
                 $xml->self_customTag('value', $arr);
 
-                $arr = array('code'=>'COUNT', 'displayName'=>'Count', 'codeSystem'=>'2.16.840.1.113883.5.84', 'codeSystemName'=>'ObservationMethod');
+                $arr = ['code' => 'COUNT', 'displayName' => 'Count', 'codeSystem' => '2.16.840.1.113883.5.84', 'codeSystemName' => 'ObservationMethod'];
                 $xml->self_customTag('methodCode', $arr);
 
                 //observation Close
@@ -1244,10 +1245,10 @@ if (count($dataSheet) > 0) {
 
             foreach ($mainQrdaRaceArr as $RKey => $RVal) {
                 //entryRelationship Open
-                $xml->open_customTag('entryRelationship', array('typeCode'=>'COMP'));
+                $xml->open_customTag('entryRelationship', ['typeCode' => 'COMP']);
 
                 //observation Open
-                $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+                $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
                 $tempID = "2.16.840.1.113883.10.20.27.3.8";
                 $xml->self_templateid($tempID);
@@ -1255,20 +1256,20 @@ if (count($dataSheet) > 0) {
                 $tempID = "2.16.840.1.113883.10.20.27.3.19";
                 $xml->self_templateid($tempID);
 
-                $arr = array('code'=>'103579009', 'displayName'=>'Race', 'codeSystem'=>'2.16.840.1.113883.6.96', 'codeSystemName'=>'SNOMED-CT');
+                $arr = ['code' => '103579009', 'displayName' => 'Race', 'codeSystem' => '2.16.840.1.113883.6.96', 'codeSystemName' => 'SNOMED-CT'];
                 $xml->self_codeCustom($arr);
 
-                $arr = array('code'=>'completed');
+                $arr = ['code' => 'completed'];
                 $xml->self_customTag('statusCode', $arr);
 
-                $arr = array('xsi:type'=>'CD', 'code'=>$mainQrdaRaceCodeArr[$RKey], 'displayName'=>$RVal, 'codeSystem' =>'2.16.840.1.113883.6.238', 'codeSystemName'=>'Race &amp; Ethnicity - CDC');
+                $arr = ['xsi:type' => 'CD', 'code' => $mainQrdaRaceCodeArr[$RKey], 'displayName' => $RVal, 'codeSystem' => '2.16.840.1.113883.6.238', 'codeSystemName' => 'Race &amp; Ethnicity - CDC'];
                 $xml->self_customTag('value', $arr);
 
                 //entryRelationship Open
-                $xml->open_customTag('entryRelationship', array('typeCode'=>'SUBJ', 'inversionInd'=>'true'));
+                $xml->open_customTag('entryRelationship', ['typeCode' => 'SUBJ', 'inversionInd' => 'true']);
 
                 //observation Open
-                $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+                $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
                 $tempID = "2.16.840.1.113883.10.20.27.3.3";
                 $xml->self_templateid($tempID);
@@ -1276,16 +1277,16 @@ if (count($dataSheet) > 0) {
                 $tempID = "2.16.840.1.113883.10.20.27.3.24";
                 $xml->self_templateid($tempID);
 
-                $arr = array('code'=>'MSRAGG', 'displayName'=>'rate aggregation', 'codeSystem'=>'2.16.840.1.113883.5.4', 'codeSystemName'=>'ActCode');
+                $arr = ['code' => 'MSRAGG', 'displayName' => 'rate aggregation', 'codeSystem' => '2.16.840.1.113883.5.4', 'codeSystemName' => 'ActCode'];
                 $xml->self_codeCustom($arr);
 
                 //$arr = array('code'=>'completed');
                 //$xml->self_customTag('statusCode', $arr);
 
-                $arr = array('xsi:type'=>'INT', 'value'=>$detailsArr['race'][$RVal]);
+                $arr = ['xsi:type' => 'INT', 'value' => $detailsArr['race'][$RVal]];
                 $xml->self_customTag('value', $arr);
 
-                $arr = array('code'=>'COUNT', 'displayName'=>'Count', 'codeSystem'=>'2.16.840.1.113883.5.84', 'codeSystemName'=>'ObservationMethod');
+                $arr = ['code' => 'COUNT', 'displayName' => 'Count', 'codeSystem' => '2.16.840.1.113883.5.84', 'codeSystemName' => 'ObservationMethod'];
                 $xml->self_customTag('methodCode', $arr);
 
                 //observation Close
@@ -1317,10 +1318,10 @@ if (count($dataSheet) > 0) {
             $payerCheckArr = getQRDAPayerInfo($fullPatArr);
             foreach ($mainQrdaPayerCodeArr as $PKey => $PVal) {
                 //entryRelationship Open
-                $xml->open_customTag('entryRelationship', array('typeCode'=>'COMP'));
+                $xml->open_customTag('entryRelationship', ['typeCode' => 'COMP']);
 
                 //observation Open
-                $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+                $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
                 $tempID = "2.16.840.1.113883.10.20.27.3.9";
                 $xml->self_templateid($tempID);
@@ -1333,33 +1334,33 @@ if (count($dataSheet) > 0) {
 
                 $xml->self_setpatientRoleid();
 
-                $arr = array('code'=>'48768-6', 'displayName'=>'Payment source', 'codeSystem'=>'2.16.840.1.113883.6.1', 'codeSystemName'=>'SNOMED-CT');
+                $arr = ['code' => '48768-6', 'displayName' => 'Payment source', 'codeSystem' => '2.16.840.1.113883.6.1', 'codeSystemName' => 'SNOMED-CT'];
                 $xml->self_codeCustom($arr);
 
-                $arr = array('code'=>'completed');
+                $arr = ['code' => 'completed'];
                 $xml->self_customTag('statusCode', $arr);
 
-                $timeArr = array('low'=>date('Ymd', strtotime($from_date)));
+                $timeArr = ['low' => date('Ymd', strtotime($from_date))];
                 $xml->add_entryEffectTime($timeArr);
 
                 /*
-				//Value Tag Open
-				$xml->open_customTag('value', array('xsi:type'=>'CD', 'nullFlavor'=>'OTH'));
+                //Value Tag Open
+                $xml->open_customTag('value', array('xsi:type'=>'CD', 'nullFlavor'=>'OTH'));
 
-				$xml->self_customTag('translation', array('code'=>$PKey, 'displayName'=>$PVal, 'codeSystem'=>'2.16.840.1.113883.3.249.12', 'codeSystemName'=>'CMS Clinical Codes'));
+                $xml->self_customTag('translation', array('code'=>$PKey, 'displayName'=>$PVal, 'codeSystem'=>'2.16.840.1.113883.3.249.12', 'codeSystemName'=>'CMS Clinical Codes'));
 
-				//Value Tag Close
-				$xml->close_customTag();
-				*/
+                //Value Tag Close
+                $xml->close_customTag();
+                */
 
                 //Value Tag
-                $xml->self_customTag('value', array('xsi:type'=>'CD', 'code'=>$mainQrdaPayerCodeSendArr[$PKey], 'codeSystem'=>'2.16.840.1.113883.3.221.5' , 'codeSystemName'=>'SOP', 'displayName'=>$PVal));
+                $xml->self_customTag('value', ['xsi:type' => 'CD', 'code' => $mainQrdaPayerCodeSendArr[$PKey], 'codeSystem' => '2.16.840.1.113883.3.221.5' , 'codeSystemName' => 'SOP', 'displayName' => $PVal]);
 
                 //entryRelationship Open
-                $xml->open_customTag('entryRelationship', array('typeCode'=>'SUBJ', 'inversionInd'=>'true'));
+                $xml->open_customTag('entryRelationship', ['typeCode' => 'SUBJ', 'inversionInd' => 'true']);
 
                 //observation Open
-                $xml->open_customTag('observation', array('classCode'=>'OBS', 'moodCode'=>'EVN'));
+                $xml->open_customTag('observation', ['classCode' => 'OBS', 'moodCode' => 'EVN']);
 
                 $tempID = "2.16.840.1.113883.10.20.27.3.3";
                 $xml->self_templateid($tempID);
@@ -1367,16 +1368,16 @@ if (count($dataSheet) > 0) {
                 $tempID = "2.16.840.1.113883.10.20.27.3.24";
                 $xml->self_templateid($tempID);
 
-                $arr = array('code'=>'MSRAGG', 'displayName'=>'rate aggregation', 'codeSystem'=>'2.16.840.1.113883.5.4', 'codeSystemName'=>'ActCode');
+                $arr = ['code' => 'MSRAGG', 'displayName' => 'rate aggregation', 'codeSystem' => '2.16.840.1.113883.5.4', 'codeSystemName' => 'ActCode'];
                 $xml->self_codeCustom($arr);
 
                 //$arr = array('code'=>'completed');
                 //$xml->self_customTag('statusCode', $arr);
 
-                $arr = array('xsi:type'=>'INT', 'value'=>$payerCheckArr[$PVal]);
+                $arr = ['xsi:type' => 'INT', 'value' => $payerCheckArr[$PVal]];
                 $xml->self_customTag('value', $arr);
 
-                $arr = array('code'=>'COUNT', 'displayName'=>'Count', 'codeSystem'=>'2.16.840.1.113883.5.84', 'codeSystemName'=>'ObservationMethod');
+                $arr = ['code' => 'COUNT', 'displayName' => 'Count', 'codeSystem' => '2.16.840.1.113883.5.84', 'codeSystemName' => 'ObservationMethod'];
                 $xml->self_customTag('methodCode', $arr);
 
                 //observation Close
@@ -1401,17 +1402,17 @@ if (count($dataSheet) > 0) {
 
             ######################################################################
             //reference Start
-            $arr = array('typeCode'=>'REFR');
+            $arr = ['typeCode' => 'REFR'];
             $xml->open_customTag('reference', $arr);
 
             //externalObservation Start
-            $arr = array('classCode'=>'OBS', 'moodCode'=>'EVN');
+            $arr = ['classCode' => 'OBS', 'moodCode' => 'EVN'];
             $xml->open_customTag('externalObservation', $arr);
 
             //Modified HQMF_ID for CQM IDS
             if (($row['cqm_nqf_code'] == "0421" )) {
                 $refID = $preDefPopIdArr[$row['cqm_nqf_code']][$row['numerator_label']][$mainQrdaPopulationIncArr[$cqmKey]];
-            } else if (($row['cqm_nqf_code'] == "0024")) {
+            } elseif (($row['cqm_nqf_code'] == "0024")) {
                 $refID = $preDefPopIdArr[$row['cqm_nqf_code']][$row['population_label']][$row['numerator_label']][$mainQrdaPopulationIncArr[$cqmKey]];
             } else {
                 $refID = $preDefPopIdArr[$row['cqm_nqf_code']][$mainQrdaPopulationIncArr[$cqmKey]];
@@ -1483,26 +1484,24 @@ $xml->close_clinicaldocument();
 
 
 //QRDA File Download Folder in site/cqm_qrda folder
-$qrda_fname = "QRDA_III_".date("YmdHis").".xml";
+$qrda_fname = "QRDA_III_" . date("YmdHis") . ".xml";
 $qrda_file_path = $GLOBALS['OE_SITE_DIR'] . "/documents/cqm_qrda/";
 if (!file_exists($qrda_file_path)) {
     mkdir($qrda_file_path, 0777, true);
 }
 
-$qrda_file_name = $qrda_file_path.$qrda_fname;
+$qrda_file_name = $qrda_file_path . $qrda_fname;
 $fileQRDAOPen = fopen($qrda_file_name, "w");
-fwrite($fileQRDAOPen, trim($xml->getXml()));
+fwrite($fileQRDAOPen, trim((string) $xml->getXml()));
 fclose($fileQRDAOPen);
 ?>
 
 <html>
 <head>
-<?php html_header_show();?>
-<script type="text/javascript" src="<?php echo $webroot ?>/interface/main/tabs/js/include_opener.js"></script>
-<link rel=stylesheet href="<?php echo $css_header;?>" type="text/css">
+<?php Header::setupHeader('opener'); ?>
 <title><?php echo xlt('Export QRDA Report'); ?></title>
 
-<script type="text/javascript">
+<script>
     //Close Me function
     function closeme() {
       window.close();
@@ -1516,10 +1515,10 @@ fclose($fileQRDAOPen);
 <center>
 <form>
 <p class="text">
-    <a href="qrda_download.php?qrda_fname=<?php echo attr_url($qrda_fname); ?>&csrf_token_form=<?php echo attr_url($_SESSION['csrf_token']); ?>"><?php echo xlt("Download QRDA Category III File");?></a>
+    <a href="qrda_download.php?qrda_fname=<?php echo attr_url($qrda_fname); ?>&csrf_token_form=<?php echo attr_url(CsrfUtils::collectCsrfToken()); ?>"><?php echo xlt("Download QRDA Category III File");?></a>
 </p>
 <textarea rows='50' cols='500' style='width:95%' readonly>
-<?php echo trim($xml->getXml()); ?>
+<?php echo trim((string) $xml->getXml()); ?>
 </textarea>
 
 <p><input type='button' value='<?php echo xla('Close'); ?>' onclick='closeme();' /></p>

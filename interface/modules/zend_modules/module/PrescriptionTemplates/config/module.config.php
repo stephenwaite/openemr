@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Copyright (C) 2018 Amiel Elboim <amielel@matrix.co.il>
  *
@@ -18,54 +19,62 @@
  * @link    http://www.open-emr.org
  */
 
-return array(
+namespace PrescriptionTemplates;
 
-    'controllers' => array(
-        'invokables' => array(
-            'PrescriptionTemplates\Controller\HtmlTemplates' => 'PrescriptionTemplates\Controller\HtmlTemplatesController',
-            'PrescriptionTemplates\Controller\PdfTemplates' => 'PrescriptionTemplates\Controller\PdfTemplatesController'
-        )
-    ),
-    'router' => array(
-        'routes' => array(
-            'p_html_template' => array(
-                'type'    => 'segment',
-                'options' => array(
+use Laminas\ServiceManager\Factory\InvokableFactory;
+use Laminas\Router\Http\Segment;
+use PrescriptionTemplates\Controller\HtmlTemplatesController;
+use PrescriptionTemplates\Controller\PdfTemplatesController;
+use Interop\Container\ContainerInterface;
+
+return [
+
+    'controllers' => [
+        'factories' => [
+            HtmlTemplatesController::class => fn(ContainerInterface $container, $requestedName): \PrescriptionTemplates\Controller\HtmlTemplatesController => new HtmlTemplatesController(),
+            PdfTemplatesController::class => fn(ContainerInterface $container, $requestedName): \PrescriptionTemplates\Controller\PdfTemplatesController => new PdfTemplatesController($container)
+        ]
+    ],
+    'router' => [
+        'routes' => [
+            'p_html_template' => [
+                'type'    => Segment::class,
+                'options' => [
                     'route'    => '/prescription-html-template[/:action][/:method]',
-                    'constraints' => array(
+                    'constraints' => [
                         'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
                         'method'     => '[a-zA-Z][a-zA-Z0-9_-]*',
-                    ),
-                    'defaults' => array(
-                        'controller' => 'PrescriptionTemplates\Controller\HtmlTemplates',
+                    ],
+                    'defaults' => [
+                        'controller' => HtmlTemplatesController::class,
                         'action'     => 'default'
-                    ),
-                ),
-            ),
-            'p_pdf_template' => array(
+                    ],
+                ],
+            ],
+            'p_pdf_template' => [
 
-                'type'    => 'segment',
-                'options' => array(
+                'type'    => Segment::class,
+                'options' => [
                     'route'    => '/prescription-pdf-template[/:action][/:method]',
-                    'constraints' => array(
+                    'constraints' => [
                         'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
                         'method'     => '[a-zA-Z][a-zA-Z0-9_-]*',
-                    ),
-                    'defaults' => array(
-                        'controller' => 'PrescriptionTemplates\Controller\PdfTemplates',
+                    ],
+                    'defaults' => [
+                        'controller' => PdfTemplatesController::class,
                         'action'     => 'default'
-                    ),
-                ),
-            ),
-        ),
-    ),
-    'view_manager' => array(
-        'template_path_stack' => array(
+                    ],
+                ],
+            ],
+        ],
+    ],
+    'view_manager' => [
+        'template_path_stack' => [
             'PrescriptionTemplate' => __DIR__ . '/../view',
-        ),
-        'template_map' => array(
+        ],
+        'template_map' => [
             'PrescriptionTemplate/layout/layout' => __DIR__ . '/../view/layout/layout.phtml',
-        )
+        ]
 
-    ),
-);
+    ],
+];

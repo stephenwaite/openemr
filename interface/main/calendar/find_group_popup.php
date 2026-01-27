@@ -1,4 +1,5 @@
 <?php
+
 /**
  * interface/main/calendar/find_group_popup.php
  *
@@ -15,16 +16,16 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once('../../globals.php');
-require_once("$srcdir/group.inc");
+require_once("$srcdir/group.inc.php");
 require_once("../../therapy_groups/therapy_groups_controllers/therapy_groups_controller.php");
 
+use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
 
 if (!empty($_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 }
 
@@ -32,9 +33,10 @@ $info_msg = "";
 $group_types = TherapyGroupsController::prepareGroupTypesList();
 // If we are searching, search.
 //
-if ($_POST['searchby'] && $_POST['searchparm']) {
-    $searchby = $_POST['searchby'];
-    $searchparm = trim($_POST['searchparm']);
+$searchby = $_POST['searchby'] ?? null;
+$searchparm = $_POST['searchparm'] ?? null;
+if ($searchby && $searchparm) {
+    $searchparm = trim((string) $searchparm);
 
     if ($searchby == "Name") {
         $result = getGroupData("$searchparm", "*", 'group_name');
@@ -46,7 +48,7 @@ if ($_POST['searchby'] && $_POST['searchparm']) {
 <html>
 <head>
     <title><?php echo xlt('Group Finder'); ?></title>
-    <?php Header::setupHeader(['no_bootstrap', 'no_fontawesome', 'no_textformat', 'no_dialog', 'opener']); ?>
+    <?php Header::setupHeader('opener'); ?>
 
     <style>
         form {
@@ -162,7 +164,7 @@ if ($_POST['searchby'] && $_POST['searchparm']) {
         }
     </style>
 
-    <script language="JavaScript">
+    <script>
 
         function selgid(gid, name, end_date) {
             if (opener.closed || !opener.setgroup)
@@ -181,14 +183,14 @@ if ($_POST['searchby'] && $_POST['searchparm']) {
 
 <div id="searchCriteria">
     <form method='post' name='theform' id="theform" action='find_group_popup.php'>
-        <input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+        <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
         <?php echo xlt('Search by') . ':'; ?>
         <select name='searchby'>
             <option value="Name"><?php echo xlt('Name'); ?></option>
             <option value="ID"<?php echo ($searchby == 'ID') ? ' selected' : ''; ?>><?php echo xlt('ID'); ?></option>
         </select>
         <?php echo xlt('for') . ':'; ?>
-        <input type='text' id='searchparm' name='searchparm' size='12' value='<?php echo attr($_POST['searchparm']); ?>'>        &nbsp;
+        <input type='text' id='searchparm' name='searchparm' size='12' value='<?php echo attr($searchparam ?? ""); ?>'>        &nbsp;
         <input type='submit' id="submitbtn" value='<?php echo xla('Search'); ?>'>
         <div id="searchspinner"><img src="<?php echo $GLOBALS['webroot'] ?>/interface/pic/ajax-loader.gif"></div>
     </form>
@@ -199,7 +201,7 @@ if ($_POST['searchby'] && $_POST['searchparm']) {
     <div id="searchstatus"><?php echo xlt('Enter your search criteria above'); ?></div>
 <?php elseif (count($result) == 0) : ?>
 <div id="searchstatus" class="noResults"><?php echo xlt('No records found. Please expand your search criteria.'); ?>
-    <br>
+    <br />
 </div>
 <?php elseif (count($result) >= 100) : ?>
 <div id="searchstatus" class="tooManyResults"><?php echo xlt('More than 100 records found. Please narrow your search criteria.'); ?></div>
@@ -208,7 +210,6 @@ if ($_POST['searchby'] && $_POST['searchparm']) {
 <?php endif; ?>
 
 <?php if (isset($result)) : ?>
-
 <div id="searchResultsHeader">
 <table>
  <tr>
@@ -243,13 +244,15 @@ if ($_POST['searchby'] && $_POST['searchparm']) {
         ?>
         </table>
     </div>
+<?php else : ?>
+<p><?php echo xlt("No groups found"); ?></p>
 <?php endif; ?>
 
-<script language="javascript">
+<script>
 
     // jQuery stuff to make the page a little easier to use
 
-    $(document).ready(function(){
+    $(function () {
         $("#searchparm").trigger("focus");
         $(".oneresult").on("mouseover", function() { $(this).toggleClass("highlight"); });
         $(".oneresult").on("mouseout", function() { $(this).toggleClass("highlight"); });

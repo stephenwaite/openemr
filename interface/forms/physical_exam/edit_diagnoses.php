@@ -1,4 +1,5 @@
 <?php
+
 /**
  * physical_exam edit_diagnoses.php
  *
@@ -11,24 +12,24 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+require_once(__DIR__ . "/../../globals.php");
 
-require_once("../../globals.php");
-require_once("$srcdir/acl.inc");
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Core\Header;
 
 $line_id = $_REQUEST['lineid'];
 $info_msg = "";
 
-if ($issue && !acl_check('patients', 'med', '', 'write')) {
+if ($issue && !AclMain::aclCheckCore('patients', 'med', '', 'write')) {
     die("Edit is not authorized!");
 }
 ?>
 <html>
 <head>
-<?php html_header_show();?>
-<script type="text/javascript" src="<?php echo $webroot ?>/interface/main/tabs/js/include_opener.js"></script>
 <title><?php echo xlt('Edit Diagnoses for');?><?php echo text($line_id); ?></title>
-<link rel="stylesheet" href='<?php echo $css_header ?>' type='text/css'>
 
+<?php Header::setupHeader('opener'); ?>
 
 </head>
 
@@ -37,12 +38,12 @@ if ($issue && !acl_check('patients', 'med', '', 'write')) {
  // If we are saving, then save and close the window.
  //
 if ($_POST['form_save']) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 
     $query = "DELETE FROM form_physical_exam_diagnoses WHERE line_id = ?";
-    sqlStatement($query, array($line_id));
+    sqlStatement($query, [$line_id]);
 
     $form_diagnoses = $_POST['form_diagnosis'];
     $form_orderings = $_POST['form_ordering'];
@@ -54,13 +55,13 @@ if ($_POST['form_save']) {
             ) VALUES (
             ?, ?, ?
             )";
-            sqlInsert($query, array($line_id, $ordering, $diagnosis));
+            sqlStatement($query, [$line_id, $ordering, $diagnosis]);
         }
     }
 
   // Close this window and redisplay the updated encounter form.
   //
-    echo "<script language='JavaScript'>\n";
+    echo "<script>\n";
     if ($info_msg) {
         echo " alert(" . js_escape($info_msg) . ");\n";
     }
@@ -75,12 +76,12 @@ if ($_POST['form_save']) {
  $dres = sqlStatement(
      "SELECT * FROM form_physical_exam_diagnoses WHERE " .
      "line_id = ? ORDER BY ordering, diagnosis",
-     array($line_id)
+     [$line_id]
  );
-?>
+    ?>
 <form method='post' name='theform' action='edit_diagnoses.php?lineid=<?php echo attr_url($line_id); ?>'
  onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
 <center>
 

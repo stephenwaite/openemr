@@ -1,26 +1,13 @@
 <?php
-/** @package    Openemr::Model::DAO */
 
 /**
+ * UserMap.php
  *
- * Copyright (C) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
- *
- * LICENSE: This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @package OpenEMR
- * @author Jerry Padgett <sjpadgett@gmail.com>
- * @link http://www.open-emr.org
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
 /** import supporting libraries */
@@ -43,10 +30,9 @@ require_once("verysimple/Phreeze/IDaoMap2.php");
  */
 class UserMap implements IDaoMap, IDaoMap2
 {
-
     private static $KM;
     private static $FM;
-    
+
     /**
      * {@inheritdoc}
      */
@@ -55,7 +41,7 @@ class UserMap implements IDaoMap, IDaoMap2
         self::GetFieldMaps();
         self::$FM[$property] = $map;
     }
-    
+
     /**
      * {@inheritdoc}
      */
@@ -71,7 +57,7 @@ class UserMap implements IDaoMap, IDaoMap2
     public static function GetFieldMaps()
     {
         if (self::$FM == null) {
-            self::$FM = array();
+            self::$FM = [];
             self::$FM["Id"] = new FieldMap("Id", "users", "id", true, FM_TYPE_BIGINT, 20, null, true);
             self::$FM["Username"] = new FieldMap("Username", "users", "username", false, FM_TYPE_VARCHAR, 255, null, false);
             self::$FM["Password"] = new FieldMap("Password", "users", "password", false, FM_TYPE_LONGTEXT, null, null, false);
@@ -119,15 +105,13 @@ class UserMap implements IDaoMap, IDaoMap2
             //self::$FM["SsiRelayhealth"] = new FieldMap("SsiRelayhealth","users","ssi_relayhealth",false,FM_TYPE_VARCHAR,64,null,false);
             self::$FM["Calendar"] = new FieldMap("Calendar", "users", "calendar", false, FM_TYPE_TINYINT, 1, null, false);
             self::$FM["AbookType"] = new FieldMap("AbookType", "users", "abook_type", false, FM_TYPE_VARCHAR, 31, null, false);
-            self::$FM["PwdExpirationDate"] = new FieldMap("PwdExpirationDate", "users", "pwd_expiration_date", false, FM_TYPE_DATE, null, null, false);
-            self::$FM["PwdHistory1"] = new FieldMap("PwdHistory1", "users", "pwd_history1", false, FM_TYPE_LONGTEXT, null, null, false);
-            self::$FM["PwdHistory2"] = new FieldMap("PwdHistory2", "users", "pwd_history2", false, FM_TYPE_LONGTEXT, null, null, false);
             self::$FM["DefaultWarehouse"] = new FieldMap("DefaultWarehouse", "users", "default_warehouse", false, FM_TYPE_VARCHAR, 31, null, false);
             self::$FM["Irnpool"] = new FieldMap("Irnpool", "users", "irnpool", false, FM_TYPE_VARCHAR, 31, null, false);
             self::$FM["StateLicenseNumber"] = new FieldMap("StateLicenseNumber", "users", "state_license_number", false, FM_TYPE_VARCHAR, 25, null, false);
             self::$FM["NewcropUserRole"] = new FieldMap("NewcropUserRole", "users", "newcrop_user_role", false, FM_TYPE_VARCHAR, 30, null, false);
             self::$FM["Cpoe"] = new FieldMap("Cpoe", "users", "cpoe", false, FM_TYPE_TINYINT, 1, null, false);
             self::$FM["PhysicianType"] = new FieldMap("PhysicianType", "users", "physician_type", false, FM_TYPE_VARCHAR, 50, null, false);
+            self::$FM["PortalUser"] = new FieldMap("PortalUser", "users", "portal_user", false, FM_TYPE_TINYINT, 1, null, false);
         }
 
         return self::$FM;
@@ -139,7 +123,7 @@ class UserMap implements IDaoMap, IDaoMap2
     public static function GetKeyMaps()
     {
         if (self::$KM == null) {
-            self::$KM = array();
+            self::$KM = [];
             self::$KM["examinerlkup"] = new KeyMap("examinerlkup", "Id", "FormHearing", "ExaminerId", KM_TYPE_ONETOMANY, KM_LOAD_LAZY);  // use KM_LOAD_EAGER with caution here (one-to-one relationships only)
             self::$KM["reviewerlkup"] = new KeyMap("reviewerlkup", "Id", "FormHearing", "ReviewerId", KM_TYPE_ONETOMANY, KM_LOAD_LAZY);  // use KM_LOAD_EAGER with caution here (one-to-one relationships only)
         }

@@ -1,5 +1,7 @@
 <?php
+
 /** @package    verysimple::Util */
+
 require_once("verysimple/Phreeze/CacheMemCache.php");
 
 /**
@@ -19,16 +21,16 @@ class MemCacheProxy extends CacheMemCache
 {
     public $ServerOffline = false;
     public $LastServerError = '';
-    
+
     /**
-     * Acts as a proxy for a MemCache server and fails gracefull if the pool cannot be contacted
+     * Acts as a proxy for a MemCache server and fails gracefully if it cannot contact the pool
      *
      * @param
      *          array in host/port format: array('host1'=>'11211','host2'=>'11211')
      * @param
      *          string a unique string. prevents conflicts in case multiple apps are using the same memcached server bank
      */
-    public function __construct($server_array = array('localhost'=>'11211'), $uniquePrefix = "CACHE-")
+    public function __construct($server_array = ['localhost' => '11211'], $uniquePrefix = "CACHE-")
     {
         if (class_exists('Memcache')) {
             $memcache = new Memcache();
@@ -36,14 +38,14 @@ class MemCacheProxy extends CacheMemCache
                 // print "adding server $host " . $server_array[$host];
                 $memcache->addServer($host, $server_array [$host]);
             }
-            
+
             parent::__construct($memcache, $uniquePrefix, true);
         } else {
             $this->LastServerError = 'Memcache client module not installed';
             $this->ServerOffline = true;
         }
     }
-    
+
     /**
      * @inheritdocs
      */
@@ -53,10 +55,10 @@ class MemCacheProxy extends CacheMemCache
         if ($this->ServerOffline) {
             return null;
         }
-        
+
         return parent::Get($key, $flags);
     }
-    
+
     /**
      * @inheritdocs
      */
@@ -66,10 +68,10 @@ class MemCacheProxy extends CacheMemCache
         if ($this->ServerOffline) {
             return null;
         }
-        
+
         return parent::Set($key, $val, $flags, $timeout);
     }
-    
+
     /**
      * @inheritdocs
      */
@@ -79,7 +81,7 @@ class MemCacheProxy extends CacheMemCache
         if ($this->ServerOffline) {
             return null;
         }
-        
+
         return parent::Delete($key);
     }
 }

@@ -1,53 +1,67 @@
 <?php
+
 /**
  * Edit user.
  *
  * @package   OpenEMR
  * @link      http://www.open-emr.org
  * @author    Brady Miller <brady.g.miller@gmail.com>
- * @copyright Copyright (c) 2018 Brady Miller <brady.g.miller@gmail.com>
+ * @author    Rod Roark <rod@sunsetsystems.com>
+ * @author    Daniel Pflieger <daniel@mi-squared.com> <daniel@growlingflea.com>
+ * @author    Ken Chapple <ken@mi-squared.com>
+ * @copyright Copyright (c) 2018-2019 Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2021 Daniel Pflieger <daniel@mi-squared.com> <daniel@growlingflea.com>
+ * @copyright Copyright (c) 2021 Ken Chapple <ken@mi-squared.com>
+ * @copyright Copyright (c) 2021 Rod Roark <rod@sunsetsystems.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
-require_once("../../library/acl.inc");
-require_once("$srcdir/calendar.inc");
+require_once("$srcdir/calendar.inc.php");
 require_once("$srcdir/options.inc.php");
-require_once("$srcdir/erx_javascript.inc.php");
 
+use OpenEMR\Common\Acl\AclExtended;
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 use OpenEMR\Menu\MainMenuRole;
 use OpenEMR\Menu\PatientMenuRole;
 use OpenEMR\Services\FacilityService;
+use OpenEMR\Services\UserService;
+use OpenEMR\Events\User\UserEditRenderEvent;
 
 if (!empty($_GET)) {
-    if (!verifyCsrfToken($_GET["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 }
 
 $facilityService = new FacilityService();
 
-if (!$_GET["id"] || !acl_check('admin', 'users')) {
+if (!AclMain::aclCheckCore('admin', 'users')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Edit User")]);
+    exit;
+}
+
+if (!$_GET["id"]) {
     exit();
 }
 
-$res = sqlStatement("select * from users where id=?", array($_GET["id"]));
+$res = sqlStatement("select * from users where id=?", [$_GET["id"]]);
 for ($iter = 0; $row = sqlFetchArray($res); $iter++) {
                 $result[$iter] = $row;
 }
 
 $iter = $result[0];
-
 ?>
 
 <html>
 <head>
 
-<?php Header::setupHeader(['common','opener']); ?>
+<?php Header::setupHeader(['common','opener', 'erx']); ?>
 
-<script src="checkpwd_validation.js" type="text/javascript"></script>
+<script src="checkpwd_validation.js"></script>
 
 <!-- validation library -->
 <!--//Not lbf forms use the new validation, please make sure you have the corresponding values in the list Page validation-->
@@ -57,14 +71,10 @@ $iter = $result[0];
 //Gets validation rules from Page Validation list.
 //Note that for technical reasons, we are bypassing the standard validateUsingPageRules() call.
 $collectthis = collectValidationPageRules("/interface/usergroup/user_admin.php");
-if (empty($collectthis)) {
-    $collectthis = "undefined";
-} else {
-    $collectthis = json_sanitize($collectthis["user_form"]["rules"]);
-}
+$collectthis = empty($collectthis) ? "undefined" : json_sanitize($collectthis["user_form"]["rules"]);
 ?>
 
-<script language="JavaScript">
+<script>
 
 /*
  * validation on the form with new client side validation (using validate.js).
@@ -83,7 +93,7 @@ function submitform() {
 
     top.restoreSession();
     var flag=0;
-    <?php if (!$GLOBALS['use_active_directory']) { ?>
+<?php if (empty($GLOBALS['gbl_ldap_enabled']) || empty($GLOBALS['gbl_ldap_exclusions'])) { ?>
     if(document.forms[0].clearPass.value!="")
     {
         //Checking for the strong password if the 'secure password' feature is enabled
@@ -115,16 +125,15 @@ function submitform() {
         }
 
     }//If pwd null ends here
-    <?php } ?>
-    //Request to reset the user password if the user was deactived once the password expired.
-    if((document.forms[0].pwd_expires.value != 0) && (document.forms[0].clearPass.value == "")) {
-        if((document.forms[0].user_type.value != "Emergency Login") && (document.forms[0].pre_active.value == 0) && (document.forms[0].active.checked == 1) && (document.forms[0].grace_time.value != "") && (document.forms[0].current_date.value) > (document.forms[0].grace_time.value))
-        {
-            flag=1;
-            document.getElementById('error_message').innerHTML=<?php echo xlj('Please reset the password.') ?>;
-        }
+
+    // Validate Google email address (if provided)
+    if(document.forms[0].google_signin_email.value != "" && !isValidEmail(document.forms[0].google_signin_email.value)) {
+        flag=1;
+        alert(<?php echo xlj('Google email provided is invalid/not properly formatted (e.g. first.last@gmail.com)') ?>);
+        return false;
     }
 
+<?php } ?>
   if (document.forms[0].access_group_id) {
     var sel = getSelected(document.forms[0].access_group_id.options);
     for (var item in sel) {
@@ -215,8 +224,16 @@ function authorized_clicked() {
  f.calendar.checked  =  f.authorized.checked;
 }
 
+function toggle_password() {
+  var x = document.getElementById("clearPass");
+  if (x.type === "password") {
+    x.type = "text";
+  } else {
+    x.type = "password";
+  }
+}
 </script>
-<style type="text/css">
+<style>
   .physician_type_class{
     width: 150px !important;
   }
@@ -228,104 +245,124 @@ function authorized_clicked() {
 <body class="body_top">
 
 <div class="container">
-
+    <?php
+    /*  Get the list ACL for the user */
+    $is_super_user = AclMain::aclCheckCore('admin', 'super');
+    $acl_name = AclExtended::aclGetGroupTitles($iter["username"]);
+    $bg_name = '';
+    if (is_countable($acl_name)) {
+        $bg_count = count($acl_name);
+        $selected_user_is_superuser = false;
+        for ($i = 0; $i < $bg_count; $i++) {
+            if ($acl_name[$i] == "Emergency Login") {
+                $bg_name = $acl_name[$i];
+            }
+            //check if user member on group with superuser rule
+            if (AclExtended::isGroupIncludeSuperuser($acl_name[$i])) {
+                $selected_user_is_superuser = true;
+            }
+        }
+    }
+    $disabled_save = !$is_super_user && $selected_user_is_superuser ? 'disabled' : '';
+    ?>
 <table><tr><td>
 <span class="title"><?php echo xlt('Edit User'); ?></span>&nbsp;
 </td><td>
-    <a class="btn btn-default btn-save" name='form_save' id='form_save' href='#' onclick='return submitform()'> <span><?php echo xlt('Save');?></span> </a>
+    <a class="btn btn-secondary btn-save" name='form_save' id='form_save' href='#' onclick='return submitform()' <?php echo $disabled_save; ?>> <span><?php echo xlt('Save');?></span> </a>
     <a class="btn btn-link btn-cancel" id='cancel' href='#'><span><?php echo xlt('Cancel');?></span></a>
 </td></tr>
 </table>
-<br>
+<br />
 <FORM NAME="user_form" id="user_form" METHOD="POST" ACTION="usergroup_admin.php">
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
-<input type=hidden name="pwd_expires" value="<?php echo attr($GLOBALS['password_expiration_days']); ?>" >
 <input type=hidden name="pre_active" value="<?php echo attr($iter["active"]); ?>" >
-<input type=hidden name="exp_date" value="<?php echo attr($iter["pwd_expiration_date"]); ?>" >
 <input type=hidden name="get_admin_id" value="<?php echo attr($GLOBALS['Emergency_Login_email']); ?>" >
 <input type=hidden name="admin_id" value="<?php echo attr($GLOBALS['Emergency_Login_email_id']); ?>" >
 <input type=hidden name="check_acl" value="">
-<?php
-//Calculating the grace time
-$current_date = date("Y-m-d");
-$password_exp=$iter["pwd_expiration_date"];
-if ($password_exp != "0000-00-00") {
-    $grace_time1 = date("Y-m-d", strtotime($password_exp . "+".$GLOBALS['password_grace_time'] ."days"));
-}
-?>
-<input type=hidden name="current_date" value="<?php echo attr(strtotime($current_date)); ?>" >
-<input type=hidden name="grace_time" value="<?php echo attr(strtotime($grace_time1)); ?>" >
-<!--  Get the list ACL for the user -->
-<?php
-$acl_name=acl_get_group_titles($iter["username"]);
-$bg_name='';
-$bg_count=count($acl_name);
-for ($i=0; $i<$bg_count; $i++) {
-    if ($acl_name[$i] == "Emergency Login") {
-        $bg_name=$acl_name[$i];
-    }
-}
-?>
 <input type=hidden name="user_type" value="<?php echo attr($bg_name); ?>" >
 
 <TABLE border=0 cellpadding=0 cellspacing=0>
+<tr>
+    <td colspan="4">
+        <?php
+        // TODO: we eventually want to move to a responsive layout and not use tables here.  So we are going to give
+        // module writers the ability to inject divs, tables, or whatever inside the cell instead of having them
+        // generate additional rows / table columns which locks us into that format.
+        $preRenderEvent = new UserEditRenderEvent('user_admin.php', $_GET['id']);
+        $GLOBALS['kernel']->getEventDispatcher()->dispatch($preRenderEvent, UserEditRenderEvent::EVENT_USER_EDIT_RENDER_BEFORE);
+        ?>
+    </td>
+</tr>
 <TR>
     <TD style="width:180px;"><span class=text><?php echo xlt('Username'); ?>: </span></TD>
-    <TD style="width:270px;"><input type=entry name=username style="width:150px;" class="form-control" value="<?php echo attr($iter["username"]); ?>" disabled></td>
-    <?php if (!$GLOBALS['use_active_directory']) { ?>
+    <TD style="width:270px;"><input type="text" name=username style="width:150px;" class="form-control" value="<?php echo attr($iter["username"]); ?>" disabled></td>
+<?php if (empty($GLOBALS['gbl_ldap_enabled']) || empty($GLOBALS['gbl_ldap_exclusions'])) { ?>
         <TD style="width:200px;"><span class=text>*<?php echo xlt('Your Password'); ?>*: </span></TD>
         <TD class='text' style="width:280px;"><input type='password' name=adminPass style="width:150px;"  class="form-control" value="" autocomplete='off'><font class="mandatory"></font></TD>
-    <?php } ?>
+<?php } ?>
 </TR>
-    <?php if (!$GLOBALS['use_active_directory']) { ?>
+<?php if (empty($GLOBALS['gbl_ldap_enabled']) || empty($GLOBALS['gbl_ldap_exclusions'])) { ?>
 <TR>
     <TD style="width:180px;"><span class=text></span></TD>
     <TD style="width:270px;"></td>
     <TD style="width:200px;"><span class=text><?php echo xlt('User\'s New Password'); ?>: </span></TD>
-    <TD class='text' style="width:280px;">    <input type=text name=clearPass style="width:150px;"  class="form-control" value=""><font class="mandatory"></font></td>
+    <TD class='text' style="width:280px;">
+        <input type='password' id=clearPass name=clearPass style="width:150px;"  class="form-control" value="">
+        <input type="checkbox" id="togglePass" name="togglePass" onclick="toggle_password()" style="margin: .5rem 0 1rem;">
+        <label for="togglePass"><?php echo xlt('Show Password'); ?></label>
+        <font class="mandatory"></font>
+    </td>
 </TR>
-    <?php } ?>
+<?php } ?>
 
 <TR height="30" style="valign:middle;">
-  <td class='text'>
-    <?php echo xlt('Clear 2FA'); ?>:
-  </td>
-  <td title='<?php echo xla('Remove multi-factor authentications for this person.'); ?>'>
-    <input type="checkbox" name="clear_2fa" value='1' />
-  </td>
+<td class='text'>
+<?php echo xlt('Clear 2FA'); ?>:
+</td>
+<td title='<?php echo xla('Remove multi-factor authentications for this person.'); ?>'>
+<input type="checkbox" name="clear_2fa" value='1' />
+</td>
 <td colspan="2"><span class=text><?php echo xlt('Provider'); ?>:
- <input type="checkbox" name="authorized" onclick="authorized_clicked()"<?php
-    if ($iter["authorized"]) {
-        echo " checked";
-    } ?> />
- &nbsp;&nbsp;<span class='text'><?php echo xlt('Calendar'); ?>:
- <input type="checkbox" name="calendar"<?php
-    if ($iter["calendar"]) {
-        echo " checked";
-    }
-
-    if (!$iter["authorized"]) {
-        echo " disabled";
-    } ?> />
- &nbsp;&nbsp;<span class='text'><?php echo xlt('Active'); ?>:
- <input type="checkbox" name="active"<?php echo ($iter["active"]) ? " checked" : ""; ?>/>
+<input type="checkbox" name="authorized" onclick="authorized_clicked()"<?php
+if ($iter["authorized"]) {
+    echo " checked";
+} ?> /></span>
+<span class='text'><?php echo xlt('Calendar'); ?>:
+<input type="checkbox" name="calendar"<?php
+if ($iter["calendar"]) {
+    echo " checked";
+}
+if (!$iter["authorized"]) {
+    echo " disabled";
+} ?> /></span>
+<span class=text><?php echo xlt('Portal'); ?>:
+<input type="checkbox" name="portal_user" <?php
+if ($iter["portal_user"]) {
+    echo " checked";
+} ?> /></span>
+<span class='text'><?php echo xlt('Active'); ?>:
+    <input type="checkbox" name="active"<?php echo ($iter["active"]) ? " checked" : ""; ?>/></span>
 </TD>
 </TR>
 
 <TR>
 <TD><span class=text><?php echo xlt('First Name'); ?>: </span></TD>
-<TD><input type=entry name=fname id=fname style="width:150px;" class="form-control" value="<?php echo attr($iter["fname"]); ?>"><span class="mandatory"></span></td>
-<td><span class=text><?php echo xlt('Middle Name'); ?>: </span></TD><td><input type=entry name=mname style="width:150px;"  value="<?php echo attr($iter["mname"]); ?>"></td>
+<TD><input type="text" name=fname id=fname style="width:150px;" class="form-control" value="<?php echo attr($iter["fname"]); ?>"><span class="mandatory"></span></td>
+<td><span class=text><?php echo xlt('Middle Name'); ?>: </span></TD><td><input type="text" name=mname style="width:150px;"  value="<?php echo attr($iter["mname"]); ?>"></td>
 </TR>
 
 <TR>
-<td><span class=text><?php echo xlt('Last Name'); ?>: </span></td><td><input type=entry name=lname id=lname style="width:150px;"  class="form-control" value="<?php echo attr($iter["lname"]); ?>"><span class="mandatory"></span></td>
+<td><span class=text><?php echo xlt('Last Name'); ?>: </span></td><td><input type="text" name=lname id=lname style="width:150px;"  class="form-control" value="<?php echo attr($iter["lname"]); ?>"><span class="mandatory"></span></td>
+<td><span class=text><?php echo xlt('Suffix'); ?>: </span></td><td><input type="text" name=suffix id=suffix style="width:150px;"  class="form-control" value="<?php echo attr($iter["suffix"]); ?>"></td>
+</tr>
+<tr>
+<td><span class=text><?php echo xlt('Valedictory'); ?>: </span></td><td><input type="text" name=valedictory id=valedictory style="width:150px;"  class="form-control" value="<?php echo attr($iter["valedictory"]); ?>"></td>
 <td><span class=text><?php echo xlt('Default Facility'); ?>: </span></td><td><select name=facility_id style="width:150px;" class="form-control">
 <?php
-$fres = $facilityService->getAllBillingLocations();
+$fres = $facilityService->getAllServiceLocations();
 if ($fres) {
-    for ($iter2 = 0; $iter2 < sizeof($fres); $iter2++) {
+    for ($iter2 = 0; $iter2 < count($fres); $iter2++) {
                 $result[$iter2] = $fres[$iter2];
     }
 
@@ -333,12 +370,13 @@ if ($fres) {
         ?>
           <option value="<?php echo attr($iter2['id']); ?>" <?php if ($iter['facility_id'] == $iter2['id']) {
                 echo "selected";
-} ?>><?php echo text($iter2['name']); ?></option>
-<?php
+                         } ?>><?php echo text($iter2['name']); ?></option>
+        <?php
     }
 }
 ?>
 </select></td>
+
 </tr>
 
 <?php if ($GLOBALS['restrict_user_facility']) { ?>
@@ -347,23 +385,23 @@ if ($fres) {
  <td><span class=text><?php echo xlt('Schedule Facilities:');?></td>
  <td>
   <select name="schedule_facility[]" multiple style="width:150px;" class="form-control">
-<?php
-  $userFacilities = getUserFacilities($_GET['id']);
-  $ufid = array();
-foreach ($userFacilities as $uf) {
-    $ufid[] = $uf['id'];
-}
+    <?php
+    $userFacilities = getUserFacilities($_GET['id']);
+    $ufid = [];
+    foreach ($userFacilities as $uf) {
+        $ufid[] = $uf['id'];
+    }
 
-  $fres = $facilityService->getAllServiceLocations();
-if ($fres) {
-    foreach ($fres as $frow) :
-?>
+    $fres = $facilityService->getAllServiceLocations();
+    if ($fres) {
+        foreach ($fres as $frow) :
+            ?>
    <option <?php echo in_array($frow['id'], $ufid) || $frow['id'] == $iter['facility_id'] ? "selected" : null ?>
            class="form-control" value="<?php echo attr($frow['id']); ?>"><?php echo text($frow['name']) ?></option>
-<?php
-    endforeach;
-}
-?>
+            <?php
+        endforeach;
+    }
+    ?>
   </select>
  </td>
 </tr>
@@ -379,7 +417,7 @@ if ($fres) {
 <td class='text'><?php echo xlt('See Authorizations'); ?>: </td>
 <td><select name="see_auth" style="width:150px;" class="form-control" >
 <?php
-foreach (array(1 => xl('None'), 2 => xl('Only Mine'), 3 => xl('All')) as $key => $value) {
+foreach ([1 => xl('None{{Authorization}}'), 2 => xl('Only Mine'), 3 => xl('All')] as $key => $value) {
     echo " <option value='" . attr($key) . "'";
     if ($key == $iter['see_auth']) {
         echo " selected";
@@ -399,18 +437,41 @@ foreach (array(1 => xl('None'), 2 => xl('Only Mine'), 3 => xl('All')) as $key =>
 <tr>
 <td><span class="text"><?php echo xlt('Taxonomy'); ?>: </span></td>
 <td><input type="text" name="taxonomy" style="width:150px;" class="form-control" value="<?php echo attr($iter["taxonomy"]); ?>"></td>
-<td>&nbsp;</td><td>&nbsp;</td></tr>
+<td><span class="text"><?php echo xlt('Supervisor'); ?>: </span></td>
+<td>
+    <select name="supervisor_id" style="width:150px;" class="form-control">
+        <option value=""><?php echo xlt("Select Supervisor") ?></option>
+        <?php
+        $userService = new UserService();
+        $users = $userService->getActiveUsers();
+        foreach ($users as $activeUser) {
+            $p_id = (int)$activeUser['id'];
+            if ($activeUser['authorized'] != 1) {
+                continue;
+            }
+            echo "<option value='" . attr($p_id) . "'";
+            if ((int)$iter["supervisor_id"] === $p_id) {
+                echo " selected";
+            }
+            echo ">" . text($activeUser['lname']) . ' ' .
+                text($activeUser['fname']) . ' ' . text($activeUser['mname']) . "</option>\n";
+        }
+        ?>
+    </select>
+</td>
+</tr>
 
 <tr>
 <td><span class="text"><?php echo xlt('State License Number'); ?>: </span></td>
 <td><input type="text" name="state_license_number" style="width:150px;" class="form-control" value="<?php echo attr($iter["state_license_number"]); ?>"></td>
-<td class='text'><?php echo xlt('NewCrop eRX Role'); ?>:</td>
+<td class='text'><?php echo xlt('Ensora eRX Role'); ?>:</td>
 <td>
-    <?php echo generate_select_list("erxrole", "newcrop_erx_role", $iter['newcrop_user_role'], '', xl('Select Role'), '', '', '', array('style'=>'width:150px')); ?>
+    <?php echo generate_select_list("erxrole", "newcrop_erx_role", $iter['newcrop_user_role'], '', xl('Select Role'), '', '', '', ['style' => 'width:150px']); ?>
 </td>
 </tr>
 <tr>
-<td><span class="text"><?php echo xlt('Weno Provider ID'); ?>: </span></td><td><input type="text" name="erxprid" style="width:150px;" class="form-control" value="<?php echo attr($iter["weno_prov_id"]); ?>"></td>
+<td><span class="text"><?php echo xlt('Weno User ID'); ?>: </span></td><td><input type="text" name="erxprid" style="width:150px;" class="form-control" value="<?php echo attr($iter["weno_prov_id"]); ?>"></td>
+<td><span class="text"><?php echo xlt('Google Email for Login'); ?>: </span></td><td><input type="text" name="google_signin_email" style="width:150px;" class="form-control" value="<?php echo attr($iter["google_signin_email"]); ?>"></td>
 </tr>
 
 <tr>
@@ -423,7 +484,7 @@ foreach (array(1 => xl('None'), 2 => xl('Only Mine'), 3 => xl('All')) as $key =>
   </td>
   <td>
     <?php
-    $menuMain = new MainMenuRole();
+    $menuMain = new MainMenuRole($GLOBALS['kernel']->getEventDispatcher());
     echo $menuMain->displayMenuRoleSelector($iter["main_menu_role"]);
     ?>
   </td>
@@ -437,33 +498,87 @@ foreach (array(1 => xl('None'), 2 => xl('Only Mine'), 3 => xl('All')) as $key =>
     ?>
   </td>
 
-
 </tr>
-<?php if ($GLOBALS['inhouse_pharmacy']) { ?>
+<?php if (!empty($GLOBALS['inhouse_pharmacy'])) { ?>
 <tr>
  <td class="text"><?php echo xlt('Default Warehouse'); ?>: </td>
  <td class='text'>
-<?php
-echo generate_select_list(
-    'default_warehouse',
-    'warehouse',
-    $iter['default_warehouse'],
-    ''
-);
-?>
+    <?php
+    echo generate_select_list(
+        'default_warehouse',
+        'warehouse',
+        $iter['default_warehouse'],
+        ''
+    );
+    ?>
  </td>
+
+    <?php if (!empty($GLOBALS['inhouse_pharmacy'])) { ?>
  <td class="text"><?php echo xlt('Invoice Refno Pool'); ?>: </td>
  <td class='text'>
-<?php
-echo generate_select_list(
-    'irnpool',
-    'irnpool',
-    $iter['irnpool'],
-    xl('Invoice reference number pool, if used')
-);
-?>
+        <?php
+        echo generate_select_list(
+            'irnpool',
+            'irnpool',
+            $iter['irnpool'],
+            xl('Invoice reference number pool, if used')
+        );
+        ?>
  </td>
+    <?php } else { ?>
+  <td class="text" colspan="2">&nbsp;</td>
+    <?php } ?>
+
 </tr>
+<?php } ?>
+
+<!-- facility and warehouse restrictions, optional -->
+<?php if (!empty($GLOBALS['gbl_fac_warehouse_restrictions']) || !empty($GLOBALS['restrict_user_facility'])) { ?>
+ <tr title="<?php echo xla('If nothing is selected here then all are permitted.'); ?>">
+  <td class="text"><?php echo !empty($GLOBALS['gbl_fac_warehouse_restrictions']) ?
+    xlt('Facility and warehouse permissions') : xlt('Facility permissions'); ?>:</td>
+  <td colspan="3">
+   <select name="schedule_facility[]" multiple style="width:490px;">
+    <?php
+    $userFacilities = getUserFacilities($_GET['id'], 'id', $GLOBALS['gbl_fac_warehouse_restrictions']);
+    $ufid = [];
+    foreach ($userFacilities as $uf) {
+        $ufid[] = $uf['id'];
+    }
+    $fres = sqlStatement("select * from facility order by name");
+    if ($fres) {
+        while ($frow = sqlFetchArray($fres)) {
+            // Get the warehouses that are linked to this user and facility.
+            $whids = getUserFacWH($_GET['id'], $frow['id']); // from calendar.inc.php
+            // Generate an option for just the facility with no warehouse restriction.
+            echo "    <option";
+            if (empty($whids) && in_array($frow['id'], $ufid)) {
+                echo ' selected';
+            }
+            echo " value='" . attr($frow['id']) . "'>" . text($frow['name']) . "</option>\n";
+            // Then generate an option for each of the facility's warehouses.
+            // Does not apply if the site does not use warehouse restrictions.
+            if (!empty($GLOBALS['gbl_fac_warehouse_restrictions'])) {
+                $lres = sqlStatement(
+                    "SELECT option_id, title FROM list_options WHERE " .
+                    "list_id = ? AND option_value = ? ORDER BY seq, title",
+                    ['warehouse', $frow['id']]
+                );
+                while ($lrow = sqlFetchArray($lres)) {
+                    echo "    <option";
+                    if (in_array($lrow['option_id'], $whids)) {
+                        echo ' selected';
+                    }
+                    echo " value='" . attr($frow['id']) . "/" . attr($lrow['option_id']) . "'>&nbsp;&nbsp;&nbsp;" .
+                        text(xl_list_label($lrow['title'])) . "</option>\n";
+                }
+            }
+        }
+    }
+    ?>
+   </select>
+  </td>
+ </tr>
 <?php } ?>
 
  <tr>
@@ -471,28 +586,68 @@ echo generate_select_list(
  <td><select id="access_group_id" name="access_group[]" multiple style="width:150px;" class="form-control">
 <?php
 // Collect the access control group of user
-$list_acl_groups = acl_get_group_title_list();
-$username_acl_groups = acl_get_group_titles($iter["username"]);
+$list_acl_groups = AclExtended::aclGetGroupTitleList($is_super_user || $selected_user_is_superuser);
+$username_acl_groups = AclExtended::aclGetGroupTitles($iter["username"]);
 foreach ($list_acl_groups as $value) {
-    if (($username_acl_groups) && in_array($value, $username_acl_groups)) {
-        // Modified 6-2009 by BM - Translate group name if applicable
-        echo " <option value='" . attr($value) . "' selected>" . text(xl_gacl_group($value)) . "</option>\n";
-    } else {
-        // Modified 6-2009 by BM - Translate group name if applicable
-        echo " <option value='" . attr($value) . "'>" . text(xl_gacl_group($value)) . "</option>\n";
+    // Disable groups that have any permissions that the logged-in user does not have.
+    $tmp = AclExtended::iHaveGroupPermissions($value) ? '' : 'disabled ';
+    if ($username_acl_groups && in_array($value, $username_acl_groups)) {
+        $tmp .= 'selected ';
     }
+    echo " <option value='" . attr($value) . "' $tmp>" . text(xl_gacl_group($value)) . "</option>\n";
 }
-    ?>
+?>
   </select></td>
   <td><span class=text><?php echo xlt('Additional Info'); ?>:</span></td>
   <td><textarea style="width:150px;" name="comments" wrap=auto rows=4 cols=25 class="form-control"><?php echo text($iter["info"]); ?></textarea></td>
 
   </tr>
+    <tr>
+        <td><span class=text><?php echo xlt('Default Billing Facility'); ?>: </span></td><td><select name="billing_facility_id" style="width:150px;" class="form-control">
+            <?php
+            $fres = $facilityService->getAllBillingLocations();
+            if ($fres) {
+                $billResults = [];
+                for ($iter2 = 0; $iter2 < count($fres); $iter2++) {
+                    $billResults[$iter2] = $fres[$iter2];
+                }
+
+                foreach ($billResults as $iter2) {
+                    ?>
+                    <option value="<?php echo attr($iter2['id']); ?>" <?php if ($iter['billing_facility_id'] == $iter2['id']) {
+                        echo "selected";
+                                   } ?>><?php echo text($iter2['name']); ?></option>
+                    <?php
+                }
+            }
+            ?>
+        </select></td>
+        <td>
+
+        </td>
+    </tr>
+    <tr>
+        <td colspan="4">
+            <?php
+            // TODO: we eventually want to move to a responsive layout and not use tables here.  So we are going to give
+            // module writers the ability to inject divs, tables, or whatever inside the cell instead of having them
+            // generate additional rows / table columns which locks us into that format.
+            $postRenderEvent = new UserEditRenderEvent('user_admin.php', $_GET['id']);
+            $GLOBALS['kernel']->getEventDispatcher()->dispatch($postRenderEvent, UserEditRenderEvent::EVENT_USER_EDIT_RENDER_AFTER);
+            ?>
+        </td>
+    </tr>
+
   <tr height="20" valign="bottom">
   <td colspan="4" class="text">
-  *<?php echo xlt('You must enter your own password to change user passwords. Leave blank to keep password unchanged.'); ?>
+      <p>*<?php echo xlt('You must enter your own password to change user passwords. Leave blank to keep password unchanged.'); ?></p>
+    <?php
+    if (!$is_super_user && $selected_user_is_superuser) {
+        echo '<p class="redtext">*' . xlt('View mode - only administrator can edit another administrator user') . '.</p>';
+    }
+    ?>
 <!--
-Display red alert if entered password matched one of last three passwords/Display red alert if user password was expired and the user was inactivated previously
+Display red alert if entered password matched one of last three passwords/Display red alert if user password is expired
 -->
   <div class="redtext" id="error_message">&nbsp;</div>
   </td>
@@ -506,8 +661,8 @@ Display red alert if entered password matched one of last three passwords/Displa
 
 <INPUT TYPE="HIDDEN" NAME="secure_pwd" VALUE="<?php echo attr($GLOBALS['secure_password']); ?>">
 </FORM>
-<script language="JavaScript">
-$(document).ready(function(){
+<script>
+$(function () {
     $("#cancel").click(function() {
           dlgclose();
      });

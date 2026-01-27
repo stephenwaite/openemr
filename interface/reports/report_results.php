@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Generic script to list stored reports. Part of the module to allow the tracking,
  * storing, and viewing of reports.
@@ -10,23 +11,31 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
-require_once("../../library/patient.inc");
+require_once("../../library/patient.inc.php");
 require_once "$srcdir/options.inc.php";
 require_once "$srcdir/clinical_rules.php";
-require_once "$srcdir/report_database.inc";
+require_once "$srcdir/report_database.inc.php";
 
+use OpenEMR\ClinicalDecisionRules\AMC\CertificationReportTypes;
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
+if (!AclMain::aclCheckCore('patients', 'med')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Report Results/History")]);
+    exit;
+}
+
 if (!empty($_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 }
 
-$form_begin_date = DateTimeToYYYYMMDDHHMMSS($_POST['form_begin_date']);
-$form_end_date = DateTimeToYYYYMMDDHHMMSS($_POST['form_end_date']);
+$form_begin_date = DateTimeToYYYYMMDDHHMMSS($_POST['form_begin_date'] ?? '');
+$form_end_date = DateTimeToYYYYMMDDHHMMSS($_POST['form_end_date'] ?? '');
 ?>
 
 <html>
@@ -37,8 +46,8 @@ $form_end_date = DateTimeToYYYYMMDDHHMMSS($_POST['form_end_date']);
 
     <?php Header::setupHeader('datetime-picker'); ?>
 
-    <script LANGUAGE="JavaScript">
-        $( document ).ready(function(){
+    <script>
+        $(function () {
             $('.datepicker').datetimepicker({
                 <?php $datetimepicker_timepicker = true; ?>
                 <?php $datetimepicker_showseconds = true; ?>
@@ -49,7 +58,7 @@ $form_end_date = DateTimeToYYYYMMDDHHMMSS($_POST['form_end_date']);
         });
     </script>
 
-    <style type="text/css">
+    <style>
         /* specifically include & exclude from printing */
         @media print {
             #report_parameters {
@@ -61,7 +70,7 @@ $form_end_date = DateTimeToYYYYMMDDHHMMSS($_POST['form_end_date']);
                 display: inline;
             }
             #report_results table {
-               margin-top: 0px;
+               margin-top: 0;
             }
         }
 
@@ -83,50 +92,50 @@ $form_end_date = DateTimeToYYYYMMDDHHMMSS($_POST['form_end_date']);
 <span class='title'><?php echo xlt('Report History/Results'); ?></span>
 
 <form method='post' name='theform' id='theform' action='report_results.php' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
 <div id="report_parameters">
 
 <table>
  <tr>
   <td width='470px'>
-    <div style='float:left'>
+    <div class="float-left">
 
     <table class='text'>
 
                    <tr>
-                      <td class='control-label'>
+                      <td class='col-form-label'>
                             <?php echo xlt('Begin Date'); ?>:
                       </td>
                       <td>
-                         <input type='text' name='form_begin_date' id='form_begin_date' size='20' value='<?php echo attr(oeFormatDateTime($form_begin_date, 0, true)); ?>'
-                            class='datepicker form-control'>
+                         <input type='text' name='form_begin_date' id='form_begin_date' size='20' value='<?php echo attr(oeFormatDateTime($form_begin_date, "global", true)); ?>'
+                            class='datepicker form-control' />
                       </td>
                    </tr>
 
                 <tr>
-                        <td class='control-label'>
+                        <td class='col-form-label'>
                                 <?php echo xlt('End Date'); ?>:
                         </td>
                         <td>
-                           <input type='text' name='form_end_date' id='form_end_date' size='20' value='<?php echo attr(oeFormatDateTime($form_end_date, 0, true)); ?>'
-                                class='datepicker form-control'>
+                           <input type='text' name='form_end_date' id='form_end_date' size='20' value='<?php echo attr(oeFormatDateTime($form_end_date, "global", true)); ?>'
+                                class='datepicker form-control' />
                         </td>
                 </tr>
     </table>
     </div>
 
   </td>
-  <td align='left' valign='middle' height="100%">
-    <table style='border-left:1px solid; width:100%; height:100%' >
+  <td class='h-100' align='left' valign='middle'>
+    <table class='w-100 h-100' style='border-left: 1px solid;'>
         <tr>
             <td>
                 <div class="text-center">
           <div class="btn-group" role="group">
-            <a href='#' id='search_button' class='btn btn-default btn-search' onclick='top.restoreSession(); $("#theform").submit()'>
+            <a href='#' id='search_button' class='btn btn-secondary btn-search' onclick='top.restoreSession(); $("#theform").submit()'>
                 <?php echo xlt('Search'); ?>
             </a>
-            <a href='#' id='refresh_button' class='btn btn-default btn-refresh' onclick='top.restoreSession(); $("#theform").submit()'>
+            <a href='#' id='refresh_button' class='btn btn-secondary btn-refresh' onclick='top.restoreSession(); $("#theform").submit()'>
                 <?php echo xlt('Refresh'); ?>
             </a>
           </div>
@@ -140,29 +149,31 @@ $form_end_date = DateTimeToYYYYMMDDHHMMSS($_POST['form_end_date']);
 
 </div>  <!-- end of search parameters -->
 
-<br>
+<br />
 
 
 
 <div id="report_results">
-<table>
+<table class='table'>
 
- <thead>
-  <th align='center'>
+ <thead class='thead-light'>
+  <th class='text-center'>
     <?php echo xlt('Title'); ?>
   </th>
 
-  <th align='center'>
+  <th class='text-center'>
     <?php echo xlt('Date'); ?>
   </th>
 
-  <th align='center'>
+  <th class='text-center'>
     <?php echo xlt('Status'); ?>
   </th>
 
  </thead>
  <tbody>  <!-- added for better print-ability -->
 <?php
+
+$amc_report_types = CertificationReportTypes::getReportTypeRecords();
 
 $res = listingReportDatabase($form_begin_date, $form_end_date);
 while ($row = sqlFetchArray($res)) {
@@ -173,113 +184,85 @@ while ($row = sqlFetchArray($res)) {
         }
 
         $type_title = xl('Clinical Quality Measures (CQM)');
-        $link="cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
-    } else if ($row['type'] == "cqm_2011") {
+        $link = "cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
+    } elseif ($row['type'] == "cqm_2011") {
         if (!$GLOBALS['enable_cqm']) {
             continue;
         }
 
         $type_title = xl('2011 Clinical Quality Measures (CQM)');
-        $link="cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
-    } else if ($row['type'] == "cqm_2014") {
+        $link = "cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
+    } elseif ($row['type'] == "cqm_2014") {
         if (!$GLOBALS['enable_cqm']) {
             continue;
         }
 
         $type_title = xl('2014 Clinical Quality Measures (CQM)');
-        $link="cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
-    } else if ($row['type'] == "amc") {
+        $link = "cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
+    } elseif (CertificationReportTypes::isAMCReportType($row['type'])) {
         if (!$GLOBALS['enable_amc']) {
             continue;
         }
-
-        $type_title = xl('Automated Measure Calculations (AMC)');
-        $link="cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
-    } else if ($row['type'] == "amc_2011") {
-        if (!$GLOBALS['enable_amc']) {
-            continue;
-        }
-
-        $type_title = xl('2011 Automated Measure Calculations (AMC)');
-        $link="cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
-    } else if ($row['type'] == "amc_2014") {
-        if (!$GLOBALS['enable_amc']) {
-            continue;
-        }
-
-        $type_title = xl('2014 Automated Measure Calculations (AMC)');
-        $link="cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
-    } else if ($row['type'] == "amc_2014_stage1") {
-        if (!$GLOBALS['enable_amc']) {
-            continue;
-        }
-
-        $type_title = xl('2014 Automated Measure Calculations (AMC) - Stage I');
-        $link="cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
-    } else if ($row['type'] == "amc_2014_stage2") {
-        if (!$GLOBALS['enable_amc']) {
-            continue;
-        }
-
-        $type_title = xl('2014 Automated Measure Calculations (AMC) - Stage II');
-        $link="cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
-    } else if ($row['type'] == "process_reminders") {
+        $record = $amc_report_types[$row['type']];
+        $type_title = $record['ruleset_title'];
+        $link = "cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
+    } elseif ($row['type'] == "process_reminders") {
         if (!$GLOBALS['enable_cdr']) {
             continue;
         }
 
         $type_title = xl('Processing Patient Reminders');
-        $link="../batchcom/batch_reminders.php?report_id=" . attr_url($row["report_id"]);
-    } else if ($row['type'] == "process_send_reminders") {
+        $link = "../batchcom/batch_reminders.php?report_id=" . attr_url($row["report_id"]);
+    } elseif ($row['type'] == "process_send_reminders") {
         if (!$GLOBALS['enable_cdr']) {
             continue;
         }
 
         $type_title = xl('Processing and Sending Patient Reminders');
-        $link="../batchcom/batch_reminders.php?report_id=" . attr_url($row["report_id"]);
-    } else if ($row['type'] == "passive_alert") {
+        $link = "../batchcom/batch_reminders.php?report_id=" . attr_url($row["report_id"]);
+    } elseif ($row['type'] == "passive_alert") {
         if (!$GLOBALS['enable_cdr']) {
             continue;
         }
 
         $type_title = xl('Standard Measures (Passive Alerts)');
-        $link="cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
-    } else if ($row['type'] == "active_alert") {
+        $link = "cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
+    } elseif ($row['type'] == "active_alert") {
         if (!$GLOBALS['enable_cdr']) {
             continue;
         }
 
         $type_title = xl('Standard Measures (Active Alerts)');
-        $link="cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
-    } else if ($row['type'] == "patient_reminder") {
+        $link = "cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
+    } elseif ($row['type'] == "patient_reminder") {
         if (!$GLOBALS['enable_cdr']) {
             continue;
         }
 
         $type_title = xl('Standard Measures (Patient Reminders)');
-        $link="cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
+        $link = "cqm.php?report_id=" . attr_url($row["report_id"]) . "&back=list";
     } else {
         // Not identified, so give an unknown title
         $type_title = xl('Unknown') . "-" . $row['type'];
-        $link="";
+        $link = "";
     }
-?>
+    ?>
 <tr>
     <?php if ($row["progress"] == "complete") { ?>
-      <td align='center'><a href='<?php echo $link; ?>' onclick='top.restoreSession()'><?php echo text($type_title); ?></a></td>
+      <td class='text-center'><a href='<?php echo $link; ?>' onclick='top.restoreSession()'><?php echo text($type_title); ?></a></td>
     <?php } else { ?>
-      <td align='center'><?php echo text($type_title); ?></td>
+      <td class='text-center'><?php echo text($type_title); ?></td>
     <?php } ?>
-  <td align='center'><?php echo text(oeFormatDateTime($row["date_report"], "global", true)); ?></td>
+  <td class='text-center'><?php echo text(oeFormatDateTime($row["date_report"], "global", true)); ?></td>
     <?php if ($row["progress"] == "complete") { ?>
-      <td align='center'><?php echo xlt("Complete") . " (" . xlt("Processing Time") . ": " . text($row['report_time_processing']) . " " . xlt("Minutes") . ")"; ?></td>
+      <td class='text-center'><?php echo xlt("Complete") . " (" . xlt("Processing Time") . ": " . text($row['report_time_processing']) . " " . xlt("Minutes") . ")"; ?></td>
     <?php } else { ?>
-      <td align='center'><?php echo xlt("Pending") . " (" . text($row["progress_items"]) . " / " . text($row["total_items"]) . " " . xlt("Patients Processed") . ")"; ?></td>
+      <td class='text-center'><?php echo xlt("Pending") . " (" . text($row["progress_items"]) . " / " . text($row["total_items"]) . " " . xlt("Patients Processed") . ")"; ?></td>
     <?php } ?>
 
 </tr>
 
-<?php
+    <?php
 } // $row = sqlFetchArray($res) while
 ?>
 </tbody>

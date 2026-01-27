@@ -1,6 +1,7 @@
 <?php
+
 /**
- * interface/eRxPage.php Functions for redirecting to NewCrop pages.
+ * interface/eRxPage.php Functions for redirecting to Ensora eRx pages.
  *
  * @package   OpenEMR
  * @link      http://www.open-emr.org
@@ -12,7 +13,6 @@
 
 class eRxPage
 {
-
     const DEBUG_XML    = 1;
     const DEBUG_RESULT = 2;
 
@@ -132,7 +132,7 @@ class eRxPage
      */
     public function getPrescriptionIds()
     {
-        $this->prescriptionIds;
+        return $this->prescriptionIds;
     }
 
     /**
@@ -162,18 +162,18 @@ class eRxPage
      */
     public function checkForMissingExtensions()
     {
-        $extensions = array(
+        $extensions = [
             'XML',
             'SOAP',
             'cURL',
             'OpenSSL',
-        );
+        ];
 
-        $messages = array();
+        $messages = [];
 
         foreach ($extensions as $extension) {
             if (!extension_loaded(strtolower($extension))) {
-                $messages[] = xl('Enable Extension').' '.$extension;
+                $messages[] = xl('Enable Extension') . ' ' . $extension;
             }
         }
 
@@ -200,16 +200,16 @@ class eRxPage
         $XMLBuilder->appendChildren($NCScript, $XMLBuilder->getStaffElements($authUserId, $destination));
         $XMLBuilder->appendChildren($NCScript, $XMLBuilder->getPatientElements($patientId, $this->getPrescriptionCount(), $this->getPrescriptionIds()));
 
-        return array(
+        return [
             'demographics' => $XMLBuilder->getDemographicsCheckMessages(),
             'empty' => $XMLBuilder->getFieldEmptyMessages(),
             'warning' => $XMLBuilder->getWarningMessages(),
-        );
+        ];
     }
 
     /**
-     * Return a string version of the constructed XML cleaned-up for NewCrop
-     * @return string NewCrop ready string of the constructed XML.
+     * Return a string version of the constructed XML cleaned-up for Ensora
+     * @return string Ensora ready string of the constructed XML.
      *
      * XML has had double-quotes converted to single-quotes and \r and \t has been removed.
      */
@@ -218,13 +218,13 @@ class eRxPage
         return preg_replace(
             '/\t/',
             '',
-            preg_replace(
+            (string) preg_replace(
                 '/&#xD;/',
                 '',
-                preg_replace(
+                (string) preg_replace(
                     '/"/',
                     '\'',
-                    $this->getXMLBuilder()->getDocument()->saveXML()
+                    (string) $this->getXMLBuilder()->getDocument()->saveXML()
                 )
             )
         );
@@ -234,15 +234,15 @@ class eRxPage
     {
         $date = date('Y-m-d');
         $path = $this->getXMLBuilder()->getGlobals()
-            ->getOpenEMRSiteDirectory().'/documents/erx_error';
+            ->getOpenEMRSiteDirectory() . '/documents/erx_error';
 
         if (!is_dir($path)) {
             mkdir($path, 0777, true);
         }
 
-        $fileHandler = fopen($path.'/erx_error'.'-'.$date.'.log', 'a');
+        $fileHandler = fopen($path . '/erx_error' . '-' . $date . '.log', 'a');
 
-        fwrite($fileHandler, date('Y-m-d H:i:s').' ==========> '.$message.PHP_EOL);
+        fwrite($fileHandler, date('Y-m-d H:i:s') . ' ==========> ' . $message . PHP_EOL);
 
         fclose($fileHandler);
     }
@@ -253,16 +253,16 @@ class eRxPage
 
         $result = $XMLBuilder->checkError($xml);
 
-        preg_match('/<textarea.*>(.*)Original XML:/is', $result, $errorMessage);
+        preg_match('/<textarea.*>(.*)Original XML:/is', (string) $result, $errorMessage);
 
         if (count($errorMessage) > 0) {
             $errorMessages = explode('Error', $errorMessage[1]);
             array_shift($errorMessages);
         } else {
-            $errorMessages = array();
+            $errorMessages = [];
         }
 
-        if (strpos($result, 'RxEntry.aspx')) {
+        if (strpos((string) $result, 'RxEntry.aspx')) {
             $this->errorLog($xml);
             $this->errorLog($result);
 
@@ -270,14 +270,14 @@ class eRxPage
                 $errorMessages[] = xl('An undefined error occurred, please contact your systems administrator.');
             }
         } elseif ($XMLBuilder->getGlobals()->getDebugSetting() !== 0) {
-            $debugString = '( '.xl('DEBUG OUTPUT').' )'.PHP_EOL;
+            $debugString = '( ' . xl('DEBUG OUTPUT') . ' )' . PHP_EOL;
 
             if ($XMLBuilder->getGlobals()->getDebugSetting() & self::DEBUG_XML) {
-                $this->errorLog($debugString.$xml);
+                $this->errorLog($debugString . $xml);
             }
 
             if ($XMLBuilder->getGlobals()->getDebugSetting() & self::DEBUG_RESULT) {
-                $this->errorLog($debugString.$result);
+                $this->errorLog($debugString . $result);
             }
         }
 

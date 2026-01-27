@@ -20,9 +20,9 @@
 
 namespace Patientvalidation\Model;
 
-use Zend\InputFilter\InputFilter;
-use Zend\InputFilter\InputFilterAwareInterface;
-use Zend\InputFilter\InputFilterInterface;
+use Laminas\InputFilter\InputFilter;
+use Laminas\InputFilter\InputFilterAwareInterface;
+use Laminas\InputFilter\InputFilterInterface;
 
 class PatientData implements InputFilterAwareInterface
 {
@@ -115,7 +115,6 @@ class PatientData implements InputFilterAwareInterface
 'deceased_reason', 'varchar(255)', 'NO', '', '', ''
 'soap_import_status', 'tinyint(4)', 'YES', '', NULL, ''
 'cmsportal_login', 'varchar(60)', 'NO', '', '', ''
-'care_team', 'int(11)', 'YES', '', NULL, ''
 'county', 'varchar(40)', 'NO', '', '', ''
 'industry', 'text', 'YES', '', NULL, ''
 'imm_reg_status', 'text', 'YES', '', NULL, ''
@@ -134,7 +133,8 @@ class PatientData implements InputFilterAwareInterface
 'guardianphone', 'text', 'YES', '', NULL, ''
 'guardianworkphone', 'text', 'YES', '', NULL, ''
 'guardianemail', 'text', 'YES', '', NULL, ''
-
+'care_team_provider', 'text', 'YES', '', NULL, ''
+'care_team_facility', 'text', 'YES', '', NULL, ''
     */
     const FIELD_ID = "id";
     protected $inputFilter;
@@ -156,34 +156,34 @@ class PatientData implements InputFilterAwareInterface
 
 
 
-    public static $inputsValidations = array(
-        array(
+    public static $inputsValidations = [
+        [
             'name'     => 'id',
             'required' => true,
-            'filters'  => array(
-                array('name' => 'Int'),
-            ),
-        ),
-        array(
+            'filters'  => [
+                ['name' => 'Int'],
+            ],
+        ],
+        [
             'name'     => 'fname',
             'required' => true,
 
-        ),
-        array(
+        ],
+        [
             'name'     => 'lname',
             'required' => true,
 
-        ),
+        ],
 
-        array(
+        [
             'name'     => 'sex',
             'required' => true,
-        ),
-        array(
+        ],
+        [
             'name'     => 'DOB',
             'required' => true,
-        )
-    );
+        ]
+    ];
 
 
     public function setInputFilter(InputFilterInterface $inputFilter)

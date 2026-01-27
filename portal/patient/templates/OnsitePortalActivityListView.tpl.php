@@ -1,37 +1,27 @@
 <?php
-/*
- * This template is not currently used
- * The support script and controller are however
- * Leave in place - eventually will use for log review gui
+
+/**
+ * OnsitePortalActivityListView.tpl.php
  *
- * Copyright (C) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
- *
- * LICENSE: This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @package OpenEMR
- * @author Jerry Padgett <sjpadgett@gmail.com>
- * @link http://www.open-emr.org
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2016-2023 Jerry Padgett <sjpadgett@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
+
+    use OpenEMR\Core\OEGlobalsBag;
+    $globalsBag = OEGlobalsBag::getInstance();
+
     $this->assign('title', xlt("Patient Portal") . " | " . xlt("Onsite Portal Activities"));
     $this->assign('nav', 'onsiteportalactivities');
 
     $this->display('_Header.tpl.php');
 ?>
 
-<script type="text/javascript">
-    $LAB.script("scripts/app/onsiteportalactivities.js?v=<?php echo $GLOBALS['v_js_includes']; ?>").wait(function(){
-        $(document).ready(function(){
+<script>
+    $LAB.script("scripts/app/onsiteportalactivities.js?v=<?php echo $globalsBag->get('v_js_includes'); ?>").wait(function(){
+        $(function () {
             page.init();
         });
 
@@ -46,12 +36,12 @@
 <h1>
     <i class="icon-th-list"></i> <?php echo xlt('Onsite Portal Activities'); ?>
     <span id="loader" class="loader progress progress-striped active"><span class="progress-bar"></span></span>
-            <div class="col-sm-3 col-md-3 pull-right">
+            <div class="col-sm-3 col-md-3 float-right">
         <form class="navbar-form" role="search">
         <div class="input-group">
-            <input type="text" class="form-control" placeholder="<?php echo xla('Search'); ?>" name="srch-term" id="srch-term">
-            <div class="input-group-btn">
-                <button class="btn btn-default" type="submit"><i class="glyphicon glyphicon-search"></i></button>
+            <input type="text" class="form-control" placeholder="<?php echo xla('Search'); ?>" name="srch-term" id="srch-term" />
+            <div class="input-group-append">
+                <button class="btn btn-secondary" type="submit"><i class="fas fa-search"></i></button>
             </div>
         </div>
         </form>

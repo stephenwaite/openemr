@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Smarty plugin
  * @package Smarty
@@ -17,9 +18,9 @@
 /**
  * Smarty {xla} function plugin
  *
- * Type:     function<br>
- * Name:     xla<br>
- * Purpose:  translate in OpenEMR and escape for html attr - Smarty templates<br>
+ * Type:     function<br />
+ * Name:     xla<br />
+ * Purpose:  translate in OpenEMR and escape for html attr - Smarty templates<br />
  *
  * Examples:
  *
@@ -30,10 +31,10 @@
  */
 
 
-function smarty_function_xla($params, &$smarty)
+function smarty_function_xla($params, &$smarty): void
 {
     if (empty($params['t'])) {
-        $smarty->trigger_error("xk: missing 't' parameter");
+        trigger_error("xla: missing 't' parameter", E_USER_WARNING);
         return;
     } else {
         $translate = $params['t'];

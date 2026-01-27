@@ -1,10 +1,13 @@
 <?php
-include_once("../../globals.php");
+
+require_once("../../globals.php");
+
+use OpenEMR\Core\Header;
+
 ?>
 <html>
 <head>
-<?php html_header_show(); ?>
-<link rel="stylesheet" href="<?php echo $css_header;?>" type="text/css">
+<?php Header::setupHeader(); ?>
 <title>
 Help Searching for Patients
 </title>

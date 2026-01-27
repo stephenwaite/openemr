@@ -1,4 +1,5 @@
 <?php
+
 /**
  * CLICKATELL SMS API
  *
@@ -36,67 +37,66 @@
 
 class sms
 {
-
     /**
     * Clickatell API-ID
     * @link http://sourceforge.net/forum/forum.php?thread_id=1005106&forum_id=344522 How to get CLICKATELL API ID?
     * @var integer
     */
-    var $api_id = "YOUR_CLICKATELL_API_NUMBER";
+    public $api_id = "YOUR_CLICKATELL_API_NUMBER";
 
     /**
     * Clickatell username
     * @var mixed
     */
-    var $user = "YOUR_CLICKATELL_USERNAME";
+    public $user = "YOUR_CLICKATELL_USERNAME";
 
     /**
     * Clickatell password
     * @var mixed
     */
-    var $password = "YOUR_CLICKATELL_PASSWORD";
+    public $password = "YOUR_CLICKATELL_PASSWORD";
 
     /**
     * Use SSL (HTTPS) protocol
     * @var bool
     */
-    var $use_ssl = false;
+    public $use_ssl = false;
 
     /**
     * Define SMS balance limit below class will not work
     * @var integer
     */
-    var $balace_limit = 0;
+    public $balance_limit = 0;
 
     /**
     * Gateway command sending method (curl,fopen)
     * @var mixed
     */
-    var $sending_method = "fopen";
+    public $sending_method = "fopen";
 
     /**
     * Does to use facility for delivering Unicode messages
     * @var bool
     */
-    var $unicode = false;
+    public $unicode = false;
 
     /**
     * Optional CURL Proxy
     * @var bool
     */
-    var $curl_use_proxy = false;
+    public $curl_use_proxy = false;
 
     /**
     * Proxy URL and PORT
     * @var mixed
     */
-    var $curl_proxy = "http://127.0.0.1:8080";
+    public $curl_proxy = "http://127.0.0.1:8080";
 
     /**
     * Proxy username and password
     * @var mixed
     */
-    var $curl_proxyuserpwd = "login:secretpass";
+    public $curl_proxyuserpwd = "login:secretpass";
 
     /**
     * Callback
@@ -106,13 +106,13 @@ class sms
     * 3 - Returns both intermediate and final statuses
     * @var integer
     */
-    var $callback = 0;
+    public $callback = 0;
 
     /**
     * Session variable
     * @var mixed
     */
-    var $session;
+    public $session;
 
     /**
     * Class constructor
@@ -145,7 +145,7 @@ class sms
     }
 
     /**
-    * Query SMS credis balance
+    * Query SMS credits balance
     * @return integer  number of SMS credits
     * @access public
     */
@@ -167,34 +167,26 @@ class sms
     {
 
         /* Check SMS credits balance */
-        if ($this->getbalance() < $this->balace_limit) {
+        if ($this->getbalance() < $this->balance_limit) {
             die("You have reach the SMS credit limit!");
         };
 
         /* Check SMS $text length */
         if ($this->unicode == true) {
             $this->_chk_mbstring();
-            if (mb_strlen($text) > 210) {
-                die("Your unicode message is too long! (Current lenght=".mb_strlen($text).")");
+            if (mb_strlen((string) $text) > 210) {
+                die("Your unicode message is too long! (Current length=" . mb_strlen((string) $text) . ")");
             }
 
             /* Does message need to be concatenate */
-            if (mb_strlen($text) > 70) {
-                $concat = "&concat=3";
-            } else {
-                $concat = "";
-            }
+            $concat = mb_strlen((string) $text) > 70 ? "&concat=3" : "";
         } else {
-            if (strlen($text) > 459) {
-                die("Your message is too long! (Current lenght=".strlen($text).")");
+            if (strlen((string) $text) > 459) {
+                die("Your message is too long! (Current length=" . strlen((string) $text) . ")");
             }
 
             /* Does message need to be concatenate */
-            if (strlen($text) > 160) {
-                $concat = "&concat=3";
-            } else {
-                $concat = "";
-            }
+            $concat = strlen((string) $text) > 160 ? "&concat=3" : "";
         }
 
         /* Check $to and $from is not empty */
@@ -207,7 +199,7 @@ class sms
         }
 
         /* Reformat $to number */
-        $cleanup_chr = array ("+", " ", "(", ")", "\r", "\n", "\r\n");
+        $cleanup_chr =  ["+", " ", "(", ")", "\r", "\n", "\r\n"];
         $to = str_replace($cleanup_chr, "", $to);
 
         /* Send SMS now */
@@ -216,7 +208,7 @@ class sms
             $this->base,
             $this->session,
             rawurlencode($to),
-            rawurlencode($from),
+            rawurlencode((string) $from),
             $this->encode_message($text),
             $this->callback,
             $this->unicode,
@@ -235,15 +227,15 @@ class sms
     {
         if ($this->unicode != true) {
             //standard encoding
-            return rawurlencode($text);
+            return rawurlencode((string) $text);
         } else {
             //unicode encoding
-            $uni_text_len = mb_strlen($text, "UTF-8");
+            $uni_text_len = mb_strlen((string) $text, "UTF-8");
             $out_text = "";
 
             //encode each character in text
-            for ($i=0; $i<$uni_text_len; $i++) {
-                $out_text .= $this->uniord(mb_substr($text, $i, 1, "UTF-8"));
+            for ($i = 0; $i < $uni_text_len; $i++) {
+                $out_text .= $this->uniord(mb_substr((string) $text, $i, 1, "UTF-8"));
             }
 
             return $out_text;
@@ -259,31 +251,31 @@ class sms
     function uniord($c)
     {
         $ud = 0;
-        if (ord($c{0})>=0 && ord($c{0})<=127) {
-            $ud = ord($c{0});
+        if (ord($c[0]) >= 0 && ord($c[0]) <= 127) {
+            $ud = ord($c[0]);
         }
 
-        if (ord($c{0})>=192 && ord($c{0})<=223) {
-            $ud = (ord($c{0})-192)*64 + (ord($c{1})-128);
+        if (ord($c[0]) >= 192 && ord($c[0]) <= 223) {
+            $ud = (ord($c[0]) - 192) * 64 + (ord($c[1]) - 128);
         }
 
-        if (ord($c{0})>=224 && ord($c{0})<=239) {
-            $ud = (ord($c{0})-224)*4096 + (ord($c{1})-128)*64 + (ord($c{2})-128);
+        if (ord($c[0]) >= 224 && ord($c[0]) <= 239) {
+            $ud = (ord($c[0]) - 224) * 4096 + (ord($c[1]) - 128) * 64 + (ord($c[2]) - 128);
         }
 
-        if (ord($c{0})>=240 && ord($c{0})<=247) {
-            $ud = (ord($c{0})-240)*262144 + (ord($c{1})-128)*4096 + (ord($c{2})-128)*64 + (ord($c{3})-128);
+        if (ord($c[0]) >= 240 && ord($c[0]) <= 247) {
+            $ud = (ord($c[0]) - 240) * 262144 + (ord($c[1]) - 128) * 4096 + (ord($c[2]) - 128) * 64 + (ord($c[3]) - 128);
         }
 
-        if (ord($c{0})>=248 && ord($c{0})<=251) {
-            $ud = (ord($c{0})-248)*16777216 + (ord($c{1})-128)*262144 + (ord($c{2})-128)*4096 + (ord($c{3})-128)*64 + (ord($c{4})-128);
+        if (ord($c[0]) >= 248 && ord($c[0]) <= 251) {
+            $ud = (ord($c[0]) - 248) * 16777216 + (ord($c[1]) - 128) * 262144 + (ord($c[2]) - 128) * 4096 + (ord($c[3]) - 128) * 64 + (ord($c[4]) - 128);
         }
 
-        if (ord($c{0})>=252 && ord($c{0})<=253) {
-            $ud = (ord($c{0})-252)*1073741824 + (ord($c{1})-128)*16777216 + (ord($c{2})-128)*262144 + (ord($c{3})-128)*4096 + (ord($c{4})-128)*64 + (ord($c{5})-128);
+        if (ord($c[0]) >= 252 && ord($c[0]) <= 253) {
+            $ud = (ord($c[0]) - 252) * 1073741824 + (ord($c[1]) - 128) * 16777216 + (ord($c[2]) - 128) * 262144 + (ord($c[3]) - 128) * 4096 + (ord($c[4]) - 128) * 64 + (ord($c[5]) - 128);
         }
 
-        if (ord($c{0})>=254 && ord($c{0})<=255) { //error
+        if (ord($c[0]) >= 254 && ord($c[0]) <= 255) { //error
             $ud = false;
         }
 
@@ -332,16 +324,17 @@ class sms
     function _curl($command)
     {
         $this->_chk_curl();
+        $httpVerifySsl = (bool) ($GLOBALS['http_verify_ssl'] ?? true);
         $ch = curl_init($command);
         curl_setopt($ch, CURLOPT_HEADER, 0);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, $httpVerifySsl);
         if ($this->curl_use_proxy) {
             curl_setopt($ch, CURLOPT_PROXY, $this->curl_proxy);
             curl_setopt($ch, CURLOPT_PROXYUSERPWD, $this->curl_proxyuserpwd);
         }
 
-        $result=curl_exec($ch);
+        $result = curl_exec($ch);
         curl_close($ch);
         return $result;
     }
@@ -362,7 +355,7 @@ class sms
             fclose($handler);
             return $result;
         } else {
-            die("Error while executing fopen sending method!<br>Please check does PHP have OpenSSL support and check does PHP version is greater than 4.3.0.");
+            die("Error while executing fopen sending method!<br />Please check does PHP have OpenSSL support and check does PHP version is greater than 4.3.0.");
         }
     }
 
@@ -372,10 +365,10 @@ class sms
     */
     function _parse_auth($result)
     {
-        $session = substr($result, 4);
-        $code = substr($result, 0, 2);
-        if ($code!="OK") {
-            die("Error in SMS authorization! ($result)");
+        $session = substr((string) $result, 4);
+        $code = substr((string) $result, 0, 2);
+        if ($code != "OK") {
+            die("Error in SMS authorization! (" . text($result) . ")");
         }
 
         return $session;
@@ -387,9 +380,9 @@ class sms
     */
     function _parse_send($result)
     {
-        $code = substr($result, 0, 2);
-        if ($code!="ID") {
-            die("Error sending SMS! ($result)");
+        $code = substr((string) $result, 0, 2);
+        if ($code != "ID") {
+            die("Error sending SMS! (" . text($result) . ")");
         } else {
             $code = "OK";
         }
@@ -403,7 +396,7 @@ class sms
     */
     function _parse_getbalance($result)
     {
-        $result = substr($result, 8);
+        $result = substr((string) $result, 8);
         return (int)$result;
     }
 

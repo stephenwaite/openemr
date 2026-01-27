@@ -30,7 +30,6 @@
  */
 abstract class Savant3_Plugin
 {
-    
     /**
      *
      * Reference to the calling Savant object.
@@ -41,7 +40,7 @@ abstract class Savant3_Plugin
      *
      */
     protected $Savant = null;
-    
+
     /**
      *
      * Constructor.

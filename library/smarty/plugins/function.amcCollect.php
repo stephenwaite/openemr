@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Smarty plugin
  * @package Smarty
@@ -13,21 +14,20 @@
  * of the License, or (at your option) any later version.
  */
 
-
 /**
  * Smarty {amcCollect} function plugin
  *
- * Type:     function<br>
- * Name:     amcCollect<br>
- * Purpose:  amcCollect in OpenEMR - Smarty templates<br>
+ * Type:     function<br />
+ * Name:     amcCollect<br />
+ * Purpose:  amcCollect in OpenEMR - Smarty templates<br />
  *
  * @param array
  * @param Smarty
  */
 
-require_once(dirname(__FILE__) . '/../../amc.php');
+require_once(__DIR__ . '/../../amc.php');
 
-function smarty_function_amcCollect($params, &$smarty)
+function smarty_function_amcCollect($params, &$smarty): void
 {
     $amc_id = $params['amc_id'];
         $patient_id = $params['patient_id'];

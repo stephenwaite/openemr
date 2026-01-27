@@ -1,9 +1,10 @@
 <?php
+
 /**
  * This section handles ajax functions for insurance,patient and for encounters.
  *
  * @package   OpenEMR
- * @link      http://www.open-emr.org
+ * @link      https://www.open-emr.org
  * @author    Eldho Chacko <eldho@zhservices.com>
  * @author    Paul Simon K <paul@zhservices.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
@@ -12,10 +13,11 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+use OpenEMR\Common\Csrf\CsrfUtils;
 
 ?>
-<script type="text/javascript">
-$(document).ready(function(){
+<script>
+$(function () {
   $("#type_code").keyup(function(e){
       if (e.which == 9 || e.which == 13)
          {//tab key,enter key.Prevent ajax activity.
@@ -95,7 +97,7 @@ $(document).ready(function(){
     insurance_text_ajax: document.getElementById('type_code') ? document.getElementById('type_code').value : '',
     encounter_patient_code:Source=='encounter' ? document.getElementById('hidden_patient_code').value : '',
     submit_or_simple_type:SubmitOrSimple,
-    csrf_token_form: <?php echo js_escape(collectCsrfToken()); ?>
+    csrf_token_form: <?php echo js_escape(CsrfUtils::collectCsrfToken()); ?>
    },
    //async: false,
     success: function(thedata){
@@ -169,7 +171,7 @@ $(document).ready(function(){
  });
 //==============================================================================================================================================
 //Following functions are needed for other tasks related to ajax.
-//Html retured from the ajax above, contains list of either insurance,patient or encounter.
+//Html returned from the ajax above, contains list of either insurance,patient or encounter.
 //On click or 'enter key' press over any one item the listing vanishes and the clicked one gets listed in the parent page's text box.
 //List of functions starts
 //===========================================================

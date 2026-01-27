@@ -1,4 +1,5 @@
 <?php
+
 /**
  * dupecheck index.php
  *
@@ -7,25 +8,35 @@
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2018 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ * @deprecated Its unlikely these files are used as the functionality has been replaced by the "Merge Patients" feature in the patient summary screen.
  */
-
+class DupeCheckIndexIsDeprecated
+{
+    public function __construct()
+    {
+        trigger_error("The dupecheck module is deprecated and will be removed in a future version of OpenEMR. Please use the 'Merge Patients' feature in the patient summary screen instead.", E_USER_DEPRECATED);
+    }
+}
 
 require_once("../../../interface/globals.php");
-require_once("./Utils.php");
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
 if (!empty($_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
     foreach ($_POST as $key => $value) {
         $parameters[$key] = $value;
     }
 }
 
-if (!acl_check('admin', 'super')) {
-    die(xlt("Not Authorized"));
+if (!AclMain::aclCheckCore('admin', 'super')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Duplication Check")]);
+    exit;
 }
 
 /* Use this code to identify duplicate patients in OpenEMR
@@ -41,10 +52,12 @@ if (! isset($parameters['limit'])) {
     $parameters['limit'] = 100;
 }
 
-if (! isset($parameters['match_name']) &&
+if (
+    ! isset($parameters['match_name']) &&
     ! isset($parameters['match_dob']) &&
     ! isset($parameters['match_sex']) &&
-    ! isset($parameters['match_ssn'])) {
+    ! isset($parameters['match_ssn'])
+) {
     $parameters['match_name'] = 'on';
     $parameters['match_dob'] = 'on';
 }
@@ -89,7 +102,7 @@ body {
 </head>
 <body>
 <form name="search_form" id="search_form" method="post" action="index.php">
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 <input type="hidden" name="go" value="Go">
 Matching criteria:
 <input type="checkbox" name="match_name" id="match_name" <?php echo ($parameters['match_name']) ? "CHECKED" : ""; ?>>
@@ -100,17 +113,17 @@ Matching criteria:
 <label for="match_sex">Gender</label>
 <input type="checkbox" name="match_ssn" id="match_ssn" <?php echo ($parameters['match_ssn']) ? "CHECKED" : ""; ?>>
 <label for="match_ssn">SSN</label>
-<br>
+<br />
 Order results by:
-<input type='radio' name='sortby' value='name' id="name" <?php echo ($parameters['sortby']=='name') ? "CHECKED" : ""; ?>>
+<input type='radio' name='sortby' value='name' id="name" <?php echo ($parameters['sortby'] == 'name') ? "CHECKED" : ""; ?>>
 <label for="name">Name</label>
-<input type='radio' name='sortby' value='dob' id="dob" <?php echo ($parameters['sortby']=='dob') ? "CHECKED" : ""; ?>>
+<input type='radio' name='sortby' value='dob' id="dob" <?php echo ($parameters['sortby'] == 'dob') ? "CHECKED" : ""; ?>>
 <label for="dob">DOB</label>
-<input type='radio' name='sortby' value='sex' id="sex" <?php echo ($parameters['sortby']=='sex') ? "CHECKED" : ""; ?>>
+<input type='radio' name='sortby' value='sex' id="sex" <?php echo ($parameters['sortby'] == 'sex') ? "CHECKED" : ""; ?>>
 <label for="sex">Gender</label>
-<input type='radio' name='sortby' value='ssn' id="ssn" <?php echo ($parameters['sortby']=='ssn') ? "CHECKED" : ""; ?>>
+<input type='radio' name='sortby' value='ssn' id="ssn" <?php echo ($parameters['sortby'] == 'ssn') ? "CHECKED" : ""; ?>>
 <label for="ssn">SSN</label>
-<br>
+<br />
 Limit search to first <input type='textbox' size='5' name='limit' id="limit" value='<?php echo attr($parameters['limit']); ?>'> records
 <input type="button" name="do_search" id="do_search" value="Go">
 </form>
@@ -127,21 +140,12 @@ if ($parameters['go'] == "Go") {
 
     // for EACH patient in OpenEMR find potential matches
     $sqlstmt = "select id, pid, fname, lname, dob, sex, ss from patient_data";
-    switch ($parameters['sortby']) {
-        case 'dob':
-            $orderby = " ORDER BY dob";
-            break;
-        case 'sex':
-            $orderby = " ORDER BY sex";
-            break;
-        case 'ssn':
-            $orderby = " ORDER BY ss";
-            break;
-        case 'name':
-        default:
-            $orderby = " ORDER BY lname, fname";
-            break;
-    }
+    $orderby = match ($parameters['sortby']) {
+        'dob' => " ORDER BY dob",
+        'sex' => " ORDER BY sex",
+        'ssn' => " ORDER BY ss",
+        default => " ORDER BY lname, fname",
+    };
 
     $sqlstmt .= $orderby;
     if ($parameters['limit']) {
@@ -154,8 +158,8 @@ if ($parameters['go'] == "Go") {
             continue;
         }
 
-        $sqlBindArray = array();
-        $sqlstmt = "select id, pid, fname, lname, dob, sex, ss ".
+        $sqlBindArray = [];
+        $sqlstmt = "select id, pid, fname, lname, dob, sex, ss " .
                     " from patient_data where ";
         $sqland = "";
         if ($parameters['match_name']) {
@@ -197,7 +201,7 @@ if ($parameters['go'] == "Go") {
         echo "<div class='match_block' style='padding: 5px 0px 5px 0px;' id='dupediv" . attr($dupecount) . "'>";
         echo "<table>";
 
-        echo "<tr class='onerow' id='" . attr($row['id']) . "' oemrid='" .attr($row['id']) . "' dupecount='" . attr($dupecount) . "' title='Merge duplicates into this record'>";
+        echo "<tr class='onerow' id='" . attr($row['id']) . "' oemrid='" . attr($row['id']) . "' dupecount='" . attr($dupecount) . "' title='Merge duplicates into this record'>";
         echo "<td>" . text($row['lname']) . ", " . text($row['fname']) . "</td>";
         echo "<td>" . text($row['dob']) . "</td>";
         echo "<td>" . text($row['sex']) . "</td>";
@@ -239,9 +243,9 @@ if ($parameters['go'] == "Go") {
 
 </body>
 
-<script language="javascript">
+<script>
 
-$(document).ready(function(){
+$(function () {
 
     // capture RETURN keypress
     $("#limit").on("keypress", function(evt) { if (evt.keyCode == 13) $("#do_search").click(); });
@@ -269,12 +273,17 @@ $(document).ready(function(){
 
     // begin the merge of a block into a single record
     $(".onerow").on("click", function() {
-        var dupecount = $(this).attr("dupecount");
-        var masterid = $(this).attr("oemrid");
-        var newurl = "mergerecords.php?dupecount=" + encodeURIComponent(dupecount) + "&masterid=" + encodeURIComponent(masterid) + '&csrf_token_form=' + <?php echo js_url(collectCsrfToken()); ?>;
-        $("[dupecount="+dupecount+"]").each(function (i) {
-            if (this.id != masterid) { newurl += "&otherid[]=" + encodeURIComponent(this.id); }
+        const dupecount = $(this).attr("dupecount");
+        const masterid = $(this).attr("oemrid");
+        const params = new URLSearchParams({
+            csrf_token_form: <?php echo js_escape(CsrfUtils::collectCsrfToken()); ?>,
+            dupecount: dupecount,
+            masterid: masterid
         });
+        $("[dupecount="+dupecount+"]").each(function (i) {
+            if (this.id != masterid) { params.append("otherid[]", this.id); }
+        });
+        const newurl = "mergerecords.php?" + params;
         // open a new window and show the merge results
         moreinfoWin = window.open(newurl, "mergewin");
     });

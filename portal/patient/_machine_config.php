@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package Patient
  *
@@ -14,20 +15,33 @@
  * @license http://www.gnu.org/copyleft/lesser.html LGPL
  *
  */
+
 /* */
 
-session_start();
-if (isset($_SESSION['pid']) && (isset($_SESSION['patient_portal_onsite_two']) || $_SESSION['register'] === true)) {
-    $pid = $_SESSION['pid'];
-    $ignoreAuth = true;
-    GlobalConfig::$PORTAL = true;
-    require_once(dirname(__FILE__) . "/../../interface/globals.php");
+use OpenEMR\Common\Session\SessionUtil;
+use OpenEMR\Common\Session\SessionWrapperFactory;
+use OpenEMR\Core\OEGlobalsBag;
+
+// Will start the (patient) portal OpenEMR session/cookie.
+// Need access to classes, so run autoloader now instead of in globals.php.
+require_once(__DIR__ . "/../../vendor/autoload.php");
+$session = SessionWrapperFactory::getInstance()->getWrapper();
+$globalsBag = OEGlobalsBag::getInstance();
+
+if ($session->isSymfonySession() && $session->has('pid') && ($session->has('patient_portal_onsite_two') || $session->get('register') === true)) {
+    $pid = $session->get('pid');
+    $ignoreAuth_onsite_portal = true;
+    GlobalConfig::$PORTAL = 1;
+    if (!$session->has('portal_init')) {
+        $session->set('portal_init', true);
+    }
+    require_once(__DIR__ . "/../../interface/globals.php");
 } else {
-    session_destroy();
-    GlobalConfig::$PORTAL = false;
+    SessionUtil::portalSessionCookieDestroy();
+    GlobalConfig::$PORTAL = 0;
     $ignoreAuth = false;
-    require_once(dirname(__FILE__) . "/../../interface/globals.php");
-    if (!isset($_SESSION['authUserID'])) {
+    require_once(__DIR__ . "/../../interface/globals.php");
+    if (!$session->has('authUserID')) {
         $landingpage = "index.php";
         header('Location: ' . $landingpage);
         exit;
@@ -41,28 +55,33 @@ require_once("verysimple/HTTP/RequestUtil.php");
  * database connection settings
  */
 GlobalConfig::$CONNECTION_SETTING = new ConnectionSetting();
-GlobalConfig::$CONNECTION_SETTING->ConnectionString = $GLOBALS['host'] . ":" . $GLOBALS['port'];
-GlobalConfig::$CONNECTION_SETTING->DBName = $GLOBALS['dbase'];
-GlobalConfig::$CONNECTION_SETTING->Username = $GLOBALS['login'];
-GlobalConfig::$CONNECTION_SETTING->Password = $GLOBALS['pass'];
+GlobalConfig::$CONNECTION_SETTING->ConnectionString = $globalsBag->get('host') . ":" . $globalsBag->get('port');
+GlobalConfig::$CONNECTION_SETTING->DBName = $globalsBag->get('dbase');
+GlobalConfig::$CONNECTION_SETTING->Username = $globalsBag->get('login');
+GlobalConfig::$CONNECTION_SETTING->Password = $globalsBag->get('pass');
 GlobalConfig::$CONNECTION_SETTING->Type = "MySQLi";
 if (!$disable_utf8_flag) {
-    GlobalConfig::$CONNECTION_SETTING->Charset = "utf8";
+    if (!empty($sqlconf["db_encoding"]) && ($sqlconf["db_encoding"] == "utf8mb4")) {
+        GlobalConfig::$CONNECTION_SETTING->Charset = "utf8mb4";
+    } else {
+        GlobalConfig::$CONNECTION_SETTING->Charset = "utf8";
+    }
 }
 
 GlobalConfig::$CONNECTION_SETTING->Multibyte = true;
 // Turn off STRICT SQL
 GlobalConfig::$CONNECTION_SETTING->BootstrapSQL = "SET sql_mode = '', time_zone = '" .
-  (new DateTime())->format("P") . "'";
+    (new DateTime())->format("P") . "'";
 
 /**
  * the root url of the application with trailing slash, for example http://localhost/patient/
  * default is relative base address
  */
-if ($GLOBALS['portal_onsite_two_basepath']) {
-    GlobalConfig::$ROOT_URL = RequestUtil::GetServerRootUrl() . preg_replace('/^\//', '', $GLOBALS['web_root']) . '/portal/patient/';
+GlobalConfig::$WEB_ROOT = $globalsBag->get('qualified_site_addr');
+if ($globalsBag->get('portal_onsite_two_basepath')) {
+    GlobalConfig::$ROOT_URL = GlobalConfig::$WEB_ROOT . '/portal/patient/';
 } else {
-    GlobalConfig::$ROOT_URL = $GLOBALS['web_root'] . '/portal/patient/';
+    GlobalConfig::$ROOT_URL = $globalsBag->get('web_root') . '/portal/patient/';
 }
 
 
@@ -73,6 +92,6 @@ if ($GLOBALS['portal_onsite_two_basepath']) {
 
 // if Multibyte support is specified then we need to check if multibyte functions are available
 // if you receive this error then either install multibyte extensions or set Multibyte to false
-if (GlobalConfig::$CONNECTION_SETTING->Multibyte && ! function_exists('mb_strlen')) {
+if (GlobalConfig::$CONNECTION_SETTING->Multibyte && !function_exists('mb_strlen')) {
     die('<html>Multibyte extensions are not installed but Multibyte is set to true in _machine_config.php</html>');
 }

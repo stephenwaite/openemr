@@ -1,26 +1,13 @@
 <?php
-/** @package Openemr::Model::DAO */
 
 /**
+ * PatientDAO.php
  *
- * Copyright (C) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
- *
- * LICENSE: This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @package OpenEMR
- * @author Jerry Padgett <sjpadgett@gmail.com>
- * @link http://www.open-emr.org
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
 /** import supporting libraries */
@@ -149,43 +136,13 @@ class PatientDAO extends Phreezable
     public $Religion;
 
     /** @var string */
-    public $Interpretter;
-
-    /** @var string */
-    public $Migrantseasonal;
-
-    /** @var string */
     public $FamilySize;
-
-    /** @var string */
-    public $MonthlyIncome;
-
-    /** @var string */
-    public $BillingNote;
-
-    /** @var string */
-    public $Homeless;
-
-    /** @var date */
-    public $FinancialReview;
 
     /** @var string */
     public $Pubpid;
 
     /** @var int */
     public $Pid;
-
-    /** @var string */
-    public $Genericname1;
-
-    /** @var string */
-    public $Genericval1;
-
-    /** @var string */
-    public $Genericname2;
-
-    /** @var string */
-    public $Genericval2;
 
     /** @var string */
     public $HipaaMail;
@@ -205,77 +162,8 @@ class PatientDAO extends Phreezable
     /** @var string */
     public $HipaaAllowemail;
 
-    /** @var string */
-    public $Squad;
-
-    /** @var int */
-    public $Fitness;
-
-    /** @var string */
-    public $ReferralSource;
-
-    /** @var string */
-    public $Usertext1;
-
-    /** @var string */
-    public $Usertext2;
-
-    /** @var string */
-    public $Usertext3;
-
-    /** @var string */
-    public $Usertext4;
-
-    /** @var string */
-    public $Usertext5;
-
-    /** @var string */
-    public $Usertext6;
-
-    /** @var string */
-    public $Usertext7;
-
-    /** @var string */
-    public $Usertext8;
-
-    /** @var string */
-    public $Userlist1;
-
-    /** @var string */
-    public $Userlist2;
-
-    /** @var string */
-    public $Userlist3;
-
-    /** @var string */
-    public $Userlist4;
-
-    /** @var string */
-    public $Userlist5;
-
-    /** @var string */
-    public $Userlist6;
-
-    /** @var string */
-    public $Userlist7;
-
-    /** @var string */
-    public $Pricelevel;
-
     /** @var date */
     public $Regdate;
-
-    /** @var date */
-    public $Contrastart;
-
-    /** @var string */
-    public $CompletedAd;
-
-    /** @var date */
-    public $AdReviewed;
-
-    /** @var string */
-    public $Vfc;
 
     /** @var string */
     public $Mothersname;
@@ -295,24 +183,9 @@ class PatientDAO extends Phreezable
     /** @var string */
     public $AllowPatientPortal;
 
-    /** @var date */
-    public $DeceasedDate;
-
-    /** @var string */
-    public $DeceasedReason;
-
-    /** @var int */
-    public $SoapImportStatus;
-
-    /** @var string */
-    public $CmsportalLogin;
-
     /** @var int */
     public $CareTeam;
 
     /** @var string */
     public $County;
-
-    /** @var string */
-    public $Industry;
 }

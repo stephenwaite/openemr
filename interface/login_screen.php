@@ -1,4 +1,5 @@
 <?php
+
 /**
  * login_screen.php
  *
@@ -9,18 +10,20 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+use OpenEMR\Common\Session\SessionWrapperFactory;
 
-$ignoreAuth=true;
+$ignoreAuth = true;
 require_once("./globals.php");
+$session = SessionWrapperFactory::getInstance()->getWrapper();
 ?>
 <html>
 <body>
 
-<script LANGUAGE="JavaScript">
- top.location.href='<?php echo "$rootdir/login/login.php?site="; ?>' + <?php echo js_url($_SESSION['site_id']); ?>;
+<script>
+ top.location.href='<?php echo "$rootdir/login/login.php?site="; ?>' + <?php echo js_url($session->get('site_id')); ?>;
 </script>
 
-<a href='<?php echo "$rootdir/login/login.php?site=" . attr_url($_SESSION['site_id']); ?>'><?php echo xlt('Follow manually'); ?></a>
+<a href='<?php echo "$rootdir/login/login.php?site=" . attr_url($session->get('site_id')); ?>'><?php echo xlt('Follow manually'); ?></a>
 
 <p>
 <?php echo xlt('OpenEMR requires Javascript to perform user authentication.'); ?>

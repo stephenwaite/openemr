@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package Adserv
  *
@@ -54,7 +55,10 @@ class GlobalConfig
     /** @var root url of the application */
     public static $ROOT_URL;
 
-    /** @var ConnectionSetting object containign settings for the DB connection **/
+    /** @var root url of the application */
+    public static $WEB_ROOT;
+
+    /** @var ConnectionSetting object containing settings for the DB connection **/
     public static $CONNECTION_SETTING;
 
     /** @var Setting to true will convert all NULL values to an empty string (set to false with caution!)  **/
@@ -96,9 +100,9 @@ class GlobalConfig
             require_once 'verysimple/HTTP/RequestUtil.php';
             RequestUtil::NormalizeUrlRewrite();
 
-            require_once 'verysimple/Phreeze/Controller.php';
-            Controller::$SmartyViewPrefix = '';
-            Controller::$DefaultRedirectMode = 'header';
+            require_once 'verysimple/Phreeze/PortalController.php';
+            PortalController::$SmartyViewPrefix = '';
+            PortalController::$DefaultRedirectMode = 'header';
 
             self::$IS_INITIALIZED = true;
         }
@@ -115,7 +119,7 @@ class GlobalConfig
         }
 
         if (!self::$INSTANCE instanceof self) {
-            self::$INSTANCE = new self;
+            self::$INSTANCE = new self();
         }
 
         return self::$INSTANCE;
@@ -154,8 +158,8 @@ class GlobalConfig
     */
     function GetAction()
     {
-        list($controller,$method) = $this->GetRouter()->GetRoute();
-        return $controller.'.'.$method;
+        [$controller, $method] = $this->GetRouter()->GetRoute();
+        return $controller . '.' . $method;
     }
 
     /**
@@ -168,7 +172,7 @@ class GlobalConfig
     }
 
     /**
-     * Returns the Phreezer persistance layer
+     * Returns the Phreezer persistence layer
      * @return Phreezer
      */
     function GetPhreezer()
@@ -204,7 +208,7 @@ class GlobalConfig
         if ($this->render_engine == null) {
             $engine_class = self::$TEMPLATE_ENGINE;
             if (!class_exists($engine_class)) {
-                require_once 'verysimple/Phreeze/'. $engine_class  . '.php';
+                require_once 'verysimple/Phreeze/' . $engine_class  . '.php';
             }
 
             $this->render_engine = new $engine_class(self::$TEMPLATE_PATH, self::$TEMPLATE_CACHE_PATH);

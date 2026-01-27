@@ -1,22 +1,15 @@
 <?php
 
-
 class C_PatientFinder extends Controller
 {
-
-    var $template_mod;
-    var $_db;
-
-    function __construct($template_mod = "general")
+    function __construct(public $template_mod = "general")
     {
         parent::__construct();
-        $this->_db = $GLOBALS['adodb']['db'];
-        $this->template_mod = $template_mod;
-        $this->assign("FORM_ACTION", $GLOBALS['webroot']."/controller.php?" . attr($_SERVER['QUERY_STRING']));
+        $this->assign("FORM_ACTION", $GLOBALS['webroot'] . "/controller.php?" . attr($_SERVER['QUERY_STRING']));
         ///////////////////////////////////
         //// What should this be?????
         //////////////////////////////////
-        $this->assign("CURRENT_ACTION", $GLOBALS['webroot']."/controller.php?" . "practice_settings&patient_finder&");
+        $this->assign("CURRENT_ACTION", $GLOBALS['webroot'] . "/controller.php?" . "practice_settings&patient_finder&");
         /////////////////////////////////
         $this->assign("STYLE", $GLOBALS['style']);
     }
@@ -27,10 +20,10 @@ class C_PatientFinder extends Controller
     }
 
     /**
-    * Function that will display a patient finder widged, allowing
+    * Function that will display a patient finder widget, allowing
     *   the user to input search parameters to find a patient id.
     */
-    function find_action($form_id, $form_name, $pid)
+    function find_action($form_id, $form_name, $pid = null)
     {
         $isPid = false;
 
@@ -65,15 +58,15 @@ class C_PatientFinder extends Controller
         //get the db connection and pass it to the helper functions
         $sql = "SELECT CONCAT(lname, ' ', fname, ' ', mname) as name, DOB, pubpid, pid FROM patient_data";
         //parse search_string to determine what type of search we have
-        $pos = strpos($search_string, ',');
+        $pos = strpos((string) $search_string, ',');
 
         // get result set into array and pass to array
-        $result_array = array();
+        $result_array = [];
 
         if ($pos === false) {
             //no comma just last name
             $result_array = $this->search_by_lName($sql, $search_string);
-        } else if ($pos === 0) {
+        } elseif ($pos === 0) {
             //first name only
             $result_array = $this->search_by_fName($sql, $search_string);
         } else {
@@ -98,9 +91,13 @@ class C_PatientFinder extends Controller
     {
         $lName = add_escape_custom($search_string);
         $sql .= " WHERE lname LIKE '$lName%' ORDER BY lname, fname";
-        //print "SQL is $sql \n";
-        $result_array = $this->_db->GetAll($sql);
-        //print_r($result_array);
+        $results = sqlStatement($sql);
+
+        $result_array = [];
+        while ($result = sqlFetchArray($results)) {
+            $result_array[] = $result;
+        }
+
         return $result_array;
     }
 
@@ -115,7 +112,13 @@ class C_PatientFinder extends Controller
         $name_array = explode(",", $search_string);
         $fName = add_escape_custom(trim($name_array[1]));
         $sql .= " WHERE fname LIKE '$fName%' ORDER BY lname, fname";
-        $result_array = $this->_db->GetAll($sql);
+        $results = sqlStatement($sql);
+
+        $result_array = [];
+        while ($result = sqlFetchArray($results)) {
+            $result_array[] = $result;
+        }
+
         return $result_array;
     }
 
@@ -131,8 +134,13 @@ class C_PatientFinder extends Controller
         $lName = add_escape_custom($name_array[0]);
         $fName = add_escape_custom(trim($name_array[1]));
         $sql .= " WHERE fname LIKE '%$fName%' AND lname LIKE '$lName%' ORDER BY lname, fname";
-        //print "SQL is $sql \n";
-        $result_array = $this->_db->GetAll($sql);
+        $results = sqlStatement($sql);
+
+        $result_array = [];
+        while ($result = sqlFetchArray($results)) {
+            $result_array[] = $result;
+        }
+
         return $result_array;
     }
 }

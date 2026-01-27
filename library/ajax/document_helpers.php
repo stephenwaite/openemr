@@ -1,9 +1,10 @@
 <?php
+
 /**
  * Document Helper Functions for New Documents Module.
  *
  * @package   OpenEMR
- * @link      http://www.open-emr.org
+ * @link      https://www.open-emr.org
  * @author    Jerry Padgett <sjpadgett@gmail.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2017-2018 Jerry Padgett <sjpadgett@gmail.com>
@@ -11,20 +12,21 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+require_once(__DIR__ . "/../../interface/globals.php");
 
-require_once(dirname(__FILE__) . "/../../interface/globals.php");
+use OpenEMR\Common\Csrf\CsrfUtils;
 
 //verify csrf
-if (!verifyCsrfToken($_GET["csrf_token_form"])) {
-    csrfNotVerified();
+if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
+    CsrfUtils::csrfNotVerified();
 }
 
-$req = array(
+$req = [
     'term' => (isset($_GET["term"]) ? filter_input(INPUT_GET, 'term') : ''),
     'sql_limit' => (isset($_GET["limit"]) ? filter_input(INPUT_GET, 'limit') : 20),
-);
+];
 
-function get_patients_list($req)
+function get_patients_list($req): void
 {
     $term = "%" . $req['term'] . "%";
     $clear = "- " . xl("Reset to no patient") . " -";
@@ -34,11 +36,7 @@ function get_patients_list($req)
             HAVING label LIKE ?
             ORDER BY IF(IFNULL(deceased_date,0)=0, 0, 1) ASC, IFNULL(deceased_date,0) DESC, lname ASC, fname ASC
             LIMIT " . escape_limit($req['sql_limit']),
-        array($term)
-    );
-    $resultpd[] = array(
-        'label' => $clear,
-        'value' => '00'
+        [$term]
     );
     while ($row = sqlFetchArray($response)) {
         if ($GLOBALS['pid'] == $row['value']) {
@@ -48,6 +46,10 @@ function get_patients_list($req)
 
         $resultpd[] = $row;
     }
+    $resultpd[] = [
+        'label' => $clear,
+        'value' => '00'
+    ];
 
     echo json_encode($resultpd);
 }

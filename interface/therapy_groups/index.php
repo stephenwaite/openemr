@@ -1,4 +1,5 @@
 <?php
+
 /**
  * interface/therapy_groups/index.php routing for therapy groups
  *
@@ -24,10 +25,9 @@
  * @link    http://www.open-emr.org
  */
 
-
-require_once dirname(__FILE__) . '/../globals.php';
-require_once dirname(__FILE__) . '/therapy_groups_controllers/therapy_groups_controller.php';
-require_once dirname(__FILE__) . '/therapy_groups_controllers/participants_controller.php';
+require_once __DIR__ . '/../globals.php';
+require_once __DIR__ . '/therapy_groups_controllers/therapy_groups_controller.php';
+require_once __DIR__ . '/therapy_groups_controllers/participants_controller.php';
 
 $method = $_GET['method'];
 

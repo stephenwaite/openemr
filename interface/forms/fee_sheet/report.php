@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Fee Sheet report.php
  *
@@ -10,17 +11,17 @@
  */
 
 
-require_once(dirname(__FILE__).'/../../globals.php');
-require_once($GLOBALS["srcdir"]."/api.inc");
+require_once(__DIR__ . '/../../globals.php');
+require_once($GLOBALS["srcdir"] . "/api.inc.php");
 
-function fee_sheet_report($pid, $encounter, $cols, $id)
+function fee_sheet_report($pid, $encounter, $cols, $id): void
 {
     $count = 0;
     $data = formFetch("form_fee_sheet", $id);
     if ($data) {
         print "<table><tr>";
         foreach ($data as $key => $value) {
-            if ($key == "id" || $key == "pid" || $key == "user" || $key == "groupname" || $key == "authorized" || $key == "activity" || $key == "date" || $value == "" || $value == "0000-00-00 00:00:00") {
+            if (in_array($key, ["id", "pid", "user", "groupname", "authorized", "activity", "date"]) || $value == "" || $value == "0000-00-00 00:00:00") {
                 continue;
             }
 
@@ -28,8 +29,8 @@ function fee_sheet_report($pid, $encounter, $cols, $id)
                 $value = "yes";
             }
 
-            $key=ucwords(str_replace("_", " ", $key));
-            print "<td><span class=bold>" . attr($key) . ": </span><span class=text>" . text($value) . "</span></td>";
+            $key = ucwords(str_replace("_", " ", $key));
+            print "<td><span class='bold'>" . attr($key) . ": </span><span class='text'>" . text($value) . "</span></td>";
             $count++;
             if ($count == $cols) {
                 $count = 0;

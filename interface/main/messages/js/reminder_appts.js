@@ -5,7 +5,7 @@
  * @link    http://www.MedExbank.com
  * @author  MedEx <support@MedExBank.com>
  * @copyright Copyright (c) 2017 MedEx <support@MedExBank.com>
- * @license https://www.gnu.org/licenses/agpl-3.0.en.html GNU Affero General Public License 3
+ * @license https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
 var labels = [];
@@ -19,6 +19,7 @@ var show_just;
  * which then populates the form with the select patient data
  */
 function recall_name_click(field) {
+    top.restoreSession();
     dlgopen('../../main/calendar/find_patient_popup.php?pflag=0', '_blank', 500, 400);
 }
 
@@ -26,17 +27,7 @@ function recall_name_click(field) {
  * Function to insert patient data into addRecall fields
  * pid is sent to server for the data to display
  */
-function setpatient(pid, lname, fname, dob) {
-    if (lname==null){
-        lname='';
-    }
-    if (fname==null){
-        fname='';
-    }
-    if (dob==null){
-        dob='';
-    }
-
+function setpatient(pid, lname='', fname='', dob='') {
     top.restoreSession();
     $.ajax({
         type: "POST",
@@ -176,10 +167,7 @@ function checkAll(chk, set) {
 /**
  * This function sends a list of checked items to the server for processing.
  */
-function process_this(material, id, eid) {
-    if (eid==null){
-        eid='';
-    }
+function process_this(material, id, eid='') {
     var make_this = [];
     var make_that = [];
     var make_all = [];
@@ -267,18 +255,25 @@ $(function () {
     });
 });
 
+// AI-generated code start (GitHub Copilot) - Refactored to use URLSearchParams
 // Open the add-event dialog.
 function newEvt(pid, pc_eid) {
     var f = document.forms[0];
-    var url = '../../main/calendar/add_edit_event.php?patientid=' + pid + '&eid=' + pc_eid;
+    const params = new URLSearchParams({
+        patientid: pid,
+        eid: pc_eid
+    });
+    const url = '../../main/calendar/add_edit_event.php?' + params.toString();
+    top.restoreSession();
     dlgopen(url, '_blank', 800, 480);
     return false;
 }
+// AI-generated code end
 
 function delete_Recall(pid, r_ID) {
     if (confirm('Are you sure you want to delete this Recall?')) {
-        //top.restoreSession();
         var url = 'save.php';
+        top.restoreSession();
         $.ajax({
             type: 'POST',
             url: url,
@@ -296,6 +291,7 @@ function delete_Recall(pid, r_ID) {
 }
 
 function refresh_me() {
+    top.restoreSession();
     location.reload();
 }
 
@@ -303,7 +299,12 @@ function refresh_me() {
 // Process click to pop up the edit window.
 function doRecallclick_edit(goHere) {
     top.restoreSession();
-    dlgopen('messages.php?nomenu=1&go=' + goHere, '_blank', 900, 400);
+    if (window.location.pathname.match(/patient_tracker/)) {
+        zone ='main/';
+    } else {
+        zone = '';
+    }
+    dlgopen('../'+zone+'messages/messages.php?nomenu=1&go=' + goHere, '_blank', 900, 400);
 }
 
 function goReminderRecall(choice) {
@@ -317,15 +318,13 @@ function goMessages() {
 }
 
 function goMedEx() {
+    top.restoreSession();
     location.href = 'https://medexbank.com/cart/upload/index.php?route=information/campaigns';
 }
 
 /****  END FUNCTIONS RELATED TO NAVIGATION *****/
 
-function show_this(colorish) {
-    if (colorish==null){
-        colorish='';
-    }
+function show_this(colorish='') {
     var facV = $("#form_facility").val();
     var provV = $("#form_provider").val();
     var pidV = $("#form_patient_id").val();
@@ -355,10 +354,11 @@ function tabYourIt(tabNAME, url) {
     if (!top.tab_mode) {
         tabNAME = window.name;
     }
+    top.restoreSession();
     parent.left_nav.loadFrame('1', tabNAME, url);
 }
 
-$(document).ready(function () {
+$(function () {
     //bootstrap menu functions
     $('.dropdown').hover(function () {
         $(".dropdown").removeClass('open');
@@ -394,16 +394,35 @@ $(document).ready(function () {
         var url = "save.php";
         top.restoreSession();
         $.ajax({
-            type: 'POST',
-            url: url,
-            data: formData,
-            action: 'save_prefs'
-        }).done(function (result) {
-            $("#div_response").html('<span style="color:red;">' + xljs1 + '.</span>');
+                   type: 'POST',
+                   url: url,
+                   data: formData,
+                   action: 'save_prefs'
+               }).done(function (result) {
+            $("#div_response").html('<span class="text-danger">' + xljs1 + '.</span>');
             setTimeout(function () {
                 $("#div_response").html('<br />');
             }, 2000);
         });
     });
-});
+    var bs_interval = $("#execute_interval").val();
+    if (bs_interval < '1') {
+        $("#active_sync").hide();
+        $("#paused").show();
+    }  else {
+        $("#paused").hide();
+        $("#active_sync").show();
+    }
+    $("#execute_interval").change(function() {
+        var bs_interval = $("#execute_interval").val();
+        if (bs_interval <'1') {
+            $("#active_sync").hide();
+            $("#paused").show();
+        }  else {
+            $("#display_interval").text(bs_interval);
+            $("#paused").hide();
+            $("#active_sync").show();
+        }
+    });
 
+});

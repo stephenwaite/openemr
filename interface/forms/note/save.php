@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Work/School Note Form save.php
  *
@@ -12,12 +13,14 @@
  */
 
 
-require_once("../../globals.php");
-require_once("$srcdir/api.inc");
-require_once("$srcdir/forms.inc");
+require_once(__DIR__ . "/../../globals.php");
+require_once("$srcdir/api.inc.php");
+require_once("$srcdir/forms.inc.php");
 
-if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-    csrfNotVerified();
+use OpenEMR\Common\Csrf\CsrfUtils;
+
+if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+    CsrfUtils::csrfNotVerified();
 }
 
 /*
@@ -29,14 +32,15 @@ if ($encounter == "") {
     $encounter = date("Ymd");
 }
 
+$_POST['date_of_signature'] = DateToYYYYMMDD($_POST['date_of_signature']);
+
 if ($_GET["mode"] == "new") {
-    $newid = formSubmit($table_name, $_POST, $_GET["id"], $userauthorized);
+    $newid = formSubmit($table_name, $_POST, $_GET["id"] ?? '', $userauthorized);
     addForm($encounter, "Work/School Note", $newid, "note", $pid, $userauthorized);
 } elseif ($_GET["mode"] == "update") {
     $success = formUpdate($table_name, $_POST, $_GET["id"], $userauthorized);
 }
 
-$_SESSION["encounter"] = $encounter;
 formHeader("Redirecting....");
 formJump();
 formFooter();

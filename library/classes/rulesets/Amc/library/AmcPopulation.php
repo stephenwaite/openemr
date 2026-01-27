@@ -1,4 +1,5 @@
 <?php
+
 // Copyright (C) 2011 Ken Chapple <ken@mi-squared.com>
 //
 // This program is free software; you can redistribute it and/or
@@ -7,8 +8,8 @@
 // of the License, or (at your option) any later version.
 //
 require_once("AmcPatient.php");
-/*	Defines a population of patients
- * 
+/*  Defines a population of patients
+ *
  */
 class AmcPopulation extends RsPopulation
 {
@@ -18,14 +19,14 @@ class AmcPopulation extends RsPopulation
     public function __construct(array $patientIdArray)
     {
         foreach ($patientIdArray as $patientId) {
-            $this->_patients[]= new AmcPatient($patientId);
+            $this->_patients[] = new AmcPatient($patientId);
         }
     }
 
     /*
      * ArrayAccess Interface
      */
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
         if ($value instanceof AmcPatient) {
             if ($offset == "") {

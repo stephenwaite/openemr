@@ -26,7 +26,6 @@
  */
 class Savant3_Plugin_htmlAttribs extends Savant3_Plugin
 {
-    
     /**
      *
      * Converts an associative array to a string of tag attributes.
@@ -43,18 +42,18 @@ class Savant3_Plugin_htmlAttribs extends Savant3_Plugin
     public function htmlAttribs($attribs)
     {
         $xhtml = '';
-        foreach (( array ) $attribs as $key => $val) {
+        foreach ((array) $attribs as $key => $val) {
             if ($val === null) {
                 continue;
             }
-            
+
             if (is_array($val)) {
                 $val = implode(' ', $val);
             }
-            
-            $key = htmlspecialchars($key);
-            $val = htmlspecialchars($val);
-            
+
+            $key = htmlspecialchars((string) $key);
+            $val = htmlspecialchars((string) $val);
+
             $xhtml .= " $key=\"$val\"";
         }
 

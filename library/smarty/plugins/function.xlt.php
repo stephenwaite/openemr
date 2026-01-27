@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Smarty plugin
  * @package Smarty
@@ -18,9 +19,9 @@
 /**
  * Smarty {xlt} function plugin
  *
- * Type:     function<br>
- * Name:     xlt<br>
- * Purpose:  translate in OpenEMR - Smarty templates<br>
+ * Type:     function<br />
+ * Name:     xlt<br />
+ * Purpose:  translate in OpenEMR - Smarty templates<br />
  *
  * Examples:
  *
@@ -31,10 +32,10 @@
  */
 
 
-function smarty_function_xlt($params, &$smarty)
+function smarty_function_xlt($params, &$smarty): void
 {
     if (empty($params['t'])) {
-        $smarty->trigger_error("xk: missing 't' parameter");
+        trigger_error("xlt: missing 't' parameter", E_USER_WARNING);
         return;
     } else {
         $translate = $params['t'];

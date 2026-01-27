@@ -1,274 +1,256 @@
 <?php
-/* +-----------------------------------------------------------------------------+
-*    OpenEMR - Open Source Electronic Medical Record
-*    Copyright (C) 2014 Z&H Consultancy Services Private Limited <sam@zhservices.com>
-*
-*    This program is free software: you can redistribute it and/or modify
-*    it under the terms of the GNU Affero General Public License as
-*    published by the Free Software Foundation, either version 3 of the
-*    License, or (at your option) any later version.
-*
-*    This program is distributed in the hope that it will be useful,
-*    but WITHOUT ANY WARRANTY; without even the implied warranty of
-*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*    GNU Affero General Public License for more details.
-*
-*    You should have received a copy of the GNU Affero General Public License
-*    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*    @author  Vinish K <vinish@zhservices.com>
-* +------------------------------------------------------------------------------+
-*/
+
+/**
+ * interface/modules/zend_modules/module/Carecoordination/src/Carecoordination/Form/ModuleconfigForm.php
+ *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Vinish K <vinish@zhservices.com>
+ * @copyright Copyright (c) 2014 Z&H Consultancy Services Private Limited <sam@zhservices.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
 
 namespace Carecoordination\Form;
 
-use Zend\Form\Form;
-use Zend\Db\Adapter\AdapterInterface;
-use \Application\Model\ApplicationTable;
+use Laminas\Form\Form;
+use Application\Model\ApplicationTable;
 use Application\Listener\Listener;
 
 class ModuleconfigForm extends Form
 {
     protected $zListener;
 
-    public function __construct(AdapterInterface $dbAdapter)
+    protected $application;
+
+    public function __construct()
     {
-        $this->application  = new ApplicationTable;
-        $this->zListener = new Listener;
+        $this->application  = new ApplicationTable();
+        $this->zListener = new Listener();
         parent::__construct('configuration');
         $this->setAttribute('method', 'post');
 
         /*
-		* Automatic SignOff settings
-		*/
-        $this->add(array(
+        * Automatic SignOff settings
+        */
+        $this->add([
                 'name'      => 'hie_auto_sign_off_id',
-                'attributes'    => array(
+                'attributes'    => [
                         'type'      => 'text',
                         'id'        => 'hie_auto_sign_off_id'
-                    ),
-                'options' => array(
+                    ],
+                'options' => [
                         'label'     => $this->zListener->z_xlt('Auto Sign-Off [days]'),
-                    ),
-            ));
+                    ],
+            ]);
 
         /*
-		* Automatic Tranfer settings
-		*/
-        $this->add(array(
-            'type' => 'Zend\Form\Element\Checkbox',
+        * Automatic Transfer settings
+        */
+        $this->add([
+            'type' => \Laminas\Form\Element\Checkbox::class,
                 'name' => 'hie_auto_send_id',
-                'attributes'    => array(
+                'attributes'    => [
                         'id'        => 'hie_auto_send_id'
-                    ),
-                'options' => array(
+                    ],
+                'options' => [
                         'label'         => $this->zListener->z_xlt('Auto Send'),
                 'checked_value'     => 'yes',
                         'unchecked_value'   => 'no'
-                    ),
-            ));
+                    ],
+            ]);
 
         /*
-		* Author settings
-		*/
-        $this->add(array(
+        * Author settings
+        */
+        $this->add([
                 'name'  => 'hie_author_id',
-                'type'      => 'Zend\Form\Element\Select',
-                'attributes'=> array(
+                'type'      => \Laminas\Form\Element\Select::class,
+                'attributes' => [
                     'class'     => '',
                     'data-options'  => 'required:true',
                     'editable'  => 'false',
                     'required'  => 'required',
                     'id'        => 'hie_author_fname'
-                ),
-                'options' => array(
+                ],
+                'options' => [
                     'label'     => $this->zListener->z_xlt('Author'),
                     'value_options' => $this->getProviders(),
-                ),
-            ));
+                ],
+            ]);
 
         /*
-		* Data Enterer settings
-		*/
-        $this->add(array(
+        * Data Enterer settings
+        */
+        $this->add([
                 'name'      => 'hie_data_enterer_id',
-                'type'      => 'Zend\Form\Element\Select',
-                'attributes'=> array(
+                'type'      => \Laminas\Form\Element\Select::class,
+                'attributes' => [
                     'class'     => '',
                     'data-options'  => 'required:true',
                     'editable'  => 'false',
                     'required'  => 'required',
                     'id'        => 'hie_data_enterer_id'
-                ),
-                'options' => array(
+                ],
+                'options' => [
                     'label'     => $this->zListener->z_xlt('Data Enterer'),
                     'value_options' => $this->getUsersList(),
-                ),
-            ));
+                ],
+            ]);
 
         /*
-		* Informant settings
-		*/
-        $this->add(array(
+        * Informant settings
+        */
+        $this->add([
                 'name'  => 'hie_informant_id',
-                'type'      => 'Zend\Form\Element\Select',
-                'attributes'=> array(
+                'type'      => \Laminas\Form\Element\Select::class,
+                'attributes' => [
                     'class'     => '',
                     'data-options'  => 'required:true',
                     'editable'  => 'false',
                     'required'  => 'required',
                     'id'        => 'hie_informant_id'
-                ),
-                'options' => array(
+                ],
+                'options' => [
                     'label'     => $this->zListener->z_xlt('Informant'),
                     'value_options' => $this->getProviders(),
-                ),
-            ));
+                ],
+            ]);
 
         /*
-		* Personal Informant settings
-		*/
-        $this->add(array(
+        * Personal Informant settings
+        */
+        $this->add([
                 'name'  => 'hie_personal_informant_id',
-                'attributes'=> array(
+                'attributes' => [
                         'type'  => 'text',
                         'id'    => 'hie_personal_informant_id'
-                    ),
-                'options' => array(
+                    ],
+                'options' => [
                         'label' => $this->zListener->z_xlt('Informant'),
-                    ),
-            ));
+                    ],
+            ]);
 
         /*
-		* Custodian settings
-		*/
-        $this->add(array(
+        * Custodian settings
+        */
+        $this->add([
                 'name'  => 'hie_custodian_id',
-                'type'      => 'Zend\Form\Element\Select',
-                'attributes'=> array(
+                'type'      => \Laminas\Form\Element\Select::class,
+                'attributes' => [
                     'class'     => '',
                     'data-options'  => 'required:true',
                     'editable'  => 'false',
                     'required'  => 'required',
                     'id'        => 'hie_custodian_id'
-                ),
-                'options' => array(
+                ],
+                'options' => [
                     'label'     => $this->zListener->z_xlt('Custodian'),
                     'value_options' => $this->getFacilities(),
-                ),
-            ));
+                ],
+            ]);
 
         /*
-		* Legal Authenticator settings
-		*/
-        $this->add(array(
+        * Legal Authenticator settings
+        */
+        $this->add([
                 'name'  => 'hie_legal_authenticator_id',
-                'type'      => 'Zend\Form\Element\Select',
-                'attributes'=> array(
+                'type'      => \Laminas\Form\Element\Select::class,
+                'attributes' => [
                     'class'     => '',
                     'data-options'  => 'required:true',
                     'editable'  => 'false',
                     'required'  => 'required',
                     'id'        => 'hie_legal_authenticator_id'
-                ),
-                'options' => array(
+                ],
+                'options' => [
                     'label'     => $this->zListener->z_xlt('Legal Authenticator'),
                     'value_options' => $this->getUsers(),
-                ),
-            ));
+                ],
+            ]);
 
         /*
-		* Authenticator settings
-		*/
-        $this->add(array(
+        * Authenticator settings
+        */
+        $this->add([
                 'name'  => 'hie_authenticator_id',
-                'type'      => 'Zend\Form\Element\Select',
-                'attributes'=> array(
+                'type'      => \Laminas\Form\Element\Select::class,
+                'attributes' => [
                     'class'     => '',
                     'data-options'  => 'required:true',
                     'editable'  => 'false',
                     'required'  => 'required',
                     'id'        => 'hie_authenticator_id'
-                ),
-                'options' => array(
+                ],
+                'options' => [
                     'label'     => $this->zListener->z_xlt('Authenticator'),
                     'value_options' => $this->getUsers(),
-                ),
-            ));
+                ],
+            ]);
 
         /*
-		* Primary Care Provider settings
-		*/
-        $this->add(array(
+        * Primary Care Provider settings
+        */
+        $this->add([
                 'name'  => 'hie_primary_care_provider_id',
-                'type'      => 'Zend\Form\Element\Select',
-                'attributes'=> array(
+                'type'      => \Laminas\Form\Element\Select::class,
+                'attributes' => [
                     'class'     => '',
                     'data-options'  => 'required:true',
                     'editable'  => 'false',
                     'required'  => 'required',
                     'id'        => 'hie_primary_care_provider_id'
-                ),
-                'options' => array(
+                ],
+                'options' => [
                     'label'     => $this->zListener->z_xlt('Primary Care Provider'),
                     'value_options' => $this->getProviders(),
-                ),
-            ));
+                ],
+            ]);
+        $this->add([
+            'type' => \Laminas\Form\Element\Checkbox::class,
+            'name' => 'hie_force_latest_encounter_provenance_date',
+            'attributes'    => [
+                'id'        => 'hie_force_latest_encounter_provenance_date'
+            ],
+            'options' => [
+                'label'         => $this->zListener->z_xlt('Force Provenance Author Date to be most recent encounter'),
+                'checked_value'     => 'yes',
+                'unchecked_value'   => 'no'
+            ],
+        ]);
+        $this->add([
 
-        /*
-		* MIRTH IP settings
-		*/
-        $this->add(array(
-                'name'  => 'hie_mirth_ip',
-                'attributes'=> array(
-                        'type'  => 'text',
-                        'id'    => 'hie_mirth_ip'
-                    ),
-                'options' => array(
-                        'label' => $this->zListener->z_xlt('Mirth IP'),
-                    ),
-            ));
+            'name' => 'hie_author_date',
+            'type' => \Laminas\Form\Element\DateTimeLocal::class,
+            'attributes' => [
+                //'min' => '2000-01-01T00:00Z',
+                //'max' => '2030-01-01T00:00:00Z',
+                'step' => '1',
+                'id' => 'hie_author_date',
+            ],
+            'options' => [
+                //'format' => 'Y-m-d\T:HP',
+                'label' => $this->zListener->z_xlt('Provenance Author Date')
+            ],
 
+        ]);
         /*
-		* MIRTH Client ID
-		*/
-        $this->add(array(
-                'name'  => 'hie_mirth_clientid',
-                'attributes'=> array(
-                        'type'  => 'text',
-                        'id'    => 'hie_mirth_clientid'
-                    ),
-                'options' => array(
-                        'label' => $this->zListener->z_xlt('Client ID'),
-                    ),
-            ));
-
-        /*
-		* MIRTH Username
-		*/
-        $this->add(array(
-                'name'  => 'hie_mirth_username',
-                'attributes'=> array(
-                        'type'  => 'text',
-                        'id'    => 'hie_mirth_username'
-                    ),
-                'options' => array(
-                        'label' => $this->zListener->z_xlt('Username'),
-                    ),
-            ));
-
-        /*
-		* MIRTH Password
-		*/
-        $this->add(array(
-                'name'  => 'hie_mirth_password',
-                'attributes'=> array(
-                        'type'  => 'password',
-                        'id'    => 'hie_mirth_password'
-                    ),
-                'options' => array(
-                        'label' => $this->zListener->z_xlt('Password'),
-                    ),
-            ));
+        * Authenticator settings
+        */
+        $this->add([
+            'name'  => 'hie_office_contact',
+            'type'      => \Laminas\Form\Element\Select::class,
+            'attributes' => [
+                'class'     => '',
+                'data-options'  => 'required:true',
+                'editable'  => 'false',
+                'required'  => 'required',
+                'id'        => 'hie_office_contact'
+            ],
+            'options' => [
+                'label'     => $this->zListener->z_xlt('Office Contact'),
+                'value_options' => $this->getUsers(),
+            ],
+        ]);
     }
 
     /**
@@ -279,10 +261,10 @@ class ModuleconfigForm extends Form
     */
     public function getUsers()
     {
-        $users = array('0' => '');
-        $res = $this->application->zQuery(("SELECT id, fname, lname, street, city, state, zip  FROM users WHERE abook_type='ccda'"));
+        $users = ['0' => ''];
+        $res = $this->application->zQuery(("SELECT id, fname, lname, street, city, state, zip  FROM users WHERE authorized=1 AND active='1' "));
         foreach ($res as $row) {
-            $users[$row['id']] = $row['fname']." ".$row['lname'];
+            $users[$row['id']] = $row['fname'] . " " . $row['lname'];
         }
 
         return $users;
@@ -290,7 +272,7 @@ class ModuleconfigForm extends Form
 
     public function getFacilities()
     {
-        $users = array('0' => '');
+        $users = ['0' => ''];
         $res = $this->application->zQuery(("SELECT `id`,`name` FROM `facility`"));
         foreach ($res as $row) {
             $users[$row['id']] = $row['name'];
@@ -301,10 +283,10 @@ class ModuleconfigForm extends Form
 
     public function getProviders()
     {
-        $users = array('0' => '');
+        $users = ['0' => ''];
         $res = $this->application->zQuery(("SELECT id, fname, lname FROM users WHERE authorized=1 AND active ='1'"));
         foreach ($res as $row) {
-            $users[$row['id']] = $row['fname']." ".$row['lname'];
+            $users[$row['id']] = $row['fname'] . " " . $row['lname'];
         }
 
         return $users;
@@ -312,10 +294,10 @@ class ModuleconfigForm extends Form
 
     public function getUsersList()
     {
-        $users = array('0' => '');
+        $users = ['0' => ''];
         $res = $this->application->zQuery(("SELECT id, fname, lname FROM users WHERE active ='1' AND `username` IS NOT NULL AND `password` IS NOT NULL"));
         foreach ($res as $row) {
-            $users[$row['id']] = $row['fname']." ".$row['lname'];
+            $users[$row['id']] = $row['fname'] . " " . $row['lname'];
         }
 
         return $users;

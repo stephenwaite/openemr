@@ -1,4 +1,5 @@
 <?php
+
 /**
  *
  * This is to allow internationalization by OpenEMR of the jquery-datetimepicker.
@@ -9,6 +10,7 @@
  *    $datetimepicker_timepicker = true; (php variable)
  *    $datetimepicker_showseconds = false; (php variable)
  *    $datetimepicker_formatInput = false; (php variable)
+ *    $datetimepicker_maxDate = '+1970/01/01' (php variable) `+1970/01/01` means today for tomorrow use `+1970/01/02`
  *    require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); (php command)
  *    can add any additional settings to datetimepicker here; need to prepend first setting with a comma
  *  });
@@ -16,6 +18,7 @@
  *    $datetimepicker_timepicker = false; (php variable)
  *    $datetimepicker_showseconds = false; (php variable)
  *    $datetimepicker_formatInput = false; (php variable)
+ *    $datetimepicker_minDate = '-1970/01/01'; (php variable)
  *    require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); (php command)
  *    can add any additional settings to datetimepicker here; need to prepend first setting with a comma
  *  });
@@ -23,6 +26,8 @@
  * $datetimepicker_timepicker - this will set whether to use the timepicker
  * $datetimepicker_showseconds - this will show seconds if using the timepicker
  * $datetimepicker_formatInput - this will set whether to format the input to
+ * $datetimepicker_minDate - this will set the minimum date that can be selected
+ * $datetimepicker_maxDate - this will set the minimum date that can be selected
  *  the user selected date format within globals. (This works with the following functions to fully
  *  support internationalization of dates; note this setting does not yet work with the timepicker yet)
  *   -oeFormatShortDate() function for when placing a default formatted date in the field
@@ -35,6 +40,9 @@
  * @copyright Copyright (c) 2017-2018 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
+
+use OpenEMR\Services\Utils\DateFormatterUtils;
+
 ?>
     i18n:{
         en: {
@@ -48,9 +56,9 @@
             ]
         },
     },
-    <?php if ($_SESSION['language_direction'] == 'rtl') { ?>
+    <?php if (($_SESSION['language_direction'] ?? '') == 'rtl') { ?>
     /**
-     * In RTL languages a datepicker popup is opened in left and it's cutted by the edge of the window
+     * In RTL languages a datepicker popup is opened on the left and cut by the edge of the window
      * This patch resolves that and moves a datepicker popup to right side.
      */
     onGenerate:function(current_time,$input){
@@ -70,23 +78,36 @@
     yearStart: '1900',
     scrollInput: false,
     scrollMonth: false,
-    rtl: <?php echo ($_SESSION['language_direction'] == 'rtl') ? "true" : "false"; ?>,
+    rtl: <?php echo (($_SESSION['language_direction'] ?? '') == 'rtl') ? "true" : "false"; ?>,
+    <?php if (!empty($datetimepicker_minDate)) { ?>
+        minDate: '<?php echo $datetimepicker_minDate; ?>',
+    <?php } ?>
+    <?php if (!empty($datetimepicker_maxDate)) { ?>
+        maxDate: '<?php echo $datetimepicker_maxDate; ?>',
+    <?php } ?>
     <?php if ($datetimepicker_timepicker) { ?>
         <?php if ($datetimepicker_showseconds) { ?>
-            <?php if ($datetimepicker_formatInput) { ?>
-                format: '<?php echo DateFormatRead("jquery-datetimepicker"); ?> H:i:s',
+            <?php if ($datetimepicker_formatInput) {
+                $time_format_with_secs = DateFormatterUtils::getTimeFormat(true); ?>
+                format: '<?php echo DateFormatRead("jquery-datetimepicker") . " " . $time_format_with_secs; ?>',
+                formatTime: '<?php echo $time_format_with_secs; ?>',
+                validateOnBlur: false,
             <?php } else { ?>
                 format: 'Y-m-d H:i:s',
+                formatTime: 'H:i:s',
             <?php } ?>
         <?php } else { ?>
-            <?php if ($datetimepicker_formatInput) { ?>
-                format: '<?php echo DateFormatRead("jquery-datetimepicker"); ?> H:i',
+            <?php if ($datetimepicker_formatInput) {
+                $time_format_without_secs =  DateFormatterUtils::getTimeFormat(); ?>
+                format: '<?php echo DateFormatRead("jquery-datetimepicker") . " " . $time_format_without_secs; ?>',
+                formatTime: '<?php echo $time_format_without_secs; ?>',
+                validateOnBlur: false,
             <?php } else { ?>
                 format: 'Y-m-d H:i',
             <?php } ?>
         <?php } ?>
         timepicker:true,
-        step: '30'
+        step: 30
     <?php } else { ?>
         <?php if ($datetimepicker_formatInput) { ?>
             format: '<?php echo DateFormatRead("jquery-datetimepicker"); ?>',

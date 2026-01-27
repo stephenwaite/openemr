@@ -1,4 +1,5 @@
 <?php
+
 /**
  *
  * AMC 304a 3 STAGE1
@@ -33,12 +34,12 @@ class AMC_304a_3 extends AbstractAmcReport
     {
            return "med_orders";
     }
- 
+
     public function createDenominator()
     {
         return new AMC_304a_3_Denominator();
     }
-    
+
     public function createNumerator()
     {
         return new AMC_304a_3_Numerator();

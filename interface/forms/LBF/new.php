@@ -1,4 +1,5 @@
 <?php
+
 /**
  * LBF form.
  *
@@ -6,66 +7,85 @@
  * @link      http://www.open-emr.org
  * @author    Rod Roark <rod@sunsetsystems.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
- * @copyright Copyright (c) 2009-2019 Rod Roark <rod@sunsetsystems.com>
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2009-2022 Rod Roark <rod@sunsetsystems.com>
  * @copyright Copyright (c) 2019 Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2018-2020 Jerry Padgett <sjpadgett@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+use OpenEMR\Common\Forms\CoreFormToPortalUtility;
+use OpenEMR\Common\Session\SessionWrapperFactory;
+
+// block of code to securely support use by the patient portal
+// Need access to classes, so run autoloader now instead of in globals.php.
+require_once(__DIR__ . "/../../../vendor/autoload.php");
+$patientPortalSession = CoreFormToPortalUtility::isPatientPortalSession($_GET);
+$session = SessionWrapperFactory::getInstance()->getWrapper();
+if ($patientPortalSession) {
+    $ignoreAuth_onsite_portal = true;
+}
 
 require_once("../../globals.php");
-require_once("$srcdir/api.inc");
-require_once("$srcdir/forms.inc");
+require_once("$srcdir/api.inc.php");
+require_once("$srcdir/forms.inc.php");
 require_once("$srcdir/options.inc.php");
-require_once("$srcdir/patient.inc");
-if ($GLOBALS['gbl_portal_cms_enable']) {
-    require_once("$include_root/cmsportal/portal.inc.php");
-}
+require_once("$srcdir/patient.inc.php");
 require_once($GLOBALS['fileroot'] . '/custom/code_types.inc.php');
 require_once("$srcdir/FeeSheetHtml.class.php");
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
 
 $CPR = 4; // cells per row
 
-$pprow = array();
+$pprow = [];
 
 $alertmsg = '';
 
-function end_cell()
+function end_cell(): void
 {
-    global $item_count, $cell_count, $historical_ids;
+    global $item_count, $historical_ids, $USING_BOOTSTRAP;
     if ($item_count > 0) {
-        // echo "&nbsp;</td>";
-        echo "</td>";
-
+        echo $USING_BOOTSTRAP ? "</div>" : "</td>";
         foreach ($historical_ids as $key => $dummy) {
-            // $historical_ids[$key] .= "&nbsp;</td>";
+            // If $USING_BOOTSTRAP this won't happen.
             $historical_ids[$key] .= "</td>";
         }
-
         $item_count = 0;
     }
 }
 
-function end_row()
+function end_row(): void
 {
-    global $cell_count, $CPR, $historical_ids;
+    global $cell_count, $CPR, $historical_ids, $USING_BOOTSTRAP;
     end_cell();
-    if ($cell_count > 0) {
-        for (; $cell_count < $CPR; ++$cell_count) {
-            echo "<td></td>";
-            foreach ($historical_ids as $key => $dummy) {
-                $historical_ids[$key] .= "<td></td>";
+    if ($USING_BOOTSTRAP) {
+        if ($cell_count > 0 && $cell_count < $CPR) {
+            // Create a cell occupying the remaining bootstrap columns.
+            // BS columns will be less than 12 if $CPR is not 2, 3, 4, 6 or 12.
+            $bs_cols_remaining = ($CPR - $cell_count) * intval(12 / $CPR);
+            echo "<div class='$BS_COL_CLASS-$bs_cols_remaining'></div>";
+        }
+        if ($cell_count > 0) {
+            echo "</div><!-- End BS row -->\n";
+        }
+    } else {
+        if ($cell_count > 0) {
+            for (; $cell_count < $CPR; ++$cell_count) {
+                echo "<td class='border-top-0'></td>";
+                foreach ($historical_ids as $key => $dummy) {
+                    $historical_ids[$key] .= "<td class='border-top-0'></td>";
+                }
             }
+            foreach ($historical_ids as $key => $dummy) {
+                echo $historical_ids[$key];
+            }
+            echo "</tr>\n";
         }
-
-        foreach ($historical_ids as $key => $dummy) {
-            echo $historical_ids[$key];
-        }
-
-        echo "</tr>\n";
-        $cell_count = 0;
     }
+    $cell_count = 0;
 }
 
 // $is_lbf is defined in trend_form.php and indicates that we are being
@@ -73,49 +93,83 @@ function end_row()
 $from_trend_form = !empty($is_lbf);
 // Yet another invocation from somewhere other than encounter.
 // don't show any action buttons.
-$from_lbf_edit = isset($_GET['isShow']) ? true : false;
+$from_lbf_edit = isset($_GET['isShow']) ? 1 : 0;
+$patient_portal = $ignoreAuth_onsite_portal ? 1 : 0;
+$from_lbf_edit = $patient_portal ? 1 : $from_lbf_edit;
 // This is true if the page is loaded into an iframe in add_edit_issue.php.
 $from_issue_form = !empty($_REQUEST['from_issue_form']);
 
-$formname = isset($_GET['formname']) ? $_GET['formname'] : '';
-$formid = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$portalid = isset($_GET['portalid']) ? intval($_GET['portalid']) : 0;
+$formname = $_GET['formname'] ?? '';
+$formid = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$portalid = isset($_GET['portalid']) ? (int)$_GET['portalid'] : 0;
+// know LBF origin
+$form_origin = isset($_GET['formOrigin']) ? (int)$_GET['formOrigin'] : null;
+$is_portal_module = $form_origin === 2;
+$is_portal_dashboard = $form_origin === 1; // 0 is portal
+// can be used to assign to existing encounter
+$portal_form_pid = 0;
+if ($form_origin !== null) {
+    $portal_form_pid = sqlQuery(
+        "SELECT id, pid FROM `onsite_documents` WHERE `encounter` != 0 AND `encounter` = ?",
+        [$formid]
+    )['pid'] ?? 0;
+}
+$is_core = !($portal_form_pid || $patient_portal || $is_portal_dashboard || $is_portal_module);
 
-$visitid = intval(empty($_GET['visitid']) ? $encounter : $_GET['visitid']);
+if ($patientPortalSession && !empty($formid)) {
+    $pidForm = sqlQuery("SELECT `pid` FROM `forms` WHERE `form_id` = ? AND `formdir` = ?", [$formid, $formname])['pid'];
+    if (empty($pidForm) || ($pidForm != $session->get('pid'))) {
+        echo xlt("illegal Action");
+        OpenEMR\Common\Session\SessionUtil::portalSessionCookieDestroy();
+        exit;
+    }
+}
+
+$visitid = (int)(empty($_GET['visitid']) ? $encounter : $_GET['visitid']);
 
 // If necessary get the encounter from the forms table entry for this form.
-if ($formid && !$visitid) {
+if ($formid && !$visitid && $is_core) {
     $frow = sqlQuery(
         "SELECT pid, encounter FROM forms WHERE " .
         "form_id = ? AND formdir = ? AND deleted = 0",
-        array($formid, $formname)
+        [$formid, $formname]
     );
-    $visitid = intval($frow['encounter']);
+    $visitid = (int)$frow['encounter'];
     if ($frow['pid'] != $pid) {
         die("Internal error: patient ID mismatch!");
     }
 }
 
-if (!$from_trend_form && !$visitid && !$from_lbf_edit) {
+if (!$from_trend_form && !$visitid && !$from_lbf_edit && $is_core) {
     die("Internal error: we do not seem to be in an encounter!");
 }
 
-$grparr = array();
+$grparr = [];
 getLayoutProperties($formname, $grparr, '*');
 $lobj = $grparr[''];
 $formtitle = $lobj['grp_title'];
 $formhistory = 0 + $lobj['grp_repeats'];
+$grp_last_update = $lobj['grp_last_update'];
+
+// When the layout specifies display of historical values of input fields,
+// we abandon responsive design of the form and instead present it in a
+// horizontally scrollable table. There seems no better way to show the
+// history on small devices, and in this case the form will be designed for
+// data entry on the left side anyway.
+//
+$USING_BOOTSTRAP = empty($formhistory);
+
 if (!empty($lobj['grp_columns'])) {
-    $CPR = intval($lobj['grp_columns']);
+    $CPR = (int)$lobj['grp_columns'];
 }
 if (!empty($lobj['grp_size'])) {
-    $FONTSIZE = intval($lobj['grp_size']);
+    $FONTSIZE = (int)$lobj['grp_size'];
 }
 if (!empty($lobj['grp_issue_type'])) {
     $LBF_ISSUE_TYPE = $lobj['grp_issue_type'];
 }
 if (!empty($lobj['grp_aco_spec'])) {
-    $LBF_ACO = explode('|', $lobj['grp_aco_spec']);
+    $LBF_ACO = explode('|', (string) $lobj['grp_aco_spec']);
 }
 if ($lobj['grp_services']) {
     $LBF_SERVICES_SECTION = $lobj['grp_services'] == '*' ? '' : $lobj['grp_services'];
@@ -127,10 +181,17 @@ if ($lobj['grp_diags']) {
     $LBF_DIAGS_SECTION = $lobj['grp_diags'] == '*' ? '' : $lobj['grp_diags'];
 }
 
+$LBF_REFERRALS_SECTION = !empty($lobj['grp_referrals']);
+
+$LBF_SECTION_DISPLAY_STYLE = $lobj['grp_init_open'] ? 'block' : 'none';
+
+// $LBF_ENABLE_SAVE_CLOSE = !empty($lobj['grp_save_close']);
+$LBF_ENABLE_SAVE_CLOSE = !empty($GLOBALS['gbl_form_save_close']);
+
 // Check access control.
-if (!acl_check('admin', 'super') && !empty($LBF_ACO)) {
-    $auth_aco_write = acl_check($LBF_ACO[0], $LBF_ACO[1], '', 'write');
-    $auth_aco_addonly = acl_check($LBF_ACO[0], $LBF_ACO[1], '', 'addonly');
+if (!AclMain::aclCheckCore('admin', 'super') && !empty($LBF_ACO)) {
+    $auth_aco_write = AclMain::aclCheckCore($LBF_ACO[0], $LBF_ACO[1], '', 'write');
+    $auth_aco_addonly = AclMain::aclCheckCore($LBF_ACO[0], $LBF_ACO[1], '', 'addonly');
     // echo "\n<!-- '$auth_aco_write' '$auth_aco_addonly' -->\n"; // debugging
     if (!$auth_aco_write && !($auth_aco_addonly && !$formid)) {
         die(xlt('Access denied'));
@@ -142,7 +203,7 @@ if (isset($LBF_SERVICES_SECTION) || isset($LBF_PRODUCTS_SECTION) || isset($LBF_D
 }
 
 if (!$from_trend_form) {
-    $fname = $GLOBALS['OE_SITE_DIR'] . "/LBF/$formname.plugin.php";
+    $fname = $GLOBALS['OE_SITE_DIR'] . "/LBF/" . check_file_dir_name($formname) . ".plugin.php";
     if (file_exists($fname)) {
         include_once($fname);
     }
@@ -150,7 +211,13 @@ if (!$from_trend_form) {
 
 // If Save was clicked, save the info.
 //
-if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POST['bn_save_continue'])) {
+if (
+    !empty($_POST['bn_save']) ||
+    !empty($_POST['bn_save_print']) ||
+    !empty($_POST['bn_save_continue']) ||
+    !empty($_POST['bn_save_checkout']) ||
+    !empty($_POST['bn_save_close'])
+) {
     $newid = 0;
     if (!$formid) {
         // Creating a new form. Get the new form_id by inserting and deleting a dummy row.
@@ -158,17 +225,17 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
         $newid = sqlInsert("INSERT INTO lbf_data " .
             "( field_id, field_value ) VALUES ( '', '' )");
         sqlStatement("DELETE FROM lbf_data WHERE form_id = ? AND " .
-            "field_id = ''", array($newid));
+            "field_id = ''", [$newid]);
         addForm($visitid, $formtitle, $newid, $formname, $pid, $userauthorized);
     }
 
-    $my_form_id = $formid ? $formid : $newid;
+    $my_form_id = $formid ?: $newid;
 
     // If there is an issue ID, update it in the forms table entry.
     if (isset($_POST['form_issue_id'])) {
         sqlStatement(
             "UPDATE forms SET issue_id = ? WHERE formdir = ? AND form_id = ? AND deleted = 0",
-            array($_POST['form_issue_id'], $formname, $my_form_id)
+            [$_POST['form_issue_id'], $formname, $my_form_id]
         );
     }
 
@@ -176,15 +243,17 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
     if (isset($_POST['form_provider_id'])) {
         sqlStatement(
             "UPDATE forms SET provider_id = ? WHERE formdir = ? AND form_id = ? AND deleted = 0",
-            array($_POST['form_provider_id'], $formname, $my_form_id)
+            [$_POST['form_provider_id'], $formname, $my_form_id]
         );
     }
 
+    $newhistorydata = [];
+    $newPatientData = [];
     $sets = "";
     $fres = sqlStatement("SELECT * FROM layout_options " .
         "WHERE form_id = ? AND uor > 0 AND field_id != '' AND " .
         "edit_options != 'H' AND edit_options NOT LIKE '%0%' " .
-        "ORDER BY group_id, seq", array($formname));
+        "ORDER BY group_id, seq", [$formname]);
     while ($frow = sqlFetchArray($fres)) {
         $field_id = $frow['field_id'];
         $data_type = $frow['data_type'];
@@ -208,38 +277,40 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
         if ($source == 'D' || $source == 'H') {
             // Save to patient_data, employer_data or history_data.
             if ($source == 'H') {
-                $new = array($field_id => $value);
-                updateHistoryData($pid, $new);
-            } else if (strpos($field_id, 'em_') === 0) {
-                $field_id = substr($field_id, 3);
-                $new = array($field_id => $value);
+                // Do not call updateHistoryData() here! That would create multiple rows
+                // in the history_data table for a single form save.
+                $newhistorydata[$field_id] = $value;
+            } elseif (str_starts_with((string) $field_id, 'em_')) {
+                $field_id = substr((string) $field_id, 3);
+                $new = [$field_id => $value];
                 updateEmployerData($pid, $new);
             } else {
-                $esc_field_id = escape_sql_column_name($field_id, array('patient_data'));
+                $newPatientData[$field_id] = $value;
+                $esc_field_id = escape_sql_column_name($field_id, ['patient_data']);
                 sqlStatement(
                     "UPDATE patient_data SET `$esc_field_id` = ? WHERE pid = ?",
-                    array($value, $pid)
+                    [$value, $pid]
                 );
             }
 
             continue;
-        } else if ($source == 'E') {
+        } elseif ($source == 'E') {
             // Save to shared_attributes. Can't delete entries for empty fields because with the P option
             // it's important to know when a current empty value overrides a previous value.
             sqlStatement(
                 "REPLACE INTO shared_attributes SET " .
                 "pid = ?, encounter = ?, field_id = ?, last_update = NOW(), " .
                 "user_id = ?, field_value = ?",
-                array($pid, $visitid, $field_id, $_SESSION['authUserID'], $value)
+                [$pid, $visitid, $field_id, $session->get('authUserID'), $value]
             );
             continue;
-        } else if ($source == 'V') {
+        } elseif ($source == 'V') {
             // Save to form_encounter.
-            $esc_field_id = escape_sql_column_name($field_id, array('form_encounter'));
+            $esc_field_id = escape_sql_column_name($field_id, ['form_encounter']);
             sqlStatement(
                 "UPDATE form_encounter SET `$esc_field_id` = ? WHERE " .
                 "pid = ? AND encounter = ?",
-                array($value, $pid, $visitid)
+                [$value, $pid, $visitid]
             );
             continue;
         }
@@ -249,26 +320,41 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
             if ($value === '') {
                 $query = "DELETE FROM lbf_data WHERE " .
                     "form_id = ? AND field_id = ?";
-                sqlStatement($query, array($formid, $field_id));
+                sqlStatement($query, [$formid, $field_id]);
             } else {
                 $query = "REPLACE INTO lbf_data SET field_value = ?, " .
                     "form_id = ?, field_id = ?";
-                sqlStatement($query, array($value, $formid, $field_id));
+                sqlStatement($query, [$value, $formid, $field_id]);
             }
         } else { // new form
             if ($value !== '') {
                 sqlStatement(
                     "INSERT INTO lbf_data " .
                     "( form_id, field_id, field_value ) VALUES ( ?, ?, ? )",
-                    array($newid, $field_id, $value)
+                    [$newid, $field_id, $value]
                 );
             }
+        }
+    } // end while save
+
+    // Save any history data that was collected above.
+    if (!empty($newhistorydata)) {
+        updateHistoryData($pid, $newhistorydata);
+    }
+    // until more testing can be done to understand impact of sequential field saving (which demographics_save and new_comprehensive_save don't do),
+    // we will handle the employer_data saving this way for now.
+    if (!empty($newPatientData)) {
+        if (!$GLOBALS['omit_employers']) {
+            updateEmployerData($pid, [
+                'occupation' => $newPatientData['occupation']
+                ,'industry' => $newPatientData['industry']
+            ]);
         }
     }
 
     if ($portalid) {
         // Delete the request from the portal.
-        $result = cms_portal_call(array('action' => 'delpost', 'postid' => $portalid));
+        $result = cms_portal_call(['action' => 'delpost', 'postid' => $portalid]);
         if ($result['errmsg']) {
             die(text($result['errmsg']));
         }
@@ -286,6 +372,10 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
         }
     }
 
+    if (!$alertmsg && !empty($_POST['bn_save_close'])) {
+        $alertmsg = FeeSheet::closeVisit($pid, $visitid);
+    }
+
     if (!$formid) {
         $formid = $newid;
     }
@@ -293,14 +383,14 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
     if (!$alertmsg && !$from_issue_form && empty($_POST['bn_save_continue'])) {
         // Support custom behavior at save time, such as going to another form.
         if (function_exists($formname . '_save_exit')) {
-            if (call_user_func($formname . '_save_exit')) {
+            if (($formname . '_save_exit')()) {
                 exit;
             }
         }
         formHeader("Redirecting....");
         // If Save and Print, write the JavaScript to open a window for printing.
         if (!empty($_POST['bn_save_print'])) {
-            echo "<script language='Javascript'>\n" .
+            echo "<script>\n" .
                 "top.restoreSession();\n" .
                 "window.open('$rootdir/forms/LBF/printable.php?" .
                 "formname=" . attr_url($formname) .
@@ -315,47 +405,32 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
         exit;
     }
 }
-
 ?>
+<!DOCTYPE html>
 <html>
 <head>
-    <?php Header::setupHeader(['opener', 'common', 'datetime-picker', 'jquery-ui',]); ?>
+    <?php Header::setupHeader(['opener', 'common', 'datetime-picker', 'select2']); ?>
 
     <style>
 
-        td, input, select, textarea {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 10pt;
-        }
-
-        .table > tbody > tr > td {
-            border-top: 0;
-        }
-
         div.section {
-            border: solid;
-            border-width: 1px;
-            border-color: #0000ff;
-            margin: 0 0 0 10pt;
-            padding: 5pt;
-        }
-
-        .form-control {
-            width: auto;
-            display: inline;
-            height: auto;
+            border: 1px solid var(--primary);
+            margin: 0 0 0 0.8125rem;
+            padding: 0.4375rem;
         }
 
         .RS {
             border-style: solid;
             border-width: 0 0 1px 0;
-            border-color: #999999;
+            border-color: var(--gray600);
         }
 
         .RO {
-            border-style: solid;
-            border-width: 1px 1px 1px 1px !important;
-            border-color: #999999;
+            border-width: 1px solid var(--gray600) !important;
+        }
+
+        .linkcolor {
+            color: blue;
         }
 
     </style>
@@ -364,8 +439,9 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
 
     <!-- LiterallyCanvas support -->
     <?php echo lbf_canvas_head(); ?>
+    <?php echo signer_head(); ?>
 
-    <script language="JavaScript">
+    <script>
 
         // Support for beforeunload handler.
         var somethingChanged = false;
@@ -380,7 +456,7 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
             parent.closeTab(window.name, false);
         }
 
-        $(document).ready(function () {
+        $(function () {
 
             if (window.tabbify) {
                 tabbify();
@@ -389,12 +465,22 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
                 checkSkipConditions();
             }
 
+            $(".select-dropdown").select2({
+                theme: "bootstrap4",
+                <?php require($GLOBALS['srcdir'] . '/js/xl/select2.js.php'); ?>
+            });
+            if (typeof error !== 'undefined') {
+                if (error) {
+                    alertMsg(error);
+                }
+            }
+
             $(".iframe_medium").on('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 let url = $(this).attr('href');
                 url = encodeURI(url);
-                dlgopen('', '', 950, 550, '', '', {
+                dlgopen('', '', 950, 650, '', '', {
                     buttons: [
                         {text: <?php echo xlj('Close'); ?>, close: true, style: 'default btn-sm'}
                     ],
@@ -419,6 +505,8 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
                 <?php $datetimepicker_timepicker = false; ?>
                 <?php $datetimepicker_showseconds = false; ?>
                 <?php $datetimepicker_formatInput = true; ?>
+                <?php $datetimepicker_minDate = false; ?>
+                <?php $datetimepicker_maxDate = false; ?>
                 <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
@@ -426,6 +514,44 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
                 <?php $datetimepicker_timepicker = true; ?>
                 <?php $datetimepicker_showseconds = false; ?>
                 <?php $datetimepicker_formatInput = true; ?>
+                <?php $datetimepicker_minDate = false; ?>
+                <?php $datetimepicker_maxDate = false; ?>
+                <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
+            });
+            $('.datepicker-past').datetimepicker({
+                <?php $datetimepicker_timepicker = false; ?>
+                <?php $datetimepicker_showseconds = false; ?>
+                <?php $datetimepicker_formatInput = true; ?>
+                <?php $datetimepicker_minDate = false; ?>
+                <?php $datetimepicker_maxDate = '+1970/01/01'; ?>
+                <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
+            });
+            $('.datetimepicker-past').datetimepicker({
+                <?php $datetimepicker_timepicker = true; ?>
+                <?php $datetimepicker_showseconds = false; ?>
+                <?php $datetimepicker_formatInput = true; ?>
+                <?php $datetimepicker_minDate = false; ?>
+                <?php $datetimepicker_maxDate = '+1970/01/01'; ?>
+                <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
+            });
+            $('.datepicker-future').datetimepicker({
+                <?php $datetimepicker_timepicker = false; ?>
+                <?php $datetimepicker_showseconds = false; ?>
+                <?php $datetimepicker_formatInput = true; ?>
+                <?php $datetimepicker_minDate = '-1970/01/01'; ?>
+                <?php $datetimepicker_maxDate = false; ?>
+                <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
+            });
+            $('.datetimepicker-future').datetimepicker({
+                <?php $datetimepicker_timepicker = true; ?>
+                <?php $datetimepicker_showseconds = false; ?>
+                <?php $datetimepicker_formatInput = true; ?>
+                <?php $datetimepicker_minDate = '-1970/01/01'; ?>
+                <?php $datetimepicker_maxDate = false; ?>
                 <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
@@ -455,12 +581,14 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
             // This is the case of selecting a code for the Fee Sheet:
             if (!current_sel_name) {
                 if (code) {
-                    $.getScript('<?php echo $GLOBALS['web_root'] ?>/library/ajax/code_attributes_ajax.php' +
-                        '?codetype=' + encodeURIComponent(codetype) +
-                        '&code=' + encodeURIComponent(code) +
-                        '&selector=' + encodeURIComponent(selector) +
-                        '&pricelevel=' + encodeURIComponent(f.form_fs_pricelevel ? f.form_fs_pricelevel.value : "") +
-                        '&csrf_token_form=' + <?php echo js_url(collectCsrfToken()); ?>);
+                    const params = new URLSearchParams({
+                        code: code,
+                        codetype: codetype,
+                        csrf_token_form: <?php echo js_escape(CsrfUtils::collectCsrfToken('default', $session->getSymfonySession())); ?>,
+                        pricelevel: f.form_fs_pricelevel ? f.form_fs_pricelevel.value : "",
+                        selector: selector
+                    });
+                    $.getScript('<?php echo $GLOBALS['web_root'] ?>/library/ajax/code_attributes_ajax.php?' + params);
                 }
                 return '';
             }
@@ -474,9 +602,14 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
                 frcd = frc;
                 frc = f[matches[1]];
             }
-            // For LBFs we will allow only one code in a field.
-            var s = ''; // frc.value;
-            var sd = ''; // frcd ? frcd.value : s;
+            // Allow only one code in a field unless edit option E is present.
+            var s = '';
+            var sd = '';
+            if ((' ' + frc.className + ' ').indexOf(' EditOptionE ') > -1) {
+                s = frc.value;
+                sd = frcd ? frcd.value : s;
+            }
+            //
             if (code) {
                 if (s.length > 0) {
                     s += ';';
@@ -526,22 +659,64 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
         }
 
         // Validation logic for form submission.
-        function validate(f) {
+        // Added prevent restoreSession for remotes
+        var submitButtonName = '';
+
+        function validate(f, restore = true) {
+            var errMsgs = new Array();
             <?php generate_layout_validation($formname); ?>
             // Validation for Fee Sheet stuff. Skipping this because CV decided (2015-11-03)
             // that these warning messages are not appropriate for layout based visit forms.
             //
             // if (window.jsLineItemValidation && !jsLineItemValidation(f)) return false;
+
+            if (submitButtonName == 'bn_save_close') {
+                // For "Save and Close Visit" we check for unsaved form data in the sibling iframes.
+                for (var i = 0; i < parent.frames.length; ++i) {
+                    var w = parent.frames[i];
+                    var tmpId = w.name;
+                    if (tmpId.indexOf('enctabs-') == 0 && tmpId != window.name) {
+                        if (typeof w.somethingChanged !== 'undefined' && w.somethingChanged) {
+                            alert(<?php echo xlj('Hold on! You have unsaved changes in another form. Please just Save this form and then complete the other one.'); ?>);
+                            return false;
+                        }
+                    }
+                }
+            }
+
             somethingChanged = false; // turn off "are you sure you want to leave"
+            if (restore) {
+                top.restoreSession();
+            }
+
+            return errMsgs.length == 0;
+        }
+
+        // Called to open the data entry form of a specified encounter form instance.
+        // TBD: Move this to TabsWrapper.class.php.
+        function openLBFEncounterForm(formdir, formname, formid) {
             top.restoreSession();
-            return true;
+            const params = new URLSearchParams({
+                formname: formdir,
+                id: formid
+            });
+            const url = '<?php echo "$rootdir/patient_file/encounter/view_form.php?" ?>' + params;
+            parent.twAddFrameTab('enctabs', formname, url);
+            return false;
+        }
+
+        function openLBFNewForm(formdir, formname) {
+            top.restoreSession();
+            var url = '<?php echo "$rootdir/patient_file/encounter/load_form.php?formname=" ?>' +
+                encodeURIComponent(formdir);
+            parent.twAddFrameTab('enctabs', formname, url);
         }
 
         <?php
         if (isset($fs)) {
         // jsLineItemValidation() function for the fee sheet stuff.
             echo $fs->jsLineItemValidation('form_fs_bill', 'form_fs_prod');
-        ?>
+            ?>
 
         // Add a service line item.
         function fs_append_service(code_type, code, desc, price) {
@@ -549,15 +724,15 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
             var lino = telem.rows.length - 1;
             var trelem = telem.insertRow(telem.rows.length);
             trelem.innerHTML =
-                "<td class='text'>" + code + "&nbsp;</td>" +
-                "<td class='text'>" + desc + "&nbsp;</td>" +
-                "<td class='text'>" +
-                "<select name='form_fs_bill[" + lino + "][provid]'>" +
-                "<?php echo addslashes($fs->genProviderOptionList('-- ' . xl('Default') . ' --')) ?>" +
+                "<td class='text border-top-0'>" + code + "&nbsp;</td>" +
+                "<td class='text border-top-0'>" + desc + "&nbsp;</td>" +
+                "<td class='text border-top-0'>" +
+                "<select class='form-control' name='form_fs_bill[" + lino + "][provid]'>" +
+                "<?php echo addslashes((string) $fs->genProviderOptionList('-- ' . xl('Default') . ' --')) ?>" +
                 "</select>&nbsp;" +
                 "</td>" +
-                "<td class='text' align='right'>" + price + "&nbsp;</td>" +
-                "<td class='text' align='right'>" +
+                "<td class='text border-top-0 text-right'>" + price + "&nbsp;</td>" +
+                "<td class='text border-top-0 text-right'>" +
                 "<input type='checkbox' name='form_fs_bill[" + lino + "][del]' value='1' />" +
                 "<input type='hidden' name='form_fs_bill[" + lino + "][code_type]' value='" + code_type + "' />" +
                 "<input type='hidden' name='form_fs_bill[" + lino + "][code]'      value='" + code + "' />" +
@@ -575,15 +750,15 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
             var lino = telem.rows.length - 1;
             var trelem = telem.insertRow(telem.rows.length);
             trelem.innerHTML =
-                "<td class='text'>" + desc + "&nbsp;</td>" +
-                "<td class='text'>" +
-                "<select name='form_fs_prod[" + lino + "][warehouse]'>" + warehouses + "</select>&nbsp;" +
+                "<td class='text border-top-0'>" + desc + "&nbsp;</td>" +
+                "<td class='text border-top-0'>" +
+                "<select class='form-control' name='form_fs_prod[" + lino + "][warehouse]'>" + warehouses + "</select>&nbsp;" +
                 "</td>" +
-                "<td class='text' align='right'>" +
-                "<input type='text' name='form_fs_prod[" + lino + "][units]' size='3' value='1' />&nbsp;" +
+                "<td class='text border-top-0 text-right'>" +
+                "<input type='text' class='form-control' name='form_fs_prod[" + lino + "][units]' size='3' value='1' />&nbsp;" +
                 "</td>" +
-                "<td class='text' align='right'>" + price + "&nbsp;</td>" +
-                "<td class='text' align='right'>" +
+                "<td class='text border-top-0 text-right'>" + price + "&nbsp;</td>" +
+                "<td class='text border-top-0 text-right'>" +
                 "<input type='checkbox' name='form_fs_prod[" + lino + "][del]'     value='1' />" +
                 "<input type='hidden'   name='form_fs_prod[" + lino + "][drug_id]' value='" + code + "' />" +
                 "<input type='hidden'   name='form_fs_prod[" + lino + "][price]'   value='" + price + "' />" +
@@ -597,9 +772,9 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
             var lino = telem.rows.length - 1 + 1000;
             var trelem = telem.insertRow(telem.rows.length);
             trelem.innerHTML =
-                "<td class='text'>" + code + "&nbsp;</td>" +
-                "<td class='text'>" + desc + "&nbsp;</td>" +
-                "<td class='text' align='right'>" +
+                "<td class='text border-top-0'>" + code + "&nbsp;</td>" +
+                "<td class='text border-top-0'>" + desc + "&nbsp;</td>" +
+                "<td class='text border-top-0 text-right'>" +
                 "<input type='checkbox' name='form_fs_bill[" + lino + "][del]' value='1' />" +
                 "<input type='hidden' name='form_fs_bill[" + lino + "][code_type]' value='" + code_type + "' />" +
                 "<input type='hidden' name='form_fs_bill[" + lino + "][code]'      value='" + code + "' />" +
@@ -627,11 +802,13 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
                 }
                 return;
             }
-            $.getScript('<?php echo $GLOBALS['web_root'] ?>/library/ajax/code_attributes_ajax.php' +
-                '?codetype=' + encodeURIComponent(a[0]) +
-                '&code=' + encodeURIComponent(a[1]) +
-                '&pricelevel=' + encodeURIComponent(f.form_fs_pricelevel.value) +
-                '&csrf_token_form=' + <?php echo js_url(collectCsrfToken()); ?>);
+            const params = new URLSearchParams({
+                code: a[1],
+                codetype: a[0],
+                csrf_token_form: <?php echo js_escape(CsrfUtils::collectCsrfToken('default', $session->getSymfonySession())); ?>,
+                pricelevel: f.form_fs_pricelevel.value
+            });
+            $.getScript('<?php echo $GLOBALS['web_root'] ?>/library/ajax/code_attributes_ajax.php?' + params);
         }
 
         // Respond to clicking a checkbox for adding (or removing) a specific product.
@@ -653,12 +830,14 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
                 }
                 return;
             }
-            $.getScript('<?php echo $GLOBALS['web_root'] ?>/library/ajax/code_attributes_ajax.php' +
-                '?codetype=' + encodeURIComponent(a[0]) +
-                '&code=' + encodeURIComponent(a[1]) +
-                '&selector=' + encodeURIComponent(a[2]) +
-                '&pricelevel=' + encodeURIComponent(f.form_fs_pricelevel.value) +
-                '&csrf_token_form=' + <?php echo js_url(collectCsrfToken()); ?>);
+            const params = new URLSearchParams({
+                code: a[1],
+                codetype: a[0],
+                csrf_token_form: <?php echo js_escape(CsrfUtils::collectCsrfToken('default', $session->getSymfonySession())); ?>,
+                pricelevel: f.form_fs_pricelevel.value,
+                selector: a[2]
+            });
+            $.getScript('<?php echo $GLOBALS['web_root'] ?>/library/ajax/code_attributes_ajax.php?' + params);
         }
 
         // Respond to clicking a checkbox for adding (or removing) a specific diagnosis.
@@ -680,11 +859,13 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
                 }
                 return;
             }
-            $.getScript('<?php echo $GLOBALS['web_root'] ?>/library/ajax/code_attributes_ajax.php' +
-                '?codetype=' + encodeURIComponent(a[0]) +
-                '&code=' + encodeURIComponent(a[1]) +
-                '&pricelevel=' + encodeURIComponent(f.form_fs_pricelevel ? f.form_fs_pricelevel.value : "") +
-                '&csrf_token_form=' + <?php echo js_url(collectCsrfToken()); ?>));
+            const params = new URLSearchParams({
+                code: a[1],
+                codetype: a[0],
+                csrf_token_form: <?php echo js_escape(CsrfUtils::collectCsrfToken('default', $session->getSymfonySession())); ?>,
+                pricelevel: f.form_fs_pricelevel ? f.form_fs_pricelevel.value : ""
+            });
+            $.getScript('<?php echo $GLOBALS['web_root'] ?>/library/ajax/code_attributes_ajax.php?' + params);
         }
 
         // Respond to selecting a package of codes.
@@ -692,10 +873,12 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
             var f = sel.form;
             // The option value is an encoded string of code types and codes.
             if (sel.value) {
-                $.getScript('<?php echo $GLOBALS['web_root'] ?>/library/ajax/code_attributes_ajax.php' +
-                    '?list=' + encodeURIComponent(sel.value) +
-                    '&pricelevel=' + encodeURIComponent(f.form_fs_pricelevel ? f.form_fs_pricelevel.value : "") +
-                    '&csrf_token_form=' + <?php echo js_url(collectCsrfToken()); ?>);
+                const params = new URLSearchParams({
+                    csrf_token_form: <?php echo js_escape(CsrfUtils::collectCsrfToken('default', $session->getSymfonySession())); ?>,
+                    list: sel.value,
+                    pricelevel: f.form_fs_pricelevel ? f.form_fs_pricelevel.value : ""
+                });
+                $.getScript('<?php echo $GLOBALS['web_root'] ?>/library/ajax/code_attributes_ajax.php?' + params);
             }
             sel.selectedIndex = 0;
         }
@@ -704,11 +887,9 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
         function code_attributes_handler(codetype, code, desc, price, warehouses) {
             if (codetype == 'PROD') {
                 fs_append_product(codetype, code, desc, price, warehouses);
-            }
-            else if (codetype == 'ICD9' || codetype == 'ICD10') {
+            } else if (codetype == 'ICD9' || codetype == 'ICD10') {
                 fs_append_diag(codetype, code, desc);
-            }
-            else {
+            } else {
                 fs_append_service(codetype, code, desc, price);
             }
         }
@@ -725,7 +906,7 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
         <?php } // end if (isset($fs))
 
         if (function_exists($formname . '_javascript')) {
-            call_user_func($formname . '_javascript');
+            ($formname . '_javascript')();
         }
         ?>
 
@@ -733,854 +914,1035 @@ if (!empty($_POST['bn_save']) || !empty($_POST['bn_save_print']) || !empty($_POS
 </head>
 
 <body class="body_top"<?php if ($from_issue_form) {
-    echo " style='background-color:#ffffff'";
-} ?>>
-<div class='container'>
-    <?php
-    echo "<form method='post' " .
-        "action='$rootdir/forms/LBF/new.php?formname=" . attr_url($formname) . "&id=" . attr_url($formid) . "&portalid=" . attr_url($portalid) . "' " .
-        "onsubmit='return validate(this)'>\n";
+    echo " style='background-color:var(--white)'"; } ?>>
+    <!-- Set as a container until xl breakpoint then make fluid. -->
+    <div class="container-xl">
+        <?php
+        // form-inline is more consistent with the fact that LBFs are not designed for
+        // small devices. In particular we prefer horizontal arrangement of multiple
+        // items in the same row and column.
+        echo "<form method='post' class='form-inline' " .
+            "action='$rootdir/forms/LBF/new.php?formname=" . attr_url($formname) . "&id=" . attr_url($formid) . "&portalid=" . attr_url($portalid) . "&formOrigin=" . attr_url($form_origin) . "&isPortal=" . attr_url($patient_portal) . "' " .
+            "onsubmit='return validate(this)'>\n";
+        ?>
+        <!-- row width will size to col content width -->
+        <!-- We need all possible viewport width sjp w-100 -->
+        <div class="row w-100 overflow-auto">
+            <div class="col-12">
+                <?php
+                $cmsportal_login = '';
+                $portalres = false;
 
-    $cmsportal_login = '';
-    $portalres = false;
-
-
-    if (!$from_trend_form) {
-        $enrow = sqlQuery("SELECT p.fname, p.mname, p.lname, p.cmsportal_login, " .
-        "fe.date FROM " .
-        "form_encounter AS fe, forms AS f, patient_data AS p WHERE " .
-        "p.pid = ? AND f.pid = p.pid AND f.encounter = ? AND " .
-        "f.formdir = 'newpatient' AND f.deleted = 0 AND " .
-        "fe.id = f.form_id LIMIT 1", array($pid, $visitid)); ?>
-
-    <div class="container-responsive">
-        <div class="row">
-            <div class="col-xs-12">
-                <div class="page-header">
-                    <h3>
-                        <?php echo text($formtitle) . " " . xlt('for') . ' ';
-                        echo text($enrow['fname']) . ' ' . text($enrow['mname']) . ' ' . text($enrow['lname']);
-                        echo ' ' . xlt('on') . ' ' . text(oeFormatShortDate(substr($enrow['date'], 0, 10))); ?>
-                    </h3>
-                    <?php
-                    $firow = sqlQuery(
-                        "SELECT issue_id, provider_id FROM forms WHERE " .
-                        "formdir = ? AND form_id = ? AND deleted = 0",
-                        array($formname, $formid)
-                    );
-                    $form_issue_id = empty($firow['issue_id']) ? 0 : intval($firow['issue_id']);
-                    $form_provider_id = empty($firow['provider_id']) ? 0 : intval($firow['provider_id']);
-
-                    // Provider selector.
-                    echo "&nbsp;&nbsp;";
-                    echo xlt('Provider') . ": ";
-                    // TBD: Refactor this function out of the FeeSheetHTML class as that is not the best place for it.
-                    echo FeeSheetHtml::genProviderSelect('form_provider_id', '-- ' . xl("Please Select") . ' --', $form_provider_id);
-
-                    // If appropriate build a drop-down selector of issues of this type for this patient.
-                    // We skip this if in an issue form tab because removing and adding visit form tabs is
-                    // beyond the current scope of that code.
-                    if (!empty($LBF_ISSUE_TYPE) && !$from_issue_form) {
-                        echo "&nbsp;&nbsp;";
-                        $query = "SELECT id, title, date, begdate FROM lists WHERE pid = ? AND type = ? " .
-                            "ORDER BY COALESCE(begdate, date) DESC, id DESC";
-                        $ires = sqlStatement($query, array($pid, $LBF_ISSUE_TYPE));
-                        echo "<select name='form_issue_id'>\n";
-                        echo " <option value='0'>-- " . xlt('Select Case') . " --</option>\n";
-                        while ($irow = sqlFetchArray($ires)) {
-                            $issueid = $irow['id'];
-                            $issuedate = oeFormatShortDate(empty($irow['begdate']) ? $irow['date'] : $irow['begdate']);
-                            echo " <option value='" . attr($issueid) . "'";
-                            if ($issueid == $form_issue_id) {
-                                echo " selected";
-                            }
-                            echo ">" . text("$issuedate " . $irow['title']) . "</option>\n";
-                        }
-                        echo "</select>\n";
-                    }
-                    ?>
-                </div>
-            </div>
-
-            <?php $cmsportal_login = $enrow['cmsportal_login'];
-    } // end not from trend form
-
-            // If loading data from portal, get the data.
-    if ($GLOBALS['gbl_portal_cms_enable'] && $portalid) {
-        $portalres = cms_portal_call(array('action' => 'getpost', 'postid' => $portalid));
-        if ($portalres['errmsg']) {
-            die(text($portalres['errmsg']));
-        }
-    }
-            ?>
-
-            <!-- This is where a chart might display. -->
-            <div id="chart"></div>
-
-            <?php
-            $shrow = getHistoryData($pid);
-
-            // Determine if this layout uses edit option "I" anywhere.
-            // If not we default to only the first group being initially open.
-            $tmprow = sqlQuery("SELECT form_id FROM layout_options " .
-                "WHERE form_id = ? AND uor > 0 AND edit_options LIKE '%I%' " .
-                "LIMIT 1", array($formname));
-            $some_group_is_open = !empty($tmprow['form_id']);
-
-            $fres = sqlStatement("SELECT * FROM layout_options " .
-                "WHERE form_id = ? AND uor > 0 " .
-                "ORDER BY group_id, seq", array($formname));
-            $cell_count = 0;
-            $item_count = 0;
-            $display_style = 'block';
-
-            // This string is the active group levels. Each leading substring represents an instance of nesting.
-            $group_levels = '';
-
-            // This indicates if </table> will need to be written to end the fields in a group.
-            $group_table_active = false;
-
-            // This is an array keyed on forms.form_id for other occurrences of this
-            // form type.  The maximum number of such other occurrences to display is
-            // in list_options.option_value for this form's list item.  Values in this
-            // array are work areas for building the ending HTML for each displayed row.
-            //
-            $historical_ids = array();
-
-            // True if any data items in this form can be graphed.
-            $form_is_graphable = false;
-
-            $condition_str = '';
-
-            while ($frow = sqlFetchArray($fres)) {
-                $this_group = $frow['group_id'];
-                $titlecols = $frow['titlecols'];
-                $datacols = $frow['datacols'];
-                $data_type = $frow['data_type'];
-                $field_id = $frow['field_id'];
-                $list_id = $frow['list_id'];
-                $edit_options = $frow['edit_options'];
-                $source = $frow['source'];
-                $jump_new_row = isOption($edit_options, 'J');
-                $prepend_blank_row = isOption($edit_options, 'K');
-
-                $graphable = isOption($edit_options, 'G') !== false;
-                if ($graphable) {
-                    $form_is_graphable = true;
-                }
-
-                // Accumulate action conditions into a JSON expression for the browser side.
-                accumActionConditions($field_id, $condition_str, $frow['conditions']);
-
-                $currvalue = '';
-
-                if (isOption($edit_options, 'H') !== false) {
-                    // This data comes from static history
-                    if (isset($shrow[$field_id])) {
-                        $currvalue = $shrow[$field_id];
-                    }
-                } else {
-                    if (!$formid && $portalres) {
-                        // Copying CMS Portal form data into this field if appropriate.
-                        $currvalue = cms_field_to_lbf($data_type, $field_id, $portalres['fields']);
-                    }
-
-                    if ($currvalue === '') {
-                        $currvalue = lbf_current_value($frow, $formid, $is_lbf ? 0 : $encounter);
-                    }
-
-                    if ($currvalue === false) {
-                        continue; // column does not exist, should not happen
-                    }
-
-                    // Handle "P" edit option to default to the previous value of a form field.
-                    if (!$from_trend_form && empty($currvalue) && isOption($edit_options, 'P') !== false) {
-                        if ($source == 'F' && !$formid) {
-                            // Form attribute for new form, get value from most recent form instance.
-                            // Form attributes of existing forms are expected to have existing values.
-                            $tmp = sqlQuery(
-                                "SELECT encounter, form_id FROM forms WHERE " .
-                                "pid = ? AND formdir = ? AND deleted = 0 " .
-                                "ORDER BY date DESC LIMIT 1",
-                                array($pid, $formname)
+                if (!$from_trend_form) {
+                    $enrow = sqlQuery("SELECT p.fname, p.mname, p.lname, p.cmsportal_login, " .
+                        "fe.date FROM " .
+                        "form_encounter AS fe, forms AS f, patient_data AS p WHERE " .
+                        "p.pid = ? AND f.pid = p.pid AND f.encounter = ? AND " .
+                        "f.formdir = 'newpatient' AND f.deleted = 0 AND " .
+                        "fe.id = f.form_id LIMIT 1", [$pid, $visitid]); ?>
+                    <div class="row">
+                        <div class="col-12">
+                            <h3>
+                                <?php echo text($formtitle);
+                                if ($is_core) {
+                                    echo " " . xlt('for') . ' ';
+                                    echo text($enrow['fname'] ?? '') . ' ' . text($enrow['mname'] ?? '') . ' ' . text($enrow['lname'] ?? '');
+                                    echo ' ' . xlt('on') . ' ' . text(oeFormatShortDate(substr($enrow['date'] ?? '', 0, 10)));
+                                } ?>
+                            </h3>
+                            <?php
+                            $firow = sqlQuery(
+                                "SELECT issue_id, provider_id FROM forms WHERE " .
+                                "formdir = ? AND form_id = ? AND deleted = 0",
+                                [$formname, $formid]
                             );
-                            if (!empty($tmp['encounter'])) {
-                                $currvalue = lbf_current_value($frow, $tmp['form_id'], $tmp['encounter']);
+                            $form_issue_id = empty($firow['issue_id']) ? 0 : intval($firow['issue_id']);
+                            $default = empty($firow['provider_id']) ? ($session->get('authUserID') ?? null) : intval($firow['provider_id']);
+
+                            if (!$patient_portal) {
+                                // Provider selector.
+                                echo "&nbsp;&nbsp;";
+                                echo xlt('Provider') . ": ";
+                                echo "<select class='form-control' name='form_provider_id'>";
+                                echo FeeSheetHtml::genProviderOptionList(
+                                    '-- ' . xl("Please Select") . ' --',
+                                    ($form_provider_id ?? '')
+                                );
+                                echo "</select>\n";
                             }
-                        } else if ($source == 'E') {
-                            // Visit attribute, get most recent value as of this visit.
-                            // Even if the form already exists for this visit it may have a readonly value that only
-                            // exists in a previous visit and was created from a different form.
-                            $tmp = sqlQuery(
-                                "SELECT sa.field_value FROM form_encounter AS e1 " .
-                                "JOIN form_encounter AS e2 ON " .
-                                "e2.pid = e1.pid AND (e2.date < e1.date OR (e2.date = e1.date AND e2.encounter <= e1.encounter)) " .
-                                "JOIN shared_attributes AS sa ON " .
-                                "sa.pid = e2.pid AND sa.encounter = e2.encounter AND sa.field_id = ?" .
-                                "WHERE e1.pid = ? AND e1.encounter = ? " .
-                                "ORDER BY e2.date DESC, e2.encounter DESC LIMIT 1",
-                                array($field_id, $pid, $visitid)
-                            );
-                            if (isset($tmp['field_value'])) {
-                                $currvalue = $tmp['field_value'];
+
+                            // If appropriate build a drop-down selector of issues of this type for this patient.
+                            // We skip this if in an issue form tab because removing and adding visit form tabs is
+                            // beyond the current scope of that code.
+                            if (!empty($LBF_ISSUE_TYPE) && !$from_issue_form) {
+                                echo "&nbsp;&nbsp;";
+                                $query = "SELECT id, title, date, begdate FROM lists WHERE pid = ? AND type = ? " .
+                                    "ORDER BY COALESCE(begdate, date) DESC, id DESC";
+                                $ires = sqlStatement($query, [$pid, $LBF_ISSUE_TYPE]);
+                                echo "<select name='form_issue_id'>\n";
+                                echo " <option value='0'>-- " . xlt('Select Case') . " --</option>\n";
+                                while ($irow = sqlFetchArray($ires)) {
+                                    $issueid = $irow['id'];
+                                    $issuedate = oeFormatShortDate(empty($irow['begdate']) ? $irow['date'] : $irow['begdate']);
+                                    echo " <option value='" . attr($issueid) . "'";
+                                    if ($issueid == $form_issue_id) {
+                                        echo " selected";
+                                    }
+                                    echo ">" . text("$issuedate " . $irow['title']) . "</option>\n";
+                                }
+                                echo "</select>\n";
+                            }
+                            ?>
+                        </div>
+                    </div>
+                    <?php $cmsportal_login = $enrow['cmsportal_login'] ?? '';
+                } // end not from trend form
+                ?>
+
+                <!-- This is where a chart might display. -->
+                <div id="chart"></div>
+                <?php
+                $shrow = getHistoryData($pid);
+
+                $TOPCPR = empty($grparr['']['grp_columns']) ? 4 : $grparr['']['grp_columns'];
+
+                $fres = sqlStatement("SELECT * FROM layout_options " .
+                    "WHERE form_id = ? AND uor > 0 " .
+                    "ORDER BY group_id, seq", [$formname]);
+                $cell_count = 0;
+                $item_count = 0;
+                // $display_style = 'block';
+
+                // This string is the active group levels. Each leading substring represents an instance of nesting.
+                $group_levels = '';
+
+                // This indicates if </table> will need to be written to end the fields in a group.
+                $group_table_active = false;
+
+                // This is an array keyed on forms.form_id for other occurrences of this
+                // form type.  The maximum number of such other occurrences to display is
+                // in list_options.option_value for this form's list item.  Values in this
+                // array are work areas for building the ending HTML for each displayed row.
+                //
+                $historical_ids = [];
+
+                // True if any data items in this form can be graphed.
+                $form_is_graphable = false;
+
+                $condition_str = '';
+
+                while ($frow = sqlFetchArray($fres)) {
+                    $this_group = $frow['group_id'];
+                    $titlecols = $frow['titlecols'];
+                    $datacols = $frow['datacols'];
+                    $data_type = $frow['data_type'];
+                    $field_id = $frow['field_id'];
+                    $list_id = $frow['list_id'];
+                    $edit_options = $frow['edit_options'];
+                    $source = $frow['source'];
+                    $jump_new_row = isOption($edit_options, 'J');
+                    $prepend_blank_row = isOption($edit_options, 'K');
+
+                    $CPR = empty($grparr[$this_group]['grp_columns']) ? $TOPCPR : $grparr[$this_group]['grp_columns'];
+
+                    $graphable = isOption($edit_options, 'G') !== false;
+                    if ($graphable) {
+                        $form_is_graphable = true;
+                    }
+
+                    if (isOption($edit_options, 'EP') && $patient_portal) {
+                        continue;
+                    }
+
+                    // Accumulate action conditions into a JSON expression for the browser side.
+                    accumActionConditions($frow, $condition_str);
+
+                    $currvalue = '';
+
+                    if (isOption($edit_options, 'H') !== false) {
+                        // This data comes from static history
+                        if (isset($shrow[$field_id])) {
+                            $currvalue = $shrow[$field_id];
+                        }
+                    } else {
+                        if (!$formid && $portalres) {
+                            // Copying CMS Portal form data into this field if appropriate.
+                            $currvalue = cms_field_to_lbf($data_type, $field_id, $portalres['fields']);
+                        }
+
+                        if ($currvalue === '') {
+                            $currvalue = lbf_current_value($frow, $formid, (!empty($is_lbf)) ? 0 : $encounter);
+                        }
+
+                        if ($currvalue === false) {
+                            continue; // column does not exist, should not happen
+                        }
+
+                        // Handle "P" edit option to default to the previous value of a form field.
+                        if (!$from_trend_form && empty($currvalue) && isOption($edit_options, 'P') !== false) {
+                            if ($source == 'F' && !$formid) {
+                                // Form attribute for new form, get value from most recent form instance.
+                                // Form attributes of existing forms are expected to have existing values.
+                                $tmp = sqlQuery(
+                                    "SELECT encounter, form_id FROM forms WHERE " .
+                                    "pid = ? AND formdir = ? AND deleted = 0 " .
+                                    "ORDER BY date DESC LIMIT 1",
+                                    [$pid, $formname]
+                                );
+                                if (!empty($tmp['encounter'])) {
+                                    $currvalue = lbf_current_value($frow, $tmp['form_id'], $tmp['encounter']);
+                                }
+                            } elseif ($source == 'E') {
+                                // Visit attribute, get most recent value as of this visit.
+                                // Even if the form already exists for this visit it may have a readonly value that only
+                                // exists in a previous visit and was created from a different form.
+                                $tmp = sqlQuery(
+                                    "SELECT sa.field_value FROM form_encounter AS e1 " .
+                                    "JOIN form_encounter AS e2 ON " .
+                                    "e2.pid = e1.pid AND (e2.date < e1.date OR (e2.date = e1.date AND e2.encounter <= e1.encounter)) " .
+                                    "JOIN shared_attributes AS sa ON " .
+                                    "sa.pid = e2.pid AND sa.encounter = e2.encounter AND sa.field_id = ? " .
+                                    "WHERE e1.pid = ? AND e1.encounter = ? " .
+                                    "ORDER BY e2.date DESC, e2.encounter DESC LIMIT 1",
+                                    [$field_id, $pid, $visitid]
+                                );
+                                if (isset($tmp['field_value'])) {
+                                    $currvalue = $tmp['field_value'];
+                                }
+                            }
+                        } // End "P" option logic.
+                    }
+
+                    $this_levels = $this_group;
+                    $i = 0;
+                    $mincount = min(strlen((string) $this_levels), strlen($group_levels));
+                    while ($i < $mincount && $this_levels[$i] == $group_levels[$i]) {
+                        ++$i;
+                    }
+                    // $i is now the number of initial matching levels.
+
+                    // If ending a group or starting a subgroup, terminate the current row and its table.
+                    if ($group_table_active && ($i != strlen($group_levels) || $i != strlen((string) $this_levels))) {
+                        end_row();
+                        echo $USING_BOOTSTRAP ? " </div>\n" : " </table>\n";
+                        $group_table_active = false;
+                    }
+
+                    // Close any groups that we are done with.
+                    while (strlen($group_levels) > $i) {
+                        $gname = $grparr[$group_levels]['grp_title'];
+                        $group_levels = substr($group_levels, 0, -1); // remove last character
+                        // No div for an empty group name.
+                        if (strlen((string) $gname)) {
+                            echo "</div>\n";
+                        }
+                    }
+
+                    // If there are any new groups, open them.
+                    while ($i < strlen((string) $this_levels)) {
+                        end_row();
+                        if ($group_table_active) {
+                            echo $USING_BOOTSTRAP ? " </div>\n" : " </table>\n";
+                            $group_table_active = false;
+                        }
+                        $group_levels .= $this_levels[$i++];
+                        $grouprow = $grparr[substr($group_levels, 0, $i)];
+                        $gname = $grouprow['grp_title'];
+                        $subtitle = xl_layout_label($grouprow['grp_subtitle']);
+                        // Compute a short unique identifier for this group.
+                        $group_seq = 'lbf' . $group_levels;
+                        $group_name = $gname;
+
+                        $display_style = $grouprow['grp_init_open'] ? 'block' : 'none';
+
+                        // If group name is blank, no checkbox or div.
+                        if (strlen((string) $gname)) {
+                            // <label> was inheriting .justify-content-center from .form-inline,
+                            // dunno why but we fix that here.
+                            echo "<br /><span><label class='mb-1 justify-content-start' role='button'><input class='mr-1' type='checkbox' name='form_cb_" . attr($group_seq) . "' value='1' " . "onclick='return divclick(this," . attr_js('div_' . $group_seq) . ");'";
+                            if ($display_style == 'block') {
+                                echo " checked";
+                            }
+                            echo " /><strong>" . text(xl_layout_label($group_name)) . "</strong></label></span>\n";
+                            // table-responsive removed below because it added a scrollbar regardless of screen width.
+                            echo "<div id='div_" . attr($group_seq) . "' class='section clearfix' style='display:" . attr($display_style) . ";'>\n";
+                        }
+
+                        $group_table_active = true;
+
+
+                        $historical_ids = [];
+
+                        if ($USING_BOOTSTRAP) {
+                            echo " <div class='container-fluid lbfdata'>\n";
+                            if ($subtitle) {
+                                // There is a group subtitle so show it.
+                                $bs_cols = $CPR * intval(12 / $CPR);
+                                echo "<div class='row mb-2'>";
+                                echo "<div class='$BS_COL_CLASS-$bs_cols font-weight-bold text-primary'>" . text($subtitle) . "</div>";
+                                echo "</div>\n";
+                            }
+                        } else {
+                            echo " <table cellspacing='0' cellpadding='0' class='border-0 lbfdata'>\n";
+                            if ($subtitle) {
+                                // There is a group subtitle so show it.
+                                echo "<tr><td class='font-weight-bold border-top-0 text-primary' colspan='" . attr($CPR) . "'>" . text($subtitle) . "</td></tr>\n";
+                                echo "<tr><td class='font-weight-bold border-top-0' style='height:0.3125rem;' colspan='" . attr($CPR) . "'></td></tr>\n";
+                            }
+
+                            // Initialize historical data array and write date headers.
+                            if ($formhistory > 0) {
+                                echo " <tr>";
+                                echo "<td colspan='" . attr($CPR) . "' class='font-weight-bold border-top-0 text-right'>";
+                                if (empty($is_lbf)) {
+                                    // Including actual date per IPPF request 2012-08-23.
+                                    echo text(oeFormatShortDate(substr((string) $enrow['date'], 0, 10)));
+                                    echo ' (' . xlt('Current') . ')';
+                                }
+
+                                echo "&nbsp;</td>\n";
+                                $hres = sqlStatement(
+                                    "SELECT f.form_id, fe.date " .
+                                    "FROM forms AS f, form_encounter AS fe WHERE " .
+                                    "f.pid = ? AND f.formdir = ? AND " .
+                                    "f.form_id != ? AND f.deleted = 0 AND " .
+                                    "fe.pid = f.pid AND fe.encounter = f.encounter " .
+                                    "ORDER BY fe.date DESC, f.encounter DESC, f.date DESC " .
+                                    "LIMIT ?",
+                                    [$pid, $formname, $formid, $formhistory]
+                                );
+                                // For some readings like vitals there may be multiple forms per encounter.
+                                // We sort these sensibly, however only the encounter date is shown here;
+                                // at some point we may wish to show also the data entry date/time.
+                                while ($hrow = sqlFetchArray($hres)) {
+                                    echo "<td colspan='" . attr($CPR) . "' class='font-weight-bold border-top-0 text-right'>&nbsp;" .
+                                        text(oeFormatShortDate(substr((string) $hrow['date'], 0, 10))) . "</td>\n";
+                                    $historical_ids[$hrow['form_id']] = '';
+                                }
+
+                                echo " </tr>";
                             }
                         }
-                    } // End "P" option logic.
+                    }
+
+                    // Handle starting of a new row.
+                    if (($titlecols > 0 && $cell_count >= $CPR) || $cell_count == 0 || $prepend_blank_row || $jump_new_row) {
+                        end_row();
+
+                        if ($USING_BOOTSTRAP) {
+                            $tmp = 'form-row';
+                            if ($prepend_blank_row) {
+                                $tmp .= ' mt-3';
+                            }
+                            if (isOption($edit_options, 'RS')) {
+                                $tmp .= ' RS';
+                            } elseif (isOption($edit_options, 'RO')) {
+                                $tmp .= ' RO';
+                            }
+                            echo "<div class='$tmp'>";
+                        } else {
+                            if ($prepend_blank_row) {
+                                echo "<tr><td class='text border-top-0' colspan='" . attr($CPR) . "'>&nbsp;</td></tr>\n";
+                            }
+                            if (isOption($edit_options, 'RS')) {
+                                echo " <tr class='RS'>";
+                            } elseif (isOption($edit_options, 'RO')) {
+                                echo " <tr class='RO'>";
+                            } else {
+                                echo " <tr>";
+                            }
+                        }
+                        // Clear historical data string.
+                        foreach ($historical_ids as $key => $dummy) {
+                            $historical_ids[$key] = '';
+                        }
+                    }
+
+                    if ($item_count == 0 && $titlecols == 0) {
+                        $titlecols = 1;
+                    }
+
+                    // First item is on the "left-border"
+                    $leftborder = true;
+
+                    // Handle starting of a new label cell.
+                    if ($titlecols > 0) {
+                        end_cell();
+                        $tmp = ' text-wrap';
+                        if (isOption($edit_options, 'SP')) {
+                            $datacols = 0;
+                            $titlecols = $CPR;
+                            $tmp = '';
+                        }
+                        $tmp .= ($frow['uor'] == 2) ? ' required' : ' font-weight-bold';
+                        if ($graphable) {
+                            $tmp .= ' graph';
+                        }
+                        if ($USING_BOOTSTRAP) {
+                            $bs_cols = $titlecols * intval(12 / $CPR);
+                            echo "<div class='$BS_COL_CLASS-$bs_cols pt-1$tmp' ";
+                            // This ID is used by action conditions and also show_graph().
+                            echo "id='label_id_" . attr($field_id) . "'";
+                            echo ">";
+                        } else {
+                            echo "<td class='border-top-0 align-top$tmp' colspan='" . attr($titlecols) . "'";
+                            if ($cell_count > 0) {
+                                echo " style='padding-left: 0.8125rem'";
+                            }
+                            // This ID is used by action conditions and also show_graph().
+                            echo " id='label_id_" . attr($field_id) . "'";
+                            echo ">";
+
+                            foreach ($historical_ids as $key => $dummy) {
+                                $historical_ids[$key] .= "<td colspan='" . attr($titlecols) . "' class='text border-top-0 align-top text-nowrap'>";
+                            }
+                        }
+                        $cell_count += $titlecols;
+                    }
+
+                    ++$item_count;
+
+                    // This gets a font-weight-bold class so removed strong
+                    if ($frow['title']) {
+                        $tmp = xl_layout_label($frow['title']);
+                        echo text($tmp);
+                        // Append colon only if label does not end with punctuation.
+                        if (!str_contains('?!.,:-=', substr($tmp, -1, 1))) {
+                            echo ':';
+                        }
+                    } else {
+                        echo "&nbsp;";
+                    }
+
+                    // Note the labels are not repeated in the history columns.
+
+                    // Handle starting of a new data cell.
+                    if ($datacols > 0) {
+                        end_cell();
+                        $tmp = ' text';
+                        if (isOption($edit_options, 'DS')) {
+                            $tmp .= ' RS';
+                        } else if (isOption($edit_options, 'DO')) {
+                            $tmp .= ' RO';
+                        }
+                        if ($USING_BOOTSTRAP) {
+                            $bs_cols = $datacols * intval(12 / $CPR);
+                            echo "<div class='$BS_COL_CLASS-$bs_cols pt-1$tmp' ";
+                            // This ID is used by action conditions and also show_graph().
+                            echo "id='value_id_" . attr($field_id) . "'";
+                            echo ">";
+                        } else {
+                            echo "<td colspan='" . attr($datacols) . "' class='border-top-0 align-top$tmp'";
+                            echo " id='value_id_" . attr($field_id) . "'";
+                            if ($cell_count > 0) {
+                                echo " style='padding-left: 0.4375rem'";
+                            }
+                            echo ">";
+                            foreach ($historical_ids as $key => $dummy) {
+                                $historical_ids[$key] .= "<td colspan='" . attr($datacols) . "' class='text border-top-0 align-top text-right'>";
+                            }
+                        }
+                        $cell_count += $datacols;
+                    }
+                    ++$item_count;
+
+                    // Skip current-value fields for the display-only case.
+                    if (!$from_trend_form) {
+                        if ($frow['edit_options'] == 'H') {
+                            echo generate_display_field($frow, $currvalue);
+                        } else {
+                            $frow['smallform'] = ' form-control-sm mw-100';
+                            generate_form_field($frow, $currvalue);
+                        }
+                    }
+
+                    // Append to historical data of other dates for this item.
+                    foreach ($historical_ids as $key => $dummy) {
+                        $value = lbf_current_value($frow, $key, 0);
+                        $historical_ids[$key] .= generate_display_field($frow, $value);
+                    }
                 }
 
-                $this_levels = $this_group;
-                $i = 0;
-                $mincount = min(strlen($this_levels), strlen($group_levels));
-                while ($i < $mincount && $this_levels[$i] == $group_levels[$i]) {
-                    ++$i;
-                }
-                // $i is now the number of initial matching levels.
-
-                // If ending a group or starting a subgroup, terminate the current row and its table.
-                if ($group_table_active && ($i != strlen($group_levels) || $i != strlen($this_levels))) {
+                // Close all open groups.
+                if ($group_table_active) {
                     end_row();
-                    echo " </table>\n";
+                    echo $USING_BOOTSTRAP ? " </div>\n" : " </table>\n";
                     $group_table_active = false;
                 }
-
-                // Close any groups that we are done with.
-                while (strlen($group_levels) > $i) {
+                while (strlen($group_levels)) {
                     $gname = $grparr[$group_levels]['grp_title'];
                     $group_levels = substr($group_levels, 0, -1); // remove last character
                     // No div for an empty group name.
-                    if (strlen($gname)) {
+                    if (strlen((string) $gname)) {
                         echo "</div>\n";
                     }
                 }
 
-                // If there are any new groups, open them.
-                while ($i < strlen($this_levels)) {
-                    end_row();
-                    if ($group_table_active) {
-                        echo " </table>\n";
-                        $group_table_active = false;
+                $display_style = $LBF_SECTION_DISPLAY_STYLE;
+
+                if (isset($LBF_SERVICES_SECTION) || isset($LBF_DIAGS_SECTION)) {
+                    $fs->loadServiceItems();
+                }
+
+                if (isset($LBF_SERVICES_SECTION)) {
+                    // Create the checkbox and div for the Services Section.
+                    echo "<br /><span class='font-weight-bold'><input type='checkbox' name='form_cb_fs_services' value='1' " .
+                        "onclick='return divclick(this, \"div_fs_services\");'";
+                    if ($display_style == 'block') {
+                        echo " checked";
                     }
-                    $group_levels .= $this_levels[$i++];
-                    $gname = $grparr[substr($group_levels, 0, $i)]['grp_title'];
-                    $subtitle = xl_layout_label($grparr[substr($group_levels, 0, $i)]['grp_subtitle']);
+                    echo " />&nbsp;<strong>" . xlt('Services') . "</strong></span>\n";
+                    echo "<div id='div_fs_services' class='section' style='display:" . attr($display_style) . ";'>\n";
+                    echo "<center>\n";
+                    // $display_style = 'none';
 
-                    // Compute a short unique identifier for this group.
-                    $group_seq = 'lbf' . $group_levels;
-                    $group_name = $gname;
-
-                    if ($some_group_is_open) {
-                        // Must have edit option "I" in first item for its group to be initially open.
-                        $display_style = isOption($edit_options, 'I') === false ? 'none' : 'block';
-                    }
-
-                    // If group name is blank, no checkbox or div.
-                    if (strlen($gname)) {
-                        echo "<br /><span class='bold'><input type='checkbox' name='form_cb_" . attr($group_seq) . "' value='1' " .
-                            "onclick='return divclick(this," . attr_js('div_'.$group_seq) . ");'";
-                        if ($display_style == 'block') {
-                            echo " checked";
+                    // If there are associated codes, generate a checkbox for each one.
+                    if ($LBF_SERVICES_SECTION) {
+                        echo "<table class='w-100' cellpadding='0' cellspacing='0'>\n";
+                        $cols = 3;
+                        $tdpct = (int)(100 / $cols);
+                        $count = 0;
+                        $relcodes = explode(';', (string) $LBF_SERVICES_SECTION);
+                        foreach ($relcodes as $codestring) {
+                            if ($codestring === '') {
+                                continue;
+                            }
+                            $codes_esc = attr($codestring);
+                            $cbval = $fs->genCodeSelectorValue($codestring);
+                            if ($count % $cols == 0) {
+                                if ($count) {
+                                    echo " </tr>\n";
+                                }
+                                echo " <tr>\n";
+                            }
+                            echo "  <td class='border-top-0' width='" . attr($tdpct) . "%'>";
+                            echo "<input type='checkbox' id='form_fs_services[$codes_esc]' " .
+                                "onclick='fs_service_clicked(this)' value='" . attr($cbval) . "'";
+                            if ($fs->code_is_in_fee_sheet) {
+                                echo " checked";
+                            }
+                            [$codetype, $code] = explode(':', $codestring);
+                            $title = lookup_code_descriptions($codestring);
+                            $title = empty($title) ? $code : xl_list_label($title);
+                            echo " />" . text($title);
+                            echo "</td>\n";
+                            ++$count;
                         }
-
-                        echo " /><b>" . text(xl_layout_label($group_name)) . "</b></span>\n";
-                        echo "<div id='div_" . attr($group_seq) . "' class='section table-responsive' style='display:" . attr($display_style) . ";'>\n";
-                    }
-
-                    $group_table_active = true;
-                    echo " <table border='0' cellspacing='0' cellpadding='0' class='lbfdata'>\n";
-
-                    if ($subtitle) {
-                        // There is a group subtitle so show it.
-                        echo "<tr><td class='bold' style='color:#0000ff' colspan='" . attr($CPR) . "'>" . text($subtitle) . "</td></tr>\n";
-                        echo "<tr><td class='bold' style='height:4pt' colspan='" . attr($CPR) . "'></td></tr>\n";
-                    }
-
-                    $display_style = 'none';
-
-                    // Initialize historical data array and write date headers.
-                    $historical_ids = array();
-                    if ($formhistory > 0) {
-                        echo " <tr>";
-                        echo "<td colspan='" . attr($CPR) . "' align='right' class='bold'>";
-                        if (empty($is_lbf)) {
-                            // Including actual date per IPPF request 2012-08-23.
-                            echo text(oeFormatShortDate(substr($enrow['date'], 0, 10)));
-                            echo ' (' . xlt('Current') . ')';
+                        if ($count) {
+                            echo " </tr>\n";
                         }
+                        echo "</table>\n";
+                    }
 
-                        echo "&nbsp;</td>\n";
-                        $hres = sqlStatement(
-                            "SELECT f.form_id, fe.date " .
-                            "FROM forms AS f, form_encounter AS fe WHERE " .
-                            "f.pid = ? AND f.formdir = ? AND " .
-                            "f.form_id != ? AND f.deleted = 0 AND " .
-                            "fe.pid = f.pid AND fe.encounter = f.encounter " .
-                            "ORDER BY fe.date DESC, f.encounter DESC, f.date DESC " .
-                            "LIMIT ?",
-                            array($pid, $formname, $formid, $formhistory)
-                        );
-                        // For some readings like vitals there may be multiple forms per encounter.
-                        // We sort these sensibly, however only the encounter date is shown here;
-                        // at some point we may wish to show also the data entry date/time.
-                        while ($hrow = sqlFetchArray($hres)) {
-                            echo "<td colspan='" . attr($CPR) . "' align='right' class='bold'>&nbsp;" .
-                                text(oeFormatShortDate(substr($hrow['date'], 0, 10))) . "</td>\n";
-                            $historical_ids[$hrow['form_id']] = '';
+                    // A row for Search, Add Package, Main Provider.
+                    $ctype = $GLOBALS['ippf_specific'] ? 'MA' : '';
+                    echo "<p class='font-weight-bold'>";
+                    echo "<input type='button' value='" . xla('Search Services') . "' onclick='sel_related(null," . attr_js($ctype) . ")' />&nbsp;&nbsp;\n";
+                    $fscres = sqlStatement("SELECT * FROM fee_sheet_options ORDER BY fs_category, fs_option");
+                    if (sqlNumRows($fscres)) {
+                        $last_category = '';
+                        echo "<select class='form-control' onchange='fs_package_selected(this)'>\n";
+                        echo " <option value=''>" . xlt('Add Package') . "</option>\n";
+                        while ($row = sqlFetchArray($fscres)) {
+                            $fs_category = $row['fs_category'];
+                            $fs_option = $row['fs_option'];
+                            $fs_codes = $row['fs_codes'];
+                            if ($fs_category !== $last_category) {
+                                if ($last_category) {
+                                    echo " </optgroup>\n";
+                                }
+                                echo " <optgroup label='" . xla(substr((string) $fs_category, 1)) . "'>\n";
+                                $last_category = $fs_category;
+                            }
+                            echo " <option value='" . attr($fs_codes) . "'>" . xlt(substr((string) $fs_option, 1)) . "</option>\n";
                         }
-
-                        echo " </tr>";
+                        if ($last_category) {
+                            echo " </optgroup>\n";
+                        }
+                        echo "</select>&nbsp;&nbsp;\n";
                     }
-                }
-
-                // Handle starting of a new row.
-                if (($titlecols > 0 && $cell_count >= $CPR) || $cell_count == 0 || $prepend_blank_row || $jump_new_row) {
-                    end_row();
-                    if ($prepend_blank_row) {
-                        echo "<tr><td class='text' colspan='" . attr($CPR) . "'>&nbsp;</td></tr>\n";
+                    $tmp_provider_id = $fs->provider_id ?: 0;
+                    if (!$tmp_provider_id && $userauthorized) {
+                        // Default to the logged-in user if they are a provider.
+                        $tmp_provider_id = $session->get('authUserID');
                     }
-                    if (isOption($edit_options, 'RS')) {
-                        echo " <tr class='RS'>";
-                    } else if (isOption($edit_options, 'RO')) {
-                        echo " <tr class='RO'>";
-                    } else {
-                        echo " <tr>";
+                    echo xlt('Main Provider') . ": ";
+                    echo "<select class='form-control' name='form_fs_provid'>";
+                    echo FeeSheetHtml::genProviderOptionList(
+                        ' ',
+                        $tmp_provider_id
+                    );
+                    echo "</select>\n";
+                    echo "\n";
+                    echo "</p>\n";
+
+                    // Generate a line for each service already in this FS.
+                    echo "<table cellpadding='0' cellspacing='2' id='fs_services_table'>\n";
+                    echo " <tr>\n";
+                    echo "  <td class='border-top-0 font-weight-bold' colspan='2'>" . xlt('Services Provided') . "&nbsp;</td>\n";
+                    echo "  <td class='border-top-0 font-weight-bold'>" . xlt('Provider') . "&nbsp;</td>\n";
+                    echo "  <td class='border-top-0 font-weight-bold text-right'>" . xlt('Price') . "&nbsp;</td>\n";
+                    echo "  <td class='border-top-0 font-weight-bold text-right'>" . xlt('Delete') . "</td>\n";
+                    echo " </tr>\n";
+                    foreach ($fs->serviceitems as $lino => $li) {
+                        // Skip diagnoses; those would be in the Diagnoses section below.
+                        if ($code_types[$li['codetype']]['diag']) {
+                            continue;
+                        }
+                        echo " <tr>\n";
+                        echo "  <td class='border-top-0 text'>" . text($li['code']) . "&nbsp;</td>\n";
+                        echo "  <td class='border-top-0 text'>" . text($li['code_text']) . "&nbsp;</td>\n";
+                        echo "  <td class='border-top-0 text'>" .
+                            $fs->genProviderSelect(
+                                "form_fs_bill[$lino][provid]",
+                                '-- ' . xl("Default") . ' --',
+                                $li['provid']
+                            ) .
+                            "  &nbsp;</td>\n";
+                        echo "  <td class='border-top-0 text text-right'>" . text(oeFormatMoney($li['price'])) . "&nbsp;</td>\n";
+                        echo "  <td class='border-top-0 text text-right'>\n" .
+                            "   <input type='checkbox' name='form_fs_bill[" . attr($lino) . "][del]' " .
+                            "value='1'" . ($li['del'] ? " checked" : "") . " />\n";
+                        foreach ($li['hidden'] as $hname => $hvalue) {
+                            echo "   <input type='hidden' name='form_fs_bill[" . attr($lino) . "][" . attr($hname) . "]' value='" . attr($hvalue) . "' />\n";
+                        }
+                        echo "  </td>\n";
+                        echo " </tr>\n";
                     }
-
-                    // Clear historical data string.
-                    foreach ($historical_ids as $key => $dummy) {
-                        $historical_ids[$key] = '';
-                    }
-                }
-
-                if ($item_count == 0 && $titlecols == 0) {
-                    $titlecols = 1;
-                }
-
-// First item is on the "left-border"
-                $leftborder = true;
-
-// Handle starting of a new label cell.
-                if ($titlecols > 0) {
-                    end_cell();
-                    if (isOption($edit_options, 'SP')) {
-                        $datacols = 0;
-                        $titlecols = $CPR;
-                        echo "<td valign='top' colspan='" . attr($titlecols) . "'";
-                    } else {
-                        echo "<td valign='top' colspan='" . attr($titlecols) . "' nowrap";
-                    }
-                    echo " class='";
-                    echo ($frow['uor'] == 2) ? "required" : "bold";
-                    if ($graphable) {
-                        echo " graph";
-                    }
-
-                    echo "'";
-
-                    if ($cell_count > 0) {
-                        echo " style='padding-left:10pt'";
-                    }
-                    // This ID is used by action conditions and also show_graph().
-                    echo " id='label_id_" . attr($field_id) . "'";
-                    echo ">";
-
-                    foreach ($historical_ids as $key => $dummy) {
-                        $historical_ids[$key] .= "<td valign='top' colspan='" . attr($titlecols) . "' class='text' nowrap>";
-                    }
-
-                    $cell_count += $titlecols;
-                }
-
-                ++$item_count;
-
-                echo "<b>";
-                if ($frow['title']) {
-                    $tmp = xl_layout_label($frow['title']);
-                    echo text($tmp);
-                    // Append colon only if label does not end with punctuation.
-                    if (strpos('?!.,:-=', substr($tmp, -1, 1)) === false) {
-                        echo ':';
-                    }
-                } else {
-                    echo "&nbsp;";
-                }
-                echo "</b>";
-
-// Note the labels are not repeated in the history columns.
-
-// Handle starting of a new data cell.
-                if ($datacols > 0) {
-                    end_cell();
-                    if (isOption($edit_options, 'DS')) {
-                        echo "<td valign='top' colspan='" . attr($datacols) . "' class='text RS'";
-                    }
-                    if (isOption($edit_options, 'DO')) {
-                        echo "<td valign='top' colspan='" . attr($datacols) . "' class='text RO'";
-                    } else {
-                        echo "<td valign='top' colspan='" . attr($datacols) . "' class='text'";
-                    }
-                    // This ID is used by action conditions.
-                    echo " id='value_id_" . attr($field_id) . "'";
-                    if ($cell_count > 0) {
-                        echo " style='padding-left:5pt'";
-                    }
-
-                    echo ">";
-
-                    foreach ($historical_ids as $key => $dummy) {
-                        $historical_ids[$key] .= "<td valign='top' align='right' colspan='" . attr($datacols) . "' class='text'>";
-                    }
-
-                    $cell_count += $datacols;
-                }
-
-                ++$item_count;
-
-// Skip current-value fields for the display-only case.
-                if (!$from_trend_form) {
-                    if ($frow['edit_options'] == 'H') {
-                        echo generate_display_field($frow, $currvalue);
-                    } else {
-                        generate_form_field($frow, $currvalue);
-                    }
-                }
-
-// Append to historical data of other dates for this item.
-                foreach ($historical_ids as $key => $dummy) {
-                    $value = lbf_current_value($frow, $key, 0);
-                    $historical_ids[$key] .= generate_display_field($frow, $value);
-                }
-            }
-
-            // Close all open groups.
-            if ($group_table_active) {
-                end_row();
-                echo " </table>\n";
-                $group_table_active = false;
-            }
-            while (strlen($group_levels)) {
-                $gname = $grparr[$group_levels]['grp_title'];
-                $group_levels = substr($group_levels, 0, -1); // remove last character
-                // No div for an empty group name.
-                if (strlen($gname)) {
+                    echo "</table>\n";
+                    echo "</center>\n";
                     echo "</div>\n";
-                }
-            }
+                } // End Services Section
 
-            $display_style = 'none';
-
-            if (isset($LBF_SERVICES_SECTION) || isset($LBF_DIAGS_SECTION)) {
-                $fs->loadServiceItems();
-            }
-
-            if (isset($LBF_SERVICES_SECTION)) {
-                // Create the checkbox and div for the Services Section.
-                echo "<br /><span class='bold'><input type='checkbox' name='form_cb_fs_services' value='1' " .
-                    "onclick='return divclick(this, \"div_fs_services\");'";
-                if ($display_style == 'block') {
-                    echo " checked";
-                }
-                echo " /><b>" . xlt('Services') . "</b></span>\n";
-                echo "<div id='div_fs_services' class='section' style='display:" . attr($display_style) . ";'>\n";
-                echo "<center>\n";
-                $display_style = 'none';
-
-                // If there are associated codes, generate a checkbox for each one.
-                if ($LBF_SERVICES_SECTION) {
-                    echo "<table cellpadding='0' cellspacing='0' width='100%'>\n";
-                    $cols = 3;
-                    $tdpct = (int)(100 / $cols);
-                    $count = 0;
-                    $relcodes = explode(';', $LBF_SERVICES_SECTION);
-                    foreach ($relcodes as $codestring) {
-                        if ($codestring === '') {
-                            continue;
-                        }
-                        $codes_esc = attr($codestring);
-                        $cbval = $fs->genCodeSelectorValue($codestring);
-                        if ($count % $cols == 0) {
-                            if ($count) {
-                                echo " </tr>\n";
-                            }
-                            echo " <tr>\n";
-                        }
-                        echo "  <td width='" . attr($tdpct) . "%'>";
-                        echo "<input type='checkbox' id='form_fs_services[$codes_esc]' " .
-                            "onclick='fs_service_clicked(this)' value='" . attr($cbval) . "'";
-                        if ($fs->code_is_in_fee_sheet) {
-                            echo " checked";
-                        }
-                        list($codetype, $code) = explode(':', $codestring);
-                        $title = lookup_code_descriptions($codestring);
-                        $title = empty($title) ? $code : xl_list_label($title);
-                        echo " />" . text($title);
-                        echo "</td>\n";
-                        ++$count;
+                if (isset($LBF_PRODUCTS_SECTION)) {
+                    // Create the checkbox and div for the Products Section.
+                    echo "<br /><span class='font-weight-bold'><input type='checkbox' name='form_cb_fs_products' value='1' " .
+                        "onclick='return divclick(this, \"div_fs_products\");'";
+                    if ($display_style == 'block') {
+                        echo " checked";
                     }
-                    if ($count) {
+                    echo " />&nbsp;<strong>" . xlt('Products') . "</strong></span>\n";
+                    echo "<div id='div_fs_products' class='section' style='display:" . attr($display_style) . ";'>\n";
+                    echo "<center>\n";
+                    // $display_style = 'none';
+
+                    // If there are associated codes, generate a checkbox for each one.
+                    if ($LBF_PRODUCTS_SECTION) {
+                        echo "<table class='w-100' cellpadding='0' cellspacing='0'>\n";
+                        $cols = 3;
+                        $tdpct = (int)(100 / $cols);
+                        $count = 0;
+                        $relcodes = explode(';', (string) $LBF_PRODUCTS_SECTION);
+                        foreach ($relcodes as $codestring) {
+                            if ($codestring === '') {
+                                continue;
+                            }
+                            $codes_esc = attr($codestring);
+                            $cbval = $fs->genCodeSelectorValue($codestring);
+                            if ($count % $cols == 0) {
+                                if ($count) {
+                                    echo " </tr>\n";
+                                }
+                                echo " <tr>\n";
+                            }
+                            echo "  <td class='border-top-0' width='" . attr($tdpct) . "%'>";
+                            echo "<input type='checkbox' id='form_fs_products[$codes_esc]' " .
+                                "onclick='fs_product_clicked(this)' value='" . attr($cbval) . "'";
+                            if ($fs->code_is_in_fee_sheet) {
+                                echo " checked";
+                            }
+                            [$codetype, $code] = explode(':', $codestring);
+                            $crow = sqlQuery(
+                                "SELECT name FROM drugs WHERE " .
+                                "drug_id = ? ORDER BY drug_id LIMIT 1",
+                                [$code]
+                            );
+                            $title = empty($crow['name']) ? $code : xl_list_label($crow['name']);
+                            echo " />" . text($title);
+                            echo "</td>\n";
+                            ++$count;
+                        }
+                        if ($count) {
+                            echo " </tr>\n";
+                        }
+                        echo "</table>\n";
+                    }
+
+                    // A row for Search
+                    $ctype = $GLOBALS['ippf_specific'] ? 'MA' : '';
+                    echo "<p class='font-weight-bold'>";
+                    echo "<input type='button' value='" . xla('Search Products') . "' onclick='sel_related(null,\"PROD\")' />&nbsp;&nbsp;";
+                    echo "</p>\n";
+
+                    // Generate a line for each product already in this FS.
+                    echo "<table cellpadding='0' cellspacing='2' id='fs_products_table'>\n";
+                    echo " <tr>\n";
+                    echo "  <td class='border-top-0 font-weight-bold'>" . xlt('Products Provided') . "&nbsp;</td>\n";
+                    echo "  <td class='border-top-0 font-weight-bold'>" . xlt('Warehouse') . "&nbsp;</td>\n";
+                    echo "  <td class='border-top-0 font-weight-bold text-right'>" . xlt('Quantity') . "&nbsp;</td>\n";
+                    echo "  <td class='border-top-0 font-weight-bold text-right'>" . xlt('Price') . "&nbsp;</td>\n";
+                    echo "  <td class='border-top-0 font-weight-bold text-right'>" . xlt('Delete') . "</td>\n";
+                    echo " </tr>\n";
+                    $fs->loadProductItems();
+                    foreach ($fs->productitems as $lino => $li) {
+                        echo " <tr>\n";
+                        echo "  <td class='border-top-0 text'>" . text($li['code_text']) . "&nbsp;</td>\n";
+                        echo "  <td class='border-top-0 text'>" .
+                            $fs->genWarehouseSelect("form_fs_prod[$lino][warehouse]", '', $li['warehouse'], false, $li['hidden']['drug_id'], true) .
+                            "  &nbsp;</td>\n";
+                        echo "  <td class='border-top-0 text text-right'>" .
+                            "<input class='form-control' type='text' name='form_fs_prod[" . attr($lino) . "][units]' size='3' value='" . attr($li['units']) . "' />" .
+                            "&nbsp;</td>\n";
+                        echo "  <td class='border-top-0 text text-right'>" . text(oeFormatMoney($li['price'])) . "&nbsp;</td>\n";
+                        echo "  <td class='border-top-0 text text-right'>\n" .
+                            "   <input type='checkbox' name='form_fs_prod[" . attr($lino) . "][del]' " .
+                            "value='1'" . ($li['del'] ? " checked" : "") . " />\n";
+                        foreach ($li['hidden'] as $hname => $hvalue) {
+                            echo "   <input type='hidden' name='form_fs_prod[" . attr($lino) . "][" . attr($hname) . "]' value='" . attr($hvalue) . "' />\n";
+                        }
+                        echo "  </td>\n";
                         echo " </tr>\n";
                     }
                     echo "</table>\n";
-                }
+                    echo "</center>\n";
+                    echo "</div>\n";
+                } // End Products Section
 
-                // A row for Search, Add Package, Main Provider.
-                $ctype = $GLOBALS['ippf_specific'] ? 'MA' : '';
-                echo "<p class='bold'>";
-                echo "<input type='button' value='" . xla('Search Services') . "' onclick='sel_related(null," . attr_js($ctype) . ")' />&nbsp;&nbsp;\n";
-                $fscres = sqlStatement("SELECT * FROM fee_sheet_options ORDER BY fs_category, fs_option");
-                if (sqlNumRows($fscres)) {
-                    $last_category = '';
-                    echo "<select onchange='fs_package_selected(this)'>\n";
-                    echo " <option value=''>" . xlt('Add Package') . "</option>\n";
-                    while ($row = sqlFetchArray($fscres)) {
-                        $fs_category = $row['fs_category'];
-                        $fs_option = $row['fs_option'];
-                        $fs_codes = $row['fs_codes'];
-                        if ($fs_category !== $last_category) {
-                            if ($last_category) {
-                                echo " </optgroup>\n";
+                if (isset($LBF_DIAGS_SECTION)) {
+                    // Create the checkbox and div for the Diagnoses Section.
+                    echo "<br /><span class='font-weight-bold'><input type='checkbox' name='form_cb_fs_diags' value='1' " .
+                        "onclick='return divclick(this, \"div_fs_diags\");'";
+                    if ($display_style == 'block') {
+                        echo " checked";
+                    }
+                    echo " />&nbsp;<b>" . xlt('Diagnoses') . "</b></span>\n";
+                    echo "<div id='div_fs_diags' class='section' style='display:" . attr($display_style) . ";'>\n";
+                    echo "<center>\n";
+                    // $display_style = 'none';
+
+                    // If there are associated codes, generate a checkbox for each one.
+                    if ($LBF_DIAGS_SECTION) {
+                        echo "<table class='w-100' cellpadding='0' cellspacing='0'>\n";
+                        $cols = 3;
+                        $tdpct = (int)(100 / $cols);
+                        $count = 0;
+                        $relcodes = explode(';', (string) $LBF_DIAGS_SECTION);
+                        foreach ($relcodes as $codestring) {
+                            if ($codestring === '') {
+                                continue;
                             }
-                            echo " <optgroup label='" . xla(substr($fs_category, 1)) . "'>\n";
-                            $last_category = $fs_category;
+                            $codes_esc = attr($codestring);
+                            $cbval = $fs->genCodeSelectorValue($codestring);
+                            if ($count % $cols == 0) {
+                                if ($count) {
+                                    echo " </tr>\n";
+                                }
+                                echo " <tr>\n";
+                            }
+                            echo "  <td class='border-top-0' width='" . attr($tdpct) . "%'>";
+                            echo "<input type='checkbox' id='form_fs_diags[$codes_esc]' " .
+                                "onclick='fs_diag_clicked(this)' value='" . attr($cbval) . "'";
+                            if ($fs->code_is_in_fee_sheet) {
+                                echo " checked";
+                            }
+                            [$codetype, $code] = explode(':', $codestring);
+                            $title = lookup_code_descriptions($codestring);
+                            $title = empty($title) ? $code : xl_list_label($title);
+                            echo " />" . text($title);
+                            echo "</td>\n";
+                            ++$count;
                         }
-                        echo " <option value='" . attr($fs_codes) . "'>" . xlt(substr($fs_option, 1)) . "</option>\n";
+                        if ($count) {
+                            echo " </tr>\n";
+                        }
+                        echo "</table>\n";
                     }
-                    if ($last_category) {
-                        echo " </optgroup>\n";
-                    }
-                    echo "</select>&nbsp;&nbsp;\n";
-                }
-                echo xlt('Main Provider') . ": ";
-                echo $fs->genProviderSelect("form_fs_provid", ' ', $fs->provider_id);
-                echo "\n";
-                echo "</p>\n";
 
-                // Generate a line for each service already in this FS.
-                echo "<table cellpadding='0' cellspacing='2' id='fs_services_table'>\n";
-                echo " <tr>\n";
-                echo "  <td class='bold' colspan='2'>" . xlt('Services Provided') . "&nbsp;</td>\n";
-                echo "  <td class='bold'>" . xlt('Provider') . "&nbsp;</td>\n";
-                echo "  <td class='bold' align='right'>" . xlt('Price') . "&nbsp;</td>\n";
-                echo "  <td class='bold' align='right'>" . xlt('Delete') . "</td>\n";
-                echo " </tr>\n";
-                foreach ($fs->serviceitems as $lino => $li) {
-                    // Skip diagnoses; those would be in the Diagnoses section below.
-                    if ($code_types[$li['codetype']]['diag']) {
-                        continue;
-                    }
+                    // A row for Search.
+                    $ctype = collect_codetypes('diagnosis', 'csv');
+                    echo "<p class='font-weight-bold'>";
+                    echo "<input type='button' class='btn btn-primary' value='" . xla('Search Diagnoses') . "' onclick='sel_related(null," . attr_js($ctype) . ")' />";
+                    echo "</p>\n";
+
+                    // Generate a line for each diagnosis already in this FS.
+                    echo "<table cellpadding='0' cellspacing='2' id='fs_diags_table'>\n";
                     echo " <tr>\n";
-                    echo "  <td class='text'>" . text($li['code']) . "&nbsp;</td>\n";
-                    echo "  <td class='text'>" . text($li['code_text']) . "&nbsp;</td>\n";
-                    echo "  <td class='text'>" .
-                        $fs->genProviderSelect("form_fs_bill[$lino][provid]", '-- ' . xl("Default") . ' --', $li['provid']) .
-                        "  &nbsp;</td>\n";
-                    echo "  <td class='text' align='right'>" . text(oeFormatMoney($li['price'])) . "&nbsp;</td>\n";
-                    echo "  <td class='text' align='right'>\n" .
-                        "   <input type='checkbox' name='form_fs_bill[" . attr($lino) . "][del]' " .
-                        "value='1'" . ($li['del'] ? " checked" : "") . " />\n";
-                    foreach ($li['hidden'] as $hname => $hvalue) {
-                        echo "   <input type='hidden' name='form_fs_bill[" . attr($lino) . "][" . attr($hname) . "]' value='" . attr($hvalue) . "' />\n";
-                    }
-                    echo "  </td>\n";
+                    echo "  <td class='border-top-0 font-weight-bold' colspan='2'>" . xlt('Diagnosis') . "&nbsp;</td>\n";
+                    echo "  <td class='border-top-0 font-weight-bold text-right'>" . xlt('Delete') . "</td>\n";
                     echo " </tr>\n";
-                }
-                echo "</table>\n";
-                echo "</center>\n";
-                echo "</div>\n";
-            } // End Services Section
-
-            if (isset($LBF_PRODUCTS_SECTION)) {
-                // Create the checkbox and div for the Products Section.
-                echo "<br /><span class='bold'><input type='checkbox' name='form_cb_fs_products' value='1' " .
-                    "onclick='return divclick(this, \"div_fs_products\");'";
-                if ($display_style == 'block') {
-                    echo " checked";
-                }
-                echo " /><b>" . xlt('Products') . "</b></span>\n";
-                echo "<div id='div_fs_products' class='section' style='display:" . attr($display_style) . ";'>\n";
-                echo "<center>\n";
-                $display_style = 'none';
-
-                // If there are associated codes, generate a checkbox for each one.
-                if ($LBF_PRODUCTS_SECTION) {
-                    echo "<table cellpadding='0' cellspacing='0' width='100%'>\n";
-                    $cols = 3;
-                    $tdpct = (int)(100 / $cols);
-                    $count = 0;
-                    $relcodes = explode(';', $LBF_PRODUCTS_SECTION);
-                    foreach ($relcodes as $codestring) {
-                        if ($codestring === '') {
+                    // Start from 1000 to avoid collisions caused by sharing form_fs_bill[]  with services.
+                    // Keep track of only diagnoses to avoid gaps and thus potential collisions with newly added diagnoses.
+                    $lino = 1000;
+                    foreach ($fs->serviceitems as $li) {
+                        // Skip anything that is not a diagnosis; those are in the Services section above.
+                        if (!$code_types[$li['codetype']]['diag']) {
                             continue;
                         }
-                        $codes_esc = attr($codestring);
-                        $cbval = $fs->genCodeSelectorValue($codestring);
-                        if ($count % $cols == 0) {
-                            if ($count) {
-                                echo " </tr>\n";
-                            }
-                            echo " <tr>\n";
+                        echo " <tr>\n";
+                        echo "  <td class='border-top-0 text'>" . text($li['code']) . "&nbsp;</td>\n";
+                        echo "  <td class='border-top-0 text'>" . text($li['code_text']) . "&nbsp;</td>\n";
+                        // The Diagnoses section shares the form_fs_bill array with the Services section.
+                        echo "  <td class='border-top-0 text text-right'>\n" .
+                            "   <input type='checkbox' name='form_fs_bill[" . attr($lino) . "][del]' " .
+                            "value='1'" . ($li['del'] ? " checked" : "") . " />\n";
+                        foreach ($li['hidden'] as $hname => $hvalue) {
+                            echo "   <input type='hidden' name='form_fs_bill[" . attr($lino) . "][" . attr($hname) . "]' value='" . attr($hvalue) . "' />\n";
                         }
-                        echo "  <td width='" . attr($tdpct) . "%'>";
-                        echo "<input type='checkbox' id='form_fs_products[$codes_esc]' " .
-                            "onclick='fs_product_clicked(this)' value='" . attr($cbval) . "'";
-                        if ($fs->code_is_in_fee_sheet) {
-                            echo " checked";
-                        }
-                        list($codetype, $code) = explode(':', $codestring);
-                        $crow = sqlQuery(
-                            "SELECT name FROM drugs WHERE " .
-                            "drug_id = ? ORDER BY drug_id LIMIT 1",
-                            array($code)
-                        );
-                        $title = empty($crow['name']) ? $code : xl_list_label($crow['name']);
-                        echo " />" . text($title);
-                        echo "</td>\n";
-                        ++$count;
-                    }
-                    if ($count) {
+                        echo "  </td>\n";
                         echo " </tr>\n";
+                        $lino += 1;
                     }
                     echo "</table>\n";
-                }
+                    echo "</center>\n";
+                    echo "</div>\n";
+                } // End Diagnoses Section
 
-                // A row for Search
-                $ctype = $GLOBALS['ippf_specific'] ? 'MA' : '';
-                echo "<p class='bold'>";
-                echo "<input type='button' value='" . xla('Search Products') . "' onclick='sel_related(null,\"PROD\")' />&nbsp;&nbsp;";
-                echo "</p>\n";
+                if ($LBF_REFERRALS_SECTION) {
+                    // Create the checkbox and div for the Referrals Section.
+                    echo "<br /><span class='bold'><input type='checkbox' name='form_cb_referrals' value='1' " .
+                        "onclick='return divclick(this, \"div_referrals\");'";
+                    if ($display_style == 'block') {
+                        echo " checked";
+                    }
+                    echo " />&nbsp;<b>" . xlt('Referrals') . "</b></span>\n";
+                    echo "<div id='div_referrals' class='section' style='display:" . attr($display_style) . ";'>\n";
+                    echo "<center>\n";
+                    // $display_style = 'none';
 
-                // Generate a line for each product already in this FS.
-                echo "<table cellpadding='0' cellspacing='2' id='fs_products_table'>\n";
-                echo " <tr>\n";
-                echo "  <td class='bold'>" . xlt('Products Provided') . "&nbsp;</td>\n";
-                echo "  <td class='bold'>" . xlt('Warehouse') . "&nbsp;</td>\n";
-                echo "  <td class='bold' align='right'>" . xlt('Quantity') . "&nbsp;</td>\n";
-                echo "  <td class='bold' align='right'>" . xlt('Price') . "&nbsp;</td>\n";
-                echo "  <td class='bold' align='right'>" . xlt('Delete') . "</td>\n";
-                echo " </tr>\n";
-                $fs->loadProductItems();
-                foreach ($fs->productitems as $lino => $li) {
+                    // Generate a table row for each referral in the visit.
+                    echo "<table cellpadding='0' cellspacing='5' id='referrals_table'>\n";
                     echo " <tr>\n";
-                    echo "  <td class='text'>" . text($li['code_text']) . "&nbsp;</td>\n";
-                    echo "  <td class='text'>" .
-                        $fs->genWarehouseSelect("form_fs_prod[$lino][warehouse]", '', $li['warehouse'], false, $li['hidden']['drug_id'], true) .
-                        "  &nbsp;</td>\n";
-                    echo "  <td class='text' align='right'>" .
-                        "<input type='text' name='form_fs_prod[" . attr($lino) . "][units]' size='3' value='" . attr($li['units']) . "' />" .
-                        "&nbsp;</td>\n";
-                    echo "  <td class='text' align='right'>" . text(oeFormatMoney($li['price'])) . "&nbsp;</td>\n";
-                    echo "  <td class='text' align='right'>\n" .
-                        "   <input type='checkbox' name='form_fs_prod[" . attr($lino) . "][del]' " .
-                        "value='1'" . ($li['del'] ? " checked" : "") . " />\n";
-                    foreach ($li['hidden'] as $hname => $hvalue) {
-                        echo "   <input type='hidden' name='form_fs_prod[" . attr($lino) . "][" . attr($hname) . "]' value='" . attr($hvalue) . "' />\n";
-                    }
-                    echo "  </td>\n";
+                    echo "  <td class='bold'>" . xlt('Date') . "&nbsp;</td>\n";
+                    echo "  <td class='bold'>" . xlt('Type') . "&nbsp;</td>\n";
+                    echo "  <td class='bold'>" . xlt('Reason') . "&nbsp;</td>\n";
+                    echo "  <td class='bold'>" . xlt('Referred To') . "&nbsp;</td>\n";
+                    echo "  <td class='bold'>" . xlt('Requested Service') . "</td>\n";
                     echo " </tr>\n";
-                }
-                echo "</table>\n";
-                echo "</center>\n";
-                echo "</div>\n";
-            } // End Products Section
 
-            if (isset($LBF_DIAGS_SECTION)) {
-                // Create the checkbox and div for the Diagnoses Section.
-                echo "<br /><span class='bold'><input type='checkbox' name='form_cb_fs_diags' value='1' " .
-                    "onclick='return divclick(this, \"div_fs_diags\");'";
-                if ($display_style == 'block') {
-                    echo " checked";
-                }
-                echo " /><b>" . xlt('Diagnoses') . "</b></span>\n";
-                echo "<div id='div_fs_diags' class='section' style='display:" . attr($display_style) . ";'>\n";
-                echo "<center>\n";
-                $display_style = 'none';
+                    $refres = sqlStatement(
+                        "SELECT f.form_id, " .
+                        "d1.field_value AS refer_external, " .
+                        "d2.field_value AS body, " .
+                        "lo.title AS refer_type, " .
+                        "ut.organization, " .
+                        "CONCAT(ut.fname,' ', ut.lname) AS referto_name, " .
+                        "d4.field_value AS refer_related_code, " .
+                        "d5.field_value AS refer_date " .
+                        "FROM forms AS f " .
+                        "LEFT JOIN lbf_data AS d1 ON d1.form_id = f.form_id AND d1.field_id = 'refer_external' " .
+                        "LEFT JOIN list_options AS lo ON list_id = 'reftype' and option_id = d1.field_value " .
+                        "LEFT JOIN lbf_data AS d2 ON d2.form_id = f.form_id AND d2.field_id = 'body' " .
+                        "LEFT JOIN lbf_data AS d3 ON d3.form_id = f.form_id AND d3.field_id = 'refer_to' " .
+                        "LEFT JOIN users AS ut ON ut.id = d3.field_value " .
+                        "LEFT JOIN lbf_data AS d4 ON d4.form_id = f.form_id AND d4.field_id = 'refer_related_code' " .
+                        "LEFT JOIN lbf_data AS d5 ON d5.form_id = f.form_id AND d5.field_id = 'refer_date' " .
+                        "WHERE " .
+                        "f.pid = ? AND f.encounter = ? AND f.formdir = 'LBFref' AND f.deleted = 0 " .
+                        "ORDER BY refer_date, f.form_id",
+                        [$pid, $encounter]
+                    );
 
-                // If there are associated codes, generate a checkbox for each one.
-                if ($LBF_DIAGS_SECTION) {
-                    echo "<table cellpadding='0' cellspacing='0' width='100%'>\n";
-                    $cols = 3;
-                    $tdpct = (int)(100 / $cols);
-                    $count = 0;
-                    $relcodes = explode(';', $LBF_DIAGS_SECTION);
-                    foreach ($relcodes as $codestring) {
-                        if ($codestring === '') {
-                            continue;
-                        }
-                        $codes_esc = attr($codestring);
-                        $cbval = $fs->genCodeSelectorValue($codestring);
-                        if ($count % $cols == 0) {
-                            if ($count) {
-                                echo " </tr>\n";
+                    while ($refrow = sqlFetchArray($refres)) {
+                        $svcstring = '';
+                        if (!empty($refrow['refer_related_code'])) {
+                            // Get referred services.
+                            $relcodes = explode(';', (string) $refrow['refer_related_code']);
+                            foreach ($relcodes as $codestring) {
+                                if ($codestring === '') {
+                                    continue;
+                                }
+                                ++$svccount;
+                                [$codetype, $code] = explode(':', $codestring);
+                                $rrow = sqlQuery(
+                                    "SELECT code_text FROM codes WHERE " .
+                                    "code_type = ? AND code = ? " .
+                                    "ORDER BY active DESC, id ASC LIMIT 1",
+                                    [$code_types[$codetype]['id'], $code]
+                                );
+                                $code_text = empty($rrow['code_text']) ? '' : $rrow['code_text'];
+                                if ($svcstring) {
+                                    $svcstring .= '<br />';
+                                }
+                                $svcstring .= text("$code: $code_text");
                             }
-                            echo " <tr>\n";
                         }
-                        echo "  <td width='" . attr($tdpct) . "%'>";
-                        echo "<input type='checkbox' id='form_fs_diags[$codes_esc]' " .
-                            "onclick='fs_diag_clicked(this)' value='" . attr($cbval) . "'";
-                        if ($fs->code_is_in_fee_sheet) {
-                            echo " checked";
-                        }
-                        list($codetype, $code) = explode(':', $codestring);
-                        $title = lookup_code_descriptions($codestring);
-                        $title = empty($title) ? $code : xl_list_label($title);
-                        echo " />" . text($title);
-                        echo "</td>\n";
-                        ++$count;
-                    }
-                    if ($count) {
+                        echo " <tr style='cursor:pointer;cursor:hand' " .
+                            "onclick=\"openLBFEncounterForm('LBFref', 'Referral', " .
+                            attr_js($refrow['form_id']) . ")\">\n";
+                        echo "  <td class='text linkcolor'>" . text(oeFormatShortDate($refrow['refer_date'])) . "&nbsp;</td>\n";
+                        echo "  <td class='text linkcolor'>" . text($refrow['refer_type']) . "&nbsp;</td>\n";
+                        echo "  <td class='text linkcolor'>" . text($refrow['body']) . "&nbsp;</td>\n";
+                        echo "  <td class='text linkcolor'>" . text($refrow['organization'] ?: $refrow['referto_name']) . "&nbsp;</td>\n";
+                        echo "  <td class='text linkcolor'>" . $svcstring . "&nbsp;</td>\n";
                         echo " </tr>\n";
                     }
-                    echo "</table>\n";
-                }
 
-                // A row for Search.
-                $ctype = collect_codetypes('diagnosis', 'csv');
-                echo "<p class='bold'>";
-                echo "<input type='button' value='" . xla('Search Diagnoses') . "' onclick='sel_related(null," . attr_js($ctype) . ")' />";
-                echo "</p>\n";
-
-                // Generate a line for each diagnosis already in this FS.
-                echo "<table cellpadding='0' cellspacing='2' id='fs_diags_table'>\n";
-                echo " <tr>\n";
-                echo "  <td class='bold' colspan='2'>" . xlt('Diagnosis') . "&nbsp;</td>\n";
-                echo "  <td class='bold' align='right'>" . xlt('Delete') . "</td>\n";
-                echo " </tr>\n";
-                foreach ($fs->serviceitems as $lino => $li) {
-                    // Skip anything that is not a diagnosis; those are in the Services section above.
-                    if (!$code_types[$li['codetype']]['diag']) {
-                        continue;
-                    }
-                    echo " <tr>\n";
-                    echo "  <td class='text'>" . text($li['code']) . "&nbsp;</td>\n";
-                    echo "  <td class='text'>" . text($li['code_text']) . "&nbsp;</td>\n";
-                    // The Diagnoses section shares the form_fs_bill array with the Services section.
-                    echo "  <td class='text' align='right'>\n" .
-                        "   <input type='checkbox' name='form_fs_bill[" . attr($lino) . "][del]' " .
-                        "value='1'" . ($li['del'] ? " checked" : "") . " />\n";
-                    foreach ($li['hidden'] as $hname => $hvalue) {
-                        echo "   <input type='hidden' name='form_fs_bill[" . attr($lino) . "][" . attr($hname) . "]' value='" . attr($hvalue) . "' />\n";
-                    }
-                    echo "  </td>\n";
+                    echo " <tr style='cursor:pointer;cursor:hand' onclick=\"openLBFNewForm('LBFref', 'Referral')\">\n";
+                    echo "  <td class='bold linkcolor' colspan='5'>" . xlt('Create New Referral') . "</td>\n";
                     echo " </tr>\n";
-                }
-                echo "</table>\n";
-                echo "</center>\n";
-                echo "</div>\n";
-            } // End Diagnoses Section
+                    echo "</table>\n";
+                    echo "</center>\n";
+                    echo "</div>\n";
+                } // End Referrals Section
 
-            ?>
-            <br>
-
-            <div class="col-xs-12">
-                <div class="btn-group">
-
-                    <?php
-                    if (!$from_trend_form && !$from_lbf_edit) {
-                        // Generate price level selector if we are doing services or products.
-                        if (isset($LBF_SERVICES_SECTION) || isset($LBF_PRODUCTS_SECTION)) {
-                            echo xlt('Price Level') . ": ";
-                            echo $fs->generatePriceLevelSelector('form_fs_pricelevel');
-                            echo "&nbsp;&nbsp;";
-                        }
-                        ?>
-                        <button type="submit" class="btn btn-default btn-save" name="bn_save"
-                                value="<?php echo xla('Save'); ?>">
-                            <?php echo xlt('Save'); ?>
-                        </button>
-
-                        &nbsp;
-                        <button type='submit' class="btn btn-link" name='bn_save_continue'
-                                value='<?php echo xla('Save and Continue') ?>'>
-                            <?php echo xlt('Save and Continue'); ?>
-                        </button>
-                        <?php
-                        if (!$from_issue_form) {
-                            ?>
-                            &nbsp;
-                            <button type='submit' class="btn btn-link" name='bn_save_print'
-                                    value='<?php echo xla('Save and Print') ?>'>
-                                <?php echo xlt('Save and Print'); ?>
-                            </button>
+                ?>
+                <br />
+                <div class='row'>
+                    <div class='col-12'>
+                        <div class="btn-group">
                             <?php
-                            if (function_exists($formname . '_additional_buttons')) {
-                                // Allow the plug-in to insert more action buttons here.
-                                call_user_func($formname . '_additional_buttons');
-                            }
-
-                            if ($form_is_graphable) {
+                            if (!$from_trend_form && !$from_lbf_edit && $is_core) {
+                                // Generate price level selector if we are doing services or products.
+                                if (isset($LBF_SERVICES_SECTION) || isset($LBF_PRODUCTS_SECTION)) {
+                                    echo xlt('Price Level') . ": ";
+                                    echo $fs->generatePriceLevelSelector('form_fs_pricelevel');
+                                    echo "&nbsp;&nbsp;";
+                                }
                                 ?>
-                                <button type='button' class="btn btn-default btn-graph"
-                                        onclick="top.restoreSession();location='../../patient_file/encounter/trend_form.php?formname=<?php echo attr_url($formname); ?>'">
-                                    <?php echo xlt('Show Graph') ?>
+                                <button type="submit" class="btn btn-primary btn-save" name="bn_save"
+                                    onclick='submitButtonName = this.name;'
+                                    value="<?php echo xla('Save'); ?>">
+                                    <?php echo xlt('Save'); ?>
                                 </button>
-                                &nbsp;
+
+                                <button type='submit' class="btn btn-secondary" name='bn_save_continue'
+                                    onclick='submitButtonName = this.name;'
+                                    value='<?php echo xla('Save and Continue') ?>'>
+                                    <?php echo xlt('Save and Continue'); ?>
+                                </button>
+
+                                <?php if ($LBF_ENABLE_SAVE_CLOSE) { ?>
+                                    <button type='submit' class="btn btn-secondary" name='bn_save_close'
+                                        onclick='submitButtonName = this.name;'
+                                        value='<?php echo xla('Save and Close Visit') ?>'>
+                                        <?php echo xlt('Save and Close Visit'); ?>
+                                    </button>
+                                <?php } ?>
+
                                 <?php
-                            } // end form is graphable
+                                if (!$from_issue_form) {
+                                    ?>
+                                    <button type='submit' class="btn btn-secondary" name='bn_save_print'
+                                        onclick='submitButtonName = this.name;'
+                                        value='<?php echo xla('Save and Print') ?>'>
+                                        <?php echo xlt('Save and Print'); ?>
+                                    </button>
+                                    <?php
+                                    if (function_exists($formname . '_additional_buttons')) {
+                                        // Allow the plug-in to insert more action buttons here.
+                                        ($formname . '_additional_buttons')();
+                                    }
+
+                                    if ($form_is_graphable) {
+                                        ?>
+                                        <button type='button' class="btn btn-secondary btn-graph"
+                                            onclick="top.restoreSession();location='../../patient_file/encounter/trend_form.php?formname=<?php echo attr_url($formname); ?>'">
+                                            <?php echo xlt('Show Graph') ?>
+                                        </button>
+                                        &nbsp;
+                                        <?php
+                                    } // end form is graphable
+                                    ?>
+                                    <button type='button' class="btn btn-secondary btn-cancel" onclick="verifyCancel()">
+                                        <?php echo xlt('Cancel'); ?>
+                                    </button>
+                                    <?php
+                                } // end not from issue form
+                                ?>
+                                <?php
+                            } elseif (!$from_lbf_edit && $is_core) { // $from_trend_form is true but lbf edit doesn't want button
+                                ?>
+                                <button type='button' class="btn btn-secondary btn-back" onclick='window.history.back();'>
+                                    <?php echo xlt('Back') ?>
+                                </button>
+                                <?php
+                            } // end from trend form
                             ?>
-                            <button type='button' class="btn btn-link btn-cancel" onclick="verifyCancel()">
-                                <?php echo xlt('Cancel'); ?>
-                            </button>
-                            <?php
-                        } // end not from issue form
-                        ?>
-                        <?php
-                    } elseif (!$from_lbf_edit) { // $from_trend_form is true but lbf edit doesn't want button
-                        ?>
-                        <button type='button' class="btn btn-default btn-back" onclick='window.history.back();'>
-                            <?php echo xlt('Back') ?>
-                        </button>
-                        <?php
-                    } // end from trend form
-                    ?>
+                        </div>
+                    </div>
                 </div>
                 <hr>
+
+                <?php if (!$from_trend_form) { // end row and container divs ?>
+                    <p style='text-align:center' class='small'>
+                        <?php echo text(xl('Rev.') . ' ' . substr($grp_last_update ?? '', 0, 10)); ?>
+                    </p>
+
+                <?php } ?>
+
+                <input type='hidden' name='from_issue_form' value='<?php echo attr($from_issue_form); ?>' />
+                <?php if (!$is_core) {
+                    echo '<input type="hidden" name="csrf_token_form" value="' . CsrfUtils::collectCsrfToken('default', $session->getSymfonySession()) . '" />';
+                    echo "\n<input type='hidden' name='bn_save_continue' value='set' />\n";
+                } ?>
+
+                <!-- include support for the list-add selectbox feature -->
+                <?php require $GLOBALS['fileroot'] . "/library/options_listadd.inc.php"; ?>
+
+                <script>
+                    // Array of action conditions for the checkSkipConditions() function.
+                    var skipArray = [
+                        <?php echo $condition_str; ?>
+                    ];
+
+                    <?php echo $date_init; ?>
+                    <?php
+                    if (function_exists($formname . '_javascript_onload')) {
+                        ($formname . '_javascript_onload')();
+                    }
+
+                    if ($alertmsg) {
+                        echo "alert(" . js_escape($alertmsg) . ");\n";
+                    }
+                    ?>
+                    /*
+                    * Setup channel with portal
+                    * Mainly for form submission from remote for now.
+                    * umm you never know!
+                    * */
+                    <?php if (empty($is_core)) { ?>
+                    $(function () {
+                        window.addEventListener("message", (e) => {
+                            if (event.origin !== window.location.origin) {
+                                signerAlertMsg(<?php echo xlj("Request is not same origin!") ?>, 15000);
+                                return false;
+                            }
+                            if (e.data.submitForm === true) {
+                                let pass = validate(document.forms[0], false);
+                                if (pass) {
+                                    signerAlertMsg(<?php echo xlj("Working on request.") ?>, 5000, 'info');
+                                    e.preventDefault();
+                                    document.forms[0].submit();
+                                } else {
+                                    signerAlertMsg(<?php echo xlj("Form validation failed. Fix any errors and resubmit.") ?>);
+                                    return false;
+                                }
+                            } else if (e.data.submitForm === 'history') {
+                                e.preventDefault();
+                                let portal_form_pid = Number(<?php echo js_escape($portal_form_pid); ?>);
+                                if (portal_form_pid) {
+                                    signerAlertMsg(<?php echo xlj("Charting History.") ?>, 5000, 'info');
+                                } else {
+                                    signerAlertMsg(<?php echo xlj("Sorry. Can not update history.") ?>, 8000, 'danger');
+                                    return false;
+                                }
+                                top.restoreSession();
+                                document.forms[0].action = "<?php echo $rootdir; ?>/patient_file/history/history_save.php?requestPid=" + encodeURIComponent(portal_form_pid);
+                                document.forms[0].onsubmit = "";
+                                document.forms[0].submit();
+                            }
+                        });
+                    });
+                    <?php }
+                    if (empty($is_core) && !empty($_POST['bn_save_continue'])) { ?>
+                    /* post event to portal with current formid from save/edit action */
+                    parent.postMessage({formid:<?php echo attr($formid) ?>}, window.location.origin);
+                    <?php } ?>
+                </script>
+
             </div>
-            <?php if (!$from_trend_form) { // end row and container divs ?>
         </div>
-    </div>
-<?php } ?>
-
-    <input type='hidden' name='from_issue_form' value='<?php echo attr($from_issue_form); ?>'/>
-
-    </form>
-
-    <!-- include support for the list-add selectbox feature -->
-    <?php include $GLOBALS['fileroot'] . "/library/options_listadd.inc"; ?>
-
-    <script language="JavaScript">
-
-        // Array of action conditions for the checkSkipConditions() function.
-        var skipArray = [
-            <?php echo $condition_str; ?>
-        ];
-
-        <?php echo $date_init; ?>
-        <?php
-        if (function_exists($formname . '_javascript_onload')) {
-            call_user_func($formname . '_javascript_onload');
-        }
-
-        // New form and this patient has a portal login and we have not loaded portal data.
-        // Check if there is portal data pending for this patient and form type.
-        if (!$alertmsg && !$formid && $GLOBALS['gbl_portal_cms_enable'] && $cmsportal_login && !$portalid) {
-            $portalres = cms_portal_call(array('action' => 'checkptform', 'form' => $formname, 'patient' => $cmsportal_login));
-            if ($portalres['errmsg']) {
-                die(text($portalres['errmsg'])); // TBD: Change to alertmsg
-            }
-
-            $portalid = $portalres['postid'];
-            if ($portalid) {
-                echo "if (confirm(" . xlj('The portal has data for this patient and form. Load it now?') . ")) {\n";
-                echo " top.restoreSession();\n";
-                echo " document.location.href = 'load_form.php?formname=" . attr_url($formname) . "&portalid=" . attr_url($portalid) . "';\n";
-                echo "}\n";
-            }
-        }
-
-        if ($alertmsg) {
-            echo "alert(" . js_escape($alertmsg) . ");\n";
-        }
-        ?>
-    </script>
-</div>
+        </form>
+    </div><!-- end container -->
 </body>
 </html>

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Trending script for graphing objects.
  *
@@ -11,11 +12,16 @@
  * @copyright Copyright (c) 2010-2018 Brady Miller <brady.g.miller@gmail.com>
  */
 
-$special_timeout = 3600;
 require_once("../../globals.php");
 
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Session\SessionWrapperFactory;
+use OpenEMR\Core\Header;
+
+$session = SessionWrapperFactory::getInstance()->getWrapper();
+
 $formname = $_GET["formname"];
-$is_lbf = substr($formname, 0, 3) === 'LBF';
+$is_lbf = str_starts_with((string) $formname, 'LBF');
 
 if ($is_lbf) {
   // Determine the default field ID and its title for graphing.
@@ -24,7 +30,7 @@ if ($is_lbf) {
         "SELECT field_id, title FROM layout_options WHERE " .
         "form_id = ? AND uor > 0 AND edit_options LIKE '%G%' " .
         "ORDER BY group_id DESC, seq DESC, title DESC LIMIT 1",
-        array($formname)
+        [$formname]
     );
 }
 
@@ -32,8 +38,13 @@ if ($is_lbf) {
 ?>
 <?php require $GLOBALS['srcdir'] . '/js/xl/dygraphs.js.php'; ?>
 
-<link rel="stylesheet" href="<?php echo $css_header;?>" type="text/css">
-<link rel="stylesheet" href="<?php echo $GLOBALS['assets_static_relative']; ?>/modified/dygraphs-2-0-0/dygraph.css" type="text/css"></script>
+<?php
+// Special case where not setting up the header for a script, so using setupAssets function,
+//  which does not autoload anything. The actual header is set up in the script called at
+//  the bottom of this script.
+Header::setupAssets(['dygraphs', 'jquery']);
+?>
+
 <?php
 // Hide the current value css entries. This is currently specific
 //  for the vitals form but could use this mechanism for other
@@ -47,21 +58,26 @@ if ($is_lbf) {
 // Also customize the 'graph' class to look like links.
 ?>
 <style>
-  .currentvalues { display: none;}
-  .valuesunfocus { display: none;}
-  .editonly      { display: none !important;}
+  .currentvalues {
+    display: none;
+  }
+  .valuesunfocus {
+    display: none;
+  }
+  .editonly {
+    display: none !important;
+  }
 
-  .graph {color:#0000cc;}
+  .graph {
+    color: #0000cc;
+  }
 
   #chart {
     margin:0em 1em 2em 2em;
   }
 </style>
 
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery/dist/jquery.min.js"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/modified/dygraphs-2-0-0/dygraph.js?v=<?php echo $v_js_includes; ?>"></script>
-
-<script type="text/javascript">
+<script>
 
 
 // Show the selected chart in the 'chart' div element
@@ -74,7 +90,7 @@ function show_graph(table_graph, name_graph, title_graph)
             table: table_graph,
             name: name_graph,
             title: title_graph,
-            csrf_token_form: <?php echo js_escape(collectCsrfToken()); ?>
+            csrf_token_form: <?php echo js_escape(CsrfUtils::collectCsrfToken('default', $session->getSymfonySession())); ?>
         }),
         dataType: "json",
         success: function(returnData){
@@ -99,18 +115,20 @@ function show_graph(table_graph, name_graph, title_graph)
         error: function() {
             // hide the chart div
           $('#chart').hide();
+          <?php if ($GLOBALS['graph_data_warning']) { ?>
           if(!title_graph){
               alert(<?php echo xlj('This item does not have enough data to graph');?> + ".\n" + <?php echo xlj('Please select an item that has more data');?> + ".");
           }
           else {
               alert(title_graph + " " + <?php echo xlj('does not have enough data to graph');?> + ".\n" + <?php echo xlj('Please select an item that has more data');?> + ".");
           }
+          <?php } ?>
 
         }
     });
 }
 
-$(document).ready(function(){
+$(function () {
 
   // Use jquery to show the 'readonly' class entries
   $('.readonly').show();
@@ -135,7 +153,7 @@ $(document).ready(function(){
 
   // show blood pressure graph by default
 <?php if ($is_lbf) { ?>
-<?php if (!empty($default)) { ?>
+    <?php if (!empty($default)) { ?>
   show_graph(<?php echo js_escape($formname); ?>,<?php echo js_escape($default['field_id']); ?>,<?php echo js_escape($default['title']); ?>);
 <?php } ?>
 <?php } else { ?>

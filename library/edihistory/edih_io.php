@@ -1,39 +1,16 @@
 <?php
+
 /*
  * edih_io.php
  *
- * Copyright 2016 Kevin McCormick Longview, Texas
- *
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; version 3 or later.  You should have
- * received a copy of the GNU General Public License along with this program;
- * if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- *  <http://opensource.org/licenses/gpl-license.php>
- *
- *
- * @author Kevin McCormick
- * @link: http://www.open-emr.org
- * @package OpenEMR
- * @subpackage ediHistory
+ * @package   OpenEMR
+ * @link      http://www.open-emr.org
+ * @author    Kevin McCormick Longview, Texas
+ * @author    Stephen Waite <stephen.waite@cmsvt.com>
+ * @copyright Copyright (c) 2016 Kevin McCormick Longview, Texas
+ * @copyright Copyright (c) 2021 Stephen Waite <stephen.waite@cmsvt.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
-
-/**
- * jQuery adds a special HTTP header for ajax requests
- *
- * @return bool
- */
-function is_xhr()
-{
-    return @ $_SERVER[ 'HTTP_X_REQUESTED_WITH' ] === 'XMLHttpRequest';
-}
 
 /**
  * Get some values from php ini functions for interface
@@ -42,7 +19,7 @@ function is_xhr()
  */
 function edih_php_inivals()
 {
-    $ival = array();
+    $ival = [];
     $td = basename(sys_get_temp_dir());
     $ival['maxfsize'] = ini_get('upload_max_filesize');
     $ival['maxfuploads'] = ini_get('max_file_uploads');
@@ -121,68 +98,6 @@ function edih_user_notes()
     return $str_html;
 }
 
-/**
- * generate the heading string for an html page
- *
- * @return string     html heading stanza
- */
-function edih_html_heading($option, $title = '')
-{
-    //
-    //if (!is_string($title)) { $title=''; }
-    $title = (is_string($title)) ? $title : '';
-    //$srcdir = $GLOBALS['srcdir'];
-    $webdir = $GLOBALS['webroot'];
-    $vendordir = $GLOBALS['assets_static_relative'];
-
-    $str_html = "<!DOCTYPE html>".PHP_EOL."<html>".PHP_EOL."<head>".PHP_EOL;
-    $str_html .= " <meta http-equiv='content-type' content='text/html;charset=utf-8' />".PHP_EOL;
-    $str_html .= " <title>##TITLE##</title>".PHP_EOL;
-    //$str_html .= " <link rel='stylesheet' href='jscript/style/csv_new.css' type='text/css' media='print, projection, screen' />".PHP_EOL;
-    //$str_html .= " <link rel='stylesheet' href='../css/edi_history.css' type='text/css' />".PHP_EOL;
-    $str_html .= " <link rel='stylesheet' href='$webdir/library/css/edi_history.css' type='text/css' />".PHP_EOL;
-    $str_html .= " <link type='text/javascript' src='$vendordir/jquery-1-9-1/jquery.min.js'  />".PHP_EOL;
-    $str_html .= " <link type='text/javascript' src='$webdir/library/js/jquery-ui-1.8.21.custom.min.js'  />".PHP_EOL;
-    //
-    $str_html .= "</head>".PHP_EOL."<body>".PHP_EOL;
-
-    if ($option == 'newfiles') {
-        $str_html = str_replace('##TITLE##', 'Process New Files '.text($title), $str_html);
-    } elseif ($option == 'eradisplay') {
-        $str_html = str_replace('##TITLE##', 'ERA Display '.text($title), $str_html);
-    } elseif ($option == 'claimstatus') {
-        $str_html = str_replace('##TITLE##', 'Claim Status '.text($title), $str_html);
-    } elseif ($option == 'eligibility') {
-        $str_html = str_replace('##TITLE##', 'Eligiility '.text($title), $str_html);
-    } elseif ($option == 'authorization') {
-        $str_html = str_replace('##TITLE##', 'Authorization '.text($title), $str_html);
-    } elseif ($option == 'x12display') {
-        $str_html = str_replace('##TITLE##', 'x12 File '.text($title), $str_html);
-    } elseif ($option == 'csvtable') {
-        $str_html = str_replace('##TITLE##', 'CSV Table '.text($title), $str_html);
-    } elseif ($option == 'textdisplay') {
-        $str_html = str_replace('##TITLE##', 'Text '.text($title), $str_html);
-    } elseif ($option == 'readme') {
-        $str_html = str_replace('##TITLE##', 'Readme '.text($title), $str_html);
-    } else {
-        $str_html = str_replace('##TITLE##', 'OEMR edi_history '.text($title), $str_html);
-    }
-
-    //
-    return $str_html;
-}
-
-/**
- * generate the trailing tags for html page
- *
- * @return string
- */
-function edih_html_tail()
-{
-    $str_html = PHP_EOL."</body></html>";
-    return $str_html;
-}
-
 
 /**
  * Restore an existing archive
@@ -198,7 +113,7 @@ function edih_disp_archive_restore()
     if (strlen($fn)) {
         $str_html = edih_archive_restore($fn);
     } else {
-        $str_html = "<p>Invalid archive name for archive resstore function</p>".PHP_EOL;
+        $str_html = "<p>Invalid archive name for archive resstore function</p>" . PHP_EOL;
     }
 
     return $str_html;
@@ -220,11 +135,7 @@ function edih_disp_archive_report()
     //
     csv_edihist_log("GET archivereport:  archivereport $la period $pd");
     //
-    if ($la == 'yes') {
-        $str_html = edih_archive_report($pd);
-    } else {
-        $str_html = "File Information report input parameter error<br>";
-    }
+    $str_html = $la == 'yes' ? edih_archive_report($pd) : "File Information report input parameter error<br />";
 
     //
     return $str_html;
@@ -243,11 +154,7 @@ function edih_disp_archive()
     //
     $pd = (isset($_POST['archive_sel'])) ? filter_input(INPUT_POST, 'archive_sel', FILTER_DEFAULT) : '';
     //
-    if ($pd) {
-        $str_html = edih_archive_main($pd);
-    } else {
-        $str_html = "<p>Invalid aging period for archive function</p>".PHP_EOL;
-    }
+    $str_html = $pd ? edih_archive_main($pd) : "<p>Invalid aging period for archive function</p>" . PHP_EOL;
 
     return $str_html;
 }
@@ -268,13 +175,11 @@ function edih_disp_archive()
  */
 function edih_disp_file_process()
 {
-    //file "fileUplMulti "submit" "uplsubmit" "button""uplreset"
-    //
     // debug
     if (isset($_GET)) {
         $dbg_str = 'GET vars ';
         foreach ($_GET as $k => $v) {
-            $dbg_str .= $k.' '.$v.'  ';
+            $dbg_str .= $k . ' ' . $v . '  ';
         }
 
         csv_edihist_log("edih_disp_file_process $dbg_str");
@@ -283,7 +188,7 @@ function edih_disp_file_process()
     //
     if (!isset($_GET['ProcessFiles'])) {
         // should only be called with this value existing
-        $str_html = "Error: invalid value for Process New <br />".PHP_EOL;
+        $str_html = "Error: invalid value for Process New <br />" . PHP_EOL;
         return $str_html;
     }
 
@@ -301,7 +206,6 @@ function edih_disp_file_process()
     }
 
     $str_html = "";
-    //
     $p = csv_parameters();
     $ftype = array_keys($p);
     $fct = 0;
@@ -314,7 +218,7 @@ function edih_disp_file_process()
             $dh = opendir($fdir);
             if ($dh) {
                 while (($file = readdir($dh)) !== false) {
-                    if ($file != '.' && $file != '..') {
+                    if (!in_array($file, ['.', '..', "process_bills.log"])) {
                         $checkdir = true;
                         break;
                     }
@@ -342,12 +246,12 @@ function edih_disp_file_process()
                 //$str_html .= "<table class='$tp' cols=$col_ct><caption>$tp Files Summary $dtl</caption>".PHP_EOL;
                 //$str_html .= csv_thead_html($tp, 'file');
                 //$str_html .= "<tbody>".PHP_EOL;
-                $str_html .= "<h2 class='prcs'>" . text($tp) . " " . text($dirct) . " files " . text($dtl) . "</h2>".PHP_EOL;
-                $str_html .= "<dl class='" . attr($tp) . "'>".PHP_EOL;
+                $str_html .= "<h2 class='prcs'>" . text($tp) . " " . text($dirct) . " files " . text($dtl) . "</h2>" . PHP_EOL;
+                $str_html .= "<dl class='" . attr($tp) . "'>" . PHP_EOL;
             }
 
             foreach ($upload_ar as $fn) {
-                $fp = $fdir.DS.$fn;
+                $fp = $fdir . DS . $fn;
                 $csvdata = edih_parse_select($fp);
                 $csvchr = edih_csv_write($csvdata);
                 $fct++;
@@ -357,13 +261,13 @@ function edih_disp_file_process()
             }
 
             //$str_html .= ($htm) ? "</tbody>".PHP_EOL."</table>".PHP_EOL : "";
-            $str_html .= ($htm) ? "</dl>".PHP_EOL : "";
+            $str_html .= ($htm) ? "</dl>" . PHP_EOL : "";
         } else {
             $str_html .= "<p>No new " . text($tp) . " files</p>";
         }
     }
 
-    $capt_html = "<p>Process new files (" . text($fct) . " files)</p>".PHP_EOL;
+    $capt_html = "<p>Process new files (" . text($fct) . " files)</p>" . PHP_EOL;
     return $capt_html . $str_html;
 }
 
@@ -383,7 +287,7 @@ function edih_disp_file_upload()
         if (is_array($f_array) && count($f_array)) {
             $str_html .= edih_sort_upload($f_array);
         } else {
-            $str_html .= "no files accepted <br />".PHP_EOL;
+            $str_html .= "no files accepted <br />" . PHP_EOL;
         }
     } else {
         $str_html .= "no files submitted <br />" . PHP_EOL;
@@ -435,9 +339,9 @@ function edih_disp_x12trans()
     // claim: err_seg  fname=$fn1&ftype=$ft&trace=$trc&rsptype=$typ&err=$err   filename x12type trace(bht03syn) response_type error_segment
     //
     // use files (1) x12 display of file segments (2) 835 html RA or Payment Trace (3) trace from 997 or 271/277/278
-    //					$fn or $icn	& $ft						$fn $icn  $trace & $ft    $trace & $rsptype
+    //                  $fn or $icn & $ft                       $fn $icn  $trace & $ft    $trace & $rsptype
     //    claims (1) html of transaction (2) segments of transaction (3) trace to precedent transaction
-    //					$fn	& $ft $ pid										$trace & $rsptype
+    //                  $fn & $ft $ pid                                     $trace & $rsptype
     //
     $str_htm = '';
     if (isset($_GET['gtbl'])) {
@@ -465,7 +369,7 @@ function edih_disp_x12trans()
     $summary = isset($_GET['summary']) ? filter_input(INPUT_GET, 'summary', FILTER_DEFAULT) : false;
     //
     // debug
-    //$str_htm .= "<p>edih_disp_x12trans values: <br>".PHP_EOL;
+    //$str_htm .= "<p>edih_disp_x12trans values: <br />".PHP_EOL;
     //$str_htm .= "qs $qs fmt $fmt fn $fn ft $ft icn $icn rsptype $rsptype clm01 $clm01 trace $trace bht03 $bht03 err $err summary $summary</p>".PHP_EOL;
     //
     if ($ft) {
@@ -507,7 +411,7 @@ function edih_disp_x12trans()
                 // this claim payment
                 $str_htm .= edih_835_html($fn, '', $clm01, $summary);
             }
-        } elseif (strpos('|f270|f271|f276|f277|f278', $ft)) {
+        } elseif (strpos('|f270|f271|f276|f277|f278', (string) $ft)) {
             if ($fmt == 'seg') {
                 if ($trace && $rsptype) {
                     // 270|276|278|837 claim or request segments
@@ -522,7 +426,7 @@ function edih_disp_x12trans()
                     if ($fname) {
                         $str_htm .= edih_display_text($fname, $rsptype, $trace);
                     } else {
-                        $str_htm .= "<p>Did not find " . text($trace) . " in type " . text($rsptype) . " csv_claims table</p>".PHP_EOL;
+                        $str_htm .= "<p>Did not find " . text($trace) . " in type " . text($rsptype) . " csv_claims table</p>" . PHP_EOL;
                         csv_edihist_log("edih_disp_x12trans: Did not find $trace in type $rsptype csv_claims table");
                     }
                 } else {
@@ -564,7 +468,7 @@ function edih_disp_x12trans()
                 if ($fname) {
                     $str_htm .= edih_display_text($fname, $rsptype, $trace);
                 } else {
-                    $str_htm .= "<p>Did not find " . text($trace) . " in type " . text($rsptype) . " csv_claims table</p>".PHP_EOL;
+                    $str_htm .= "<p>Did not find " . text($trace) . " in type " . text($rsptype) . " csv_claims table</p>" . PHP_EOL;
                     csv_edihist_log("edih_disp_x12trans: Did not find $trace in type $rsptype csv_claims table");
                 }
             } elseif ($clm01) {
@@ -593,11 +497,10 @@ function edih_disp_x12trans()
 }
 
 /**
- * display fule uploaded from x12 File tab
- * wrap individual transactions in accordian jquery ui widget
+ * display file uploaded from x12 File tab
+ * wrap individual transactions in accordion jquery ui widget
  *
  * @uses csv_check_x12_obj()
- * @uses edih_html_heading()
  * @uses edih_271_transaction_html()
  * @uses edih_278_transaction_html()
  * @uses edih_277_transaction_html()
@@ -632,10 +535,9 @@ function edih_disp_x12file()
             if (isset($f_array['reject'])) {
                 $fn = (count($f_array['reject'][0])) ? $f_array['reject'][0]['name'] : '';
                 $cmt = (count($f_array['reject'][0])) ? $f_array['reject'][0]['comment'] : '';
-                //$str_html = edih_html_heading('error');
-                $str_htm .= "<p>Rejected file:</p>".PHP_EOL;
-                $str_htm .= "<p>" . text($fn) . "<br>".PHP_EOL;
-                $str_htm .= " -- " . text($cmt) . "</p>".PHP_EOL;
+                $str_htm .= "<p>Rejected file:</p>" . PHP_EOL;
+                $str_htm .= "<p>" . text($fn) . "<br />" . PHP_EOL;
+                $str_htm .= " -- " . text($cmt) . "</p>" . PHP_EOL;
                 //
                 csv_edihist_log("edih_disp_x12file: rejected file $fn comment: $cmt");
                 //
@@ -648,14 +550,12 @@ function edih_disp_x12file()
                 csv_edihist_log("edih_disp_x12file: submitted POST $format $ft $fn1 $fnupl");
                 //
                 if (!$fn) {
-                    //$str_htm = edih_html_heading('error');
                     $str_htm .= "<p>Path error for " . text($fn1) . "</p>" . PHP_EOL;
                     csv_edihist_log("edih_disp_x12file: Path error for $fn1");
                     return $str_htm;
                 }
             }
         } else {
-            //$str_htm = edih_html_heading('error');
             $str_htm .= "<p>File not accepted " . text($fnupl) . "</p>" . PHP_EOL;
             csv_edihist_log("edih_disp_x12file: File not accepted $fnupl");
             return $str_htm;
@@ -671,7 +571,6 @@ function edih_disp_x12file()
         $format = isset($_GET['fmt']) ? filter_input(INPUT_GET, 'fmt', FILTER_DEFAULT) : '';
         //
     } else {
-        //$str_htm = edih_html_heading('error');
         $str_htm .= "<p>Error: No request received by server</p>" . PHP_EOL;
         csv_edihist_log("edih_disp_x12file: No request received by server");
         return $str_htm;
@@ -704,7 +603,6 @@ function edih_disp_x12file()
     }
 
     if (!$fn) {
-        //$str_htm = edih_html_heading('error');
         $str_htm .= "<p>Name error for file: type " . text($ft) . " icn " . text($icn) . " trace " . text($trace) . " rsp " . text($rsptype) . "</p>" . PHP_EOL;
         csv_edihist_log("edih_disp_x12file: Name error for file: type $ft icn $icn trace $trace rsp $rsptype");
         return $str_htm;
@@ -730,26 +628,21 @@ function edih_disp_x12file()
     // 'HB'=>'271', 'HS'=>'270', 'HR'=>'276', 'HI'=>'278','HN'=>'277',
     // 'HP'=>'835', 'FA'=>'999', 'HC'=>'837');
     if ($ft == 'f271' || $ft == 'f270') {
-        //$str_htm .= edih_html_heading('eligibility', $fn);
         $str_htm .= edih_271_html($fn);
         //$str_htm .= "</body>".PHP_EOL."</html>".PHP_EOL;
     } elseif ($ft == 'f276' || $ft == 'f277') {
-        //$str_htm .= edih_html_heading('claimstatus', $fn);
         $str_htm .= edih_277_html($fn);
         //$str_htm .= "</body>".PHP_EOL."</html>".PHP_EOL;
     } elseif ($ft == 'f278') {
-        //$str_htm .= edih_html_heading('claimstatus', $fn);
         $str_htm .= edih_278_html($fn);
         //$str_htm .= "</body>".PHP_EOL."</html>".PHP_EOL;
     } elseif ($ft == 'f835') {
-        //$str_htm .= edih_html_heading('eradisplay', $fn);
         $str_htm = edih_835_html($fn, $trace);
         //$str_htm .= "</body>".PHP_EOL."</html>".PHP_EOL;
     } else {
         // no html format for this type
         // object is created in edih_display_text function
         // edih_display_text($filepath, $filetype='', $claimid='', $trace=false, $err_info='')
-        //$str_htm .= edih_html_heading('x12display', $fn);
         $str_htm .= edih_display_text($fn, $ft);
         //$str_htm .= "</body>".PHP_EOL."</html>".PHP_EOL;
     }
@@ -778,17 +671,17 @@ function edih_disp_csvtable()
     csv_edihist_log("edih_disp_csvtable: $csvfile period $prd datestart $dts dateend $dte");
     //
     if ($dts && strpos($dts, '-') != 4) {
-        if (strlen($_GET['csv_date_start']) == 10 && strpos($_GET['csv_date_start'], '/') == 4) {
+        if (strlen((string) $_GET['csv_date_start']) == 10 && strpos((string) $_GET['csv_date_start'], '/') == 4) {
             $dts = str_replace('/', '-', $dts);
         } else {
-            $str_html = "<p>Date " . text($dts) . " must be in YYYY-MM-DD format, no / or . please</p>".PHP_EOL;
+            $str_html = "<p>Date " . text($dts) . " must be in YYYY-MM-DD format, no / or . please</p>" . PHP_EOL;
             csv_edihist_log("invalid date $dts submitted for csv_table filter");
             return $str_html;
         }
     }
 
     if ($dte && strpos($dte, '-') != 4) {
-        if (strlen($_GET['csv_date_end']) == 10 && strpos($_GET['csv_date_end'], '/') == 4) {
+        if (strlen((string) $_GET['csv_date_end']) == 10 && strpos((string) $_GET['csv_date_end'], '/') == 4) {
             $dte = str_replace('/', '-', $dte);
         } else {
             $dte = '';
@@ -797,14 +690,14 @@ function edih_disp_csvtable()
 
     if (!$csvfile || $csvfile == null || $csvfile === false) {
         // here we have an error and must quit
-        $str_html = "<p>Error in CSV table name </p>".PHP_EOL;
+        $str_html = "<p>Error in CSV table name </p>" . PHP_EOL;
         return $str_html;
     } else {
         $tp_ar = explode('_', $csvfile);
         $tbl_type = ($tp_ar[0] == 'claims') ? 'claim' : 'file';
         $f_type = strval($tp_ar[1]);
         if (ctype_digit($f_type)) {
-            $f_type = 'f'.$f_type;
+            $f_type = 'f' . $f_type;
         }
     }
 
@@ -814,165 +707,19 @@ function edih_disp_csvtable()
 }
 
 
-/**
- * Report 835 file as processed by billing routine if the file name
- * is found in the 'era' directory.  The file name is a concatenation
- * of GS04_TRN04_ISA13.edi per \OpenEMR\Billing\ParseERA
- *
- *
- * @param string
- * @return bool
- */
-function edih_disp_835_processed($erasavename)
-{
-    // openemr/interface/billing/era_payments.php
-    // use \OpenEMR\Billing\ParseERA
-    //  OpenEMR filename for era should be just the upload filename or
-    //  $out['gs_date'] . '_' . $out['payer_id'] . '_' .$out['isa_control_number']
-    //  with 'payer_id' taken from BPR10 or TRN03 (same value) and not from TRN04
-    //
-    // search for YYYYMMDD_NNNNNNNN_ISA13
-    $eraname = $out['gs_date'] . '_' . ltrim($out['isa_control_number'], '0') .
-    '_' . ltrim($out['payer_id'], '0');
-    $out['payer_id'] = trim($seg[4]);  //TRN04
-    //
-    $srchlen = strlen($erasavename);
-    $found = false;
-    $eradir = $GLOBALS['OE_SITE_DIR'].DS.'edi'.DS.'era';
-    //
-    if ($hd = opendir($eradir)) {
-        while (false !== ($entry = readdir($hd))) {
-            if (strncmp($entry, $erasavename, $srchlen) === 0) {
-                $found = true;
-                break;
-            }
-        }
-
-        closedir($hd);
-    } else {
-        csv_edihist_log("edih_disp_processed_835: did not find processed era directory");
-    }
-
-    return $found;
-}
-
 function edih_disp_clmhist()
 {
     //
     if (isset($_GET['hist_enctr'])) {
         $enctr = filter_input(INPUT_GET, 'hist_enctr', FILTER_DEFAULT);
-        if ($enctr) {
-            $str_html = edih_claim_history($enctr);
-        } else {
-            $str_html = "Invalid or unknown encounter number".PHP_EOL;
-        }
+        $str_html = $enctr ? edih_claim_history($enctr) : "Invalid or unknown encounter number" . PHP_EOL;
     } else {
-        $str_html = "Invalid or unknown encounter number".PHP_EOL;
+        $str_html = "Invalid or unknown encounter number" . PHP_EOL;
     }
 
     return $str_html;
 }
 
-
-/**
- * display the message part of a 999 response
- *
- * @uses ibr_997_errscan()
- * @return string
- */
-function ibr_disp_997_message()
-{
-    //
-    $fname = '';
-    $akval = '';
-    $errval = '';
-    $fname = filter_input(INPUT_GET, 'fv997', FILTER_DEFAULT);
-    if (isset($_GET['aknum'])) {
-        $akval = filter_input(INPUT_GET, 'aknum', FILTER_DEFAULT);
-    }
-
-    if (isset($_GET['err997'])) {
-        $errval = filter_input(INPUT_GET, 'err997', FILTER_DEFAULT);
-    }
-
-    if (!$fname) {
-        $str_html = "Missing file name.<br />".PHP_EOL;
-    } else {
-        $str_html = ibr_997_errscan($fname, $akval);
-    }
-
-    return $str_html;
-}
-
-/**
- * display the message part of a ACK or TA1 response
- *
- * @uses ibr_ack_error()
- * @return string
- */
-function ibr_disp_ta1_message()
-{
-    //
-    $fname = '';
-    $code = '';
-    $fname = filter_input(INPUT_GET, 'ackfile', FILTER_DEFAULT);
-    if (isset($_GET['ackcode'])) {
-        $code = filter_input(INPUT_GET, 'ackcode', FILTER_DEFAULT);
-    }
-
-    if ($fname && $code) {
-        $str_html = ibr_ack_error($fname, $code);
-    } else {
-        $str_html = 'Code value invalid <br />'.PHP_EOL;
-    }
-
-    return $str_html;
-}
-
-
-/**
- * check if the batch control number is found in the 997/999 files table
- *
- * @uses csv_search_record()
- * @return string
- */
-function ibr_disp_997_for_batch()
-{
-    $str_html = '';
-    $batch_icn = filter_input(INPUT_GET, 'batchicn', FILTER_DEFAULT);
-    if ($batch_icn) {
-        $ctln = (strlen($batch_icn) >= 9) ? substr($batch_icn, 0, 9) : trim(strval($batch_icn));
-        $search = array('s_val'=>$ctln, 's_col'=>3, 'r_cols'=>'all');
-        $result = csv_search_record('f997', 'file', $search, "1");
-        //
-        // should be matching row(s) from files_997.csv
-        if (is_array($result) && count($result)) {
-            $str_html .= "<p>Acknowledgement information</p>".PHP_EOL;
-            foreach ($result as $rslt) {
-                $ext = substr($rslt[1], -3);
-                //
-                $str_html .= "Date: " . text($rslt[0]) . " <br />".PHP_EOL;
-                $str_html .= "File: <a target=\"blank\" href=edi_history_main.php?fvkey=" . attr($rslt[1]) . ">" . text($rslt[1]) . "</a> <br />".PHP_EOL;
-                $str_html .= "Batch ICN: " . text($rslt[3]) . " <br />";
-                // error count or code in position 4
-                if ($ext == '999' || $ext == '997') {
-                    $str_html .= "Rejects: " . text($rslt[4]) . " <br />".PHP_EOL;
-                    // don't have dialog from this dialog, so don't link
-                    //$str_html .= "Rejects: <a class=\"codeval\" target=\"_blank\" href=\"edi_history_main.php?fv997={$rslt[1]}&err997={$rslt[4]}\">{$rslt[4]}</a><br />".PHP_EOL;
-                } elseif ($ext == 'ta1' || $ext == 'ack') {
-                    $str_html .= "Code: " . text($rslt[4]) . " <br />".PHP_EOL;
-                    //$str_html .= "Code: <a class=\"codeval\" target=\"_blank\" href=\"edi_history_main.php?ackfile={$rslt[1]}&ackcode={$rslt[4]}\">{$rslt[4]}</a><br />".PHP_EOL;
-                }
-            }
-        } else {
-            $str_html .= "Did not find corresponding 997/999 file for " . text($ctln) . "<br />".PHP_EOL;
-        }
-    } else {
-        $str_html .= "Invalid value for ICN number<br />".PHP_EOL;
-    }
-
-    return $str_html;
-}
 
 /**
  * function to check whether an era payment has been processed and applied
@@ -987,12 +734,12 @@ function edih_disp_era_processed()
     $str_html = '';
     $ckno = filter_input(INPUT_GET, 'tracecheck', FILTER_DEFAULT);
     if ($ckno) {
-        $srchval = 'ePay - '.$ckno;
+        $srchval = 'ePay - ' . $ckno;
         // reference like '%".$srchval."%'"
-        $row = sqlQuery("SELECT reference, pay_total, global_amount FROM ar_session WHERE reference = ?", array($srchval));
+        $row = sqlQuery("SELECT reference, pay_total, global_amount FROM ar_session WHERE reference = ?", [$srchval]);
         if (!empty($row)) {
             $str_html .= "trace {$row['reference']} total \${$row['pay_total']}";
-            if ($row['global_amount'] === '0') {
+            if ($row['global_amount'] === '0' || $row['global_amount'] === '0.00') {
                 $str_html .= " fully allocated";
             } else {
                 $str_html .= " (" . text($row['global_amount']) . " not allocated)";

@@ -1,24 +1,34 @@
 <?php
+
 /**
  *  Patient Portal
  *
  * @package   OpenEMR
  * @link      http://www.open-emr.org
  * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @author    Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2016-2019 Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2019 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-session_start();
-if (isset($_SESSION['pid']) && isset($_SESSION['patient_portal_onsite_two'])) {
-    $pid = $_SESSION['pid'];
-    $ignoreAuth = true;
-    require_once(dirname(__FILE__) . "/../../interface/globals.php");
+use OpenEMR\Common\Session\SessionUtil;
+use OpenEMR\Common\Session\SessionWrapperFactory;
+
+// Will start the (patient) portal OpenEMR session/cookie.
+// Need access to classes, so run autoloader now instead of in globals.php.
+require_once(__DIR__ . "/../../vendor/autoload.php");
+$session = SessionWrapperFactory::getInstance()->getWrapper();
+
+if ($session->isSymfonySession() && !empty($session->get('pid')) && !empty($session->get('patient_portal_onsite_two'))) {
+    $pid = $session->get('pid');
+    $ignoreAuth_onsite_portal = true;
+    require_once(__DIR__ . "/../../interface/globals.php");
 } else {
-    session_destroy();
+    SessionUtil::portalSessionCookieDestroy();
     $ignoreAuth = false;
-    require_once(dirname(__FILE__) . "/../../interface/globals.php");
-    if (!isset($_SESSION['authUserID'])) {
+    require_once(__DIR__ . "/../../interface/globals.php");
+    if (!$session->has('authUserID')) {
         $landingpage = "index.php";
         header('Location: ' . $landingpage);
         exit();
@@ -28,12 +38,38 @@ if (isset($_SESSION['pid']) && isset($_SESSION['patient_portal_onsite_two'])) {
 require_once("./appsql.class.php");
 
 use OpenEMR\Billing\PaymentGateway;
+use OpenEMR\Common\Crypto\CryptoGen;
 
-if ($_SESSION['portal_init'] !== true) {
-    $_SESSION['whereto'] = 'paymentpanel';
+if ($session->get('portal_init') !== true) {
+    $session->set('whereto', '#paymentcard');
 }
 
-$_SESSION['portal_init'] = false;
+$session->set('portal_init', false);
+
+if ($_POST['mode'] == 'Sphere') {
+    $cryptoGen = new CryptoGen();
+    $dataTrans = $cryptoGen->decryptStandard($_POST['enc_data']);
+    $dataTrans = json_decode($dataTrans, true);
+
+    $form_pid = $dataTrans['get']['patient_id_cc'];
+
+    $cc = [];
+    $cc["cardHolderName"] = $dataTrans['post']['name'];
+    $cc['status'] = $dataTrans['post']['status_name'];
+    $cc['authCode'] = $dataTrans['post']['authcode'];
+    $cc['transId'] = $dataTrans['post']['transid'];
+    $cc['cardNumber'] = "******** " . $dataTrans['post']['cc'];
+    $cc['cc_type'] = $dataTrans['post']['ccBrand'];
+    $cc['zip'] = '';
+    $ccaudit = json_encode($cc);
+    $invoice = $_POST['invValues'] ?? '';
+
+    $session->set('whereto', '#paymentcard');
+
+    SaveAudit($form_pid, $invoice, $ccaudit);
+
+    echo 'ok';
+}
 
 if ($_POST['mode'] == 'AuthorizeNet') {
     $form_pid = $_POST['form_pid'];
@@ -49,7 +85,7 @@ if ($_POST['mode'] == 'AuthorizeNet') {
             exit();
         }
         $r = $response->getParsedData();
-        $cc = array();
+        $cc = [];
         $cc["cardHolderName"] = $_POST["cardHolderName"];
         $cc['status'] = $response->getMessage();
         $cc['authCode'] = $r->transactionResponse->authCode;
@@ -58,12 +94,12 @@ if ($_POST['mode'] == 'AuthorizeNet') {
         $cc['cc_type'] = $r->transactionResponse->accountType;
         $cc['zip'] = $_POST["zip"];
         $ccaudit = json_encode($cc);
-        $invoice = isset($_POST['invValues']) ? $_POST['invValues'] : '';
+        $invoice = $_POST['invValues'] ?? '';
     } catch (\Exception $ex) {
         return $ex->getMessage();
     }
 
-    $_SESSION['whereto'] = 'paymentpanel';
+    $session->set('whereto', '#paymentcard');
     if (!$response->isSuccessful()) {
         echo $response;
         exit();
@@ -86,7 +122,7 @@ if ($_POST['mode'] == 'Stripe') {
             exit();
         }
         $r = $response->getSource();
-        $cc = array();
+        $cc = [];
         $cc["cardHolderName"] = $_POST["cardHolderName"];
         $cc['status'] = $response->isSuccessful() ? "Payment Successful" : "Failed";
         $cc['authCode'] = $r['fingerprint'];
@@ -95,12 +131,12 @@ if ($_POST['mode'] == 'Stripe') {
         $cc['cc_type'] = $r['brand'];
         $cc['zip'] = $r->address_zip;
         $ccaudit = json_encode($cc);
-        $invoice = isset($_POST['invValues']) ? $_POST['invValues'] : '';
+        $invoice = $_POST['invValues'] ?? '';
     } catch (\Exception $ex) {
         echo $ex->getMessage();
     }
 
-    $_SESSION['whereto'] = 'paymentpanel';
+    $session->set('whereto', '#paymentcard');
     if (!$response->isSuccessful()) {
         echo $response;
         exit();
@@ -112,11 +148,11 @@ if ($_POST['mode'] == 'Stripe') {
 
 if ($_POST['mode'] == 'portal-save') {
     $form_pid = $_POST['form_pid'];
-    $form_method = trim($_POST['form_method']);
-    $form_source = trim($_POST['form_source']);
-    $upay = isset($_POST['form_upay']) ? $_POST['form_upay'] : '';
-    $cc = isset($_POST['extra_values']) ? $_POST['extra_values'] : '';
-    $amts = isset($_POST['inv_values']) ? $_POST['inv_values'] : '';
+    $form_method = trim((string) $_POST['form_method']);
+    $form_source = trim((string) $_POST['form_source']);
+    $upay = $_POST['form_upay'] ?? '';
+    $cc = $_POST['extra_values'] ?? '';
+    $amts = $_POST['inv_values'] ?? '';
     $s = SaveAudit($form_pid, $amts, $cc);
     if ($s) {
         echo 'failed';
@@ -124,13 +160,13 @@ if ($_POST['mode'] == 'portal-save') {
     }
 
     echo true;
-} else if ($_POST['mode'] == 'review-save') {
+} elseif ($_POST['mode'] == 'review-save') {
     $form_pid = $_POST['form_pid'];
-    $form_method = trim($_POST['form_method']);
-    $form_source = trim($_POST['form_source']);
-    $upay = isset($_POST['form_upay']) ? $_POST['form_upay'] : '';
-    $cc = isset($_POST['extra_values']) ? $_POST['extra_values'] : '';
-    $amts = isset($_POST['inv_values']) ? $_POST['inv_values'] : '';
+    $form_method = trim((string) $_POST['form_method']);
+    $form_source = trim((string) $_POST['form_source']);
+    $upay = $_POST['form_upay'] ?? '';
+    $cc = $_POST['extra_values'] ?? '';
+    $amts = $_POST['inv_values'] ?? '';
     $s = CloseAudit($form_pid, $amts, $cc);
     if ($s) {
         echo 'failed';
@@ -144,7 +180,7 @@ function SaveAudit($pid, $amts, $cc)
 {
     $appsql = new ApplicationTable();
     try {
-        $audit = array();
+        $audit = [];
         $audit['patient_id'] = $pid;
         $audit['activity'] = "payment";
         $audit['require_audit'] = "1";
@@ -156,7 +192,8 @@ function SaveAudit($pid, $amts, $cc)
         $audit['table_args'] = $amts;
         $audit['action_user'] = "0";
         $audit['action_taken_time'] = "";
-        $audit['checksum'] = encryptStandard($cc);
+        $cryptoGen = new CryptoGen();
+        $audit['checksum'] = $cryptoGen->encryptStandard($cc);
 
         $edata = $appsql->getPortalAudit($pid, 'review', 'payment');
         $audit['date'] = $edata['date'];
@@ -174,9 +211,10 @@ function SaveAudit($pid, $amts, $cc)
 
 function CloseAudit($pid, $amts, $cc, $action = 'payment posted', $paction = 'notify patient')
 {
+    $session = SessionWrapperFactory::getInstance()->getWrapper();
     $appsql = new ApplicationTable();
     try {
-        $audit = array();
+        $audit = [];
         $audit['patient_id'] = $pid;
         $audit['activity'] = "payment";
         $audit['require_audit'] = "1";
@@ -186,9 +224,10 @@ function CloseAudit($pid, $amts, $cc, $action = 'payment posted', $paction = 'no
         $audit['narrative'] = "Payment authorized.";
         $audit['table_action'] = "update";
         $audit['table_args'] = $amts;
-        $audit['action_user'] = isset($_SESSION['authUserID']) ? $_SESSION['authUserID'] : "0";
+        $audit['action_user'] = $session->get('authUserID', "0");
         $audit['action_taken_time'] = date("Y-m-d H:i:s");
-        $audit['checksum'] = encryptStandard($cc);
+        $cryptoGen = new CryptoGen();
+        $audit['checksum'] = $cryptoGen->encryptStandard($cc);
 
         $edata = $appsql->getPortalAudit($pid, 'review', 'payment');
         $audit['date'] = $edata['date'];

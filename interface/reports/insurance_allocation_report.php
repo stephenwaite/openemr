@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This module shows relative insurance usage by unique patients
  * that are seen within a given time period.  Each patient that had
@@ -12,25 +13,28 @@
  */
 
 require_once("../globals.php");
-require_once("../../library/patient.inc");
-require_once("../../library/acl.inc");
+require_once("../../library/patient.inc.php");
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
-if (!empty($_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
-    }
+if (!AclMain::aclCheckCore('acct', 'rep_a')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Patient Insurance Distribution")]);
+    exit;
 }
 
-// Might want something different here.
-//
-// if (! acl_check('acct', 'rep')) die("Unauthorized access.");
+if (!empty($_POST)) {
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
+    }
+}
 
 $form_from_date = (!empty($_POST['form_from_date'])) ?  DateToYYYYMMDD($_POST['form_from_date']) : '';
 $form_to_date   = (!empty($_POST['form_to_date'])) ? DateToYYYYMMDD($_POST['form_to_date']) : date('Y-m-d');
 
-if ($_POST['form_csvexport']) {
+if (!empty($_POST['form_csvexport'])) {
     header("Pragma: public");
     header("Expires: 0");
     header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
@@ -39,23 +43,23 @@ if ($_POST['form_csvexport']) {
     header("Content-Description: File Transfer");
     // CSV headers:
     if (true) {
-        echo '"Insurance",';
-        echo '"Charges",';
-        echo '"Visits",';
-        echo '"Patients",';
-        echo '"Pt Pct"' . "\n";
+        echo csvEscape("Insurance") . ',';
+        echo csvEscape("Charges") . ',';
+        echo csvEscape("Visits") . ',';
+        echo csvEscape("Patients") . ',';
+        echo csvEscape("Pt Pct") . "\n";
     }
 } else {
-?>
+    ?>
 <html>
 <head>
 
 <title><?php echo xlt('Patient Insurance Distribution'); ?></title>
 
-<?php Header::setupHeader('datetime-picker'); ?>
+    <?php Header::setupHeader('datetime-picker'); ?>
 
-<script language="JavaScript">
-    $(document).ready(function() {
+<script>
+    $(function () {
     var win = top.printLogSetup ? top : opener.top;
     win.printLogSetup(document.getElementById('printbutton'));
 
@@ -69,7 +73,7 @@ if ($_POST['form_csvexport']) {
     });
 </script>
 
-<style type="text/css">
+<style>
 
 /* specifically include & exclude from printing */
 @media print {
@@ -105,11 +109,11 @@ if ($_POST['form_csvexport']) {
 <span class='title'><?php echo xlt('Report'); ?> - <?php echo xlt('Patient Insurance Distribution'); ?></span>
 
 <div id="report_parameters_daterange">
-<?php echo text(oeFormatShortDate($form_from_date)) . " &nbsp; " . xlt("to") . " &nbsp; ". text(oeFormatShortDate($form_to_date)); ?>
+    <?php echo text(oeFormatShortDate($form_from_date)) . " &nbsp; " . xlt("to{{Range}}") . " &nbsp; " . text(oeFormatShortDate($form_to_date)); ?>
 </div>
 
 <form name='theform' method='post' action='insurance_allocation_report.php' id='theform' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
 <div id="report_parameters">
 <input type='hidden' name='form_refresh' id='form_refresh' value=''/>
@@ -122,14 +126,14 @@ if ($_POST['form_csvexport']) {
 
     <table class='text'>
         <tr>
-            <td class='control-label'>
+            <td class='col-form-label'>
                 <?php echo xlt('From'); ?>:
             </td>
             <td>
                <input type='text' class='datepicker form-control' name='form_from_date' id="form_from_date" size='10' value='<?php echo attr(oeFormatShortDate($form_from_date)); ?>'>
             </td>
-            <td class='control-label'>
-                <?php echo xlt('To'); ?>:
+            <td class='col-form-label'>
+                <?php echo xlt('To{{Range}}'); ?>:
             </td>
             <td>
                <input type='text' class='datepicker form-control' name='form_to_date' id="form_to_date" size='10' value='<?php echo attr(oeFormatShortDate($form_to_date)); ?>'>
@@ -140,20 +144,20 @@ if ($_POST['form_csvexport']) {
     </div>
 
   </td>
-  <td align='left' valign='middle' height="100%">
-    <table style='border-left:1px solid; width:100%; height:100%' >
+  <td class='h-100' valign='middle'>
+    <table class='w-100 h-100' style='border-left:1px solid;'>
         <tr>
             <td>
                 <div class="text-center">
           <div class="btn-group" role="group">
-                      <a href='#' class='btn btn-default btn-save' onclick='$("#form_refresh").attr("value","true"); $("#form_csvexport").val(""); $("#theform").submit();'>
+                      <a href='#' class='btn btn-secondary btn-save' onclick='$("#form_refresh").attr("value","true"); $("#form_csvexport").val(""); $("#theform").submit();'>
                             <?php echo xlt('Submit'); ?>
                       </a>
-                        <?php if ($_POST['form_refresh']) { ?>
-                        <a href='#' class='btn btn-default btn-print' id='printbutton'>
+                        <?php if (!empty($_POST['form_refresh'])) { ?>
+                        <a href='#' class='btn btn-secondary btn-print' id='printbutton'>
                                 <?php echo xlt('Print'); ?>
                         </a>
-                        <a href='#' class='btn btn-default btn-transmit' onclick='$("#form_csvexport").attr("value","true"); $("#theform").submit();'>
+                        <a href='#' class='btn btn-secondary btn-transmit' onclick='$("#form_csvexport").attr("value","true"); $("#theform").submit();'>
                             <?php echo xlt('Export to CSV'); ?>
                         </a>
                         <?php } ?>
@@ -170,19 +174,19 @@ if ($_POST['form_csvexport']) {
 </div> <!-- end parameters -->
 
 <div id="report_results">
-<table>
+<table class='table'>
 
- <thead>
-  <th align='left'> <?php echo xlt('Primary Insurance'); ?> </th>
-  <th align='right'> <?php echo xlt('Charges'); ?> </th>
-  <th align='right'> <?php echo xlt('Visits'); ?> </th>
-  <th align='right'> <?php echo xlt('Patients'); ?> </th>
-  <th align='right'> <?php echo xlt('Pt %'); ?> </th>
+ <thead class='thead-light'>
+ <th> <?php echo xlt('Primary Insurance'); ?> </th>
+ <th> <?php echo xlt('Charges'); ?> </th>
+ <th> <?php echo xlt('Visits'); ?> </th>
+ <th> <?php echo xlt('Patients'); ?> </th>
+ <th> <?php echo xlt('Pt %'); ?> </th>
  </thead>
  <tbody>
-<?php
+    <?php
 } // end not export
-if ($_POST['form_refresh'] || $_POST['form_csvexport']) {
+if (!empty($_POST['form_refresh']) || !empty($_POST['form_csvexport'])) {
     $query = "SELECT b.pid, b.encounter, SUM(b.fee) AS charges, " .
     "MAX(fe.date) AS date " .
     "FROM form_encounter AS fe, billing AS b " .
@@ -191,8 +195,8 @@ if ($_POST['form_refresh'] || $_POST['form_csvexport']) {
     "AND b.code_type != 'COPAY' AND b.activity > 0 AND b.fee != 0 " .
     "GROUP BY b.pid, b.encounter ORDER BY b.pid, b.encounter";
 
-    $res = sqlStatement($query, array((!empty($form_from_date)) ? $form_from_date : '0000-00-00', $form_to_date));
-    $insarr = array();
+    $res = sqlStatement($query, [(!empty($form_from_date)) ? $form_from_date : '0000-00-00', $form_to_date]);
+    $insarr = [];
     $prev_pid = 0;
     $patcount = 0;
 
@@ -203,54 +207,57 @@ if ($_POST['form_refresh'] || $_POST['form_csvexport']) {
         "FROM insurance_data, insurance_companies WHERE " .
         "insurance_data.pid = ? AND " .
         "insurance_data.type = 'primary' AND " .
-        "insurance_data.date <= ? AND " .
+        "(insurance_data.date <= ? OR insurance_data.date IS NULL) AND " .
         "insurance_companies.id = insurance_data.provider " .
-        "ORDER BY insurance_data.date DESC LIMIT 1", array($patient_id, $encounter_date));
-        $plan = $irow['name'] ? $irow['name'] : '-- No Insurance --';
+        "ORDER BY insurance_data.date DESC LIMIT 1", [$patient_id, $encounter_date]);
+        $plan = (!empty($irow['name'])) ? $irow['name'] : '-- No Insurance --';
+        $insarr[$plan]['visits'] ??= 0;
         $insarr[$plan]['visits'] += 1;
-        $insarr[$plan]['charges'] += sprintf('%0.2f', $row['charges']);
+        $insarr[$plan]['charges'] ??= 0;
+        $insarr[$plan]['charges'] += (float)$row['charges'];
         if ($patient_id != $prev_pid) {
-              ++$patcount;
-              $insarr[$plan]['patients'] += 1;
-              $prev_pid = $patient_id;
+            ++$patcount;
+            $insarr[$plan]['patients'] ??= 0;
+            $insarr[$plan]['patients'] += 1;
+            $prev_pid = $patient_id;
         }
     }
 
     ksort($insarr);
 
-    while (list($key, $val) = each($insarr)) {
+    foreach ($insarr as $key => $val) {
         if ($_POST['form_csvexport']) {
-            echo '"' . $key                                                . '",';
-            echo '"' . oeFormatMoney($val['charges'])                      . '",';
-            echo '"' . $val['visits']                                      . '",';
-            echo '"' . $val['patients']                                    . '",';
-            echo '"' . sprintf("%.1f", $val['patients'] * 100 / $patcount) . '"' . "\n";
+            echo csvEscape($key)                                                . ',';
+            echo csvEscape(oeFormatMoney($val['charges']))                      . ',';
+            echo csvEscape($val['visits'])                                      . ',';
+            echo csvEscape($val['patients'])                                    . ',';
+            echo csvEscape(sprintf("%.1f", $val['patients'] * 100 / $patcount)) . "\n";
         } else {
-        ?>
+            ?>
      <tr>
       <td>
             <?php echo text($key); ?>
   </td>
-  <td align='right'>
-        <?php echo text(oeFormatMoney($val['charges'])); ?>
+  <td>
+            <?php echo text(oeFormatMoney($val['charges'])); ?>
   </td>
-  <td align='right'>
-        <?php echo text($val['visits']); ?>
+  <td>
+            <?php echo text($val['visits']); ?>
   </td>
-  <td align='right'>
-        <?php echo text($val['patients']); ?>
+  <td>
+            <?php echo text($val['patients']); ?>
   </td>
-  <td align='right'>
-        <?php printf("%.1f", $val['patients'] * 100 / $patcount) ?>
+  <td>
+            <?php printf("%.1f", $val['patients'] * 100 / $patcount) ?>
   </td>
  </tr>
-<?php
+            <?php
         } // end not export
     } // end while
 } // end if
 
-if (! $_POST['form_csvexport']) {
-?>
+if (empty($_POST['form_csvexport'])) {
+    ?>
 
 </tbody>
 </table>
@@ -259,6 +266,6 @@ if (! $_POST['form_csvexport']) {
 </body>
 
 </html>
-<?php
+    <?php
 } // end not export
 ?>

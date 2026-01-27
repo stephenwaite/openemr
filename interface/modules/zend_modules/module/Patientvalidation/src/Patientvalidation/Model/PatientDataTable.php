@@ -20,15 +20,14 @@
 
 namespace Patientvalidation\Model;
 
-use Zend\Db\Sql\Expression;
-use Zend\Db\TableGateway\TableGateway;
-use Zend\Db\Sql\Predicate;
-use \Application\Model\ApplicationTable;
-use Zend\Db\Adapter\Adapter;
+use Laminas\Db\Sql\Expression;
+use Laminas\Db\TableGateway\TableGateway;
+use Laminas\Db\Sql\Predicate;
+use Application\Model\ApplicationTable;
+use Laminas\Db\Adapter\Adapter;
 
 class PatientDataTable
 {
-
     protected $tableGateway;
     protected $adapter;
 
@@ -40,7 +39,7 @@ class PatientDataTable
     public function __construct(TableGateway $tableGateway)
     {
         $this->tableGateway = $tableGateway;
-        $adapter = \Zend\Db\TableGateway\Feature\GlobalAdapterFeature::getStaticAdapter();
+        $adapter = \Laminas\Db\TableGateway\Feature\GlobalAdapterFeature::getStaticAdapter();
         $this->adapter = $adapter;
     }
 
@@ -62,13 +61,13 @@ class PatientDataTable
         //$sql="SELECT * FROM patient_data WHERE fname like ".$parameters['fname']." OR lname like ".$parameters['lname'] ." OR DOB like ".$parameters['DOB'];
 
 
-        $obj    = new ApplicationTable;
+        $obj    = new ApplicationTable();
         $sql    = " SELECT * FROM patient_data WHERE fname like  ? OR lname like ? OR DOB like ?  OR pubpid = ?";
-        $params = array($parameters['fname'],$parameters['lname'],$parameters['DOB'],isset($parameters['pubpid'])?$parameters['pubpid']:'');
+        $params = [$parameters['fname'],$parameters['lname'],$parameters['DOB'],$parameters['pubpid'] ?? ''];
         $rowset = $obj->zQuery($sql, $params);
 
 
-        $results = array();
+        $results = [];
         foreach ($rowset as $row) {
             $results[] = $row;
         }

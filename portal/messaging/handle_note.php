@@ -1,92 +1,161 @@
 <?php
+
 /**
+ * handle_note.php
  *
- * Copyright (C) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
- *
- * LICENSE: This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @package OpenEMR
- * @author Jerry Padgett <sjpadgett@gmail.com>
- * @link http://www.open-emr.org
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @author    Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2019 Brady Miller <brady.g.miller@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
-session_start();
-if (isset($_SESSION['pid']) && isset($_SESSION['patient_portal_onsite_two'])) {
-    $ignoreAuth = true;
-    require_once(dirname(__FILE__) . "/../../interface/globals.php");
+
+use OpenEMR\Common\Session\SessionUtil;
+use OpenEMR\Common\Session\SessionWrapperFactory;
+use OpenEMR\Core\OEGlobalsBag;
+
+// Will start the (patient) portal OpenEMR session/cookie.
+// Need access to classes, so run autoloader now instead of in globals.php.
+require_once(__DIR__ . "/../../vendor/autoload.php");
+$globalsBag = OEGlobalsBag::getInstance();
+$session = SessionWrapperFactory::getInstance()->getWrapper();
+
+if ($session->isSymfonySession() && $session->has('pid') && $session->has('patient_portal_onsite_two')) {
+    // ensure patient is bootstrapped (if sent)
+    if (!empty($_POST['pid'])) {
+        if ($_POST['pid'] != $session->get('pid')) {
+            echo "illegal Action";
+            SessionUtil::portalSessionCookieDestroy();
+            exit;
+        }
+    }
+    $ignoreAuth_onsite_portal = true;
+    require_once(__DIR__ . "/../../interface/globals.php");
+    if (empty($session->get('portal_username'))) {
+        echo xlt("illegal Action");
+        SessionUtil::portalSessionCookieDestroy();
+        exit;
+    }
+    // owner is the patient portal_username
+    $owner = $session->get('portal_username');
+
+    // ensure the owner is bootstrapped to the $_POST['sender_id'] and
+    //   $_POST['sender_name'], if applicable
+    if (empty($_POST['sender_id']) && !empty($_POST['sender_name'])) {
+        echo xlt("illegal Action");
+        SessionUtil::portalSessionCookieDestroy();
+        exit;
+    }
+    if (!empty($_POST['sender_id'])) {
+        if ($_POST['sender_id'] != $owner) {
+            echo xlt("illegal Action");
+            SessionUtil::portalSessionCookieDestroy();
+            exit;
+        }
+    }
+    if (!empty($_POST['sender_name'])) {
+        $nameCheck = sqlQuery("SELECT `fname`, `lname` FROM `patient_data` WHERE `pid` = ?", [$session->get('pid')]);
+        if (empty($nameCheck) || ($_POST['sender_name'] != ($nameCheck['fname'] . " " . $nameCheck['lname']))) {
+            echo xlt("illegal Action");
+            SessionUtil::portalSessionCookieDestroy();
+            exit;
+        }
+    }
 } else {
-    session_destroy();
+    SessionUtil::portalSessionCookieDestroy();
     $ignoreAuth = false;
-    require_once(dirname(__FILE__) . "/../../interface/globals.php");
-    if (! isset($_SESSION['authUserID'])) {
+    require_once(__DIR__ . "/../../interface/globals.php");
+    if (!$session->has('authUserID') || empty($session->get('authUser'))) {
         $landingpage = "index.php";
         header('Location: ' . $landingpage);
         exit();
     }
+    //owner is the user authUser
+    $owner = $session->get('authUser');
 }
 
-require_once(dirname(__FILE__) . "/../lib/portal_mail.inc");
-require_once("$srcdir/pnotes.inc");
+require_once(__DIR__ . "/../lib/portal_mail.inc.php");
+require_once("{$globalsBag->getString('srcdir')}/pnotes.inc.php");
+
+use OpenEMR\Common\Csrf\CsrfUtils;
+
+if (!$globalsBag->getBoolean('portal_onsite_two_enable')) {
+    echo xlt('Patient Portal is turned off');
+    exit;
+}
+// confirm csrf (from both portal and core)
+if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"], 'messages-portal', $session->getSymfonySession())) {
+    CsrfUtils::csrfNotVerified();
+}
+
+if (empty($owner)) {
+    echo xlt('Critical error, so exiting');
+    exit;
+}
 
 $task = $_POST['task'];
 if (! $task) {
     return 'no task';
 }
 
-$noteid = $_POST['noteid'] ? $_POST['noteid'] : 0;
-$notejson = $_POST['notejson'] ? json_decode($_POST['notejson'], true) : 0;
-$reply_noteid = $_POST['replyid'] ? $_POST['replyid'] : 0;
-$owner = isset($_POST['owner']) ? $_POST['owner'] : $_SESSION['pid'];
-$note = $_POST['inputBody'];
-$title = $_POST['title'];
-$sid = $_POST['sender_id'];
-$sn = $_POST['sender_name'];
-$rid = $_POST['recipient_id'];
-$rn = $_POST['recipient_name'];
+$noteid = ($_POST['noteid'] ?? null) ?: 0;
+$notejson = ($_POST['notejson'] ?? null) ? json_decode((string) $_POST['notejson'], true) : 0;
+$reply_noteid = $_POST['replyid'] ?? null ?: 0;
+$note = $_POST['inputBody'] ?? null;
+$title = $_POST['title'] ?? null;
+$sid = $_POST['sender_id'] ?? null;
+$sn = $_POST['sender_name'] ?? null;
+$rid = $_POST['recipient_id'] ?? null;
+$rn = $_POST['recipient_name'] ?? null;
 $header = '';
 
 switch ($task) {
     case "forward":
-        $pid = isset($_POST['pid']) ? $_POST['pid'] : 0;
+        $pid = $_POST['pid'] ?? 0;
         addPnote($pid, $note, 1, 1, $title, $sid, '', 'New');
-        updatePortalMailMessageStatus($noteid, 'Sent');
-        echo 'ok';
+        updatePortalMailMessageStatus($noteid, 'Sent', $owner);
+        if (empty($_POST["submit"])) {
+            echo 'ok';
+        }
+
         break;
     case "add":
         // each user has their own copy of message
         sendMail($owner, $note, $title, $header, $noteid, $sid, $sn, $rid, $rn, 'New');
         sendMail($rid, $note, $title, $header, $noteid, $sid, $sn, $rid, $rn, 'New', $reply_noteid);
-        echo 'ok';
+        if (empty($_POST["submit"])) {
+            echo 'ok';
+        }
         break;
     case "reply":
         sendMail($owner, $note, $title, $header, $noteid, $sid, $sn, $rid, $rn, 'Reply', '');
         sendMail($rid, $note, $title, $header, $noteid, $sid, $sn, $rid, $rn, 'New', $reply_noteid);
-        echo 'ok';
+        if (empty($_POST["submit"])) {
+            echo 'ok';
+        }
         break;
     case "delete":
-        updatePortalMailMessageStatus($noteid, 'Delete');
-        echo 'ok';
+        updatePortalMailMessageStatus($noteid, 'Delete', $owner);
+        if (empty($_POST["submit"])) {
+            echo 'ok';
+        }
         break;
     case "massdelete":
         foreach ($notejson as $deleteid) {
-            updatePortalMailMessageStatus($deleteid, 'Delete');
-            echo 'ok';
+            updatePortalMailMessageStatus($deleteid, 'Delete', $owner);
+            if (empty($_POST["submit"])) {
+                echo 'ok';
+            }
         }
         break;
     case "setread":
         if ($noteid > 0) {
-            updatePortalMailMessageStatus($noteid, 'Read');
-            echo 'ok';
+            updatePortalMailMessageStatus($noteid, 'Read', $owner);
+            if (empty($_POST["submit"])) {
+                echo 'ok';
+            }
         } else {
             echo 'missing note id';
         }
@@ -128,6 +197,8 @@ switch ($task) {
         break;
 }
 
-if (isset($_REQUEST["submit"])) {
-    header("Location: {$_REQUEST["submit"]}");
+if (!empty($_POST["submit"])) {
+    $url = $_POST["submit"];
+    header("Location: " . $url);
+    exit();
 }

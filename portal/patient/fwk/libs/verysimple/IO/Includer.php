@@ -1,4 +1,5 @@
 <?php
+
 /** @package    verysimple::IO */
 
 /**
@@ -18,7 +19,6 @@ require_once("IncludeException.php");
  */
 class Includer
 {
-    
     /**
      * Includes a file with the given path.
      * If PHP is unable to include the file,
@@ -33,18 +33,18 @@ class Includer
         // use include instead of require so we can catch runtime exceptions
         // reset error handling back to whatever it was
         // *
-        set_error_handler(array (
+        set_error_handler([
                 "Includer",
                 "IncludeException"
-        ), E_WARNING);
+        ], E_WARNING);
         include_once($path);
         restore_error_handler();
         // */
-        
+
         // this doesn't work but it seems like it should
         // if (@include_once($path) === false) throw new IncludeException("Unable to include file: " . $path);
     }
-    
+
     /**
      * Ensures that a class is defined.
      * If not, attempts to include the file
@@ -62,21 +62,21 @@ class Includer
         if (class_exists($classname)) {
             return true;
         }
-            
+
             // normalize this as an array
-        $classpaths = is_array($classpath) ? $classpath : array (
+        $classpaths = is_array($classpath) ? $classpath :  [
                 $classpath
-        );
+        ];
         $attempts = "";
-        
+
         foreach ($classpaths as $path) {
             if (class_exists($classname)) {
                 break;
             }
-            
+
             try {
-                // append a directory separater if necessary
-                if ($path && substr($path, - 1) != "/") {
+                // append a directory separator if necessary
+                if ($path && !str_ends_with((string) $path, "/")) {
                     $path .= "/";
                 }
 
@@ -85,29 +85,29 @@ class Includer
                 $attempts .= " " . $ex->getMessage();
             }
         }
-        
+
         if (! class_exists($classname)) {
             // the class still isn't defined so there was a problem including the model
             throw new IncludeException("Unable to locate class '$classname': " . $attempts);
         }
     }
-    
+
     /**
      * Handler for catching file-not-found errors and throwing an IncludeException
      */
-    public static function IncludeException($code, $string, $file, $line, $context)
+    public static function IncludeException($code, $string, $file, $line, $context = '')
     {
         // check for repressed errors
         if (error_reporting() == 0) {
             return;
         }
-        
-        $tmp1 = explode(")", $string);
+
+        $tmp1 = explode(")", (string) $string);
         $tmp2 = explode("(", $tmp1 [0]);
-        $mfile = isset($tmp2 [1]) ? $tmp2 [1] : "";
-        
+        $mfile = $tmp2 [1] ?? "";
+
         $msg = "Error $code: " . ($mfile ? "Unable to include file: '" . $mfile . "'" : $string);
-        
+
         throw new IncludeException($msg, $code);
     }
 }

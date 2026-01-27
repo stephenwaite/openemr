@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This file contains the FormPainMap class, used to model the data contents of a clickmap based form.
  *
@@ -18,7 +19,6 @@ require_once($GLOBALS['fileroot'] . "/interface/clickmap/AbstractClickmapModel.p
  */
 class FormPainMap extends AbstractClickmapModel
 {
-
     /**
      * The database table to place form data in/read form data from.
      *

@@ -1,4 +1,5 @@
 <?php
+
 /** @package    verysimple::HTTP */
 
 /**
@@ -20,7 +21,7 @@ class FileUpload
     public $Type;
     public $Extension;
     public $Data;
-    
+
     /**
      * Returns a file upload as xml that is ready to save to a file or database
      *
@@ -29,9 +30,9 @@ class FileUpload
      */
     public function ToXML($base64 = true)
     {
-        return "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\r\n" . "<file>\r\n" . "<name>" . $this->Name . "</name>\r\n" . "<size>" . $this->Size . "</size>\r\n" . "<type>" . $this->Type . "</type>\r\n" . "<Extension>" . $this->Extension . "</Extension>\r\n" . "<encoding>" . ($base64 ? "base64" : "none") . "</encoding>\r\n" . "<data>" . ($base64 ? base64_encode($this->Data) : $this->Data) . "</data>\r\n" . "</file>";
+        return "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\r\n" . "<file>\r\n" . "<name>" . $this->Name . "</name>\r\n" . "<size>" . $this->Size . "</size>\r\n" . "<type>" . $this->Type . "</type>\r\n" . "<Extension>" . $this->Extension . "</Extension>\r\n" . "<encoding>" . ($base64 ? "base64" : "none") . "</encoding>\r\n" . "<data>" . ($base64 ? base64_encode((string) $this->Data) : $this->Data) . "</data>\r\n" . "</file>";
     }
-    
+
     /**
      * Loads this FileUpload object from previously obtained from ToXML()
      *
@@ -40,19 +41,15 @@ class FileUpload
     public function FromXML($xml)
     {
         $sxo = new SimpleXMLElement($xml);
-        
-        if ($sxo->encoding == "base64") {
-            $this->Data = base64_decode($sxo->data);
-        } else {
-            $this->Data = $sxo->data;
-        }
-        
+
+        $this->Data = $sxo->encoding == "base64" ? base64_decode($sxo->data) : $sxo->data;
+
         $this->Name = $attachment->name;
         $this->Type = $attachment->type;
         $this->Size = $attachment->size;
         $this->Extension = $attachment->extension;
     }
-    
+
     /**
      * Saves the file upload to the given path
      *
@@ -65,13 +62,13 @@ class FileUpload
      */
     public function SaveTo($path, $alternate_name = "", $chmod = true)
     {
-        $name = $alternate_name ? $alternate_name : $this->Name;
-        
+        $name = $alternate_name ?: $this->Name;
+
         $fullpath = $path . $name;
         $handle = fopen($fullpath, "w");
-        fwrite($handle, $this->Data);
+        fwrite($handle, (string) $this->Data);
         fclose($handle);
-        
+
         if ($chmod) {
             @chmod($fullpath, 0666);
         }

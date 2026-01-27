@@ -1,53 +1,64 @@
 <?php
+
 /**
+ * portal/verify_session.php
  *
- * Copyright (C) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
- * Copyright (C) 2013 Kevin Yeh <kevin.y@integralemr.com>
- * Copyright (C) 2011 Cassian LUP <cassi.lup@gmail.com>
+ * Note you can define $landingpage to be the page you would like the user to be redirected to if the session is unverified
+ * This allows you to do things such as setup the portal's redirect URL parameter for you to redirect the user upon the
+ * portal login
  *
- * LICENSE: This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 3
- * of the License, or (at your option) any later version.
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://opensource.org/licenses/gpl-license.php>;.
+ * The other option is the $skipLandingPageError variable.  If this is set to boolean true it will skip the &w parameter
+ * in the redirect showing the user that there was an error since you may actually be requiring the user login and there
+ * is no error in doing that.
  *
- * @package OpenEMR
- * @author Cassian LUP <cassi.lup@gmail.com>
- * @author Kevin Yeh <kevin.y@integralemr.com>
- * @author Jerry Padgett <sjpadgett@gmail.com>
- * @link http://www.open-emr.org
- *
- * Moved out of individual get_* portal functions for re-use by
- * Kevin Yeh (kevin.y@integralemr.com) May 2013
- *
+ * @package   OpenEMR
+ * @link      http://www.open-emr.org
+ * @author    Cassian LUP <cassi.lup@gmail.com>
+ * @author    Kevin Yeh <kevin.y@integralemr.com>
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @author    Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2011 Cassian LUP <cassi.lup@gmail.com>
+ * @copyright Copyright (c) 2013 Kevin Yeh <kevin.y@integralemr.com>
+ * @copyright Copyright (c) 2016-2023 Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2019 Brady Miller <brady.g.miller@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-// All of the common intialization steps for the get_* patient portal functions are now in this single include.
+// All of the common initialization steps for the get_* patient portal functions are now in this single include.
 
-
+use OpenEMR\Common\Session\SessionUtil;
+use OpenEMR\Common\Session\SessionWrapperFactory;
 
 //continue session
-session_start();
+// Will start the (patient) portal OpenEMR session/cookie.
+// Need access to classes, so run autoloader now instead of in globals.php.
+require_once(__DIR__ . "/../vendor/autoload.php");
+$session = SessionWrapperFactory::getInstance()->getWrapper();
 
-//landing page definition -- where to go if something goes wrong
-$landingpage = "index.php?site=".$_SESSION['site_id'];
+// Landing page definition -- where to go if something goes wrong
+// if this script is included somewhere else we want to support them changing up the landingpage url such as adding
+// parameters, or even setting what the landing page should be for the portal verify session.
+if (!isset($landingpage)) {
+    $landingpage = "index.php?site=" . urlencode((string) ($session->get('site_id', null) ?? null));
+}
+
+if (!isset($skipLandingPageError)) {
+    $skipLandingPageError = false;
+}
 //
 
 // kick out if patient not authenticated
-if (isset($_SESSION['pid']) && isset($_SESSION['patient_portal_onsite_two'])) {
-    $pid = $_SESSION['pid'];
+if ($session->isSymfonySession() && !empty($session->get('pid')) && !empty($session->get('patient_portal_onsite_two'))) {
+    $pid = $session->get('pid');
 } else {
-    session_destroy();
-    header('Location: '.$landingpage.'&w');
+    SessionUtil::portalSessionCookieDestroy();
+    if ($skipLandingPageError === true) {
+        header('Location: ' . $landingpage);
+    } else {
+        header('Location: ' . $landingpage . '&w');
+    }
     exit;
 }
 
-//
-
-$ignoreAuth=true; // ignore the standard authentication for a regular OpenEMR user
-require_once(dirname(__file__) . './../interface/globals.php');
+$ignoreAuth_onsite_portal = true; // ignore the standard authentication for a regular OpenEMR user
+require_once(__DIR__ . '/../interface/globals.php');

@@ -1,11 +1,12 @@
 <?php
+
 /**
  * javascripts function to allow date internationalization
  * and converts date back to YYYY-MM-DD and YYYY-MM-DD HH:MM:SS (SS is optional)
  * formats
  *
  * @package   OpenEMR
- * @link      http://www.open-emr.org
+ * @link      https://www.open-emr.org
  * @author    Shachar Zilbershlag <shaharzi@matrix.co.il>
  * @author    Amiel Elboim <amielel@matrix.co.il>
  * @author    Brady Miller <brady.g.miller@gmail.com>
@@ -14,6 +15,7 @@
  * @copyright Copyright (c) 2018 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
+
 ?>
 
 function DateToYYYYMMDD_js(value){
@@ -30,13 +32,20 @@ function DateToYYYYMMDD_js(value){
 }
 
 function TimeToHHMMSS_js(value){
-    //For now, just return the Value, since input fields are not formatting time.
-    // This can be upgraded if decided to format input time fields.
+    if (value.trim() == '') {
+        return '';
+    }
+
+    var is_pm = value.trim().toUpperCase().indexOf('PM');
+    if (is_pm > 0) {
+        let d = new Date("1970-01-01 " + value);
+        let value = d.setHours(d.getHours() + 12).toTimeString();
+    }
     return value.trim();
 }
 
 function DateToYYYYMMDDHHMMSS_js(value){
-    if (typeof value === 'undefined') {
+    if (typeof value === 'undefined' || value.trim() == '') {
         return undefined;
     }
     var parts = value.split(' ');

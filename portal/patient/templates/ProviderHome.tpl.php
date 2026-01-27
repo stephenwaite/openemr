@@ -1,155 +1,114 @@
 <?php
+
 /**
+ * Patient Portal
  *
- * Copyright (C) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
- *
- * LICENSE: This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @package OpenEMR
- * @author Jerry Padgett <sjpadgett@gmail.com>
- * @link http://www.open-emr.org
+ * @package   OpenEMR
+ * @link      http://www.open-emr.org
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2016-2022 Jerry Padgett <sjpadgett@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
 $this->assign('title', xlt("Portal Dashboard") . " | " . xlt("Home"));
 $this->assign('nav', 'home');
-$this->display('_ProviderHeader.tpl.php');
-echo "<script>var cpid='" . attr($this->cpid) . "';var cuser='" . attr($this->cuser) . "';var webRoot='" . $GLOBALS['web_root'] . "';</script>";
+
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Core\Header;
+use OpenEMR\Core\OEGlobalsBag;
+
+if (!AclMain::aclCheckCore('patientportal', 'portal')) {
+    die(xlt("Unauthorized"));
+    exit;
+}
+$globalsBag = OEGlobalsBag::getInstance();
+$web_root = $globalsBag->getString('web_root');
+$assets_static_relative = $globalsBag->getString('assets_static_relative');
+$v_js_includes = $globalsBag->get('v_js_includes');
 ?>
-<script>
-$LAB.script("../sign/assets/signpad.js?v=<?php echo $GLOBALS['v_js_includes']; ?>").wait(function(){
-$(document).ready(function(){
-      $('#openSignModal').on('show.bs.modal', function(e) {
-            $('.sigPad').signaturePad({
-                drawOnly: true,
-                defaultAction: 'drawIt'
+<!DOCTYPE html>
+<!-- Language grabbed by PDF var that has the correct format !-->
+<html lang="<?php echo $globalsBag->getString('pdf_language'); ?>">
+<head>
+    <title><?php $this->eprint($this->title); ?></title>
+    <meta name="description" content="Provider Portal" />
+    <meta name="author" content="Dashboard | sjpadgett@gmail.com" />
+
+    <?php
+    Header::setupHeader(['datetime-picker']);
+    echo "<script>var cpid='" . attr($this->cpid) . "';var cuser='" . attr($this->cuser) . "';var webRoot='" . $web_root . "';</script>";
+    ?>
+    <link href="<?php echo $web_root; ?>/portal/sign/css/signer_modal.css?v=<?php echo $v_js_includes; ?>" rel="stylesheet">
+    <script src="<?php echo $web_root; ?>/portal/sign/assets/signature_pad.umd.js?v=<?php echo $v_js_includes; ?>"></script>
+    <script src="<?php echo $web_root; ?>/portal/sign/assets/signer_api.js?v=<?php echo $v_js_includes; ?>"></script>
+
+    <script src="<?php echo $web_root; ?>/portal/patient/scripts/libs/LAB.min.js"></script>
+    <script>
+        $LAB.script("<?php echo $assets_static_relative; ?>/underscore/underscore-min.js")
+        .script("<?php echo $assets_static_relative; ?>/moment/moment.js")
+        .script("<?php echo $assets_static_relative; ?>/backbone/backbone-min.js")
+        .script("<?php echo $web_root; ?>/portal/patient/scripts/app.js?v=<?php echo $v_js_includes; ?>")
+        .script("<?php echo $web_root; ?>/portal/patient/scripts/model.js?v=<?php echo $v_js_includes; ?>").wait()
+        .script("<?php echo $web_root; ?>/portal/patient/scripts/view.js?v=<?php echo $v_js_includes; ?>")
+        .wait(function () {
+            $(function () {
+                console.log('*** Provider Template Load Done ***');
             });
-       });
-});
-});
-</script>
-<div class="modal fade" id="formdialog" tabindex="-1" role="dialog"	aria-hidden="true">
-    <div class="modal-dialog modal-lg" style="background:white">
+        });
+    </script>
+</head>
+
+<body class="pt-2">
+<div class="modal fade" id="formdialog" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog bg-light">
         <div class="modal-content">
             <div class="modal-header">
-                <!-- --><button type="button" class="close" data-dismiss="modal">&times;</button>
                 <h4 class="modal-title"><?php echo xlt('About Portal Dashboard') ?></h4>
-            </div>
-        </div>
-        <div class="modal-body">
-            <div><span><?php echo xlt('Help content goes here'); ?></span></div>
-        </div>
-        <div class="modal-footer">
-            <button id="okButton" data-dismiss="modal" class="btn btn-secondary"><?php echo xlt('Close...') ?></button>
-        </div>
-    </div>
-</div>
-<div class="container bg-info">
-    <div class='well'>
-    <div class="jumbotron text-center">
-        <h3>
-            <?php echo xlt('Portal Dashboard') ?><i class="fa fa-user-md" style="font-size:60px;color:red"></i>
-        </h3>
-        <p>
-        <a class="btn btn-info" data-toggle="modal"
-            data-target="#formdialog" href="#"><?php echo xlt('Tell me more') ?> »</a></p>
-    </div>
-</div>
-<div class='well'>
-    <div class="row">
-        <div class="col-sm-3 col-md-3">
-            <h4>
-                <i class="icon-cogs"></i><?php echo xlt('Patient Document Templates') ?>
-            </h4>
-            <a class="btn btn-success btn-sm" href="<?php echo $GLOBALS['web_root'];?>/portal/import_template_ui.php"><?php echo xlt('Manage Templates') ?> »</a>
-        </div>
-        <div class="col-sm-3 col-md-3">
-            <h4>
-                <i class="icon-th"></i><?php echo xlt('Audit Changes') ?>
-            </h4>
-            <a class="btn btn-success btn-sm" href="<?php echo $GLOBALS['web_root'];?>/portal/patient/onsiteactivityviews"><?php echo xlt('Review Audits') ?> »</a>
-        </div>
-        <div class="col-sm-3 col-md-3">
-            <h4>
-                <i class="icon-cogs"></i><?php echo xlt('Patient Mail') ?>
-            </h4>
-            <a class="btn btn-success btn-sm" href="<?php echo $GLOBALS['web_root'];?>/portal/messaging/messages.php"><?php echo xlt('Mail') ?> »</a>
-        </div>
-        <div class="col-sm-3 col-md-3">
-            <h4>
-                <i class="icon-cogs"></i><?php echo xlt('Patient Chat') ?>
-            </h4>
-            <a class="btn btn-success btn-sm" href="<?php echo $GLOBALS['web_root'];?>/portal/messaging/secure_chat.php"><?php echo xlt('Messaging') ?> »</a>
-        </div>
-        <div class="col-sm-3 col-md-3">
-            <h4>
-                <i class="icon-signin"></i><?php echo xlt('User Signature') ?>
-            </h4>
-            <p>
-            <a class="btn btn-primary btn-sm" href="#openSignModal" data-toggle="modal" data-backdrop="true" data-target="#openSignModal">
-             <span><?php echo xlt('Signature on File') . '  '; ?></span><i  class="fa fa-sign-in"></i></a>
-            </p>
-        </div>
-    </div>
-</div>
-<div id="openSignModal" class="modal fade" role="dialog">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <div class="input-group">
-                    <span class="input-group-addon"
-                        onclick="getSignature(document.getElementById('patientSignature'))"><em><?php echo xlt('Show Current Signature On File') ?><br>
-                        <?php echo xlt('As will appear on documents.') ?>
-                    </em></span> <img class="signature form-control" type="admin-signature" id="patientSignature"
-                        onclick="getSignature(this)" alt="<?php echo xlt('Signature On File'); ?>" src="">
-                    <!-- <span class="input-group-addon" onclick="clearSig(this)"><i class="glyphicon glyphicon-trash"></i></span> -->
-                </div>
-                <!-- <h4 class="modal-title">Sign</h4> -->
             </div>
             <div class="modal-body">
-                <form name="signit" id="signit" class="sigPad">
-                    <input type="hidden" name="name" id="name" class="name">
-                    <ul class="sigNav">
-                        <li style='display: block;'><input style="display: block"
-                            type="checkbox" id="isAdmin" name="isAdmin" checked="checked" disabled/><?php echo xlt('Is Authorizing Signature') ?></li>
-                        <li class="clearButton"><a href="#clear"><button><?php echo xlt('Clear Pad') ?></button></a></li>
-                    </ul>
-                    <div class="sig sigWrapper">
-                        <div class="typed"></div>
-                        <canvas class="spad" id="drawpad" width="765" height="325"
-                            style="border: 1px solid #000000; left: 0px;"></canvas>
-                        <img id="loading"
-                            style="display: none; position: absolute; TOP: 150px; LEFT: 315px; WIDTH: 100px; HEIGHT: 100px"
-                            src="<?php echo $GLOBALS['web_root']; ?>/portal/sign/assets/loading.gif" /> <input type="hidden" id="output" name="output" class="output">
-                    </div>
-                    <input type="hidden" name="type" id="type" value="patient-signature">
-                    <button type="button" onclick="signDoc(this)"><?php echo xlt('Authorize as my Electronic Signature.') ?></button>
-                </form>
+                <div>
+                    <span><?php echo xlt('Please see forum or wiki'); ?>
+                <a href="<?php echo attr('https://community.open-emr.org/'); ?>" target="_blank"><?php echo xlt("Visit Forum"); ?></a>
+                    </span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="okButton" data-dismiss="modal" class="btn btn-secondary"><?php echo xlt('Close...') ?></button>
             </div>
         </div>
-        <!-- <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo xlt('Close') ?></button>
-        </div> -->
     </div>
 </div>
-<!-- Modal -->
-<img id="waitend"
-    style="display: none; position: absolute; top: 100px; left: 250px; width: 100px; height: 100px"
-    src="<?php echo $GLOBALS['web_root']; ?>/portal/sign/assets/loading.gif" />
+<div class="container p-3">
+    <div class="jumbotron jumbotron-fluid text-center p-1">
+        <h3><?php echo xlt('Portal Dashboard') ?><i class="fa fa-user-md text-danger ml-2" style="font-size: 3rem;"></i></h3>
+        <p>
+        <button class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#formdialog"><?php echo xlt('Tell me more') ?></button>
+        </p>
+    </div>
+<div class='jumbotron jumbotron-fluid p-4'>
+    <div class="row">
+        <div class="col">
+            <h4><i class="icon-cogs"></i><?php echo xlt('Templates') ?></h4>
+            <a class="btn btn-success btn-sm" href="<?php echo $web_root;?>/portal/import_template_ui.php"><?php echo xlt('Manage Templates') ?></a>
+        </div>
+        <div class="col">
+            <h4><i class="icon-th"></i><?php echo xlt('Audits') ?></h4>
+            <a class="btn btn-success btn-sm" href="<?php echo $web_root;?>/portal/patient/onsiteactivityviews"><?php echo xlt('Review Audits') ?></a>
+        </div>
+        <div class="col">
+            <h4><i class="icon-cogs"></i><?php echo xlt('Mail') ?></h4>
+            <a class="btn btn-success btn-sm" href="<?php echo $web_root;?>/portal/messaging/messages.php"><?php echo xlt('Secure Mail') ?></a>
+        </div>
+        <div class="col">
+            <h4><i class="icon-signin"></i><?php echo xlt('Signature') ?></h4>
+            <p><a data-type="admin-signature" class="btn btn-primary btn-sm" href="#openSignModal" data-toggle="modal" data-backdrop="true" data-target="#openSignModal">
+             <span><?php echo xlt('Signature on File') . '  '; ?></span><i class="fa fa-sign-in"></i></a></p>
+        </div>
+    </div>
+</div>
 </div>
 <!-- /container -->
-
 <?php
 $this->display('_Footer.tpl.php');
 ?>

@@ -1,9 +1,10 @@
 <?php
+
 /**
  * immunization lot search.
  *
  * @package   OpenEMR
- * @link      http://www.open-emr.org
+ * @link      https://www.open-emr.org
  * @author    Sherwin Gaddis <sherwingaddis@gmail.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2016 Sherwin Gaddis <sherwingaddis@gmail.com>
@@ -11,19 +12,20 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once('../../../interface/globals.php');
 
-if (!verifyCsrfToken($_GET["csrf_token_form"])) {
-    csrfNotVerified();
+use OpenEMR\Common\Csrf\CsrfUtils;
+
+if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
+    CsrfUtils::csrfNotVerified();
 }
 
 if (!empty($_GET['term'])) {
     $term = $_GET['term'];
-    $return_arr = array();
+    $return_arr = [];
 
     $sql = "SELECT DISTINCT lot_number FROM immunizations WHERE lot_number LIKE ?";
-    $res = sqlstatement($sql, array("%".$term."%"));
+    $res = sqlstatement($sql, ["%" . $term . "%"]);
     while ($row = sqlFetchArray($res)) {
         $return_arr[] =  $row['lot_number'] ;
     }

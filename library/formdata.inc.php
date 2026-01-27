@@ -1,9 +1,10 @@
 <?php
+
 /**
  * Functions to globally validate and prepare data for sql database insertion.
  *
  * @package   OpenEMR
- * @link      http://www.open-emr.org
+ * @link      https://www.open-emr.org
  * @author    Rod Roark <rod@sunsetsystems.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2009 Rod Roark <rod@sunsetsystems.com>
@@ -21,7 +22,7 @@
 function add_escape_custom($s)
 {
     //prepare for safe mysql insertion
-    $s = mysqli_real_escape_string($GLOBALS['dbh'], $s);
+    $s = mysqli_real_escape_string($GLOBALS['dbh'], ($s ?? ''));
     return $s;
 }
 
@@ -56,16 +57,16 @@ function escape_limit($s)
  */
 function escape_sort_order($s)
 {
-    return escape_identifier(strtolower($s), array("asc","desc"));
+    return escape_identifier(strtolower($s), ["asc","desc"]);
 }
 
 /**
- * If parameter string contains comma(,) delimeter
- * Splits parameter string into an array, using comma(,) as delimeter
+ * If parameter string contains comma(,) delimiter
+ * Splits parameter string into an array, using comma(,) as delimiter
  * else it returns original string
  *
  * @param   string       $s  string to be processed
- * @return  array        $columns   an array formed by spliting $s with comma(,) delimeter
+ * @return  array        $columns   an array formed by splitting $s with comma(,) delimiter
  */
 
 function process_cols_escape($s)
@@ -91,9 +92,10 @@ function process_cols_escape($s)
  * @param   string|array        $s       sql column name(s) variable to be escaped/sanitized.
  * @param   array         $tables  The table(s) that the sql columns is from (in an array).
  * @param   boolean       $long    Use long form (ie. table.colname) vs short form (ie. colname).
+ * @param   boolean       $throwException Whether to throw a SQL exception instead of dying
  * @return  string                 Escaped table name variable.
  */
-function escape_sql_column_name($s, $tables, $long = false)
+function escape_sql_column_name($s, $tables, $long = false, $throwException = false)
 {
     // If $s is asterisk return asterisk to select all columns
     if ($s === "*") {
@@ -104,7 +106,7 @@ function escape_sql_column_name($s, $tables, $long = false)
     if (is_array($s)) {
         $multiple_columns = [];
         foreach ($s as $column) {
-            $multiple_columns[] = escape_sql_column_name(trim($column), $tables);
+            $multiple_columns[] = escape_sql_column_name(trim((string) $column), $tables);
         }
         return implode(", ", $multiple_columns);
     }
@@ -112,34 +114,31 @@ function escape_sql_column_name($s, $tables, $long = false)
     // If the $tables is empty, then process them all
     if (empty($tables)) {
         $res = sqlStatementNoLog("SHOW TABLES");
-        $tables = array();
-        while ($row=sqlFetchArray($res)) {
+        $tables = [];
+        while ($row = sqlFetchArray($res)) {
             $keys_return = array_keys($row);
-            $tables[]=$row[$keys_return[0]];
+            $tables[] = $row[$keys_return[0]];
         }
     }
 
     // First need to escape the $tables
-    $tables_escaped = array();
+    $tables_escaped = [];
     foreach ($tables as $table) {
         $tables_escaped[] = escape_table_name($table);
     }
 
     // Collect all the possible sql columns from the tables
-    $columns_options = array();
+    $columns_options = [];
     foreach ($tables_escaped as $table_escaped) {
-        $res = sqlStatementNoLog("SHOW COLUMNS FROM ".$table_escaped);
-        while ($row=sqlFetchArray($res)) {
-            if ($long) {
-                $columns_options[]=$table_escaped.".".$row['Field'];
-            } else {
-                $columns_options[]=$row['Field'];
-            }
+        $res = sqlStatementNoLog("SHOW COLUMNS FROM " . $table_escaped);
+        while ($row = sqlFetchArray($res)) {
+            $columns_options[] = $long ? $table_escaped . "." . $row['Field'] : $row['Field'];
         }
     }
 
     // Now can escape(via whitelisting) the sql column name
-    return escape_identifier($s, $columns_options, true);
+    $dieIfNoMatch = !$throwException;
+    return escape_identifier($s, $columns_options, $dieIfNoMatch, true, $throwException);
 }
 
 /**
@@ -165,10 +164,10 @@ function escape_sql_column_name($s, $tables, $long = false)
 function escape_table_name($s)
 {
     $res = sqlStatementNoLog("SHOW TABLES");
-    $tables_array = array();
-    while ($row=sqlFetchArray($res)) {
+    $tables_array = [];
+    while ($row = sqlFetchArray($res)) {
         $keys_return = array_keys($row);
-        $tables_array[]=$row[$keys_return[0]];
+        $tables_array[] = $row[$keys_return[0]];
     }
 
     // Now can escape(via whitelisting) the sql table name
@@ -192,27 +191,31 @@ function mitigateSqlTableUpperCase($s)
  * Escape/sanitize a sql identifier variable to prepare for a sql query.
  *
  * This will escape/sanitize a sql identifier. There are two options provided by this
- * function.
- * The first option is done by whitelisting ($whitelist_items is used) and in this case
- * only certain identifiers (listed in the $whitelist_items array) can be used; if
- * there is no match, then it will either default to the first item in the $whitelist_items
- * (if $die_if_no_match is FALSE) or it will die() and send an error message to the screen
- * and log (if $die_if_no_match is TRUE). Note there is an option to allow case insensitive
- * matching; if this option is chosen, it will first attempt a case sensitive match and if this
- * fails, then attempt a case insensitive match.
- * The second option is done by sanitizing ($whitelist_items is not used) and in this case
- * only US alphanumeric,'_' and '.' items are kept in the returned string. Note
- * the second option is still experimental as we figure out the ideal items to
- * filter out of the identifier. The first option is ideal if all the possible identifiers
- * are known, however we realize this may not always be the case.
+ *  function.
+ * The first option is done by whitelisting ($whitelist_items is array) and in this case
+ *  only certain identifiers (listed in the $whitelist_items array) can be used; if
+ *  there is no match, then it will either default to the first item in the $whitelist_items
+ *  (if $die_if_no_match is FALSE) or it will die() and send an error message to the screen
+ *  and log (if $die_if_no_match is TRUE). Note there is an option to allow case insensitive
+ *  matching; if this option is chosen, it will first attempt a case sensitive match and if this
+ *  fails, then attempt a case insensitive match.
+ * The second option is done by checking against a regex expression, which would use as a string
+ *  in $whitelist_items (for example, 'a-zA-Z0-9_'). If $die_if_no_match is true, then will die
+ *  if any illegal characters are found. If $die_if_no_match is false, then will remove the illegal
+ *  characters and send back string of only the legal characters.
+ * The first option is ideal if all the possible identifiers are known, however we realize this
+ *  may not always be the case.
  *
- * @param   string   $s                Sql identifier variable to be escaped/sanitized.
- * @param   array    $whitelist_items  Items used in whitelisting method (See function description for details of whitelisting method).
- * @param   boolean  $die_if_no_match  If there is no match in the whitelist, then die and echo an error to screen and log.
- * @param   boolean  $case_sens_match  Use case sensitive match (this is default).
- * @return  string                     Escaped/sanitized sql identifier variable.
+ * @param   string       $s                Sql identifier variable to be escaped/sanitized.
+ * @param   array/string $whitelist_items  Items used in whitelisting method (See function description for details of whitelisting method).
+ *                                          Standard use is to use a array. If use a string, then should be regex expression of allowed
+ *                                          characters (for example 'a-zA-Z0-9_').
+ * @param   boolean      $die_if_no_match  If there is no match in the whitelist, then die and echo an error to screen and log.
+ * @param   boolean      $case_sens_match  Use case sensitive match (this is default).
+ * @param   boolean      $throw_exception_if_no_match If there is no match in the whitelist then throw an exception
+ * @return  string                         Escaped/sanitized sql identifier variable.
  */
-function escape_identifier($s, $whitelist_items, $die_if_no_match = false, $case_sens_match = true)
+function escape_identifier($s, $whitelist_items, $die_if_no_match = false, $case_sens_match = true, $throw_exception_if_no_match = false)
 {
     if (is_array($whitelist_items)) {
         // Only return an item within the whitelist_items
@@ -223,7 +226,7 @@ function escape_identifier($s, $whitelist_items, $die_if_no_match = false, $case
             // No match
             if (!$case_sens_match) {
                 // Attempt a case insensitive match
-                $ok_UPPER = array_map("strtoupper", $ok);
+                $ok_UPPER = array_map(strtoupper(...), $ok);
                 $key = array_search(strtoupper($s), $ok_UPPER);
             }
 
@@ -231,8 +234,10 @@ function escape_identifier($s, $whitelist_items, $die_if_no_match = false, $case
                 // Still no match
                 if ($die_if_no_match) {
                     // No match and $die_if_no_match is set, so die() and send error messages to screen and log
-                    error_Log("ERROR: OpenEMR SQL Escaping ERROR of the following string: ".$s, 0);
-                    die("<br><span style='color:red;font-weight:bold;'>".xlt("There was an OpenEMR SQL Escaping ERROR of the following string")." ".text($s)."</span><br>");
+                    error_log("ERROR: OpenEMR SQL Escaping ERROR of the following string: " . errorLogEscape($s), 0);
+                    die("<br /><span style='color:red;font-weight:bold;'>" . xlt("There was an OpenEMR SQL Escaping ERROR of the following string") . " " . text($s) . "</span><br />");
+                } else if ($throw_exception_if_no_match) {
+                    throw new \OpenEMR\Common\Database\SqlQueryException("", "ERROR: OpenEMR SQL Escaping ERROR of the following string: " . errorLogEscape($s));
                 } else {
                     // Return first token since no match
                     $key = 0;
@@ -242,9 +247,21 @@ function escape_identifier($s, $whitelist_items, $die_if_no_match = false, $case
 
         return $ok[$key];
     } else {
-        // Return an item that has been "cleaned" up
-        // (this is currently experimental and goal is to avoid using this)
-        return preg_replace('/[^a-zA-Z0-9_.]/', '', $s);
+        if ($die_if_no_match) {
+            if (preg_match('/[^' . $whitelist_items . ']/', $s)) {
+                // Contains illegal character and $die_if_no_match is set, so die() and send error messages to screen and log
+                error_log("ERROR: OpenEMR SQL Escaping ERROR of the following string: " . errorLogEscape($s), 0);
+                die("<br /><span style='color:red;font-weight:bold;'>" . xlt("There was an OpenEMR SQL Escaping ERROR of the following string") . " " . text($s) . "</span><br />");
+            } else if ($throw_exception_if_no_match) {
+                throw new \OpenEMR\Common\Database\SqlQueryException("", "ERROR: OpenEMR SQL Escaping ERROR of the following string: " . errorLogEscape($s));
+            } else {
+                // Contains all legal characters, so return the legal string
+                return $s;
+            }
+        } else {
+            // Since not using $die_if_no_match, then will remove the illegal characters and send back a legal string
+            return preg_replace('/[^' . $whitelist_items . ']/', '', $s);
+        }
     }
 }
 
@@ -260,11 +277,11 @@ function escape_identifier($s, $whitelist_items, $die_if_no_match = false, $case
 function formData($name, $type = 'P', $isTrim = false)
 {
     if ($type == 'P') {
-        $s = isset($_POST[$name]) ? $_POST[$name] : '';
-    } else if ($type == 'G') {
-        $s = isset($_GET[$name]) ? $_GET[$name] : '';
+        $s = $_POST[$name] ?? '';
+    } elseif ($type == 'G') {
+        $s = $_GET[$name] ?? '';
     } else {
-        $s = isset($_REQUEST[$name]) ? $_REQUEST[$name] : '';
+        $s = $_REQUEST[$name] ?? '';
     }
 
     return formDataCore($s, $isTrim);

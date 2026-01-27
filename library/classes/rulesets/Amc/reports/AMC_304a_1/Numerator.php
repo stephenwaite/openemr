@@ -1,4 +1,5 @@
 <?php
+
 /**
  *
  * AMC 304a_1 Numerator
@@ -27,7 +28,7 @@ class AMC_304a_1_Numerator implements AmcFilterIF
     {
         return "AMC_304a_1 Numerator";
     }
-    
+
     public function test(AmcPatient $patient, $beginDate, $endDate)
     {
         // MEASURE STAGE2: Radiology Order(s) Created CPOE

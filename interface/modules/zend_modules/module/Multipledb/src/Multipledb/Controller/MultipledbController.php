@@ -20,29 +20,34 @@
 namespace Multipledb\Controller;
 
 use Multipledb\Model\MultipledbData;
-use Zend\Json\Server\Exception\ErrorException;
-use Zend\Mvc\Controller\AbstractActionController;
-use Zend\View\Model\ViewModel;
+use Multipledb\Model\MultipledbTable;
+use Laminas\Json\Server\Exception\ErrorException;
+use Laminas\Mvc\Controller\AbstractActionController;
+use Laminas\View\Model\ViewModel;
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Session\SessionUtil;
 use Application\Listener\Listener;
 use Error;
 
 class MultipledbController extends BaseController
 {
-
+    private readonly Listener $listenerObject;
 
     /**
      * MultipledbController constructor.
+     * @param MultipledbTable $MultipledbTable TableGateway for the Multipledb data.
      */
-    public function __construct()
-    {
+    public function __construct(
+        private readonly MultipledbTable $MultipledbTable
+    ) {
         parent::__construct();
-        $this->listenerObject = new Listener;
+        $this->listenerObject = new Listener();
         //todo add permission of admin
     }
 
 
     /**
-     * @return \Zend\Stdlib\ResponseInterface the index action
+     * @return \Laminas\Stdlib\ResponseInterface the index action
      */
 
     public function indexAction()
@@ -51,31 +56,31 @@ class MultipledbController extends BaseController
         $this->getCssFiles();
         $this->layout()->setVariable('jsFiles', $this->jsFiles);
         $this->layout()->setVariable('cssFiles', $this->cssFiles);
-        $this->layout()->setVariable("title", $this->listenerObject->z_xl("Multiple DataBase"));
+        $this->layout()->setVariable("title", $this->listenerObject->z_xlt("Multiple DataBase"));
         $this->checkAcl();
 
-        return new ViewModel(array(
+        return new ViewModel([
             'translate' => $this->translate,
             'getmultipledb' => $this->getMultipledbTable()->fetchAll(),
 
-        ));
+        ]);
     }
 
     public function editAction()
     {
         $id = substr((int)$_REQUEST['id'], 0, 11);
-        $_SESSION['multiple_edit_id'] = $id;
+        SessionUtil::setSession('multiple_edit_id', $id);
         $this->getJsFiles();
         $this->getCssFiles();
         $this->layout()->setVariable('jsFiles', $this->jsFiles);
         $this->layout()->setVariable('cssFiles', $this->cssFiles);
-        $this->layout()->setVariable("title", $this->listenerObject->z_xl("Multiple DataBase"));
+        $this->layout()->setVariable("title", $this->listenerObject->z_xlt("Multiple DataBase"));
         $this->checkAcl('write');
 
-        return new ViewModel(array(
+        return new ViewModel([
             'translate' => $this->translate,
             'db' =>  $this->getMultipledbTable()->getMultipledbById($id),
-        ));
+        ]);
     }
 
     public function removeAction()
@@ -83,34 +88,33 @@ class MultipledbController extends BaseController
         $this->checkAcl('write');
         $id = substr((int)$_REQUEST['id'], 0, 11);
         $this->getMultipledbTable()->deleteMultidbById($id);
-        return $this->redirect()->toRoute('multipledb', array(
+        return $this->redirect()->toRoute('multipledb', [
             'action' => 'index'
-        ));
+        ]);
     }
 
     public function saveAction()
     {
         $this->checkAcl('write');
         $id = substr((int)$_SESSION['multiple_edit_id'], 0, 11);
-        $db = array();
+        $db = [];
         if ($_REQUEST['db']) {
             foreach ($_REQUEST['db'] as $key => $value) {
-                $db[$key] = htmlentities($value, ENT_QUOTES | ENT_IGNORE, "UTF-8");
+                $db[$key] = htmlentities((string) $value, ENT_QUOTES | ENT_IGNORE, "UTF-8");
             }
 
             $this->getMultipledbTable()->storeMultipledb($id, $db);
         }
 
         // remove session data
-        $_SESSION['multiple_edit_id'] = 0; // In case session not destroyed
-        unset($_SESSION['multiple_edit_id']);
+        SessionUtil::unsetSession('multiple_edit_id');
 
-        return $this->redirect()->toRoute('multipledb', array(
+        return $this->redirect()->toRoute('multipledb', [
             'action' => 'index'
-        ));
+        ]);
     }
 
-    public function checknamespacejsonAction()
+    public function checknamespacejsonAction(): never
     {
         $this->checkAcl('write');
         $namespace = $_REQUEST['namespace'];
@@ -126,14 +130,14 @@ class MultipledbController extends BaseController
         $this->getCssFiles();
         $this->layout()->setVariable('jsFiles', $this->jsFiles);
         $this->layout()->setVariable('cssFiles', $this->cssFiles);
-        $this->layout()->setVariable("title", $this->listenerObject->z_xl("Multiple DataBase"));
+        $this->layout()->setVariable("title", $this->listenerObject->z_xlt("Multiple DataBase"));
         $this->checkAcl('write');
 
-        return new ViewModel(array(
+        return new ViewModel([
             'translate' => $this->translate,
             'randomSafeKey' => $this->getMultipledbTable()->randomSafeKey(),
 
-        ));
+        ]);
     }
 
 
@@ -144,12 +148,6 @@ class MultipledbController extends BaseController
      */
     private function getMultipledbTable()
     {
-
-        if (!$this->MultipledbTable) {
-            $sm = $this->getServiceLocator();
-            $this->MultipledbTable = $sm->get('Multipledb\Model\MultipledbTable');
-        }
-
         return $this->MultipledbTable;
     }
 
@@ -166,12 +164,12 @@ class MultipledbController extends BaseController
     public function checkAcl($mode = null)
     {
         if ($mode == 'view' or $mode == 'write') {
-            if (!acl_check('admin', 'multipledb', false, $mode)) {
-                $this->redirect()->toRoute("multipledb", array("action"=>"error"));
+            if (!AclMain::aclCheckCore('admin', 'multipledb', false, $mode)) {
+                $this->redirect()->toRoute("multipledb", ["action" => "error"]);
             }
         } else {
-            if (!acl_check('admin', 'multipledb')) {
-                $this->redirect()->toRoute("multipledb", array("action"=>"error"));
+            if (!AclMain::aclCheckCore('admin', 'multipledb')) {
+                $this->redirect()->toRoute("multipledb", ["action" => "error"]);
             }
         }
     }

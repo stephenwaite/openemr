@@ -1,33 +1,21 @@
 <?php
 
-/** @package    Patient Portal::Controller */
-
 /**
+ * OnsiteActivityViewController.php
  *
- * Copyright (C) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
- *
- * LICENSE: This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @package OpenEMR
- * @author Jerry Padgett <sjpadgett@gmail.com>
- * @link http://www.open-emr.org
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
+
+use OpenEMR\Common\Session\SessionWrapperFactory;
 
 /**
  * import supporting libraries
  */
-require_once("AppBaseController.php");
+require_once("AppBasePortalController.php");
 require_once("Model/OnsiteActivityView.php");
 
 /**
@@ -37,12 +25,11 @@ require_once("Model/OnsiteActivityView.php");
  * the model as necessary and displaying the appropriate view.
  *
  * @package Patient Portal::Controller
- * @author ClassBuilder
+ * @author  ClassBuilder
  * @version 1.0
  */
-class OnsiteActivityViewController extends AppBaseController
+class OnsiteActivityViewController extends AppBasePortalController
 {
-
     /**
      * Override here for any controller-specific functionality
      *
@@ -60,12 +47,13 @@ class OnsiteActivityViewController extends AppBaseController
      */
     public function ListView()
     {
+        $session = SessionWrapperFactory::getInstance()->getWrapper();
         $user = 0;
-        if (isset($_SESSION['authUser'])) {
-            $user = $_SESSION['authUser'];
+        if ($session->has('authUser')) {
+            $user = $session->get('authUser');
         } else {
-            header("refresh:6;url= ./provider");
-            echo 'Redirecting in about 5 secs. Session shared with Onsite Portal<br> Shared session not allowed!.';
+            header("refresh:5;url= ./provider");
+            echo 'Redirecting in about 5 secs. Session shared with Onsite Portal<br /> Shared session not allowed!.';
             exit();
         }
 
@@ -91,7 +79,7 @@ class OnsiteActivityViewController extends AppBaseController
 
             // TODO: this is generic query filtering based only on criteria properties
             foreach (array_keys($_REQUEST) as $prop) {
-                $prop_normal = ucfirst($prop);
+                $prop_normal = ucfirst((string) $prop);
                 $prop_equals = $prop_normal . '_Equals';
 
                 if (property_exists($criteria, $prop_normal)) {
@@ -152,6 +140,12 @@ class OnsiteActivityViewController extends AppBaseController
             $this->RenderExceptionJSON($ex);
         }
     }
+
+    /**
+     * Used for dashboard audit views.
+     *
+     * @param $viewcriteria
+     */
     public function CreateView($viewcriteria)
     {
         $sql = "CREATE OR REPLACE VIEW onsite_activity_view As Select
@@ -176,7 +170,7 @@ class OnsiteActivityViewController extends AppBaseController
   patient_data.providerID,
   patient_data.ref_providerID,
   patient_data.pubpid,
-  patient_data.care_team,
+  patient_data.care_team_provider,
   users.username,
   users.authorized,
   users.fname As ufname,
@@ -196,122 +190,8 @@ class OnsiteActivityViewController extends AppBaseController
         $sql .= "From onsite_portal_activity Left Join
   patient_data On onsite_portal_activity.patient_id = patient_data.pid Left Join
   users On patient_data.providerID = users.id ";
-        // $sql .= "Where onsite_portal_activity.status = 'waiting'";
         try {
             $this->Phreezer->DataAdapter->Execute($sql);
-        } catch (Exception $ex) {
-            $this->RenderExceptionJSON($ex);
-        }
-    }
-    /**
-     * API Method inserts a new OnsiteActivityView record and render response as JSON
-     */
-    public function Create()
-    {
-        ;
-    }
-
-    /**
-     * API Method updates an existing OnsiteActivityView record and render response as JSON
-     */
-    public function Update()
-    {
-        try {
-            // TODO: views are read-only by default. uncomment at your own discretion
-            throw new Exception('Database views are read-only and cannot be updated');
-
-            $json = json_decode(RequestUtil::GetBody());
-
-            if (! $json) {
-                throw new Exception('The request body does not contain valid JSON');
-            }
-
-            $pk = $this->GetRouter()->GetUrlParam('id');
-            $onsiteactivityview = $this->Phreezer->Get('OnsiteActivityView', $pk);
-
-            // TODO: any fields that should not be updated by the user should be commented out
-
-            // this is a primary key. uncomment if updating is allowed
-            // $onsiteactivityview->Id = $this->SafeGetVal($json, 'id', $onsiteactivityview->Id);
-
-            $onsiteactivityview->Date = date('Y-m-d H:i:s', strtotime($this->SafeGetVal($json, 'date', $onsiteactivityview->Date)));
-            $onsiteactivityview->PatientId = $this->SafeGetVal($json, 'patientId', $onsiteactivityview->PatientId);
-            $onsiteactivityview->Activity = $this->SafeGetVal($json, 'activity', $onsiteactivityview->Activity);
-            $onsiteactivityview->RequireAudit = $this->SafeGetVal($json, 'requireAudit', $onsiteactivityview->RequireAudit);
-            $onsiteactivityview->PendingAction = $this->SafeGetVal($json, 'pendingAction', $onsiteactivityview->PendingAction);
-            $onsiteactivityview->ActionTaken = $this->SafeGetVal($json, 'actionTaken', $onsiteactivityview->ActionTaken);
-            $onsiteactivityview->Status = $this->SafeGetVal($json, 'status', $onsiteactivityview->Status);
-            $onsiteactivityview->Narrative = $this->SafeGetVal($json, 'narrative', $onsiteactivityview->Narrative);
-            $onsiteactivityview->TableAction = $this->SafeGetVal($json, 'tableAction', $onsiteactivityview->TableAction);
-            $onsiteactivityview->TableArgs = $this->SafeGetVal($json, 'tableArgs', $onsiteactivityview->TableArgs);
-            $onsiteactivityview->ActionUser = $this->SafeGetVal($json, 'actionUser', $onsiteactivityview->ActionUser);
-            $onsiteactivityview->ActionTakenTime = date('Y-m-d H:i:s', strtotime($this->SafeGetVal($json, 'actionTakenTime', $onsiteactivityview->ActionTakenTime)));
-            $onsiteactivityview->Checksum = $this->SafeGetVal($json, 'checksum', $onsiteactivityview->Checksum);
-            $onsiteactivityview->Title = $this->SafeGetVal($json, 'title', $onsiteactivityview->Title);
-            $onsiteactivityview->Fname = $this->SafeGetVal($json, 'fname', $onsiteactivityview->Fname);
-            $onsiteactivityview->Lname = $this->SafeGetVal($json, 'lname', $onsiteactivityview->Lname);
-            $onsiteactivityview->Mname = $this->SafeGetVal($json, 'mname', $onsiteactivityview->Mname);
-            $onsiteactivityview->Dob = date('Y-m-d H:i:s', strtotime($this->SafeGetVal($json, 'dob', $onsiteactivityview->Dob)));
-            $onsiteactivityview->Ss = $this->SafeGetVal($json, 'ss', $onsiteactivityview->Ss);
-            $onsiteactivityview->Street = $this->SafeGetVal($json, 'street', $onsiteactivityview->Street);
-            $onsiteactivityview->PostalCode = $this->SafeGetVal($json, 'postalCode', $onsiteactivityview->PostalCode);
-            $onsiteactivityview->City = $this->SafeGetVal($json, 'city', $onsiteactivityview->City);
-            $onsiteactivityview->State = $this->SafeGetVal($json, 'state', $onsiteactivityview->State);
-            $onsiteactivityview->Referrerid = $this->SafeGetVal($json, 'referrerid', $onsiteactivityview->Referrerid);
-            $onsiteactivityview->Providerid = $this->SafeGetVal($json, 'providerid', $onsiteactivityview->Providerid);
-            $onsiteactivityview->RefProviderid = $this->SafeGetVal($json, 'refProviderid', $onsiteactivityview->RefProviderid);
-            $onsiteactivityview->Pubpid = $this->SafeGetVal($json, 'pubpid', $onsiteactivityview->Pubpid);
-            $onsiteactivityview->CareTeam = $this->SafeGetVal($json, 'careTeam', $onsiteactivityview->CareTeam);
-            $onsiteactivityview->Username = $this->SafeGetVal($json, 'username', $onsiteactivityview->Username);
-            $onsiteactivityview->Authorized = $this->SafeGetVal($json, 'authorized', $onsiteactivityview->Authorized);
-            $onsiteactivityview->Ufname = $this->SafeGetVal($json, 'ufname', $onsiteactivityview->Ufname);
-            $onsiteactivityview->Umname = $this->SafeGetVal($json, 'umname', $onsiteactivityview->Umname);
-            $onsiteactivityview->Ulname = $this->SafeGetVal($json, 'ulname', $onsiteactivityview->Ulname);
-            $onsiteactivityview->Facility = $this->SafeGetVal($json, 'facility', $onsiteactivityview->Facility);
-            $onsiteactivityview->Active = $this->SafeGetVal($json, 'active', $onsiteactivityview->Active);
-            $onsiteactivityview->Utitle = $this->SafeGetVal($json, 'utitle', $onsiteactivityview->Utitle);
-            $onsiteactivityview->PhysicianType = $this->SafeGetVal($json, 'physicianType', $onsiteactivityview->PhysicianType);
-
-            $onsiteactivityview->Validate();
-            $errors = $onsiteactivityview->GetValidationErrors();
-
-            if (count($errors) > 0) {
-                $this->RenderErrorJSON('Please check the form for errors', $errors);
-            } else {
-                $onsiteactivityview->Save();
-                $this->RenderJSON($onsiteactivityview, $this->JSONPCallback(), true, $this->SimpleObjectParams());
-            }
-        } catch (Exception $ex) {
-            // this table does not have an auto-increment primary key, so it is semantically correct to
-            // issue a REST PUT request, however we have no way to know whether to insert or update.
-            // if the record is not found, this exception will indicate that this is an insert request
-            if (is_a($ex, 'NotFoundException')) {
-                return $this->Create();
-            }
-
-            $this->RenderExceptionJSON($ex);
-        }
-    }
-
-    /**
-     * API Method deletes an existing OnsiteActivityView record and render response as JSON
-     */
-    public function Delete()
-    {
-        try {
-            // TODO: views are read-only by default. uncomment at your own discretion
-            throw new Exception('Database views are read-only and cannot be updated');
-
-            // TODO: if a soft delete is prefered, change this to update the deleted flag instead of hard-deleting
-
-            $pk = $this->GetRouter()->GetUrlParam('id');
-            $onsiteactivityview = $this->Phreezer->Get('OnsiteActivityView', $pk);
-
-            $onsiteactivityview->Delete();
-
-            $output = new stdClass();
-
-            $this->RenderJSON($output, $this->JSONPCallback());
         } catch (Exception $ex) {
             $this->RenderExceptionJSON($ex);
         }

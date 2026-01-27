@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This module creates statistical reports related to lab tests and
  * other procedure orders.
@@ -10,29 +11,31 @@
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2010-2016 Rod Roark <rod@sunsetsystems.com>
  * @copyright Copyright (c) 2015 Roberto Vasquez <robertogagliotta@gmail.com>
- * @copyright Copyright (c) 2017 Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2017-2019 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
-require_once("../../library/patient.inc");
-require_once("../../library/acl.inc");
+require_once("../../library/patient.inc.php");
 require_once("../../custom/code_types.inc.php");
 require_once "$srcdir/options.inc.php";
 
-// Might want something different here.
-//
-if (! acl_check('acct', 'rep')) {
-    die(xlt("Unauthorized access."));
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
+use OpenEMR\Core\Header;
+
+if (!AclMain::aclCheckCore('patients', 'lab')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Procedure Statistics Report")]);
+    exit;
 }
 
 $from_date     = isset($_POST['form_from_date']) ? DateToYYYYMMDD($_POST['form_from_date']) : '0000-00-00';
 $to_date       = isset($_POST['form_to_date']) ? DateToYYYYMMDD($_POST['form_to_date']) : date('Y-m-d');
-$form_by       = $_POST['form_by'];     // this is a scalar
-$form_show     = $_POST['form_show'];   // this is an array
-$form_facility = isset($_POST['form_facility']) ? $_POST['form_facility'] : '';
-$form_sexes    = isset($_POST['form_sexes']) ? $_POST['form_sexes'] : '3';
+$form_by       = $_POST['form_by'] ?? null;     // this is a scalar
+$form_show     = $_POST['form_show'] ?? null;   // this is an array
+$form_facility = $_POST['form_facility'] ?? '';
+$form_sexes    = $_POST['form_sexes'] ?? '3';
 $form_output   = isset($_POST['form_output']) ? 0 + $_POST['form_output'] : 1;
 
 if (empty($form_by)) {
@@ -40,30 +43,30 @@ if (empty($form_by)) {
 }
 
 if (empty($form_show)) {
-    $form_show = array('1');
+    $form_show = ['1'];
 }
 
 // One of these is chosen as the left column, or Y-axis, of the report.
 //
 $report_title = xl('Procedure Statistics Report');
-$arr_by = array(
+$arr_by = [
   4  => xl('Specific Result'),
   5  => xl('Followups Indicated'),
-);
+];
 
 // This will become the array of reportable values.
-$areport = array();
+$areport = [];
 
 // This accumulates the bottom line totals.
-$atotals = array();
+$atotals = [];
 
-$arr_show   = array(
+$arr_show   = [
   // '.total' => array('title' => 'Total Positives'),
-  '.tneg'  => array('title' => 'Total Negatives'),
-  '.age'   => array('title' => 'Age Category'),
-); // info about selectable columns
+  '.tneg'  => ['title' => 'Total Negatives'],
+  '.age'   => ['title' => 'Age Category'],
+]; // info about selectable columns
 
-$arr_titles = array(); // will contain column headers
+$arr_titles = []; // will contain column headers
 
 // Query layout_options table to generate the $arr_show table.
 // Table key is the field ID.
@@ -73,59 +76,22 @@ $lres = sqlStatement("SELECT field_id, title, data_type, list_id, description " 
   "ORDER BY group_id, seq, title");
 while ($lrow = sqlFetchArray($lres)) {
     $fid = $lrow['field_id'];
-    if ($fid == 'fname' || $fid == 'mname' || $fid == 'lname') {
+    if (
+        in_array($fid, ['fname', 'mname', 'lname', 'additional_addresses'])
+    ) {
         continue;
     }
 
     $arr_show[$fid] = $lrow;
-    $arr_titles[$fid] = array();
-}
-
-// Compute age in years given a DOB and "as of" date.
-//
-function getAge($dob, $asof = '')
-{
-    if (empty($asof)) {
-        $asof = date('Y-m-d');
-    }
-
-    $a1 = explode('-', substr($dob, 0, 10));
-    $a2 = explode('-', substr($asof, 0, 10));
-    $age = $a2[0] - $a1[0];
-    if ($a2[1] < $a1[1] || ($a2[1] == $a1[1] && $a2[2] < $a1[2])) {
-        --$age;
-    }
-
-  // echo "<!-- $dob $asof $age -->\n"; // debugging
-    return $age;
+    $arr_titles[$fid] = [];
 }
 
 $cellcount = 0;
 
-function genStartRow($att)
-{
-    global $cellcount, $form_output;
-    if ($form_output != 3) {
-        echo " <tr $att>\n";
-    }
-
-    $cellcount = 0;
-}
-
-function genEndRow()
-{
-    global $form_output;
-    if ($form_output == 3) {
-        echo "\n";
-    } else {
-        echo " </tr>\n";
-    }
-}
-
 function getListTitle($list, $option)
 {
     $row = sqlQuery("SELECT title FROM list_options WHERE " .
-    "list_id = ? AND option_id = ? AND activity = 1", array($list, $option));
+    "list_id = ? AND option_id = ? AND activity = 1", [$list, $option]);
     if (empty($row['title'])) {
         return $option;
     }
@@ -135,11 +101,11 @@ function getListTitle($list, $option)
 
 // Usually this generates one cell, but allows for two or more.
 //
-function genAnyCell($data, $right = false, $class = '')
+function genAnyCell($data, $right = false, $class = ''): void
 {
     global $cellcount, $form_output;
     if (!is_array($data)) {
-        $data = array(0 => $data);
+        $data = [0 => $data];
     }
 
     foreach ($data as $datum) {
@@ -166,14 +132,14 @@ function genAnyCell($data, $right = false, $class = '')
     }
 }
 
-function genHeadCell($data, $right = false)
+function genHeadCell($data, $right = false): void
 {
     genAnyCell($data, $right, 'dehead');
 }
 
 // Create an HTML table cell containing a numeric value, and track totals.
 //
-function genNumCell($num, $cnum)
+function genNumCell($num, $cnum): void
 {
     global $atotals, $form_output;
     $atotals[$cnum] += $num;
@@ -184,9 +150,14 @@ function genNumCell($num, $cnum)
     genAnyCell($num, true, 'detail');
 }
 
-// Helper function called after the reporting key is determined for a row.
-//
-function loadColumnData($key, $row)
+/**
+ * Helper function called after the reporting key is determined for a row.
+ *
+ * @param string $key
+ * @param array $row
+ * @return void
+ */
+function loadColumnData(string $key, array $row): void
 {
     global $areport, $arr_titles, $arr_show;
 
@@ -197,18 +168,18 @@ function loadColumnData($key, $row)
 
   // If first instance of this key, initialize its arrays.
     if (empty($areport[$key])) {
-        $areport[$key] = array();
+        $areport[$key] = [];
         $areport[$key]['.prp'] = 0;       // previous pid
         $areport[$key]['.wom'] = 0;       // number of positive results for women
         $areport[$key]['.men'] = 0;       // number of positive results for men
         $areport[$key]['.neg'] = 0;       // number of negative results
-        $areport[$key]['.age'] = array(0,0,0,0,0,0,0,0,0); // age array
+        $areport[$key]['.age'] = [0,0,0,0,0,0,0,0,0]; // age array
         foreach ($arr_show as $askey => $dummy) {
-            if (substr($askey, 0, 1) == '.') {
+            if (str_starts_with((string) $askey, '.')) {
                 continue;
             }
 
-            $areport[$key][$askey] = array();
+            $areport[$key][$askey] = [];
         }
     }
 
@@ -222,7 +193,7 @@ function loadColumnData($key, $row)
     }
 
   // Increment the correct sex category.
-    if (strcasecmp($row['sex'], 'Male') == 0) {
+    if (strcasecmp((string) $row['sex'], 'Male') == 0) {
         ++$areport[$key]['.men'];
     } else {
         ++$areport[$key]['.wom'];
@@ -242,7 +213,7 @@ function loadColumnData($key, $row)
   // attributes.  A key of "Unspecified" is used where the attribute has
   // no assigned value.
     foreach ($arr_show as $askey => $dummy) {
-        if (substr($askey, 0, 1) == '.') {
+        if (str_starts_with((string) $askey, '.')) {
             continue;
         }
 
@@ -254,7 +225,7 @@ function loadColumnData($key, $row)
 
 // This is called for each row returned from the query.
 //
-function process_result_code($row)
+function process_result_code($row): void
 {
     global $areport, $arr_titles, $form_by;
 
@@ -263,11 +234,9 @@ function process_result_code($row)
     if ($form_by === '4') {
         $key = $row['order_name'] . ' / ' . $row['result_name'];
         loadColumnData($key, $row);
-    } // Recommended followup services.
-  //
-    else if ($form_by === '5') {
+    } elseif ($form_by === '5') {  // Recommended followup services.
         if (!empty($row['related_code'])) {
-            $relcodes = explode(';', $row['related_code']);
+            $relcodes = explode(';', (string) $row['related_code']);
             foreach ($relcodes as $codestring) {
                 if ($codestring === '') {
                     continue;
@@ -293,197 +262,184 @@ if ($form_output == 3) {
     header("Content-Disposition: attachment; filename=service_statistics_report.csv");
     header("Content-Description: File Transfer");
 } else {
-?>
+    ?>
 <html>
 <head>
-<?php html_header_show(); ?>
 <title><?php echo text($report_title); ?></title>
 
-<link rel="stylesheet" href="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-datetimepicker/build/jquery.datetimepicker.min.css">
+    <?php Header::setupHeader(['datetime-picker', 'textformat', 'jquery']); ?>
 
-<style type="text/css">
-body       { font-family:sans-serif; font-size:10pt; font-weight:normal }
-.dehead    { color:#000000; font-family:sans-serif; font-size:10pt; font-weight:bold }
-.detail    { color:#000000; font-family:sans-serif; font-size:10pt; font-weight:normal }
+<style>
+.dehead    {
+    font-family: sans-serif;
+    font-weight: bold;
+}
 </style>
-<script type="text/javascript" src="../../library/textformat.js?v=<?php echo $v_js_includes; ?>"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery/dist/jquery.min.js"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-datetimepicker/build/jquery.datetimepicker.full.min.js"></script>
 
-<script language="JavaScript">
-var mypcc = '<?php echo $GLOBALS['phone_country_code'] ?>';
-
-$(document).ready(function() {
-$('.datepicker').datetimepicker({
-<?php $datetimepicker_timepicker = false; ?>
-<?php $datetimepicker_showseconds = false; ?>
-<?php $datetimepicker_formatInput = true; ?>
-<?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
-<?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
-});
+<script>
+$(function () {
+    $('.datepicker').datetimepicker({
+    <?php $datetimepicker_timepicker = false; ?>
+    <?php $datetimepicker_showseconds = false; ?>
+    <?php $datetimepicker_formatInput = true; ?>
+    <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+    <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
+    });
 });
 </script>
 
 </head>
 
-<body leftmargin='0' topmargin='0' marginwidth='0' marginheight='0'>
+<body class='m-0'>
 
 <center>
 
-<h2><?php echo $report_title; ?></h2>
+<h2><?php echo text($report_title); ?></h2>
 
 <form name='theform' method='post' action='procedure_stats.php' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
-<table border='0' cellspacing='5' cellpadding='1'>
+<div class="col-8 col-md-8">
+    <div class="row">
+        <div class="col">
+            <?php echo xlt('Facility'); ?>:
+            <?php dropdown_facility($form_facility, 'form_facility', false); ?>
+        </div>
+        <div class="col">
+            <?php echo xlt('From'); ?>
+            <input type='text' class='form-control datepicker' name='form_from_date' id='form_from_date' size='10' value='<?php echo attr(oeFormatShortDate($from_date)); ?>' />
+        </div>
+        <div class="col">
+            <?php echo xlt('To{{Range}}'); ?>
+            <input type='text' class='form-control datepicker' name='form_to_date' id='form_to_date' size='10' value='<?php echo attr(oeFormatShortDate($to_date)); ?>' />
+        </div>
+    </div>
+</div>
+<br>
+<div class="col-8 col-md-8">
+    <div class="row">
+        <div class="col">
+            <?php echo xlt('Rows'); ?>:
+        </div>
+        <div class="col">
+            <select name='form_by' class='form-control' title='Left column of report'>
+                <?php
+                foreach ($arr_by as $key => $value) {
+                    echo "    <option value='" . attr($key) . "'";
+                    if ($key == $form_by) {
+                        echo " selected";
+                    }
 
-<tr>
-<td valign='top' class='dehead' nowrap>
-<?php echo xlt('Rows'); ?>:
-</td>
-<td valign='top' class='detail'>
- <select name='form_by' title='Left column of report'>
-<?php
-foreach ($arr_by as $key => $value) {
-    echo "    <option value='" . attr($key) . "'";
-    if ($key == $form_by) {
-        echo " selected";
-    }
+                    echo ">" . text($value) . "</option>\n";
+                }
+                ?>
+            </select>
+        </div>
+        <div class="col">
+            <?php echo xlt('Sex'); ?>:
+        </div>
+        <div class="col">
+            <select class='form-control' name='form_sexes' title='<?php echo xla('To filter by sex'); ?>'>
+                <?php
+                foreach ([3 => xl('Men and Women'), 1 => xl('Women Only'), 2 => xl('Men Only')] as $key => $value) {
+                    echo "       <option value='" . attr($key) . "'";
+                    if ($key == $form_sexes) {
+                        echo " selected";
+                    }
 
-    echo ">" . text($value) . "</option>\n";
-}
-?>
- </select>
-</td>
-<td valign='top' class='dehead' nowrap>
-<?php echo xlt('Filters'); ?>:
-</td>
-<td rowspan='2' colspan='2' class='detail'
- style='border-style:solid;border-width:1px;border-color:#cccccc'>
- <table>
-  <tr>
-   <td valign='top' class='detail' nowrap>
-    <?php echo xlt('Sex'); ?>:
-   </td>
-   <td class='detail' valign='top'>
-  <select name='form_sexes' title='<?php echo xla('To filter by sex'); ?>'>
-<?php
-foreach (array(3 => xl('Men and Women'), 1 => xl('Women Only'), 2 => xl('Men Only')) as $key => $value) {
-    echo "       <option value='" . attr($key) . "'";
-    if ($key == $form_sexes) {
-        echo " selected";
-    }
+                    echo ">" . text($value) . "</option>\n";
+                }
+                ?>
+            </select>
+        </div>
+    </div>
+</div>
+<br>
+<div class="col-8 col-md-8">
+    <div class="row">
+        <div class="col">
+            <?php echo xlt('Columns'); ?>:
+            <select class='form-control' name='form_show[]' size='4' multiple title='<?php echo xla('Hold down Ctrl to select multiple items'); ?>'>
+                <?php
+                foreach ($arr_show as $key => $value) {
+                    $title = $value['title'];
+                    if (empty($title) || $key == 'title') {
+                        $title = $value['description'];
+                    }
 
-    echo ">" . text($value) . "</option>\n";
-}
-?>
-    </select>
-   </td>
-  </tr>
-  <tr>
-   <td valign='top' class='detail' nowrap>
-    <?php echo xlt('Facility'); ?>:
-   </td>
-   <td valign='top' class='detail'>
-    <?php dropdown_facility($form_facility, 'form_facility', false); ?>
-   </td>
-  </tr>
-  <tr>
-   <td colspan='2' class='detail' nowrap>
-    <?php echo xlt('From'); ?>
-  <input type='text' class='datepicker' name='form_from_date' id='form_from_date' size='10' value='<?php echo attr(oeFormatShortDate($from_date)); ?>'>
-    <?php echo xlt('To'); ?>
-  <input type='text' class='datepicker' name='form_to_date' id='form_to_date' size='10' value='<?php echo attr(oeFormatShortDate($to_date)); ?>'>
-   </td>
-  </tr>
- </table>
-</td>
-</tr>
-<tr>
-<td valign='top' class='dehead' nowrap>
-<?php echo xlt('Columns'); ?>:
-</td>
-<td valign='top' class='detail'>
- <select name='form_show[]' size='4' multiple
-title='<?php echo xla('Hold down Ctrl to select multiple items'); ?>'>
-<?php
-foreach ($arr_show as $key => $value) {
-    $title = $value['title'];
-    if (empty($title) || $key == 'title') {
-        $title = $value['description'];
-    }
+                    echo "    <option value='" . attr($key) . "'";
+                    if (is_array($form_show) && in_array($key, $form_show)) {
+                        echo " selected";
+                    }
 
-    echo "    <option value='" . attr($key) . "'";
-    if (is_array($form_show) && in_array($key, $form_show)) {
-        echo " selected";
-    }
+                    echo ">" . text($title) . "</option>\n";
+                }
+                ?>
+            </select>
+        </div>
+    </div>
+</div>
+<br>
+<div class="col-8 col-md-8">
+    <div class="row">
+        <div class="col">
+            <?php echo xlt('To{{Destination}}'); ?>:
 
-    echo ">" . text($title) . "</option>\n";
-}
-?>
- </select>
-</td>
-</tr>
-<tr>
-<td valign='top' class='dehead' nowrap>
-<?php echo xlt('To'); ?>:
-</td>
-<td colspan='3' valign='top' class='detail' nowrap>
-<?php
-foreach (array(1 => xl('Screen'), 2 => xl('Printer'), 3 => xl('Export File')) as $key => $value) {
-    echo "   <input type='radio' name='form_output' value='" . attr($key) . "'";
-    if ($key == $form_output) {
-        echo ' checked';
-    }
+            <?php
+            foreach ([1 => xl('Screen'), 2 => xl('Printer'), 3 => xl('Export File')] as $key => $value) {
+                echo "   <input type='radio' name='form_output' value='" . attr($key) . "'";
+                if ($key == $form_output) {
+                    echo ' checked';
+                }
 
-    echo " />" . text($value) . " &nbsp;";
-}
-?>
-</td>
-<td align='right' valign='top' class='detail' nowrap>
-<input type='submit' name='form_submit' value='<?php echo xla('Submit'); ?>'
-title='<?php echo xla('Click to generate the report'); ?>' />
-</td>
-</tr>
-<tr>
-<td colspan='5' height="1">
-</td>
-</tr>
-</table>
-<?php
+                echo " />" . text($value) . " &nbsp;";
+            }
+            ?>
+        </div>
+    </div>
+</div>
+<br>
+<div class="col-4 col-md-4">
+    <div class="col">
+         <button type='submit' class='btn btn-primary btn-save' name='form_submit' value='form_submit' title='<?php echo xla('Click to generate the report'); ?>'><?php echo xla('Submit') ?></button>
+    </div>
+</div>
+<br>
+
+    <?php
 } // end not export
 
-if ($_POST['form_submit']) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+if (!empty($_POST['form_submit'])) {
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 
     $pd_fields = '';
     foreach ($arr_show as $askey => $asval) {
-        if (substr($askey, 0, 1) == '.') {
+        if (str_starts_with((string) $askey, '.')) {
             continue;
         }
 
-        if ($askey == 'regdate' || $askey == 'sex' || $askey == 'DOB' ||
-        $askey == 'lname' || $askey == 'fname' || $askey == 'mname' ||
-        $askey == 'contrastart' || $askey == 'referral_source') {
+        if (
+            in_array($askey, ['regdate', 'sex', 'DOB', 'lname', 'fname', 'mname', 'contrastart', 'referral_source'])
+        ) {
             continue;
         }
 
-        $pd_fields .= ', pd.' . escape_sql_column_name($askey, array('patient_data'));
+        $pd_fields .= ', pd.' . escape_sql_column_name($askey, ['patient_data']);
     }
 
     $sexcond = '';
     if ($form_sexes == '1') {
         $sexcond = "AND pd.sex NOT LIKE 'Male' ";
-    } else if ($form_sexes == '2') {
+    } elseif ($form_sexes == '2') {
         $sexcond = "AND pd.sex LIKE 'Male' ";
     }
 
     // This gets us all results, with encounter and patient
     // info attached and grouped by patient and encounter.
 
-    $sqlBindArray = array();
+    $sqlBindArray = [];
 
     $query = "SELECT " .
     "po.patient_id, po.encounter_id, po.date_ordered, " .
@@ -530,7 +486,7 @@ if ($_POST['form_submit']) {
     }
 
     if ($form_output != 3) {
-        echo "<table border='0' cellpadding='1' cellspacing='2' width='98%'>\n";
+        echo "<table class='table' cellpadding='1' cellspacing='2' width='98%'>\n";
     } // end not csv export
 
     genStartRow("bgcolor='#dddddd'");
@@ -538,7 +494,7 @@ if ($_POST['form_submit']) {
     // genHeadCell($arr_by[$form_by]);
     // If the key is an MA or IPPF code, then add a column for its description.
     if ($form_by === '5') {
-        genHeadCell(array($arr_by[$form_by], xl('Description')));
+        genHeadCell([$arr_by[$form_by], xl('Description')]);
     } else {
         genHeadCell($arr_by[$form_by]);
     }
@@ -550,7 +506,7 @@ if ($_POST['form_submit']) {
       // }
         if ($value == '.tneg') { // Total Negatives
             genHeadCell(xl('Negatives'));
-        } else if ($value == '.age') { // Age
+        } elseif ($value == '.age') { // Age
             genHeadCell(xl('0-10'), true);
             genHeadCell(xl('11-14'), true);
             genHeadCell(xl('15-19'), true);
@@ -560,11 +516,11 @@ if ($_POST['form_submit']) {
             genHeadCell(xl('35-39'), true);
             genHeadCell(xl('40-44'), true);
             genHeadCell(xl('45+'), true);
-        } else if ($arr_show[$value]['list_id']) {
+        } elseif (!empty($arr_show[$value]['list_id'])) {
             foreach ($arr_titles[$value] as $key => $dummy) {
                 genHeadCell(getListTitle($arr_show[$value]['list_id'], $key), true);
             }
-        } else if (!empty($arr_titles[$value])) {
+        } elseif (!empty($arr_titles[$value])) {
             foreach ($arr_titles[$value] as $key => $dummy) {
                 genHeadCell($key, true);
             }
@@ -586,11 +542,11 @@ if ($_POST['form_submit']) {
 
       // If the key is an MA or IPPF code, then get its description.
         if ($form_by === '5') {
-            list($codetype, $code) = explode(':', $key);
+            [$codetype, $code] = explode(':', $key);
             $type = $code_types[$codetype]['id'];
-            $dispkey = array($key, '');
+            $dispkey = [$key, ''];
             $crow = sqlQuery("SELECT code_text FROM codes WHERE " .
-            "code_type = ? AND code = ? ORDER BY id LIMIT 1", array($type, $code));
+            "code_type = ? AND code = ? ORDER BY id LIMIT 1", [$type, $code]);
             if (!empty($crow['code_text'])) {
                 $dispkey[1] = $crow['code_text'];
             }
@@ -611,11 +567,11 @@ if ($_POST['form_submit']) {
             // }
             if ($value == '.tneg') { // Total Negatives
                 genNumCell($areport[$key]['.neg'], $cnum++);
-            } else if ($value == '.age') { // Age
+            } elseif ($value == '.age') { // Age
                 for ($i = 0; $i < 9; ++$i) {
                     genNumCell($areport[$key]['.age'][$i], $cnum++);
                 }
-            } else if (!empty($arr_titles[$value])) {
+            } elseif (!empty($arr_titles[$value])) {
                 foreach ($arr_titles[$value] as $title => $dummy) {
                     genNumCell($areport[$key][$value][$title], $cnum++);
                 }
@@ -638,7 +594,7 @@ if ($_POST['form_submit']) {
       // genHeadCell(xl('Totals'));
       // If the key is an MA or IPPF code, then add a column for its description.
         if ($form_by === '5') {
-            genHeadCell(array(xl('Totals'), ''));
+            genHeadCell([xl('Totals'), '']);
         } else {
             genHeadCell(xl('Totals'));
         }
@@ -654,12 +610,12 @@ if ($_POST['form_submit']) {
 } // end of if refresh or export
 
 if ($form_output != 3) {
-?>
+    ?>
 </form>
 </center>
 
-<script language='JavaScript'>
-<?php if ($form_output == 2) { ?>
+<script>
+    <?php if ($form_output == 2) { ?>
  var win = top.printLogPrint ? top : opener.top;
  win.printLogPrint(window);
 <?php } ?>
@@ -667,6 +623,6 @@ if ($form_output != 3) {
 
 </body>
 </html>
-<?php
+    <?php
 } // end not export
 ?>

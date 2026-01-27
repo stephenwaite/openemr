@@ -1,6 +1,7 @@
 <?php
+
 /************************************************************************
-  			pharmacy.php - Copyright duhlman
+            pharmacy.php - Copyright duhlman
 
 /usr/share/apps/umbrello/headings/heading.php
 
@@ -14,17 +15,15 @@ The original location of this file is /home/duhlman/uml-generated-code/prescript
  */
 class Person
 {
-    var $id;
-    var $last_name;
-    var $first_name;
-    var $user_name;
+    public $last_name;
+    public $first_name;
+    public $user_name;
 
     /**
      * Constructor sets all Prescription attributes to their default value
      */
-    function __construct($id = "", $prefix = "")
+    function __construct(public $id = "")
     {
-        $this->id = $id;
     }
 
     function populate()

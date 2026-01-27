@@ -1,4 +1,5 @@
 <?php
+
 // Copyright (C) 2011 Ken Chapple <ken@mi-squared.com>
 //
 // This program is free software; you can redistribute it and/or
@@ -12,7 +13,7 @@ class DenominatorAllPatients implements CqmFilterIF
     {
         return "Denominator: All patients in the initial patient population";
     }
-    
+
     public function test(CqmPatient $patient, $beginDate, $endDate)
     {
         return true;

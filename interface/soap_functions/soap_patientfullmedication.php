@@ -2,7 +2,7 @@
 
 /**
  * interface/soap_functions/soap_patientfullmedication.php Check current
- * patients Medications TTL status and perform a SOAP call to NewCrop if
+ * patients Medications TTL status and perform a SOAP call to Ensora if
  * elapsed.
  *
  * Copyright (C) 2011 ZMG LLC <sam@zhservices.com>
@@ -18,27 +18,28 @@
  * If not, see <http://opensource.org/licenses/gpl-license.php>.
  *
  * @package    OpenEMR
- * @subpackage NewCrop
+ * @subpackage Ensora
  * @author     Eldho Chacko <eldho@zhservices.com>
  * @author     Vinish K <vinish@zhservices.com>
  * @author     Sam Likins <sam.likins@wsi-services.com>
  * @link       http://www.open-emr.org
  */
 
-require_once(__DIR__.'/../globals.php');
-require_once($GLOBALS['fileroot'].'/interface/eRxGlobals.php');
-require_once($GLOBALS['fileroot'].'/interface/eRxStore.php');
-require_once($GLOBALS['srcdir'].'/xmltoarray_parser_htmlfix.php');
-require_once($GLOBALS['srcdir'].'/lists.inc');
-require_once($GLOBALS['srcdir'].'/amc.php');
-require_once($GLOBALS['fileroot'].'/interface/eRxSOAP.php');
-require_once($GLOBALS['fileroot'].'/interface/eRx_xml.php');
+require_once(__DIR__ . '/../globals.php');
+require_once($GLOBALS['fileroot'] . '/interface/eRxGlobals.php');
+require_once($GLOBALS['fileroot'] . '/interface/eRxStore.php');
+require_once($GLOBALS['srcdir'] . '/xmltoarray_parser_htmlfix.php');
+require_once($GLOBALS['srcdir'] . '/lists.inc.php');
+require_once($GLOBALS['srcdir'] . '/amc.php');
+require_once($GLOBALS['fileroot'] . '/interface/eRxSOAP.php');
+require_once($GLOBALS['fileroot'] . '/interface/eRx_xml.php');
 
 set_time_limit(0);
 
-$eRxSOAP = new eRxSOAP;
-$eRxSOAP->setGlobals(new eRxGlobals($GLOBALS))
-    ->setStore(new eRxStore)
+$eRxSOAP = new eRxSOAP();
+$GLOBALS_REF = $GLOBALS;
+$eRxSOAP->setGlobals(new eRxGlobals($GLOBALS_REF))
+    ->setStore(new eRxStore())
     ->setAuthUserId($_SESSION['authUserID']);
 
 if (array_key_exists('patient', $_REQUEST)) {
@@ -47,7 +48,8 @@ if (array_key_exists('patient', $_REQUEST)) {
     $eRxSOAP->setPatientId($GLOBALS['pid']);
 }
 
-if ((array_key_exists('refresh', $_REQUEST)
+if (
+    (array_key_exists('refresh', $_REQUEST)
         && $_REQUEST['refresh'] == 'true')
     || $eRxSOAP->elapsedTTL(eRxSOAP::ACTION_MEDICATIONS)
     || $eRxSOAP->checkPatientImportStatus(eRxSOAP::FLAG_PRESCRIPTION_PRESS)

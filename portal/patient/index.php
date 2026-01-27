@@ -1,16 +1,24 @@
 <?php
+
 /** @package    Patient Portal
  *
  * From phreeze package
  * @license http://www.gnu.org/copyleft/lesser.html LGPL
  *
  */
+use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Common\Session\SessionUtil;
+use OpenEMR\Common\Session\SessionWrapperFactory;
+
+require_once(__DIR__ . "/../../vendor/autoload.php");
+
+$session = SessionWrapperFactory::getInstance()->getWrapper();
 
 //require_once ("./../verify_session.php");
 /* GlobalConfig object contains all configuration information for the app */
-include_once("_global_config.php");
-include_once("_app_config.php");
-@include_once("_machine_config.php"); // This include auth any framework calls
+require_once("_global_config.php");
+require_once("_app_config.php");
+require_once("_machine_config.php"); // This include auth any framework calls
 
 if (!GlobalConfig::$CONNECTION_SETTING) {
     throw new Exception('GlobalConfig::$CONNECTION_SETTING is not configured.  Are you missing _machine_config.php?');
@@ -22,7 +30,37 @@ require_once("verysimple/Phreeze/Dispatcher.php");
 // the global config is used for all dependency injection
 $gc = GlobalConfig::GetInstance();
 
+$globalsBag = OEGlobalsBag::getInstance();
+
 try {
+    if (!empty($session->get('register', null))) {
+        // Need to bootstrap for registration
+        $globalsBag->set('bootstrap_register', true);
+    } else {
+        $globalsBag->set('bootstrap_register', false);
+    }
+    if ($session->has('pid') && $session->has('patient_portal_onsite_two')) {
+        // Need to bootstrap all requests to only allow the pid in $_SESSION['pid']
+        //  and to only allow access to api calls applicable to that pid (or patientId).
+        // Also need to collect the id of the patient to verify the correct id is used
+        //  in the uri check in GenericRouter.php .
+        $globalsBag->set('bootstrap_pid', $session->get('pid'));
+        $sqlCollectPatientId = sqlQuery("SELECT `id` FROM `patient_data` WHERE `pid` = ?", [$globalsBag->get('bootstrap_pid')]);
+        $globalsBag->set('bootstrap_uri_id', $sqlCollectPatientId['id']);
+        $bootstrap_pid = $globalsBag->get('bootstrap_pid');
+        if (
+            (!empty($_POST['pid']) && ($_POST['pid'] != $bootstrap_pid)) ||
+            (!empty($_GET['pid']) && ($_GET['pid'] != $bootstrap_pid)) ||
+            (!empty($_REQUEST['pid']) && ($_REQUEST['pid'] != $bootstrap_pid)) ||
+            (!empty($_POST['patientId']) && ($_POST['patientId'] != $bootstrap_pid)) ||
+            (!empty($_GET['patientId']) && ($_GET['patientId'] != $bootstrap_pid)) ||
+            (!empty($_REQUEST['patientId']) && ($_REQUEST['patientId'] != $bootstrap_pid))
+        ) {
+            // Unauthorized use
+            $error = 'Unauthorized';
+            throw new Exception($error);
+        }
+    }
     Dispatcher::Dispatch(
         $gc->GetPhreezer(),
         $gc->GetRenderEngine(),
@@ -36,11 +74,11 @@ try {
     // render it as JSON, otherwise attempt to render a friendly HTML page
 
     $url = RequestUtil::GetCurrentURL();
-    $isApiRequest = (strpos($url, 'api/') !== false);
+    $isApiRequest = (str_contains($url, 'api/'));
 
     if ($isApiRequest) {
         $result = new stdClass();
-        $result->success= false;
+        $result->success = false;
         $result->message = $ex->getMessage();
         $result->data = $ex->getTraceAsString();
 

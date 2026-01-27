@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Facility user-specific settings.
  *
@@ -11,62 +12,65 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
 require_once("$srcdir/options.inc.php");
-require_once("$srcdir/acl.inc");
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
 if (!empty($_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 }
 
 // Ensure authorized
-if (!acl_check('admin', 'users')) {
-    die(xlt("Unauthorized"));
+if (!AclMain::aclCheckCore('admin', 'users')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Facility Specific User Information")]);
+    exit;
 }
 
 $alertmsg = '';
 
 if (isset($_POST["mode"]) && $_POST["mode"] == "facility_user_id" && isset($_POST["user_id"]) && isset($_POST["fac_id"])) {
-  // Inserting/Updating new facility specific user information
+    // Inserting/Updating new facility specific user information
     $fres = sqlStatement("SELECT * FROM `layout_options` " .
-                       "WHERE `form_id` = 'FACUSR' AND `uor` > 0 AND `field_id` != '' " .
-                       "ORDER BY `group_id`, `seq`");
+        "WHERE `form_id` = 'FACUSR' AND `uor` > 0 AND `field_id` != '' " .
+        "ORDER BY `group_id`, `seq`");
     while ($frow = sqlFetchArray($fres)) {
         $value = get_layout_form_value($frow);
-        $entry_id = sqlQuery("SELECT `id` FROM `facility_user_ids` WHERE `uid` = ? AND `facility_id` = ? AND `field_id` =?", array($_POST["user_id"],$_POST["fac_id"],$frow['field_id']));
+        $entry_id = sqlQuery("SELECT `id` FROM `facility_user_ids` WHERE `uid` = ? AND `facility_id` = ? AND `field_id` =?", [$_POST["user_id"], $_POST["fac_id"], $frow['field_id']]);
         if (empty($entry_id)) {
             // Insert new entry
-            sqlInsert("INSERT INTO `facility_user_ids` (`uid`, `facility_id`, `field_id`, `field_value`) VALUES (?,?,?,?)", array($_POST["user_id"],$_POST["fac_id"],$frow['field_id'], $value));
+            sqlStatement("INSERT INTO `facility_user_ids` (`uid`, `facility_id`, `field_id`, `field_value`) VALUES (?,?,?,?)", [$_POST["user_id"], $_POST["fac_id"], $frow['field_id'], $value]);
         } else {
             // Update existing entry
-            sqlStatement("UPDATE `facility_user_ids` SET `field_value` = ? WHERE `id` = ?", array($value,$entry_id['id']));
+            sqlStatement("UPDATE `facility_user_ids` SET `field_value` = ? WHERE `id` = ?", [$value, $entry_id['id']]);
         }
     }
 }
 
 ?>
 <html>
+
 <head>
 
     <title><?php echo xlt("Facility Specific User Information"); ?></title>
 
-    <?php Header::setupHeader(['common','jquery-ui']); ?>
+    <?php Header::setupHeader(['common']); ?>
 
-    <script type="text/javascript">
+    <script>
         function refreshme() {
             top.restoreSession();
             document.location.reload();
         }
 
-        $(document).ready(function(){
+        $(function() {
             $(".small_modal").on('click', function(e) {
                 e.preventDefault();e.stopPropagation();
-                dlgopen('', '', 500, 200, '', '', {
+                dlgopen('', '', 550, 550, '', '', {
                     //onClosed: 'refreshme',
                     sizeHeight: 'auto',
                     allowResize: true,
@@ -79,40 +83,41 @@ if (isset($_POST["mode"]) && $_POST["mode"] == "facility_user_id" && isset($_POS
         });
     </script>
 </head>
-<body class="body_top">
+
+<body>
     <?php
     // Collect all users
     $u_res = sqlStatement("select * from `users` WHERE `username` != '' AND `active` = 1 order by `username`");
 
     // Collect all facilities and store them in an array
     $f_res = sqlStatement("select * from `facility` order by `name`");
-    $f_arr = array();
-    for ($i=0; $row=sqlFetchArray($f_res); $i++) {
-        $f_arr[$i]=$row;
+    $f_arr = [];
+    for ($i = 0; $row = sqlFetchArray($f_res); $i++) {
+        $f_arr[$i] = $row;
     }
 
     // Collect layout information and store them in an array
     $l_res = sqlStatement("SELECT * FROM layout_options " .
-                          "WHERE form_id = 'FACUSR' AND uor > 0 AND field_id != '' " .
-                          "ORDER BY group_id, seq");
-    $l_arr = array();
-    for ($i=0; $row=sqlFetchArray($l_res); $i++) {
-        $l_arr[$i]=$row;
+        "WHERE form_id = 'FACUSR' AND uor > 0 AND field_id != '' " .
+        "ORDER BY group_id, seq");
+    $l_arr = [];
+    for ($i = 0; $row = sqlFetchArray($l_res); $i++) {
+        $l_arr[$i] = $row;
     }
     ?>
 
     <div class="container">
         <div class="row">
-            <div class="col-xs-12">
+            <div class="col-12">
                 <div class="page-title">
                     <h2><?php echo xlt('Facility Specific User Information'); ?></h2>
                 </div>
             </div>
         </div>
         <div class="row">
-            <div class="col-xs-12">
+            <div class="col-12">
                 <div class="btn-group">
-                    <a href="usergroup_admin.php" class="btn btn-default btn-back" onclick="top.restoreSession()"><?php echo xlt('Back to Users'); ?></a>
+                    <a href="usergroup_admin.php" class="btn btn-secondary btn-back" onclick="top.restoreSession()"><?php echo xlt('Back to Users'); ?></a>
                 </div>
             </div>
         </div>
@@ -136,18 +141,18 @@ if (isset($_POST["mode"]) && $_POST["mode"] == "facility_user_id" && isset($_POS
                         while ($user = sqlFetchArray($u_res)) {
                             foreach ($f_arr as $facility) { ?>
                                 <tr>
-                                    <td><a href="facility_user_admin.php?user_id=<?php echo attr_url($user['id']);?>&fac_id=<?php echo attr_url($facility['id']); ?>" class="small_modal" onclick="top.restoreSession()"><b><?php echo text($user['username']);?></b></a>&nbsp;</td>
-                                    <td><?php echo text($user['fname'] . " " . $user['lname']);?></td>
-                                    <td><?php echo text($facility['name']);?>&nbsp;</td>
+                                    <td><a href="facility_user_admin.php?user_id=<?php echo attr_url($user['id']); ?>&fac_id=<?php echo attr_url($facility['id']); ?>" class="small_modal" onclick="top.restoreSession()"><b><?php echo text($user['username']); ?></b></a>&nbsp;</td>
+                                    <td><?php echo text($user['fname'] . " " . $user['lname']); ?></td>
+                                    <td><?php echo text($facility['name']); ?>&nbsp;</td>
                                     <?php
                                     foreach ($l_arr as $layout_entry) {
                                         $entry_data = sqlQuery("SELECT `field_value` FROM `facility_user_ids` " .
-                                                               "WHERE `uid` = ? AND `facility_id` = ? AND `field_id` = ?", array($user['id'],$facility['id'],$layout_entry['field_id']));
-                                        echo "<td>" . generate_display_field($layout_entry, $entry_data['field_value']) . "&nbsp;</td>";
+                                                               "WHERE `uid` = ? AND `facility_id` = ? AND `field_id` = ?", [$user['id'],$facility['id'],$layout_entry['field_id']]);
+                                        echo "<td>" . generate_display_field($layout_entry, ($entry_data['field_value'] ?? '')) . "&nbsp;</td>";
                                     }
                                     ?>
                                 </tr>
-                            <?php
+                                <?php
                             }
                         }
                         ?>
@@ -157,4 +162,5 @@ if (isset($_POST["mode"]) && $_POST["mode"] == "facility_user_id" && isset($_POS
         </div>
     </div>
 </body>
+
 </html>

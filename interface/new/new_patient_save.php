@@ -1,4 +1,5 @@
 <?php
+
 /**
  * new_patient_save.php
  *
@@ -9,18 +10,19 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
 
-if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-    csrfNotVerified();
+use OpenEMR\Common\Csrf\CsrfUtils;
+
+if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+    CsrfUtils::csrfNotVerified();
 }
 
 // Validation for non-unique external patient identifier.
 if (!empty($_POST["pubpid"])) {
-    $form_pubpid = trim($_POST["pubpid"]);
+    $form_pubpid = trim((string) $_POST["pubpid"]);
     $result = sqlQuery("SELECT count(*) AS count FROM patient_data WHERE " .
-    "pubpid = ?", array($form_pubpid));
+    "pubpid = ?", [$form_pubpid]);
     if ($result['count']) {
         // Error, not unique.
         require_once("new.php");
@@ -28,8 +30,8 @@ if (!empty($_POST["pubpid"])) {
     }
 }
 
-require_once("$srcdir/pid.inc");
-require_once("$srcdir/patient.inc");
+require_once("$srcdir/pid.inc.php");
+require_once("$srcdir/patient.inc.php");
 
 //here, we lock the patient data table while we find the most recent max PID
 //other interfaces can still read the data during this lock, however
@@ -55,26 +57,22 @@ if ($pid == null) {
 }
 
 // what do we set for the public pid?
-if (isset($_POST["pubpid"]) && ($_POST["pubpid"] != "")) {
-    $mypubpid = $_POST["pubpid"];
-} else {
-    $mypubpid = $pid;
-}
+$mypubpid = isset($_POST["pubpid"]) && $_POST["pubpid"] != "" ? $_POST["pubpid"] : $pid;
 
 if ($_POST['form_create']) {
-    $form_fname = ucwords(trim($_POST["fname"]));
-    $form_lname = ucwords(trim($_POST["lname"]));
-    $form_mname = ucwords(trim($_POST["mname"]));
+    $form_fname = ucwords(trim((string) $_POST["fname"]));
+    $form_lname = ucwords(trim((string) $_POST["lname"]));
+    $form_mname = ucwords(trim((string) $_POST["mname"]));
 
   // ===================
   // DBC SYSTEM WAS REMOVED
-    $form_sex               = trim($_POST["sex"]) ;
-    $form_dob               = DateToYYYYMMDD(trim($_POST["DOB"])) ;
+    $form_sex               = trim((string) $_POST["sex"]) ;
+    $form_dob               = DateToYYYYMMDD(trim((string) $_POST["DOB"])) ;
     $form_street            = '' ;
     $form_city              = '' ;
     $form_postcode          = '' ;
     $form_countrycode       = '' ;
-    $form_regdate           = DateToYYYYMMDD(trim($_POST['regdate']));
+    $form_regdate           = DateToYYYYMMDD(trim((string) $_POST['regdate']));
   // EOS DBC
   // ===================
 
@@ -136,15 +134,15 @@ if ($_POST['form_create']) {
 
   // Set referral source separately because we don't want it messed
   // with later by newPatientData().
-    if ($refsource = trim($_POST["refsource"])) {
+    if ($refsource = trim((string) $_POST["refsource"])) {
         sqlQuery("UPDATE patient_data SET referral_source = ? " .
-        "WHERE pid = ?", array($refsource, $pid));
+        "WHERE pid = ?", [$refsource, $pid]);
     }
 }
 ?>
 <html>
 <body>
-<script language="Javascript">
+<script>
 <?php
 if ($alertmsg) {
     echo "alert(" . js_escape($alertmsg) . ");\n";

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Report to view the background services.
  *
@@ -9,10 +10,16 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
+
+if (!AclMain::aclCheckCore('admin', 'super')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Background Services")]);
+    exit;
+}
 ?>
 
 <html>
@@ -23,7 +30,7 @@ use OpenEMR\Core\Header;
 
 <title><?php echo xlt('Background Services'); ?></title>
 
-<style type="text/css">
+<style>
 
 /* specifically include & exclude from printing */
 @media print {
@@ -61,8 +68,8 @@ use OpenEMR\Core\Header;
     <table>
         <tr>
             <td width='470px'>
-                  <div class="btn-group pull-left" role="group">
-                    <a id='refresh_button' href='#' class='btn btn-default btn-refresh' onclick='top.restoreSession(); $("#theform").submit()'>
+                  <div class="btn-group float-left" role="group">
+                    <a id='refresh_button' href='#' class='btn btn-secondary btn-refresh' onclick='top.restoreSession(); $("#theform").submit()'>
                         <?php echo xlt('Refresh'); ?>
                     </a>
                 </div>
@@ -71,20 +78,20 @@ use OpenEMR\Core\Header;
     </table>
 </div>  <!-- end of search parameters -->
 
-<br>
+<br />
 
 
 
 <div id="report_results">
-<table>
+<table class='table'>
 
- <thead>
+ <thead class='thead-light'>
   <th align='center'>
     <?php echo xlt('Service Name'); ?>
   </th>
 
   <th align='center'>
-    <?php echo xlt('Active'); ?>
+    <?php echo xlt('Active{{Service}}'); ?>
   </th>
 
   <th align='center'>
@@ -96,7 +103,7 @@ use OpenEMR\Core\Header;
   </th>
 
   <th align='center'>
-    <?php echo xlt('Currently Busy'); ?>
+    <?php echo xlt('Currently Busy{{Service}}'); ?>
   </th>
 
   <th align='center'>
@@ -118,7 +125,7 @@ use OpenEMR\Core\Header;
 $res = sqlStatement("SELECT *, (`next_run` - INTERVAL `execute_interval` MINUTE) as `last_run_start`" .
   " FROM `background_services` ORDER BY `sort_order`");
 while ($row = sqlFetchArray($res)) {
-?>
+    ?>
   <tr>
       <td align='center'><?php echo xlt($row['title']); ?></td>
 
@@ -136,7 +143,7 @@ while ($row = sqlFetchArray($res)) {
           <td align='center'><?php echo xlt('Not Applicable'); ?></td>
         <?php } ?>
 
-          <td align='center'><?php echo ($row['running']>0) ? xlt("Yes") : xlt("No"); ?></td>
+          <td align='center'><?php echo ($row['running'] > 0) ? xlt("Yes") : xlt("No"); ?></td>
 
         <?php if ($row['running'] > -1) { ?>
           <td align='center'><?php echo text(oeFormatDateTime($row['last_run_start'], "global", true)); ?></td>
@@ -157,7 +164,7 @@ while ($row = sqlFetchArray($res)) {
         <?php } ?>
 
   </tr>
-<?php
+    <?php
 } // $row = sqlFetchArray($res) while
 ?>
 </tbody>
@@ -168,4 +175,3 @@ while ($row = sqlFetchArray($res)) {
 
 </body>
 </html>
-

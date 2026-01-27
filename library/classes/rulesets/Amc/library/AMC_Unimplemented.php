@@ -1,4 +1,5 @@
 <?php
+
 // Copyright (C) 2011 Ken Chapple <ken@mi-squared.com>
 //
 // This program is free software; you can redistribute it and/or
@@ -8,25 +9,43 @@
 //
 require_once('AbstractAmcReport.php');
 
-class AMC_Unimplemented extends AbstractAmcReport implements RsUnimplementedIF
+class AMC_Unimplemented extends AbstractAmcReport implements RsUnimplementedIF, IAmcItemizedReport
 {
     public function __construct()
     {
-        parent::__construct(array(), array(), null);
+        parent::__construct([], [], null, []);
     }
 
     public function getObjectToCount()
     {
         return null;
     }
-    
+
     public function createDenominator()
     {
         return null;
     }
-    
+
     public function createNumerator()
     {
         return null;
+    }
+
+    /**
+     * Returns our action data that we wish to store in the database
+     * @return AmcItemizedActionData
+     */
+    public function getItemizedDataForLastTest(): AmcItemizedActionData
+    {
+        return new AmcItemizedActionData();
+    }
+
+    /**
+     * Returns the hydrated (language translated) data record that was generated
+     * @return array
+     */
+    public function hydrateItemizedDataFromRecord($actionData): AmcItemizedActionData
+    {
+        return new AmcItemizedActionData();
     }
 }

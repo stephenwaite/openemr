@@ -1,4 +1,5 @@
 <?php
+
  // Copyright (C) 2011 Ensoftek
  //
  // This program is free software; you can redistribute it and/or
@@ -9,23 +10,17 @@
  // This program exports report to PQRI 2009 XML format.
 
 
-
-
-
 require_once("../interface/globals.php");
-require_once("../library/patient.inc");
+require_once("../library/patient.inc.php");
 require_once "../library/options.inc.php";
 require_once("../library/clinical_rules.php");
 
-if (!verifyCsrfToken($_GET["csrf_token_form"])) {
-    csrfNotVerified();
-}
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Core\Header;
 
-//To improve performance and not freeze the session when running this
-// report, turn off session writing. Note that php session variables
-// can not be modified after the line below. So, if need to do any php
-// session work in the future, then will need to remove this line.
-session_write_close();
+if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
+    CsrfUtils::csrfNotVerified();
+}
 
 //Remove time limit, since script can take many minutes
 set_time_limit(0);
@@ -41,16 +36,16 @@ if (!empty($GLOBALS['cdr_report_nice'])) {
 function getLabelNumber($label)
 {
 
-    if (strlen($label) == 0) {
+    if (strlen((string) $label) == 0) {
         return "1";
     }
 
-    $tokens = explode(" ", $label);
+    $tokens = explode(" ", (string) $label);
 
-    $num_tokens = sizeof($tokens);
-    if ($tokens[$num_tokens-1] != null) {
-        if (is_numeric($tokens[$num_tokens-1])) {
-            return $tokens[$num_tokens-1];
+    $num_tokens = count($tokens);
+    if ($tokens[$num_tokens - 1] != null) {
+        if (is_numeric($tokens[$num_tokens - 1])) {
+            return $tokens[$num_tokens - 1];
         }
     }
 
@@ -74,8 +69,8 @@ function getMeasureNumber($row)
 
 
 // Collect parameters (set defaults if empty)
-$target_date = (isset($_GET['target_date'])) ? trim($_GET['target_date']) : date('Y-m-d H:i:s');
-$nested = (isset($_GET['nested'])) ? trim($_GET['nested']) : 'false';
+$target_date = (isset($_GET['target_date'])) ? trim((string) $_GET['target_date']) : date('Y-m-d H:i:s');
+$nested = (isset($_GET['nested'])) ? trim((string) $_GET['nested']) : 'false';
 $xml = new PQRIXml();
 
 // Add the XML parent tag.
@@ -114,7 +109,7 @@ foreach ($dataSheet as $row) {
     if (isset($row['is_main']) || isset($row['is_sub'])) {
         if (isset($row['is_main'])) {
             // Add PQRI measures
-            $pqri_measures = array();
+            $pqri_measures = [];
             $pqri_measures['pqri-measure-number'] =  getMeasureNumber($row);
             $pqri_measures['patient-population'] = getLabelNumber($row['population_label']);
             $pqri_measures['numerator'] = getLabelNumber($row['numerator_label']);
@@ -124,18 +119,18 @@ foreach ($dataSheet as $row) {
             $performance_not_met_instances = (int)$row['pass_filter'] - (int)$row['pass_target'] - (int)$row['excluded'];
             $pqri_measures['performance-not-met-instances'] = (string)$performance_not_met_instances;
             $pqri_measures['performance-rate'] = $row['percentage'];
-            $pqri_measures['reporting-rate'] = (($row['pass_filter']-$row['excluded'])/$row['pass_filter'])*100;
-                $pqri_measures['reporting-rate']=$pqri_measures['reporting-rate'].'%';
+            $pqri_measures['reporting-rate'] = (($row['pass_filter'] - $row['excluded']) / $row['pass_filter']) * 100;
+                $pqri_measures['reporting-rate'] .= '%';
             $xml->add_pqri_measures($pqri_measures);
         } else { // $row[0] == "sub"
         }
-    } else if (isset($row['is_provider'])) {
+    } elseif (isset($row['is_provider'])) {
         if ($firstProviderFlag == false) {
              $xml->close_provider();
         }
 
          // Add the provider
-        $physician_ids = array();
+        $physician_ids = [];
         if (!empty($row['npi']) || !empty($row['federaltaxid'])) {
             if (!empty($row['npi'])) {
                 $physician_ids['npi'] = $row['npi'];
@@ -153,7 +148,6 @@ foreach ($dataSheet as $row) {
          $firstProviderFlag = false;
          $existProvider = true;
     } else { // isset($row['is_plan'])
-
         if ($firstPlanFlag == false) {
             if ($firstProviderFlag == false) {
                 $xml->close_provider();
@@ -184,9 +178,7 @@ $xml->close_submission();
 
 <html>
 <head>
-<?php html_header_show();?>
-<script type="text/javascript" src="<?php echo $webroot ?>/interface/main/tabs/js/include_opener.js"></script>
-<link rel=stylesheet href="<?php echo $css_header;?>" type="text/css">
+<?php Header::setupHeader('opener'); ?>
 <title><?php echo xlt('Export PQRI Report'); ?></title>
 </head>
 <body>

@@ -129,13 +129,13 @@ function parse_link(link,entry)
         }
         if(link.indexOf("loadFrame2")===-1)
         {
-            var url=parameters.replace(/\'/g,"").replace(/\"/g,"").replace("../","/interface/");
+            var url=parameters.replace(/'/g,"").replace(/"/g,"").replace("../","/interface/");
             entry.url=url;
             entry.target="report";
         }
         else
         {
-            parameters=parameters.replace(/\'/g,"").replace(/\"/g,"");
+            parameters=parameters.replace(/'/g,"").replace(/"/g,"");
             var params=parameters.split(",");
             entry.target=params[1];
             if(entry.target==='RTop')
@@ -221,7 +221,7 @@ function analyze_menu()
             return;
         }
     }
-    var jqLeft=top.left_nav.$(top.left_nav.document)
+    var jqLeft=top.left_nav.$(top.left_nav.document);
     var $=top.left_nav.$;
     jqLeft.ready(function(){
 
@@ -264,11 +264,6 @@ function analyze_menu()
                         });
                         // End Second level menu items
                     }
-                    else
-                    {
-
-
-                    };
                     menu_entries.push(newEntry);
 
 
@@ -293,7 +288,7 @@ function analyze_menu()
 
         post_process(menu_entries);
         var data=$("<div id='#menuData'></div>");
-        data.text("$menu_json=\""+JSON.stringify(menu_entries).replace(/\"/g,"\\\"")+"\";");
+        data.text("$menu_json=\""+JSON.stringify(menu_entries).replace(/"/g,"\\\"")+"\";");
         $("body").append(data);
     });
 }

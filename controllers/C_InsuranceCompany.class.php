@@ -1,34 +1,34 @@
 <?php
 
+use OpenEMR\Common\Twig\TwigContainer;
+use OpenEMR\Services\InsuranceCompanyService;
 
 class C_InsuranceCompany extends Controller
 {
+    public $icompanies;
+    public $InsuranceCompany;
 
-    var $template_mod;
-    var $icompanies;
-
-    function __construct($template_mod = "general")
+    public function __construct(public $template_mod = "general")
     {
         parent::__construct();
-        $this->icompanies = array();
-        $this->template_mod = $template_mod;
-        $this->assign("FORM_ACTION", $GLOBALS['webroot']."/controller.php?" . attr($_SERVER['QUERY_STRING']));
-        $this->assign("CURRENT_ACTION", $GLOBALS['webroot']."/controller.php?" . "practice_settings&insurance_company&");
+        $this->icompanies = [];
+        $this->template_dir = __DIR__ . "/templates/insurance_companies/";
+        $this->assign("FORM_ACTION", $GLOBALS['webroot'] . "/controller.php?" . attr($_SERVER['QUERY_STRING']));
+        $this->assign("CURRENT_ACTION", $GLOBALS['webroot'] . "/controller.php?" . "practice_settings&insurance_company&");
         $this->assign("STYLE", $GLOBALS['style']);
         $this->assign("SUPPORT_ENCOUNTER_CLAIMS", $GLOBALS['support_encounter_claims']);
+        $this->assign("SUPPORT_ELIGIBILITY_REQUESTS", $GLOBALS['enable_eligibility_requests']);
         $this->InsuranceCompany = new InsuranceCompany();
     }
 
-    function default_action()
+    public function default_action()
     {
         return $this->list_action();
     }
 
-    function edit_action($id = "", $patient_id = "", $p_obj = null)
+    public function edit_action($id = "", $patient_id = "")
     {
-        if ($p_obj != null && get_class($p_obj) == "insurancecompany") {
-            $this->icompanies[0] = $p_obj;
-        } elseif (get_class($this->icompanies[0]) != "insurancecompany") {
+        if (!(($this->icompanies[0] ?? null) instanceof InsuranceCompany)) {
             $this->icompanies[0] = new InsuranceCompany($id);
         }
 
@@ -39,39 +39,56 @@ class C_InsuranceCompany extends Controller
         return $this->fetch($GLOBALS['template_dir'] . "insurance_companies/" . $this->template_mod . "_edit.html");
     }
 
-    function list_action($sort = "")
+    public function list_action()
     {
+        $twig = new TwigContainer(null, $GLOBALS['kernel']);
 
-        if (!empty($sort)) {
-            $this->assign("icompanies", $this->InsuranceCompany->insurance_companies_factory("", $sort));
-        } else {
-            $this->assign("icompanies", $this->InsuranceCompany->insurance_companies_factory());
+        $insuranceCompanyService = new InsuranceCompanyService();
+        $results = $insuranceCompanyService->search([]);
+        $iCompanies = [];
+        if ($results->hasData()) {
+            foreach ($results->getData() as $record) {
+                $company = [
+                    'id' => $record['id'],
+                    'name' => $record['name'],
+                    'line1' => $record['line1'],
+                    'line2' => $record['line2'],
+                    'city' => $record['city'],
+                    'state' => $record['state'],
+                    'zip' => $record['zip'],
+                    'phone' => $record['work_number'],
+                    'fax' => $record['fax_number'],
+                    'cms_id' => $record['cms_id'],
+                    'x12_default_partner_name' => $record['x12_default_partner_name'],
+                    'inactive' => $record['inactive']
+                ];
+                $iCompanies[] = $company;
+            }
+            usort($iCompanies, fn($a, $b): int => strcasecmp($a['name'] ?? '', $b['name'] ?? ''));
         }
+        $templateVars = [
+            'CURRENT_ACTION' => $GLOBALS['webroot'] . "/controller.php?" . "practice_settings&insurance_company&"
+            ,'icompanies' => $iCompanies
+        ];
 
-        return $this->fetch($GLOBALS['template_dir'] . "insurance_companies/" . $this->template_mod . "_list.html");
+        return $twig->getTwig()->render('insurance_companies/general_list.html.twig', $templateVars);
     }
 
 
-    function edit_action_process()
+    public function edit_action_process()
     {
         if ($_POST['process'] != "true") {
             return;
         }
 
-        //print_r($_POST);
-        if (is_numeric($_POST['id'])) {
-            $this->icompanies[0] = new InsuranceCompany($_POST['id']);
-        } else {
-            $this->icompanies[0] = new InsuranceCompany();
-        }
+        $this->icompanies[0] = is_numeric($_POST['id']) ? new InsuranceCompany($_POST['id']) : new InsuranceCompany();
 
-        parent::populate_object($this->icompanies[0]);
+        self::populate_object($this->icompanies[0]);
 
         $this->icompanies[0]->persist();
         $this->icompanies[0]->populate();
 
-        //echo "action processeed";
         $_POST['process'] = "";
-        header('Location:'.$GLOBALS['webroot']."/controller.php?" . "practice_settings&insurance_company&action=list");//Z&H
+        header('Location:' . $GLOBALS['webroot'] . "/controller.php?" . "practice_settings&insurance_company&action=list");//Z&H
     }
 }

@@ -1,32 +1,43 @@
 /*-------------------openemr ACL-------------------*/
 
-#adminacl .loading {
+@if $compact-theme == false {
+  #adminacl .loading {
+    @include font-size("0.625rem");
+    color: $danger;
+    font-weight: bold;
     text-decoration: blink;
-    font-size: 10px;
-    color: red;
+  }
+
+  #adminacl .alert {
+    @include font-size("0.625rem");
+    color: $danger;
     font-weight: bold;
-}
-#adminacl .alert {
-    font-size: 10px;
-    color: red;
-    font-weight: bold;
-}
-.section {
+  }
+
+  .section {
     border: solid;
     border-width: 1px;
-    margin: 10px 0 10px 0;
+    margin: 10px 0;
     padding: 5px;
-}
-#acl select[multiple], #acl select[size] {
+  }
+
+  #acl select[multiple],
+  #acl select[size] {
     height: auto !important;
     width: 400px;
-}
-.section a, .section a:visited, .section a:hover {
+  }
+
+  .section a,
+  .section a:visited,
+  .section a:hover {
+    color: $body-color;
     text-decoration: none;
-    color: #000000 !important;
+  }
+
+  #membership_show,
+  #acl_show {
+    margin-#{$right}: 4px;
+  }
 }
 
-#membership_show, #acl_show {
-    margin-#{$right}:4px;
-}
 /*-------------------openemr ACL-------------------*/

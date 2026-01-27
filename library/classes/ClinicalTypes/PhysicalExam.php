@@ -1,4 +1,5 @@
 <?php
+
 // Copyright (C) 2011 Ken Chapple <ken@mi-squared.com>
 //
 // This program is free software; you can redistribute it and/or
@@ -14,29 +15,29 @@ class PhysicalExam extends ClinicalType
     const NOT_DONE_MEDICAL = 'phys_exm_not_done_medical';
     const NOT_DONE_SYSTEM = 'phys_exm_not_done_system';
     const FINDING_BMI_PERC = 'phys_exm_finding_bmi_perc';
-    
+
     public function getListId()
     {
         return 'Clinical_Rules_Phys_Exm_Type';
     }
-    
+
     public function getListType()
     {
         return "medical_problem"; // TODO this may not be the correct type for BMI icd9 codes
     }
-    
+
     public function doPatientCheck(RsPatient $patient, $beginDate = null, $endDate = null, $options = null)
     {
         $data = Codes::lookup($this->getOptionId());
         $type = $this->getListType();
         foreach ($data as $codeType => $codes) {
             foreach ($codes as $code) {
-                if (exist_lists_item($patient->id, $type, $codeType.'::'.$code, $endDate)) {
+                if (exist_lists_item($patient->id, $type, $codeType . '::' . $code, $endDate)) {
                     return true;
                 }
             }
         }
-        
+
         if ($this->getOptionId() == self::FINDING_BMI_PERC) {
             // check for any BMI percentile finding
             // there are a few BMI codes, but it doesn't matter,
@@ -47,13 +48,13 @@ class PhysicalExam extends ClinicalType
                 "AND form_vitals.pid = ? " .
                 "AND DATE( form_vitals.date ) >= ? " .
                 "AND DATE( form_vitals.date ) <= ? ";
-            $res = sqlStatement($query, array( $patient->id, $beginDate, $endDate ));
+            $res = sqlStatement($query, [ $patient->id, $beginDate, $endDate ]);
             $number = sqlNumRows($res);
             if ($number >= 1) {
                 return true;
             }
         }
-        
+
         return false;
     }
 }

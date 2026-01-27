@@ -1,33 +1,27 @@
 <?php
+
 /**
-* Patient matching and selection dialog.
-*
-* Copyright (C) 2012-2015 Rod Roark <rod@sunsetsystems.com>
-*
-* LICENSE: This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2
-* of the License, or (at your option) any later version.
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-* You should have received a copy of the GNU General Public License
-* along with this program. If not, see <http://opensource.org/licenses/gpl-license.php>;.
-*
-* @package OpenEMR
-* @author  Rod Roark <rod@sunsetsystems.com>
-*/
+ * Patient matching and selection dialog.
+ *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Rod Roark <rod@sunsetsystems.com>
+ * @author    Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2013-2015 Rod Roark <rod@sunsetsystems.com>
+ * @copyright Copyright (c) 2019 Brady Miller <brady.g.miller@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
 
 require_once("../globals.php");
-require_once("$srcdir/patient.inc");
+require_once("$srcdir/patient.inc.php");
 require_once("$srcdir/options.inc.php");
 
+use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
 
 $form_key = $_REQUEST['key'];
-$args = unserialize($form_key);
-$form_ss = preg_replace('/[^0-9]/', '', $args['ss']);
+$args = unserialize($form_key, ['allowed_classes' => false]);
+$form_ss = preg_replace('/[^0-9]/', '', (string) $args['ss']);
 $form_fname = $args['fname'];
 $form_lname = $args['lname'];
 $form_DOB = $args['DOB'];
@@ -40,9 +34,9 @@ $form_DOB = $args['DOB'];
     .oneResult {
     }
 </style>
-<script language="JavaScript">
+<script>
 
-    $(document).ready(function () {
+    $(function () {
         $(".oneresult").mouseover(function () {
             $(this).addClass("highlight");
         });
@@ -51,8 +45,6 @@ $form_DOB = $args['DOB'];
         });
     });
 
-    var mypcc = '<?php echo $GLOBALS['phone_country_code'] ?>';
-
     function myRestoreSession() {
         if (top.restoreSession) top.restoreSession(); else opener.top.restoreSession();
         return true;
@@ -60,13 +52,13 @@ $form_DOB = $args['DOB'];
 
     function openPatient(ptid) {
         var f = opener.document.forms[0];
-        var ename = '<?php echo addslashes("select[$form_key]"); ?>';
+        var ename = <?php echo js_escape("select[$form_key]"); ?>;
         if (f[ename]) {
             f[ename].value = ptid;
             window.close();
         }
         else {
-            alert('<?php echo xls('Form element not found'); ?>: ' + ename);
+            alert(<?php echo xlj('Form element not found'); ?> + ': ' + ename);
         }
     }
 
@@ -75,10 +67,10 @@ $form_DOB = $args['DOB'];
 
 <body class="body_top">
 <form method='post' action='patient_select.php' onsubmit='return myRestoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 <?php
 if ($form_key) {
-    $clarr = array();
+    $clarr = [];
     $clsql = "0";
 // First name.
     if ($form_fname !== '') {
@@ -99,14 +91,14 @@ if ($form_key) {
     }
 
 // SSN match is worth a lot and we allow for matching on last 4 digits.
-    if (strlen($form_ss) > 3) {
+    if (strlen((string) $form_ss) > 3) {
         $clsql .= " + ((ss IS NOT NULL AND ss LIKE ?) * 10)";
         $clarr[] = "%$form_ss";
     }
 
     $sql = "SELECT $clsql AS closeness, " .
         "pid, pubpid, fname, lname, mname, DOB, ss, postal_code, street, " .
-        "phone_biz, phone_home, phone_cell, phone_contact " .
+        "phone_biz, phone_home, phone_cell, phone_contact, sex " .
         "FROM patient_data " .
         "ORDER BY closeness DESC, lname, fname LIMIT 10";
     $res = sqlStatement($sql, $clarr);
@@ -114,19 +106,20 @@ if ($form_key) {
 
     <div id="searchResults">
 
-        <table class="table table-striped table-condensed">
+        <table class="table table-striped table-sm">
             <h5>
                 <?php
                 echo xlt('Matching for Patient') . ": " .
                     text("$form_lname, $form_fname") . text(" Dob = $form_DOB") .
-                    " SS = " . text(($form_ss ? $form_ss : "unk"))
+                    " SS = " . text(($form_ss ?: "unk"))
                 ?>
             </h5>
             <tr>
                 <th><?php echo xlt('Name'); ?></th>
+                <th><?php echo xlt('DOB'); ?></th>
+                <th><?php echo xlt('Sex'); ?></th>
                 <th><?php echo xlt('Phone'); ?></th>
                 <th><?php echo xlt('SS'); ?></th>
-                <th><?php echo xlt('DOB'); ?></th>
                 <th><?php echo xlt('Address'); ?></th>
             </tr>
 
@@ -150,13 +143,12 @@ if ($form_key) {
                 }
 
                 echo "  <tr class='oneresult'";
-                echo " onclick=\"openPatient(" .
-                    "'" . addslashes($row['pid']) . "'" .
-                    ")\">\n";
+                echo " onclick=\"openPatient(" . attr_js($row['pid']) . ")\">\n";
                 echo "   <td>" . text($row['lname'] . ", " . $row['fname']) . "</td>\n";
+                echo "   <td>" . text($row['DOB']) . "</td>\n";
+                echo "   <td>" . text(substr((string) $row['sex'], 0, 1)) . "</td>\n";
                 echo "   <td>" . text($phone) . "</td>\n";
                 echo "   <td>" . text($row['ss']) . "</td>\n";
-                echo "   <td>" . text($row['DOB']) . "</td>\n";
                 echo "   <td>" . text($row['street'] . ' ' . $row['postal_code']) . "</td>\n";
                 echo "  </tr>\n";
             }

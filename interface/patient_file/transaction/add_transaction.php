@@ -1,4 +1,5 @@
 <?php
+
 /**
  * add_transaction is a misnomer, as this script will now also edit
  * existing transactions.
@@ -11,15 +12,18 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../../globals.php");
-require_once("$srcdir/transactions.inc");
+require_once("$srcdir/transactions.inc.php");
 require_once("$srcdir/options.inc.php");
 require_once("$srcdir/amc.php");
-require_once("$srcdir/patient.inc");
+require_once("$srcdir/patient.inc.php");
 
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
 use OpenEMR\OeUI\OemrUI;
+
+$session = SessionWrapperFactory::getInstance()->getWrapper();
 
 // This can come from the URL if it's an Add.
 $title   = empty($_REQUEST['title']) ? 'LBTref' : $_REQUEST['title'];
@@ -37,16 +41,16 @@ $mode    = empty($_POST['mode' ]) ? '' : $_POST['mode' ];
 $body_onload_code = "";
 
 // Load array of properties for this layout and its groups.
-$grparr = array();
+$grparr = [];
 getLayoutProperties($form_id, $grparr);
 
 if ($mode) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"], 'default', $session->getSymfonySession())) {
+        CsrfUtils::csrfNotVerified();
     }
 
     $sets = "title = ?, user = ?, groupname = ?, authorized = ?, date = NOW()";
-    $sqlBindArray = array($form_id, $_SESSION['authUser'], $_SESSION['authProvider'], $userauthorized);
+    $sqlBindArray = [$form_id, $session->get('authUser'), $session->get('authProvider'), $userauthorized];
 
     if ($transid) {
         array_push($sqlBindArray, $transid);
@@ -59,7 +63,7 @@ if ($mode) {
 
     $fres = sqlStatement("SELECT * FROM layout_options " .
     "WHERE form_id = ? AND uor > 0 AND field_id != '' " .
-    "ORDER BY group_id, seq", array($form_id));
+    "ORDER BY group_id, seq", [$form_id]);
 
     while ($frow = sqlFetchArray($fres)) {
         $data_type = $frow['data_type'];
@@ -70,18 +74,18 @@ if ($mode) {
             if ($value === '') {
                 $query = "DELETE FROM lbt_data WHERE " .
                 "form_id = ? AND field_id = ?";
-                sqlStatement($query, array($transid, $field_id));
+                sqlStatement($query, [$transid, $field_id]);
             } else {
                 $query = "REPLACE INTO lbt_data SET field_value = ?, " .
                 "form_id = ?, field_id = ?";
-                sqlStatement($query, array($value, $transid, $field_id));
+                sqlStatement($query, [$value, $transid, $field_id]);
             }
         } else { // new form
             if ($value !== '') {
                 sqlStatement(
                     "INSERT INTO lbt_data " .
                     "( form_id, field_id, field_value ) VALUES ( ?, ?, ? )",
-                    array($newid, $field_id, $value)
+                    [$newid, $field_id, $value]
                 );
             }
         }
@@ -97,11 +101,20 @@ if ($mode) {
         processAmcCall('send_sum_amc', true, 'add', $pid, 'transactions', $transid);
         if (!(empty($_POST['send_sum_elec_flag']))) {
             processAmcCall('send_sum_elec_amc', true, 'add', $pid, 'transactions', $transid);
+        } else {
+            processAmcCall('send_sum_elec_amc', true, 'remove', $pid, 'transactions', $transid);
+        }
+
+        if (!(empty($_POST['send_sum_amc_confirmed']))) {
+            processAmcCall('send_sum_amc_confirmed', true, 'add', $pid, 'transactions', $transid);
+        } else {
+            processAmcCall('send_sum_amc_confirmed', true, 'remove', $pid, 'transactions', $transid);
         }
     } else {
         // remove the sent records flags
         processAmcCall('send_sum_amc', true, 'remove', $pid, 'transactions', $transid);
         processAmcCall('send_sum_elec_amc', true, 'remove', $pid, 'transactions', $transid);
+        processAmcCall('send_sum_amc_confirmed', true, 'remove', $pid, 'transactions', $transid);
     }
 
     $body_onload_code = "javascript:location.href='transactions.php';";
@@ -109,7 +122,7 @@ if ($mode) {
 
 $CPR = 4; // cells per row
 
-function end_cell()
+function end_cell(): void
 {
     global $item_count, $cell_count;
     if ($item_count > 0) {
@@ -118,13 +131,12 @@ function end_cell()
     }
 }
 
-function end_row()
+function end_row(): void
 {
     global $cell_count, $CPR;
     end_cell();
     if ($cell_count > 0) {
-        for (; $cell_count < $CPR;
-        ++$cell_count) {
+        for (; $cell_count < $CPR; ++$cell_count) {
             echo "<td></td>";
         }
 
@@ -133,10 +145,10 @@ function end_row()
     }
 }
 
-function end_group()
+function end_group(): void
 {
     global $last_group;
-    if (strlen($last_group) > 0) {
+    if (strlen((string) $last_group) > 0) {
         end_row();
         echo " </table>\n";
         echo "</div>\n";
@@ -144,19 +156,19 @@ function end_group()
 }
 
 // If we are editing a transaction, get its ID and data.
-$trow = $transid ? getTransById($transid) : array();
+$trow = $transid ? getTransById($transid) : [];
 ?>
 <html>
 <head>
 
 <title><?php echo xlt('Add/Edit Patient Transaction'); ?></title>
 
-<?php Header::setupHeader(['common','datetime-picker']); ?>
+<?php Header::setupHeader(['common','datetime-picker','select2']); ?>
 
 <?php include_once("{$GLOBALS['srcdir']}/options.js.php"); ?>
 
-<script type="text/javascript">
-$(document).ready(function() {
+<script>
+$(function () {
   if(window.tabbify){
     tabbify();
   }
@@ -167,23 +179,38 @@ $(document).ready(function() {
 
 var mypcc = <?php echo js_escape($GLOBALS['phone_country_code']); ?>;
 
-$(document).ready(function(){
+$(function () {
   $("#send_sum_flag").click(function() {
     if ( $('#send_sum_flag').prop('checked') ) {
       // Enable the send_sum_elec_flag checkbox
       $("#send_sum_elec_flag").removeAttr("disabled");
+      $("#send_sum_amc_confirmed").removeAttr("disabled");
     }
     else {
       //Disable the send_sum_elec_flag checkbox (also uncheck it if applicable)
       $("#send_sum_elec_flag").attr("disabled", true);
       $("#send_sum_elec_flag").prop("checked", false);
+      $("#send_sum_amc_confirmed").attr("disabled", true);
+      $("#send_sum_amc_confirmed").prop("checked", false);
     }
   });
+
+  $(".select-dropdown").select2({
+    theme: "bootstrap4",
+    <?php require($GLOBALS['srcdir'] . '/js/xl/select2.js.php'); ?>
+  });
+  if (typeof error !== 'undefined') {
+    if (error) {
+        alertMsg(error);
+    }
+  }
 
   $('.datepicker').datetimepicker({
     <?php $datetimepicker_timepicker = false; ?>
     <?php $datetimepicker_showseconds = false; ?>
     <?php $datetimepicker_formatInput = true; ?>
+    <?php $datetimepicker_minDate = false; ?>
+    <?php $datetimepicker_maxDate = false; ?>
     <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
     <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
   });
@@ -191,6 +218,44 @@ $(document).ready(function(){
     <?php $datetimepicker_timepicker = true; ?>
     <?php $datetimepicker_showseconds = false; ?>
     <?php $datetimepicker_formatInput = true; ?>
+    <?php $datetimepicker_minDate = false; ?>
+    <?php $datetimepicker_maxDate = false; ?>
+    <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+    <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
+  });
+  $('.datepicker-past').datetimepicker({
+    <?php $datetimepicker_timepicker = false; ?>
+    <?php $datetimepicker_showseconds = false; ?>
+    <?php $datetimepicker_formatInput = true; ?>
+    <?php $datetimepicker_minDate = false; ?>
+    <?php $datetimepicker_maxDate = '+1970/01/01'; ?>
+    <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+    <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
+  });
+  $('.datetimepicker-past').datetimepicker({
+    <?php $datetimepicker_timepicker = true; ?>
+    <?php $datetimepicker_showseconds = false; ?>
+    <?php $datetimepicker_formatInput = true; ?>
+    <?php $datetimepicker_minDate = false; ?>
+    <?php $datetimepicker_maxDate = '+1970/01/01'; ?>
+    <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+    <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
+  });
+  $('.datepicker-future').datetimepicker({
+    <?php $datetimepicker_timepicker = false; ?>
+    <?php $datetimepicker_showseconds = false; ?>
+    <?php $datetimepicker_formatInput = true; ?>
+    <?php $datetimepicker_minDate = '-1970/01/01'; ?>
+    <?php $datetimepicker_maxDate = false; ?>
+    <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+    <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
+  });
+  $('.datetimepicker-future').datetimepicker({
+    <?php $datetimepicker_timepicker = true; ?>
+    <?php $datetimepicker_showseconds = false; ?>
+    <?php $datetimepicker_formatInput = true; ?>
+    <?php $datetimepicker_minDate = '-1970/01/01'; ?>
+    <?php $datetimepicker_maxDate = false; ?>
     <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
     <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
   });
@@ -240,12 +305,18 @@ function sel_related(e) {
     } ?>', '_blank', 500, 400);
 }
 
+// AI-generated code start (GitHub Copilot) - Refactored to use URLSearchParams
 // Process click on $view link.
 function deleteme() {
 // onclick='return deleteme()'
- dlgopen('../deleter.php?transaction=' + <?php echo js_url($transid); ?> + '&csrf_token_form=' + <?php echo js_url(collectCsrfToken()); ?>, '_blank', 500, 450);
+ const params = new URLSearchParams({
+  transaction: <?php echo js_escape($transid); ?>,
+  csrf_token_form: <?php echo js_escape(CsrfUtils::collectCsrfToken('default', $session->getSymfonySession())); ?>
+ });
+ dlgopen('../deleter.php?' + params.toString(), '_blank', 500, 450);
  return false;
 }
+// AI-generated code end
 
 // Called by the deleteme.php window on a successful delete.
 function imdeleted() {
@@ -293,12 +364,12 @@ function submitme() {
 }
 
 <?php if (function_exists($form_id . '_javascript')) {
-    call_user_func($form_id . '_javascript');
+    ($form_id . '_javascript')();
 } ?>
 
 </script>
 
-<style type="text/css">
+<style>
 .form-control {
     width: auto;
     display: inline;
@@ -310,50 +381,46 @@ div.tab {
 }
 </style>
 <?php
-$arrOeUiSettings = array(
+$arrOeUiSettings = [
     'heading_title' => xl('Add/Edit Patient Transaction'),
     'include_patient_name' => true,
     'expandable' => false,
-    'expandable_files' => array(),//all file names need suffix _xpd
+    'expandable_files' => [],//all file names need suffix _xpd
     'action' => "back",//conceal, reveal, search, reset, link or back
     'action_title' => "",
     'action_href' => "transactions.php",//only for actions - reset, link and back
     'show_help_icon' => true,
     'help_file_name' => "add_edit_transactions_dashboard_help.php"
-);
+];
 $oemr_ui = new OemrUI($arrOeUiSettings);
 ?>
 
 </head>
-<body class="body_top" onload="<?php echo $body_onload_code; ?>" >
-    <div id="container_div" class="<?php echo $oemr_ui->oeContainer();?>">
+<body onload="<?php echo $body_onload_code; ?>" >
+    <div id="container_div" class="<?php echo $oemr_ui->oeContainer();?> mt-3">
         <form name='new_transaction' method='post' action='add_transaction.php?transid=<?php echo attr_url($transid); ?>' onsubmit='return validate(this)'>
-        <input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
-        <input type='hidden' name='mode' value='add'>
+            <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken('default', $session->getSymfonySession())); ?>" />
+            <input type='hidden' name='mode' value='add' />
             <div class="row">
                 <div class="col-sm-12">
                     <?php require_once("$include_root/patient_file/summary/dashboard_header.php"); ?>
                 </div>
-            </div>
-            <div class="row">
+                <br />
+                <br />
                 <div class="col-sm-12">
                     <div class="btn-group">
-                        <a href="#" class="btn btn-default btn-save" onclick="submitme();">
+                        <a href="#" class="btn btn-primary btn-save" onclick="submitme();">
                             <?php echo xlt('Save'); ?>
                         </a>
-                        <a href="transactions.php" class="btn btn-link btn-cancel" onclick="top.restoreSession()">
+                        <a href="transactions.php" class="btn btn-secondary btn-cancel" onclick="top.restoreSession()">
                             <?php echo xlt('Cancel'); ?>
                         </a>
                     </div>
                 </div>
-            </div>
-            <br>
-            <br>
-            <div class="row">
-                <div class="col-sm-12">
+                <div class="col-sm-12 mt-3">
                     <fieldset>
                         <legend><?php echo xlt('Select Transaction Type'); ?></legend>
-                        <div class="forms col-sm-8">
+                        <div class="forms col-sm-7">
                             <label class="control-label" for="title"><?php echo xlt('Transaction Type'); ?>:</label>
                             <?php
                             $ttres = sqlStatement("SELECT grp_form_id, grp_title " .
@@ -371,7 +438,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                             echo "</select>\n";
                             ?>
                         </div>
-                        <div class="forms col-sm-4">
+                        <div class="forms col-sm-5">
                             <?php
                             if ($GLOBALS['enable_amc_prompting'] && 'LBTref' == $form_id) { ?>
                                 <div class='oe-pull-away' style='margin-right:25px;border-style:solid;border-width:1px;'>
@@ -380,6 +447,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                                         <?php // Display the send records checkboxes (AMC prompting)
                                             $itemAMC = amcCollect("send_sum_amc", $pid, 'transactions', $transid);
                                             $itemAMC_elec = amcCollect("send_sum_elec_amc", $pid, 'transactions', $transid);
+                                            $itemAMC_confirmed = amcCollect("send_sum_amc_confirmed", $pid, 'transactions', $transid);
                                         ?>
 
                                         <?php if (!(empty($itemAMC))) { ?>
@@ -388,7 +456,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                                             <input type="checkbox" id="send_sum_flag" name="send_sum_flag">
                                         <?php } ?>
 
-                                        <span class="text"><?php echo xlt('Sent Summary of Care?') ?></span><br>
+                                        <span class="text"><?php echo xlt('Sent Summary of Care?') ?></span><br />
 
                                         <?php if (!(empty($itemAMC)) && !(empty($itemAMC_elec))) { ?>
                                             &nbsp;&nbsp;<input type="checkbox" id="send_sum_elec_flag" name="send_sum_elec_flag" checked>
@@ -397,33 +465,39 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                                         <?php } else { ?>
                                             &nbsp;&nbsp;<input type="checkbox" id="send_sum_elec_flag" name="send_sum_elec_flag" disabled>
                                         <?php } ?>
+                                        <span class="text"><?php echo xlt('Sent Summary of Care Electronically?') ?><br />
 
-                                        <span class="text"><?php echo xlt('Sent Summary of Care Electronically?') ?></span><br>
-
+                                        <?php if (!(empty($itemAMC)) && !(empty($itemAMC_confirmed))) { ?>
+                                            &nbsp;&nbsp;<input type="checkbox" id="send_sum_amc_confirmed" name="send_sum_amc_confirmed" checked>
+                                        <?php } elseif (!(empty($itemAMC))) { ?>
+                                            &nbsp;&nbsp;<input type="checkbox" id="send_sum_amc_confirmed" name="send_sum_amc_confirmed">
+                                        <?php } else { ?>
+                                            &nbsp;&nbsp;<input type="checkbox" id="send_sum_amc_confirmed" name="send_sum_amc_confirmed" disabled>
+                                        <?php } ?>
+                                        <span class="text"><?php echo xlt('Confirmed Recipient Received Summary of Care?') ?>
                                     </div>
                                 </div>
-                            <?php
+                                <?php
                             } ?>
                         </div>
                     </fieldset>
                 </div>
             </div>
+
             <div id='referdiv'>
-
-
                 <div id="DEM">
                     <ul class="tabNav">
                         <?php
                         $fres = sqlStatement("SELECT * FROM layout_options " .
                           "WHERE form_id = ? AND uor > 0 " .
-                          "ORDER BY group_id, seq", array($form_id));
+                          "ORDER BY group_id, seq", [$form_id]);
                         $last_group = '';
 
                         while ($frow = sqlFetchArray($fres)) {
                             $this_group = $frow['group_id'];
                             // Handle a data category (group) change.
-                            if (strcmp($this_group, $last_group) != 0) {
-                                $group_seq  = substr($this_group, 0, 1);
+                            if (strcmp((string) $this_group, (string) $last_group) != 0) {
+                                $group_seq  = substr((string) $this_group, 0, 1);
                                 $group_name = $grparr[$this_group]['grp_title'];
                                 $last_group = $this_group;
                                 if ($group_seq == 1) {
@@ -441,7 +515,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                         <?php
                         $fres = sqlStatement("SELECT * FROM layout_options " .
                           "WHERE form_id = ? AND uor > 0 " .
-                          "ORDER BY group_id, seq", array($form_id));
+                          "ORDER BY group_id, seq", [$form_id]);
 
                         $last_group = '';
                         $cell_count = 0;
@@ -458,7 +532,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                             $list_id    = $frow['list_id'];
 
                             // Accumulate action conditions into a JSON expression for the browser side.
-                            accumActionConditions($field_id, $condition_str, $frow['conditions']);
+                            accumActionConditions($frow, $condition_str);
 
                             $currvalue  = '';
                             if (isset($trow[$field_id])) {
@@ -471,7 +545,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                                     $currvalue = date('Y-m-d');
                                 } elseif ($field_id == 'body' && $transid > 0) {
                                      $tmp = sqlQuery("SELECT reason FROM form_encounter WHERE " .
-                                      "pid = ? ORDER BY date DESC LIMIT 1", array($pid));
+                                      "pid = ? ORDER BY date DESC LIMIT 1", [$pid]);
                                     if (!empty($tmp)) {
                                         $currvalue = $tmp['reason'];
                                     }
@@ -479,9 +553,9 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                             }
 
                             // Handle a data category (group) change.
-                            if (strcmp($this_group, $last_group) != 0) {
+                            if (strcmp((string) $this_group, (string) $last_group) != 0) {
                                 end_group();
-                                $group_seq  = substr($this_group, 0, 1);
+                                $group_seq  = substr((string) $this_group, 0, 1);
                                 $group_name = $grparr[$this_group]['grp_title'];
                                 $last_group = $this_group;
                                 if ($group_seq == 1) {
@@ -557,15 +631,14 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                 </div><!-- end of DEM div -->
             </div><!-- end of referdiv -->
         </form>
-        <p />
 
         <!-- include support for the list-add selectbox feature -->
-        <?php include $GLOBALS['fileroot']."/library/options_listadd.inc"; ?>
+        <?php require $GLOBALS['fileroot'] . "/library/options_listadd.inc.php"; ?>
     </div> <!--end of container div-->
     <?php $oemr_ui->oeBelowContainerDiv();?>
 </body>
 
-<script language="JavaScript">
+<script>
 
 // Array of action conditions for the checkSkipConditions() function.
 var skipArray = [
@@ -576,7 +649,7 @@ var skipArray = [
 // titleChanged();
 <?php
 if (function_exists($form_id . '_javascript_onload')) {
-    call_user_func($form_id . '_javascript_onload');
+    ($form_id . '_javascript_onload')();
 }
 ?>
 

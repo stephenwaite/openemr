@@ -1,42 +1,34 @@
 <?php
-namespace ESign;
 
 /**
-* Implementation of VerificationIF for hashing a signable object
-*
-* Copyright (C) 2013 OEMR 501c3 www.oemr.org
-*
-* LICENSE: This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 3
-* of the License, or (at your option) any later version.
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-* You should have received a copy of the GNU General Public License
-* along with this program. If not, see <http://opensource.org/licenses/gpl-license.php>;.
-*
-* @package OpenEMR
-* @author  Ken Chapple <ken@mi-squared.com>
-* @author  Medical Information Integration, LLC
-* @link    http://www.open-emr.org
-**/
+ * Implementation of VerificationIF for hashing a signable object
+ *
+ * @package   OpenEMR
+ * @link      http://www.open-emr.org
+ * @link      https://www.open-emr.org/wiki/index.php/OEMR_wiki_page OEMR
+ * @author    Ken Chapple <ken@mi-squared.com>
+ * @author    Medical Information Integration, LLC
+ * @copyright Copyright (c) 2013 OEMR
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
 
-require_once $GLOBALS['srcdir'].'/ESign/VerificationIF.php';
+namespace ESign;
+
+require_once $GLOBALS['srcdir'] . '/ESign/VerificationIF.php';
 
 class Utils_Verification implements VerificationIF
 {
-    public function hash($data)
+    public function hash($data, $algo = 'sha3-512')
     {
         $string = "";
-        if (is_array($data)) {
-            $string = $this->stringifyArray($data);
-        } else {
-            $string = $data;
-        }
+        $string = is_array($data) ? $this->stringifyArray($data) : $data;
 
-        $hash = sha1($string);
+        if ($algo == 'sha1') {
+            // support backward compatibility of prior hashes in sha1
+            $hash = sha1((string) $string);
+        } else {
+            $hash = hash('sha3-512', (string) $string);
+        }
         return $hash;
     }
 
@@ -53,14 +45,19 @@ class Utils_Verification implements VerificationIF
 
         return $string;
     }
-    
+
     public function verify($data, $hash)
     {
-        $currentHash = $this->hash($data);
-        if ($currentHash == $hash) {
+        if (strlen((string) $hash) < 50) {
+            // support backward compatibility of prior hashes in sha1
+            $currentHash = $this->hash($data, 'sha1');
+        } else {
+            $currentHash = $this->hash($data);
+        }
+        if (hash_equals($currentHash, $hash)) {
             return true;
         }
-        
+
         return false;
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Report to view the Direct Message log.
  *
@@ -9,14 +10,21 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
+if (!AclMain::aclCheckCore('admin', 'super')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Direct Message Log")]);
+    exit;
+}
+
 if (!empty($_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 }
 ?>
@@ -25,19 +33,15 @@ if (!empty($_POST)) {
 
 <head>
 <?php
-$logstart = (isset($_POST['logstart'])) ? $_POST['logstart'] : 0;
-if (isset($_POST['lognext']) && $_POST['lognext']) {
-    $logtop = $logstart + $_POST['lognext'];
-} else {
-    $logtop = 0;
-}
+$logstart = $_POST['logstart'] ?? 0;
+$logtop = isset($_POST['lognext']) && $_POST['lognext'] ? $logstart + $_POST['lognext'] : 0;
 ?>
 
 <?php Header::setupHeader(); ?>
 
 <title><?php echo xlt('Direct Message Log'); ?></title>
 
-<style type="text/css">
+<style>
 
 /* specifically include & exclude from printing */
 @media print {
@@ -50,7 +54,7 @@ if (isset($_POST['lognext']) && $_POST['lognext']) {
         display: inline;
     }
     #report_results table {
-       margin-top: 0px;
+       margin-top: 0;
     }
 }
 
@@ -70,21 +74,21 @@ if (isset($_POST['lognext']) && $_POST['lognext']) {
 <span class='title'><?php echo xlt('Direct Message Log'); ?></span>
 
 <form method='post' name='theform' id='theform' action='direct_message_log.php' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 <input type='hidden' name='lognext' id='lognext' value=''>
 
 <div id="report_parameters">
     <table>
         <tr>
             <td width='470px'>
-                <div class="btn-group pull-left" role="group">
-                    <a id='refresh_button' href='#' class='btn btn-default btn-refresh' onclick='top.restoreSession(); $("#theform").submit()'>
+                <div class="btn-group float-left" role="group">
+                    <a id='refresh_button' href='#' class='btn btn-secondary btn-refresh' onclick='top.restoreSession(); $("#theform").submit()'>
                         <?php echo xlt('Refresh'); ?>
                     </a>
-                    <a id='prev_button' href='#' class='btn btn-default btn-transmit' onclick='top.restoreSession(); $("#lognext").val(-100); $("#theform").submit()'>
+                    <a id='prev_button' href='#' class='btn btn-secondary btn-transmit' onclick='top.restoreSession(); $("#lognext").val(-100); $("#theform").submit()'>
                         <?php echo xlt('Older'); ?>
                     </a>
-                    <a id='next_button' href='#' class='btn btn-default btn-transmit' onclick='top.restoreSession(); $("#lognext").val(100); $("#theform").submit()'>
+                    <a id='next_button' href='#' class='btn btn-secondary btn-transmit' onclick='top.restoreSession(); $("#lognext").val(100); $("#theform").submit()'>
                         <?php echo xlt('Newer'); ?>
                     </a>
                 </div>
@@ -93,14 +97,14 @@ if (isset($_POST['lognext']) && $_POST['lognext']) {
     </table>
 </div>  <!-- end of search parameters -->
 
-<br>
+<br />
 
 
 
 <div id="report_results">
-<table>
+<table class='table'>
 
- <thead>
+ <thead class='thead-light'>
 
   <th align='center'>
     <?php echo xlt('ID'); ?>
@@ -139,7 +143,7 @@ if (!$logtop) {
 } else {
     $res = sqlStatement(
         "SELECT * FROM `direct_message_log` WHERE `id` BETWEEN ? AND ? ORDER BY `id` DESC",
-        array($logtop-99,$logtop)
+        [$logtop - 99,$logtop]
     );
 }
 
@@ -148,13 +152,13 @@ while ($row = sqlFetchArray($res)) {
     if (!$logstart) {
         $logstart = $row['id'];
     }
-?>
+    ?>
 <tr>
     <td align='center'><?php echo text($row['id']); ?></td>
 
     <?php if ($row['msg_type'] == "R") { ?>
           <td align='center'><?php echo xlt("Received") ?></td>
-    <?php } else if ($row['msg_type'] == "S") { ?>
+    <?php } elseif ($row['msg_type'] == "S") { ?>
           <td align='center'><?php echo xlt("Sent") ?></td>
     <?php } else {?>
           <td align='center'>&nbsp;</td>
@@ -166,13 +170,13 @@ while ($row = sqlFetchArray($res)) {
 
     <?php if ($row['status'] == "Q") { ?>
           <td align='center'><?php echo xlt("Queued") ?></td>
-    <?php } else if ($row['status'] == "S") { ?>
+    <?php } elseif ($row['status'] == "S") { ?>
           <td align='center'><?php echo xlt("Sent") ?></td>
-    <?php } else if ($row['status'] == "D") { ?>
+    <?php } elseif ($row['status'] == "D") { ?>
           <td align='center'><?php echo xlt("Sent - Confirmed") ?></td>
-    <?php } else if ($row['status'] == "R") { ?>
+    <?php } elseif ($row['status'] == "R") { ?>
           <td align='center'><?php echo xlt("Received") ?></td>
-    <?php } else if ($row['status'] == "F") { ?>
+    <?php } elseif ($row['status'] == "F") { ?>
           <td align='center'><?php echo xlt("Failed") ?></td>
     <?php } else {?>
           <td align='center'>&nbsp;</td>
@@ -181,7 +185,7 @@ while ($row = sqlFetchArray($res)) {
     <td align='center'><?php echo text($row['status_ts']); ?></td>
 
 </tr>
-<?php
+    <?php
 } // $row = sqlFetchArray($res) while
 ?>
 </tbody>
@@ -193,4 +197,3 @@ while ($row = sqlFetchArray($res)) {
 
 </body>
 </html>
-

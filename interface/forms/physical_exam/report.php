@@ -1,4 +1,5 @@
 <?php
+
 /**
  * physical_exam report.php
  *
@@ -11,17 +12,16 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
-require_once(dirname(__FILE__).'/../../globals.php');
-require_once($GLOBALS["srcdir"] . "/api.inc");
+require_once(__DIR__ . '/../../globals.php');
+require_once($GLOBALS["srcdir"] . "/api.inc.php");
 require_once("lines.php");
 
-function physical_exam_report($pid, $encounter, $cols, $id)
+function physical_exam_report($pid, $encounter, $cols, $id): void
 {
     global $pelines;
 
-    $rows = array();
-    $res = sqlStatement("SELECT * FROM form_physical_exam WHERE forms_id = ?", array($id));
+    $rows = [];
+    $res = sqlStatement("SELECT * FROM form_physical_exam WHERE forms_id = ?", [$id]);
     while ($row = sqlFetchArray($res)) {
         $rows[$row['line_id']] = $row;
     }
@@ -32,8 +32,10 @@ function physical_exam_report($pid, $encounter, $cols, $id)
         $sysnamedisp = xl($sysname);
         foreach ($sysarray as $line_id => $description) {
             $linedbrow = $rows[$line_id];
-            if (!($linedbrow['wnl'] || $linedbrow['abn'] || $linedbrow['diagnosis'] ||
-             $linedbrow['comments'])) {
+            if (
+                !($linedbrow['wnl'] || $linedbrow['abn'] || $linedbrow['diagnosis'] ||
+                $linedbrow['comments'])
+            ) {
                 continue;
             }
 

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Work/School Note Form view.php
  *
@@ -13,44 +14,45 @@
 
 
 
-require_once("../../globals.php");
-require_once("$srcdir/api.inc");
+require_once(__DIR__ . "/../../globals.php");
+require_once("$srcdir/api.inc.php");
+
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Core\Header;
 
 formHeader("Form: note");
 $returnurl = 'encounter_top.php';
-$provider_results = sqlQuery("select fname, lname from users where username=?", array($_SESSION{"authUser"}));
+$provider_results = sqlQuery("select fname, lname from users where username=?", [$_SESSION["authUser"]]);
 
 /* name of this form */
 $form_name = "note";
 
 // get the record from the database
 if ($_GET['id'] != "") {
-    $obj = formFetch("form_".$form_name, $_GET["id"]);
+    $obj = formFetch("form_" . $form_name, $_GET["id"]);
 }
 
-/* remove the time-of-day from the date fields */
-if ($obj['date_of_signature'] != "") {
-    $dateparts = explode(" ", $obj['date_of_signature']);
-    $obj['date_of_signature'] = $dateparts[0];
-}
 ?>
 <html><head>
-<?php html_header_show();?>
 
-<link rel="stylesheet" href="<?php echo $css_header;?>" type="text/css">
-<link rel="stylesheet" href="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-datetimepicker/build/jquery.datetimepicker.min.css">
+<?php Header::setupHeader('datetime-picker'); ?>
 
-<!-- supporting javascript code -->
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery/dist/jquery.min.js"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['webroot'] ?>/library/textformat.js?v=<?php echo $v_js_includes; ?>"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-datetimepicker/build/jquery.datetimepicker.full.min.js"></script>
-
-<script language="JavaScript">
+<script>
 // required for textbox date verification
 var mypcc = <?php echo js_escape($GLOBALS['phone_country_code']); ?>;
 
+$(function () {
+            $('.datepicker').datetimepicker({
+                <?php $datetimepicker_timepicker = false; ?>
+                <?php $datetimepicker_showseconds = false; ?>
+                <?php $datetimepicker_formatInput = true; ?>
+                <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
+                <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
+            });
+        });
+
 function PrintForm() {
-    newwin = window.open(<?php echo js_escape($rootdir."/forms/".$form_name."/print.php?id=".urlencode($_GET["id"])); ?>,"mywin");
+    newwin = window.open(<?php echo js_escape($rootdir . "/forms/" . $form_name . "/print.php?id=" . urlencode((string) $_GET["id"])); ?>,"mywin");
 }
 
 </script>
@@ -58,10 +60,10 @@ function PrintForm() {
 </head>
 <body class="body_top">
 
-<form method=post action="<?php echo $rootdir."/forms/".$form_name."/save.php?mode=update&id=".attr_url($_GET["id"]);?>" name="my_form" id="my_form">
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<form method=post action="<?php echo $rootdir . "/forms/" . $form_name . "/save.php?mode=update&id=" . attr_url($_GET["id"]);?>" name="my_form" id="my_form">
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
-<span class="title"><?php echo xlt('Work/School Note'); ?></span><br></br>
+<span class="title"><?php echo xlt('Work/School Note'); ?></span><br /><br />
 
 <div style="margin: 10px;">
 <input type="button" class="save" value="    <?php echo xla('Save'); ?>    "> &nbsp;
@@ -70,27 +72,27 @@ function PrintForm() {
 </div>
 
 <select name="note_type">
-<option value="WORK NOTE" <?php if ($obj['note_type']=="WORK NOTE") {
+<option value="WORK NOTE" <?php if ($obj['note_type'] == "WORK NOTE") {
     echo " SELECTED";
-} ?>><?php echo xlt('WORK NOTE'); ?></option>
-<option value="SCHOOL NOTE" <?php if ($obj['note_type']=="SCHOOL NOTE") {
+                          } ?>><?php echo xlt('WORK NOTE'); ?></option>
+<option value="SCHOOL NOTE" <?php if ($obj['note_type'] == "SCHOOL NOTE") {
     echo " SELECTED";
-} ?>><?php echo xlt('SCHOOL NOTE'); ?></option>
+                            } ?>><?php echo xlt('SCHOOL NOTE'); ?></option>
 </select>
-<br>
+<br />
 <b><?php echo xlt('MESSAGE:'); ?></b>
-<br>
+<br />
 <textarea name="message" id="message" cols ="67" rows="4"><?php echo text($obj["message"]);?></textarea>
-<br> <br>
+<br /> <br />
 
 <table>
 <tr><td>
-<span class=text><?php echo xlt('Doctor:'); ?> </span><input type=entry name="doctor" value="<?php echo attr($obj["doctor"]);?>">
+<span class=text><?php echo xlt('Doctor:'); ?> </span><input type="text" name="doctor" value="<?php echo attr($obj["doctor"]);?>">
 </td><td>
 <span class="text"><?php echo xlt('Date'); ?></span>
    <input type='text' size='10' class='datepicker' name='date_of_signature' id='date_of_signature'
-    value='<?php echo attr($obj['date_of_signature']); ?>'
-    title='<?php echo xla('yyyy-mm-dd'); ?>' />
+    value='<?php echo attr(oeFormatShortDate($obj['date_of_signature'])); ?>'
+    title='<?php echo xla('Date of Signature'); ?>' />
 </td></tr>
 </table>
 
@@ -104,11 +106,11 @@ function PrintForm() {
 
 </body>
 
-<script language="javascript">
+<script>
 
 // jQuery stuff to make the page a little easier to use
 
-$(document).ready(function(){
+$(function () {
     $(".save").click(function() { top.restoreSession(); $("#my_form").submit(); });
     $(".dontsave").click(function() { parent.closeTab(window.name, false); });
     $(".printform").click(function() { PrintForm(); });
@@ -119,14 +121,6 @@ $(document).ready(function(){
     $("input").keydown(function() { $(".printform").attr("disabled","disabled"); });
     $("select").change(function() { $(".printform").attr("disabled","disabled"); });
     $("textarea").keydown(function() { $(".printform").attr("disabled","disabled"); });
-
-    $('.datepicker').datetimepicker({
-        <?php $datetimepicker_timepicker = false; ?>
-        <?php $datetimepicker_showseconds = false; ?>
-        <?php $datetimepicker_formatInput = false; ?>
-        <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
-        <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
-    });
 });
 
 </script>

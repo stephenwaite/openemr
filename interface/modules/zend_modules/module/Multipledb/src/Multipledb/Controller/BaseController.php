@@ -19,36 +19,37 @@
  */
 namespace Multipledb\Controller;
 
-use Zend\InputFilter\InputFilter;
-use Zend\Mvc\Controller\AbstractActionController;
+use Laminas\InputFilter\InputFilter;
+use Laminas\Mvc\Controller\AbstractActionController;
 use Application\Listener\Listener;
-use Zend\Mvc\Controller\ActionController;
-use Zend\View\Model\ViewModel;
+use Laminas\Mvc\Controller\ActionController;
+use Laminas\View\Model\ViewModel;
 
 class BaseController extends AbstractActionController
 {
+    protected Listener $translate;
 
     /**
      * path to file after base pass from ModuleconfigController
      * @var array
      */
-    protected $jsFiles = array(
+    protected $jsFiles = [
         //jquery
-        '/jquery-1-9-1/jquery.min.js',
+        '/jquery/dist/jquery.min.js',
         //bootstrap
-        '/bootstrap/dist/js/bootstrap.min.js',
+        '/bootstrap/dist/js/bootstrap.bundle.min.js',
         '/jquery-validation/dist/jquery.validate.min.js',
 
-    );
+    ];
 
     /**
      * path to file after base pass from ModuleconfigController
      * @var array
      */
-    protected $cssFiles = array(
+    protected $cssFiles = [
         //bootstrap
         '/bootstrap/dist/css/bootstrap.min.css',
-    );
+    ];
 
     public function __construct()
     {
@@ -103,8 +104,8 @@ class BaseController extends AbstractActionController
      */
     protected function getPostParamsArray()
     {
-        $putParams = array();
-        parse_str($this->getRequest()->getContent(), $putParams);
+        $putParams = [];
+        parse_str((string) $this->getRequest()->getContent(), $putParams);
         return $putParams;
     }
     /**
@@ -121,7 +122,7 @@ class BaseController extends AbstractActionController
      * @param $data
      * @param bool $convertToJson
      * @param int $responsecode
-     * @return \Zend\Stdlib\ResponseInterface
+     * @return \Laminas\Stdlib\ResponseInterface
      * @comment to use this function return this $response in your controller
      */
     public function responseWithNoLayout($data, $convertToJson = true, $responsecode = 200)

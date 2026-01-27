@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This script add and delete Issues and Encounters relationships.
  *
@@ -13,38 +14,45 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
-require_once("$srcdir/patient.inc");
-require_once("$srcdir/acl.inc");
-require_once("$srcdir/lists.inc");
+require_once("$srcdir/patient.inc.php");
+require_once("$srcdir/lists.inc.php");
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
+use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
+use OpenEMR\Services\PatientIssuesService;
 
+$session = SessionWrapperFactory::getInstance()->getWrapper();
+
+/**
+ * @global $pid  pid should always be defined but to deal with phpstan issues we'll put this statement here
+ */
+$pid ??= null;
 $patdata = getPatientData($pid, "fname,lname,squad");
 
-$thisauth = ((acl_check('encounters', 'notes', '', 'write') ||
-            acl_check('encounters', 'notes_a', '', 'write')) &&
-            acl_check('patients', 'med', '', 'write'));
+$thisauth = ((AclMain::aclCheckCore('encounters', 'notes', '', 'write') ||
+            AclMain::aclCheckCore('encounters', 'notes_a', '', 'write')) &&
+            AclMain::aclCheckCore('patients', 'med', '', 'write'));
 
-if ($patdata['squad'] && ! acl_check('squads', $patdata['squad'])) {
+if ($patdata['squad'] && ! AclMain::aclCheckCore('squads', $patdata['squad'])) {
      $thisauth = 0;
 }
 
 if (!$thisauth) {
-    echo "<html>\n<body>\n";
-    echo "<p>" .xlt('You are not authorized for this.'). "</p>\n";
-    echo "</body>\n</html>\n";
-    exit();
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Issues and Encounters")]);
+    exit;
 }
 
 $alertmsg = ""; // anything here pops up in an alert box
 $endjs = "";    // holds javascript to write at the end
 
 // If the Save button was clicked...
-if ($_POST['form_save']) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+if (!empty($_POST['form_save'])) {
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"], 'default', $session->getSymfonySession())) {
+        CsrfUtils::csrfNotVerified();
     }
 
     $form_pid = $_POST['form_pid'];
@@ -52,25 +60,24 @@ if ($_POST['form_save']) {
     // $pattern = '|/(\d+),(\d+),([YN])|';
     $pattern = '|/(\d+),(\d+)|';
 
-    preg_match_all($pattern, $form_pelist, $matches);
+    preg_match_all($pattern, (string) $form_pelist, $matches);
     $numsets = count($matches[1]);
-
-    $query = "DELETE FROM issue_encounter WHERE pid = ?";
-    sqlQuery($query, array($form_pid));
+    $patientIssuesService = new PatientIssuesService();
+    $encountersByListId = [];
     for ($i = 0; $i < $numsets; ++$i) {
         $list_id   = $matches[1][$i];
         $encounter = $matches[2][$i];
-        $query = "INSERT INTO issue_encounter ( " .
-            "pid, list_id, encounter" .
-            ") VALUES ( " .
-            " ?, ?, ?" .
-            ")";
-        sqlQuery($query, array($form_pid, $list_id, $encounter));
+        if (!isset($encountersByListId[$list_id])) {
+            $encountersByListId[$list_id] = [];
+        }
+        $encountersByListId[$list_id][] = $encounter;
     }
+    $patientIssuesService->replacePatientEncounterIssues($pid, $encountersByListId, $session->get('authUserID'));
+
 
     echo "<html><body>"
-    ."<script type=\"text/javascript\" src=\"". $webroot ."/interface/main/tabs/js/include_opener.js\"></script>"
-    . "<script language='JavaScript'>\n";
+    . "<script type=\"text/javascript\" src=\"" . $webroot . "/interface/main/tabs/js/include_opener.js\"></script>"
+    . "<script>\n";
     if ($alertmsg) {
         echo " alert(" . js_escape($alertmsg) . ");\n";
     }
@@ -84,14 +91,14 @@ if ($_POST['form_save']) {
 
 // get problems
 $pres = sqlStatement("SELECT * FROM lists WHERE pid = ? " .
-"ORDER BY type, date", array($pid));
+"ORDER BY type, date", [$pid]);
 
 // get encounters
 $eres = sqlStatement("SELECT * FROM form_encounter WHERE pid = ? " .
-"ORDER BY date DESC", array($pid));
+"ORDER BY date DESC", [$pid]);
 
 // get problem/encounter relations
-$peres = sqlStatement("SELECT * FROM issue_encounter WHERE pid = ?", array($pid));
+$peres = sqlStatement("SELECT * FROM issue_encounter WHERE pid = ?", [$pid]);
 ?>
 <!DOCTYPE html>
 <html>
@@ -105,16 +112,14 @@ tr.head   { font-size:10pt; background-color:#cccccc; text-align:center; }
 tr.detail { font-size:10pt; background-color:#eeeeee; }
 </style>
 
-<script language="JavaScript">
+<script>
 
 // These are the possible colors for table rows.
 var trcolors = new Object();
 // Colors for:            Foreground Background
-trcolors['U'] = new Array('#000000', '#eeeeee'); // unselected
-trcolors['K'] = new Array('#000000', '#eeee00'); // selected key
-// trcolors['Y'] = new Array('#000000', '#99ff99'); // selected value resolved=Y
-// trcolors['N'] = new Array('#000000', '#ff9999'); // selected value resolved=N
-trcolors['V'] = new Array('#000000', '#9999ff'); // selected value
+trcolors['U'] = new Array('var(--black)', 'var(--gray200)'); // unselected
+trcolors['K'] = new Array('var(--black)', 'var(--yellow)'); // selected key
+trcolors['V'] = new Array('var(--black)', 'var(--indigo)'); // selected value
 
 var pselected = new Object();
 var eselected = new Object();
@@ -260,102 +265,108 @@ function doclick(pfx, id) {
 </script>
 
 </head>
-<body leftmargin='0' topmargin='0' marginwidth='0' marginheight='0' bgcolor='#ffffff'>
-<form method='post' action='problem_encounter.php' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
-<?php
- echo "<input type='hidden' name='form_pid' value='" . attr($pid) . "' />\n";
- // pelist looks like /problem,encounter/problem,encounter/[...].
- echo "<input type='hidden' name='form_pelist' value='/";
-while ($row = sqlFetchArray($peres)) {
-  // echo $row['list_id'] . "," . $row['encounter'] . "," .
-  //  ($row['resolved'] ? "Y" : "N") . "/";
-    echo attr($row['list_id']) . "," . attr($row['encounter']) . "/";
-}
-
- echo "' />\n";
-?>
-
-<table class="table">
-
- <tr>
-  <td colspan='2' align='center'>
-   <b><?php echo xlt('Issues and Encounters for'); ?> <?php echo text($patdata['fname']) . " " . text($patdata['lname']) . " (" . text($pid) . ")</b>\n"; ?>
-  </td>
- </tr>
-
- <tr>
-  <td align='center' valign='top' style="padding: 0 0 0 5px;">
-   <table class="table table-condensed">
-    <tr class='head'>
-     <td colspan='3' align='center'>
-      <input type='radio' name='form_key' value='p' onclick='clearall()' checked />
-      <b><?php echo xlt('Issues Section'); ?></b>
-     </td>
-    </tr>
-    <tr class='head'>
-     <td><?php echo xlt('Type'); ?></td>
-     <td><?php echo xlt('Title'); ?></td>
-     <td><?php echo xlt('Description'); ?></td>
-    </tr>
-<?php
-while ($row = sqlFetchArray($pres)) {
-    $rowid = $row['id'];
-    echo "    <tr class='detail' id='p_" . attr($rowid) . "' onclick='doclick(\"p\", " . attr_js($rowid) . ")'>\n";
-    echo "     <td valign='top'>" . text($ISSUE_TYPES[($row['type'])][1]) . "</td>\n";
-    echo "     <td valign='top'>" . text($row['title']) . "</td>\n";
-    echo "     <td valign='top'>" . text($row['comments']) . "</td>\n";
-    echo "    </tr>\n";
-    $endjs .= "pselected[" . js_escape($rowid) . "] = '';\n";
-}
-?>
-   </table>
-  </td>
-  <td align='center' valign='top' style="padding: 0 5px 0 0;">
-   <table class="table table-condensed">
-    <tr class='head'>
-     <td colspan='2' align='center'>
-      <input type='radio' name='form_key' value='e' onclick='clearall()' />
-      <b><?php echo xlt('Encounters Section'); ?></b>
-     </td>
-    </tr>
-    <tr class='head'>
-     <td><?php echo xlt('Date'); ?></td>
-     <td><?php echo xlt('Presenting Complaint'); ?></td>
-    </tr>
-<?php
-while ($row = sqlFetchArray($eres)) {
-    $rowid = $row['encounter'];
-    echo "    <tr class='detail' id='e_" . attr($rowid) . "' onclick='doclick(\"e\", " . attr_js($rowid) . ")'>\n";
-    echo "     <td valign='top'>" . text(substr($row['date'], 0, 10)) . "</td>\n";
-    echo "     <td valign='top'>" . text($row['reason']) . "</td>\n";
-    echo "    </tr>\n";
-    $endjs .= "eselected[" . js_escape($rowid) . "] = '';\n";
-}
-?>
-   </table>
-  </td>
- </tr>
-
- <tr>
-  <td colspan='2' align='center'>
-   <input type='submit' name='form_save' value='<?php echo xla('Save'); ?>' disabled /> &nbsp;
-   <input type='button' value='<?php echo xla('Add Issue'); ?>' onclick='newIssue()' />
-   <input type='button' value='<?php echo xla('Cancel'); ?>' onclick='dlgclose()' />
-  </td>
- </tr>
-
-</table>
-
-</form>
-
-<p><b><?php echo xlt('Instructions:'); ?></b> <?php echo xlt('Choose a section and click an item within it; then in the other section you will see the related items highlighted, and you can click in that section to add and delete relationships.'); ?>
-</p>
-
+<body>
+    <div class="container">
+        <form method='post' action='problem_encounter.php' onsubmit='return top.restoreSession()'>
+            <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken('default', $session->getSymfonySession())); ?>" />
+            <?php
+            echo "<input type='hidden' name='form_pid' value='" . attr($pid) . "' />\n";
+            // pelist looks like /problem,encounter/problem,encounter/[...].
+            echo "<input type='hidden' name='form_pelist' value='/";
+            while ($row = sqlFetchArray($peres)) {
+                // echo $row['list_id'] . "," . $row['encounter'] . "," .
+                //  ($row['resolved'] ? "Y" : "N") . "/";
+                echo attr($row['list_id']) . "," . attr($row['encounter']) . "/";
+            }
+            echo "' />\n";
+            ?>
+            <div class="table-responsive">
+                <table class="table">
+                    <tr>
+                        <td colspan='2' class="text-center font-weight-bold">
+                            <?php echo xlt('Issues and Encounters for'); ?> <?php echo text($patdata['fname']) . " " . text($patdata['lname']) . " (" . text($pid) . ")</b>\n"; ?>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-center align-top p-0 pl-3">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <tr class='head'>
+                                        <td colspan='3' class="text-center">
+                                            <input type='radio' name='form_key' value='p' onclick='clearall()' checked />
+                                            <span class="font-weight-bold"><?php echo xlt('Issues Section'); ?></span>
+                                        </td>
+                                    </tr>
+                                    <tr class='head'>
+                                        <td><?php echo xlt('Type'); ?></td>
+                                        <td><?php echo xlt('Title'); ?></td>
+                                        <td><?php echo xlt('Description'); ?></td>
+                                    </tr>
+                                    <?php
+                                    while ($row = sqlFetchArray($pres)) {
+                                        $rowid = $row['id'];
+                                        echo "    <tr class='detail' id='p_" . attr($rowid) . "' onclick='doclick(\"p\", " . attr_js($rowid) . ")'>\n";
+                                        echo "     <td class='align-top'>" . text($ISSUE_TYPES[($row['type'])][1]) . "</td>\n";
+                                        echo "     <td class='align-top'>" . text($row['title']) . "</td>\n";
+                                        echo "     <td class='align-top'>" . text($row['comments']) . "</td>\n";
+                                        echo "    </tr>\n";
+                                        $endjs .= "pselected[" . js_escape($rowid) . "] = '';\n";
+                                    }
+                                    ?>
+                                </table>
+                            </div>
+                        </td>
+                        <td class="text-center align-top p-0 pr-3">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <tr class='head'>
+                                        <td colspan='2' class="text-center">
+                                            <input type='radio' name='form_key' value='e' onclick='clearall()' />
+                                            <span class="font-weight-bold"><?php echo xlt('Encounters Section'); ?></span>
+                                        </td>
+                                    </tr>
+                                    <tr class='head'>
+                                        <td><?php echo xlt('Date'); ?></td>
+                                        <td><?php echo xlt('Presenting Complaint'); ?></td>
+                                    </tr>
+                                    <?php
+                                    while ($row = sqlFetchArray($eres)) {
+                                        $rowid = $row['encounter'];
+                                        echo "    <tr class='detail' id='e_" . attr($rowid) . "' onclick='doclick(\"e\", " . attr_js($rowid) . ")'>\n";
+                                        echo "     <td class='align-top'>" . text(substr((string) $row['date'], 0, 10)) . "</td>\n";
+                                        echo "     <td class='align-top'>" . text($row['reason']) . "</td>\n";
+                                        echo "    </tr>\n";
+                                        $endjs .= "eselected[" . js_escape($rowid) . "] = '';\n";
+                                    }
+                                    ?>
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan='2' class="text-center">
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-primary btn-sm btn-save" name='form_save' value='<?php echo xla('Save'); ?>' disabled>
+                                    <?php echo xlt('Save'); ?>
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm btn-add" value='<?php echo xla('Add Issue'); ?>' onclick='newIssue()'>
+                                    <?php echo xlt('Add Issue'); ?>
+                                </button>
+                                <button type="button" class='btn btn-secondary btn-sm btn-cancel' onclick='dlgclose()'><?php echo xla('Cancel'); ?></button>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+        <p>
+            <span class="font-weight-bold"><?php echo xlt('Instructions:'); ?></span> <?php echo xlt('Choose a section and click an item within it; then in the other section you will see the related items highlighted, and you can click in that section to add and delete relationships.'); ?>
+        </p>
+    </div>
 <script>
 <?php
  echo $endjs;
-if ($_REQUEST['issue']) {
+if (!empty($_REQUEST['issue'])) {
     echo "doclick('p', " . js_escape($_REQUEST['issue']) . ");\n";
 }
 

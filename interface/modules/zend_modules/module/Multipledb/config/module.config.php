@@ -1,4 +1,5 @@
 <?php
+
 /* +-----------------------------------------------------------------------------+
  * Copyright 2016 matrix israel
  * LICENSE: This program is free software; you can redistribute it and/or
@@ -16,44 +17,70 @@
  * +------------------------------------------------------------------------------+
  *
  */
-return array(
+namespace Multipledb;
+
+use Laminas\ServiceManager\Factory\InvokableFactory;
+use Laminas\Router\Http\Segment;
+use Multipledb\Controller\MultipledbController;
+use Multipledb\Controller\ModuleconfigController;
+use Multipledb\Model\Multipledb;
+use Multipledb\Model\MultipledbTable;
+use Laminas\Db\ResultSet\ResultSet;
+use Laminas\Db\TableGateway\TableGateway;
+use Interop\Container\ContainerInterface;
+
+return [
 
     /* declare all controllers */
-    'controllers' => array(
-        'invokables' => array(
-            'Multipledb\Controller\Multipledb' => 'Multipledb\Controller\MultipledbController',
-        ),
-    ),
+    'controllers' => [
+        'factories' => [
+            MultipledbController::class => fn(ContainerInterface $container, $requestedName): \Multipledb\Controller\MultipledbController => new MultipledbController($container->get(MultipledbTable::class)),
+            ModuleconfigController::class => InvokableFactory::class
+        ],
+    ],
 
     /**
      * routing configuration.
      * for more option and details - http://zf2.readthedocs.io/en/latest/in-depth-guide/understanding-routing.html?highlight=routing
      */
-    'router' => array(
-        'routes' => array(
-            'multipledb' => array(
-                'type'    => 'segment',
-                'options' => array(
+    'router' => [
+        'routes' => [
+            'multipledb' => [
+                'type'    => Segment::class,
+                'options' => [
                     'route'    => '/multipledb[/:action][/:id]',
-                    'constraints' => array(
+                    'constraints' => [
                         'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
                         'id'     => '[0-9]+',
-                    ),
-                    'defaults' => array(
-                        'controller' => 'Multipledb\Controller\multipledb',
+                    ],
+                    'defaults' => [
+                        'controller' => MultipledbController::class,
                         'action'     => 'index',
-                    ),
-                ),
-            ),
-        ),
-    ),
+                    ],
+                ],
+            ],
+        ],
+    ],
 
 
-    'view_manager' => array(
-        'template_path_stack' => array(
+    'view_manager' => [
+        'template_path_stack' => [
             'multipledb' => __DIR__ . '/../view',
-        ),'template_map' => array(
+        ],'template_map' => [
             'multipledb/layout/layout' => __DIR__ . '/../view/layout/layout.phtml',
-        )
-    )
-);
+        ]
+    ],
+    'service_manager' => [
+        'factories' => [
+            MultipledbTable::class =>  function (ContainerInterface $container, $requestedName) {
+                $dbAdapter = $container->get(\Laminas\Db\Adapter\Adapter::class);
+                $resultSetPrototype = new ResultSet();
+                $resultSetPrototype->setArrayObjectPrototype(new Multipledb());
+                $tableGateway = new TableGateway('multiple_db', $dbAdapter, null, $resultSetPrototype);
+                $table = new MultipledbTable($tableGateway);
+                return $table;
+            }
+            ,ModuleconfigController::class => InvokableFactory::class
+        ],
+    ]
+];

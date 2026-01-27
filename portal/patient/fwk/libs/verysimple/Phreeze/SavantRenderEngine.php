@@ -1,5 +1,7 @@
 <?php
+
 /** @package    verysimple::Phreeze */
+
 require_once("IRenderEngine.php");
 require_once('savant/Savant3.php');
 
@@ -12,13 +14,15 @@ require_once('savant/Savant3.php');
  * @license http://www.gnu.org/licenses/lgpl.html LGPL
  * @version 1.0
  */
+
+#[\AllowDynamicProperties]
 class SavantRenderEngine implements IRenderEngine
 {
     static $TEMPLATE_EXTENSION = ".tpl.php";
-    
+
     /** @var Savant3 */
     public $savant;
-    
+
     /**
      *
      * @param string $templatePath
@@ -27,20 +31,20 @@ class SavantRenderEngine implements IRenderEngine
      */
     function __construct($templatePath = '', $compilePath = '')
     {
-        $this->savant = new Savant3(array (
+        $this->savant = new Savant3([
                 'exceptions' => true
-        ));
-        
+        ]);
+
         // normalize the path
-        if (substr($templatePath, - 1) != '/' && substr($templatePath, - 1) != '\\') {
+        if (!str_ends_with($templatePath, '/') && !str_ends_with($templatePath, '\\')) {
             $templatePath .= "/";
         }
-        
+
         if ($templatePath) {
             $this->savant->setPath('template', $templatePath);
         }
     }
-    
+
     /**
      * @inheritdoc
      */
@@ -48,17 +52,17 @@ class SavantRenderEngine implements IRenderEngine
     {
         $this->savant->$key = $value;
     }
-    
+
     /**
      * @inheritdoc
      */
     public function display($template)
     {
         // strip off .tpl from the end for backwards compatibility with older apps
-        if (substr($template, - 4) == '.tpl') {
+        if (str_ends_with($template, '.tpl')) {
             $template = substr($template, 0, - 4);
         }
-            
+
             // these two are special templates used by the Phreeze controller and dispatcher
         if ($template == "_redirect") {
             header("Location: " . $this->savant->url);
@@ -69,7 +73,7 @@ class SavantRenderEngine implements IRenderEngine
             $this->savant->display($template . self::$TEMPLATE_EXTENSION);
         }
     }
-    
+
     /**
      * Returns the specified model value
      */
@@ -77,7 +81,7 @@ class SavantRenderEngine implements IRenderEngine
     {
         return $this->savant->$key;
     }
-    
+
     /**
      * @inheritdoc
      */
@@ -85,27 +89,27 @@ class SavantRenderEngine implements IRenderEngine
     {
         return $this->savant->fetch($template . self::$TEMPLATE_EXTENSION);
     }
-    
+
     /**
      *
      * @see IRenderEngine::clear()
      */
     function clear($key)
     {
-        if (array_key_exists($key, $this->savant)) {
+        if (property_exists($this->savant, $key)) {
             unset($this->savant [$key]);
         }
     }
-    
+
     /**
      *
      * @see IRenderEngine::clearAll()
      */
-    function clearAll()
+    function clearAll(): never
     {
         throw new Exception('clearAll not implemented for SavantRenderEngine');
     }
-    
+
     /**
      *
      * @see IRenderEngine::getAll()

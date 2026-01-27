@@ -1,26 +1,13 @@
 <?php
-/** @package    Openemr::Reporter */
 
 /**
+ * OnsiteActivityViewReporter-query.php
  *
- * Copyright (C) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
- *
- * LICENSE: This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU Affero General Public License as
- *  published by the Free Software Foundation, either version 3 of the
- *  License, or (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Affero General Public License for more details.
- *
- *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * @package OpenEMR
- * @author Jerry Padgett <sjpadgett@gmail.com>
- * @link http://www.open-emr.org
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Jerry Padgett <sjpadgett@gmail.com>
+ * @copyright Copyright (c) 2016-2017 Jerry Padgett <sjpadgett@gmail.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
 /**
@@ -31,7 +18,7 @@ require_once("verysimple/Phreeze/Reporter.php");
 /**
  * This is an example Reporter based on the OnsiteActivityView object.
  * The reporter object
- * allows you to run arbitrary queries that return data which may or may not fith within
+ * allows you to run arbitrary queries that return data which may or may not fit within
  * the data access API. This can include aggregate data or subsets of data.
  *
  * Note that Reporters are read-only and cannot be used for saving data.
@@ -42,7 +29,6 @@ require_once("verysimple/Phreeze/Reporter.php");
  */
 class OnsiteActivityViewReporter extends Reporter
 {
-
     // the properties in this class must match the columns returned by GetCustomQuery().
     // 'CustomFieldExample' is an example that is not part of the `onsite_activity_view` table
     public $Id;
@@ -85,13 +71,13 @@ class OnsiteActivityViewReporter extends Reporter
     public $PhysicianType;
 
     /*
-	 * GetCustomQuery returns a fully formed SQL statement. The result columns
-	 * must match with the properties of this reporter object.
-	 *
-	 * @see Reporter::GetCustomQuery
-	 * @param Criteria $criteria
-	 * @return string SQL statement
-	 */
+     * GetCustomQuery returns a fully formed SQL statement. The result columns
+     * must match with the properties of this reporter object.
+     *
+     * @see Reporter::GetCustomQuery
+     * @param Criteria $criteria
+     * @return string SQL statement
+     */
     static function GetCustomQuery($criteria)
     {
         $sql = "select
@@ -123,7 +109,7 @@ class OnsiteActivityViewReporter extends Reporter
 			,` patient_data`.`providerID` as Providerid
 			,` patient_data`.`ref_providerID` as RefProviderid
 			,` patient_data`.`pubpid` as Pubpid
-			,` patient_data`.`care_team` as CareTeam
+			,` patient_data`.`care_team_provider` as CareTeam
 			,`users`.`username` as Username
 			,`users`.`authorized` as Authorized
 			,`users`.`ufname` as Ufname
@@ -146,14 +132,14 @@ class OnsiteActivityViewReporter extends Reporter
     }
 
     /*
-	 * GetCustomCountQuery returns a fully formed SQL statement that will count
-	 * the results. This query must return the correct number of results that
-	 * GetCustomQuery would, given the same criteria
-	 *
-	 * @see Reporter::GetCustomCountQuery
-	 * @param Criteria $criteria
-	 * @return string SQL statement
-	 */
+     * GetCustomCountQuery returns a fully formed SQL statement that will count
+     * the results. This query must return the correct number of results that
+     * GetCustomQuery would, given the same criteria
+     *
+     * @see Reporter::GetCustomCountQuery
+     * @param Criteria $criteria
+     * @return string SQL statement
+     */
     static function GetCustomCountQuery($criteria)
     {
         $sql = "select count(1) as counter from `onsite_activity_view`";

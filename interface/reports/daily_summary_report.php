@@ -1,4 +1,5 @@
 <?php
+
 /**
  *  Daily Summary Report. (/interface/reports/daily_summary_report.php)
  *
@@ -14,17 +15,24 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
 require_once "$srcdir/options.inc.php";
 require_once "$srcdir/appointments.inc.php";
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 use OpenEMR\Services\FacilityService;
 
+if (!AclMain::aclCheckCore('acct', 'rep_a')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Daily Summary Report")]);
+    exit;
+}
+
 if (!empty($_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 }
 
@@ -32,8 +40,8 @@ $facilityService = new FacilityService();
 
 $from_date = isset($_POST['form_from_date']) ? DateToYYYYMMDD($_POST['form_from_date']) : date('Y-m-d'); // From date filter
 $to_date = isset($_POST['form_to_date']) ? DateToYYYYMMDD($_POST['form_to_date']) : date('Y-m-d');   // To date filter
-$selectedFacility = isset($_POST['form_facility']) ? $_POST['form_facility'] : "";  // facility filter
-$selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "";  // provider filter
+$selectedFacility = $_POST['form_facility'] ?? "";  // facility filter
+$selectedProvider = $_POST['form_provider'] ?? "";  // provider filter
 ?>
 
 <html>
@@ -43,7 +51,7 @@ $selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "
 
         <?php Header::setupHeader(['datetime-picker', 'report-helper']); ?>
 
-        <script type="text/javascript">
+        <script>
             function submitForm() {
                 var fromDate = $("#form_from_date").val();
                 var toDate = $("#form_to_date").val();
@@ -66,7 +74,7 @@ $selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "
                 }
             }
 
-            $( document ).ready(function(){
+            $(function () {
                 $('.datepicker').datetimepicker({
                     <?php $datetimepicker_timepicker = false; ?>
                     <?php $datetimepicker_showseconds = false; ?>
@@ -85,7 +93,7 @@ $selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "
         <span class='title'><?php echo xlt('Daily Summary Report'); ?></span>
         <!-- start of search parameters -->
         <form method='post' name='report_form' id='report_form' action='' onsubmit='return top.restoreSession()'>
-            <input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+            <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
             <div id="report_parameters">
                 <table class="tableonly">
                     <tr>
@@ -93,40 +101,40 @@ $selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "
                             <div style='float: left'>
                                 <table class='text'>
                                     <tr>
-                                        <td class='control-label'><?php echo xlt('Facility'); ?>:</td>
+                                        <td class='col-form-label'><?php echo xlt('Facility'); ?>:</td>
                                         <td><?php dropdown_facility($selectedFacility, 'form_facility', false); ?></td>
-                                        <td class='control-label'><?php echo xlt('From'); ?>:</td>
+                                        <td class='col-form-label'><?php echo xlt('From'); ?>:</td>
                                         <td>
                                             <input type='text' name='form_from_date' id="form_from_date"
                                                    class='datepicker form-control'
                                                    size='10' value='<?php echo attr(oeFormatShortDate($from_date)); ?>'>
                                         </td>
-                                        <td class='control-label'><?php echo xlt('To'); ?>:</td>
+                                        <td class='col-form-label'><?php echo xlt('To{{Range}}'); ?>:</td>
                                         <td>
                                             <input type='text' name='form_to_date' id="form_to_date"
                                                    class='datepicker form-control'
                                                    size='10' value='<?php echo attr(oeFormatShortDate($to_date)); ?>'>
                                         </td>
-                                        <td class='control-label'><?php echo xlt('Provider'); ?>:</td>
+                                        <td class='col-form-label'><?php echo xlt('Provider'); ?>:</td>
                                         <td>
                                             <?php
-                                            generate_form_field(array('data_type' => 10, 'field_id' => 'provider',
-                                            'empty_title' => '-- All Providers --'), $selectedProvider);
+                                            generate_form_field(['data_type' => 10, 'field_id' => 'provider',
+                                            'empty_title' => '-- All Providers --'], $selectedProvider);
                                             ?>
                                         </td>
                                 </table>
                             </div>
                         </td>
-                        <td align='left' valign='middle' height="100%">
-                            <table style='border-left: 1px solid; width: 100%; height: 100%'>
+                        <td class='h-100' align='left' valign='middle'>
+                            <table class='w-100 h-100' style='border-left: 1px solid;'>
                                 <tr>
                                     <td>
                                         <div class="text-center">
                                             <div class="btn-group" role="group">
-                                                <a href='#' class='btn btn-default btn-save' onclick='return submitForm();'>
+                                                <a href='#' class='btn btn-secondary btn-save' onclick='return submitForm();'>
                                                     <?php echo xlt('Submit'); ?>
                                                 </a>
-                                                <a href='' class="btn btn-default btn-refresh" id='new0' onClick=" top.restoreSession(); window.location = window.location.href;">
+                                                <a href='' class="btn btn-secondary btn-refresh" id='new0' onClick=" top.restoreSession(); window.location = window.location.href;">
                                                     <?php echo xlt('Reset'); ?>
                                                 </a>
                                             </div>
@@ -153,13 +161,13 @@ $selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "
         }
 
         // define all the variables as initial blank array
-        $facilities = $totalAppointment = $totalNewPatient = $totalVisit = $totalPayment = $dailySummaryReport = $totalPaid = array();
+        $facilities = $totalAppointment = $totalNewPatient = $totalVisit = $totalPayment = $dailySummaryReport = $totalPaid = [];
 
         // define all the where condition variable as initial value set 1=1
         $whereTotalVisitConditions = $whereTotalPaymentConditions = $wherePaidConditions = $whereNewPatientConditions = '1 = 1 ';
 
         // fetch all facility from the table
-        $facilityRecords = $facilityService->getAll();
+        $facilityRecords = $facilityService->getAllFacility();
         foreach ($facilityRecords as $facilityList) {
             if (1 === $facilitySet && $facilityList['id'] == $selectedFacility) {
                 $facilities[$facilityList['id']] = $facilityList['name'];
@@ -173,7 +181,7 @@ $selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "
         // define provider and facility as null
         $providerID = $facilityID = null;
         // define all the bindarray variables as initial blank array
-        $sqlBindArrayAppointment = $sqlBindArrayTotalVisit = $sqlBindArrayTotalPayment = $sqlBindArrayPaid = $sqlBindArrayNewPatient = array();
+        $sqlBindArrayAppointment = $sqlBindArrayTotalVisit = $sqlBindArrayTotalPayment = $sqlBindArrayPaid = $sqlBindArrayNewPatient = [];
 
         // make all condition on by default today's date
         if ($dateSet != 1 && $facilitySet != 1) {
@@ -296,6 +304,7 @@ $selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "
                                                                     GROUP BY `b`.`encounter`,Date,provider_name ORDER BY Date ASC", $sqlBindArrayTotalPayment);
 
         while ($totalPaymentRecord = sqlFetchArray($totalPaymetsSql)) {
+            $totalPayment[$totalPaymentRecord['Date']][$totalPaymentRecord['facilityName']][$totalPaymentRecord['provider_name']]['payments'] ??= 0;
             $totalPayment[$totalPaymentRecord['Date']][$totalPaymentRecord['facilityName']][$totalPaymentRecord['provider_name']]['payments'] += $totalPaymentRecord['totalpayment'];
         }
 
@@ -318,10 +327,10 @@ $selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "
         ?>
 
         <div id="report_results" style="font-size: 12px">
-            <?php echo '<b>' . xlt('From') . '</b> ' . text(oeFormatShortDate($from_date)) . ' <b>' . xlt('To') . '</b> ' . text(oeFormatShortDate($to_date)); ?>
+            <?php echo '<strong>' . xlt('From') . '</strong> ' . text(oeFormatShortDate($from_date)) . ' <strong>' . xlt('To{{Range}}') . '</strong> ' . text(oeFormatShortDate($to_date)); ?>
 
-            <table class="flowboard" cellpadding='5' cellspacing='2' id="ds_report">
-                <tr class="head">
+            <table class="table flowboard" cellpadding='5' cellspacing='2' id="ds_report">
+                <tr class="head thead-light">
 
                     <td><?php echo xlt('Date'); ?></td>
                     <td><?php echo xlt('Facility'); ?></td>
@@ -335,6 +344,12 @@ $selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "
                 </tr>
                 <?php
                 if (count($dailySummaryReport) > 0) { // check if daily summary array has value
+                    $totalAppointments = 0;
+                    $totalNewRegisterPatient = 0;
+                    $totalVisits = 0;
+                    $totalPayments = 0;
+                    $totalPaidAmount = 0;
+                    $totalDueAmount = 0;
                     foreach ($dailySummaryReport as $date => $dataValue) { //   daily summary array which consists different/dynamic values
                         foreach ($facilities as $facility) { // facility array
                             if (isset($dataValue[$facility])) {
@@ -347,12 +362,12 @@ $selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "
                                         <td><?php echo isset($information['appointments']) ? text($information['appointments']) : 0; ?></td>
                                         <td><?php echo isset($information['newPatient']) ? text($information['newPatient']) : 0; ?></td>
                                         <td><?php echo isset($information['visits']) ? text($information['visits']) : 0; ?></td>
-                                        <td align="right"><?php echo isset($information['payments']) ? text(number_format($information['payments'], 2)) : number_format(0, 2); ?></td>
-                                        <td align="right"><?php echo isset($information['paidAmount']) ? text(number_format($information['paidAmount'], 2)) : number_format(0, 2); ?></td>
-                                        <td align="right">
+                                        <td><?php echo isset($information['payments']) ? text(number_format($information['payments'], 2)) : number_format(0, 2); ?></td>
+                                        <td><?php echo isset($information['paidAmount']) ? text(number_format($information['paidAmount'], 2)) : number_format(0, 2); ?></td>
+                                        <td>
                                             <?php
                                             if (isset($information['payments']) || isset($information['paidAmount'])) {
-                                                $dueAmount = number_format(floatval(str_replace(",", "", $information['payments'])) - floatval(str_replace(",", "", $information['paidAmount'])), 2);
+                                                $dueAmount = number_format(floatval(str_replace(",", "", $information['payments'])) - floatval(str_replace(",", "", ($information['paidAmount'] ?? null))), 2);
                                             } else {
                                                 $dueAmount = number_format(0, 2);
                                             }
@@ -363,11 +378,11 @@ $selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "
                                     </tr>
                                     <?php
                                     if (count($dailySummaryReport) > 0) { // calculate the total count of the appointments, new patient,visits, payments, paid amount and due amount
-                                        $totalAppointments += $information['appointments'];
-                                        $totalNewRegisterPatient += $information['newPatient'];
-                                        $totalVisits += $information['visits'];
-                                        $totalPayments += floatval(str_replace(",", "", $information['payments']));
-                                        $totalPaidAmount += floatval(str_replace(",", "", $information['paidAmount']));
+                                        $totalAppointments += ($information['appointments'] ?? 0);
+                                        $totalNewRegisterPatient += ($information['newPatient'] ?? 0);
+                                        $totalVisits += ($information['visits'] ?? 0);
+                                        $totalPayments += floatval(str_replace(",", "", ($information['payments'] ?? '')));
+                                        $totalPaidAmount += floatval(str_replace(",", "", ($information['paidAmount'] ?? '')));
                                         $totalDueAmount += $dueAmount;
                                     }
                                 }
@@ -383,9 +398,9 @@ $selectedProvider = isset($_POST['form_provider']) ? $_POST['form_provider'] : "
                         <td><?php echo text($totalAppointments); ?></td>
                         <td><?php echo text($totalNewRegisterPatient); ?></td>
                         <td><?php echo text($totalVisits); ?></td>
-                        <td align="right"><?php echo text(number_format($totalPayments, 2)); ?></td>
-                        <td align="right"><?php echo text(number_format($totalPaidAmount, 2)); ?></td>
-                        <td align="right"><?php echo text(number_format($totalDueAmount, 2)); ?></td>
+                        <td><?php echo text(number_format($totalPayments, 2)); ?></td>
+                        <td><?php echo text(number_format($totalPaidAmount, 2)); ?></td>
+                        <td><?php echo text(number_format($totalDueAmount, 2)); ?></td>
                     </tr>
                     <?php
                 } else { // if there are no records then display message

@@ -1,7 +1,5 @@
 <?php
 
-
-
 /* +-----------------------------------------------------------------------------+
 * Copyright 2016 matrix israel
 * LICENSE: This program is free software; you can redistribute it and/or
@@ -19,42 +17,66 @@
 * +------------------------------------------------------------------------------+
  *
  */
-return array(
+namespace Patientvalidation;
+
+use Interop\Container\ContainerInterface;
+use Laminas\ServiceManager\Factory\InvokableFactory;
+use Laminas\Router\Http\Segment;
+use Patientvalidation\Controller\PatientvalidationController;
+use Patientvalidation\Model\PatientDataTable;
+use Patientvalidation\Model\PatientData;
+use Laminas\Db\ResultSet\ResultSet;
+use Laminas\Db\TableGateway\TableGateway;
+
+return [
 
     /* declare all controllers */
-    'controllers' => array(
-        'invokables' => array(
-            'Patientvalidation\Controller\Patientvalidation' => 'Patientvalidation\Controller\PatientvalidationController',
-        ),
-    ),
+    'controllers' => [
+        'factories' => [
+            PatientvalidationController::class =>  fn(ContainerInterface $container, $requestedName): \Patientvalidation\Controller\PatientvalidationController => new PatientvalidationController($container->get(PatientDataTable::class))
+        ],
+    ],
 
     /**
      * routing configuration.
      * for more option and details - http://zf2.readthedocs.io/en/latest/in-depth-guide/understanding-routing.html?highlight=routing
      */
-    'router' => array(
-        'routes' => array(
-            'patientvalidation' => array(
-                'type'    => 'segment',
-                'options' => array(
+    'router' => [
+        'routes' => [
+            'patientvalidation' => [
+                'type'    => Segment::class,
+                'options' => [
                     'route'    => '/patientvalidation[/:action][/:id]',
-                    'constraints' => array(
+                    'constraints' => [
                         'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
                         'id'     => '[0-9]+',
-                    ),
-                    'defaults' => array(
-                        'controller' => 'Patientvalidation\Controller\patientvalidation',
+                    ],
+                    'defaults' => [
+                        'controller' => PatientvalidationController::class,
                         'action'     => 'index',
-                    ),
-                ),
-            ),
-        ),
-    ),
+                    ],
+                ],
+            ],
+        ],
+    ],
 
 
-    'view_manager' => array(
-        'template_path_stack' => array(
+    'view_manager' => [
+        'template_path_stack' => [
             'patientvalidation' => __DIR__ . '/../view',
-        ),
-    ),
-);
+        ],
+    ],
+
+    'service_manager' => [
+        'factories' => [
+            PatientDataTable::class =>  function (ContainerInterface $container, $requestedName) {
+                $dbAdapter = $container->get(\Laminas\Db\Adapter\Adapter::class);
+                $resultSetPrototype = new ResultSet();
+                $resultSetPrototype->setArrayObjectPrototype(new PatientData());
+                $tableGateway = new TableGateway('patient_data', $dbAdapter, null, $resultSetPrototype);
+                $table = new PatientDataTable($tableGateway);
+                return $table;
+            }
+        ],
+    ]
+];

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This reports checkins and checkouts for a specified patient's chart.
  *
@@ -11,9 +12,8 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
-require_once("$srcdir/patient.inc");
+require_once("$srcdir/patient.inc.php");
 
 use OpenEMR\Core\Header;
 use OpenEMR\Services\PatientService;
@@ -25,7 +25,7 @@ use OpenEMR\Services\PatientService;
 
     <?php Header::setupHeader(); ?>
 
-    <style type="text/css">
+    <style>
 
     /* specifically include & exclude from printing */
     @media print {
@@ -83,15 +83,15 @@ $res = PatientService::getChartTrackerInformation();
 $data_ctr = 0;
 while ($row = sqlFetchArray($res)) {
     if ($data_ctr == 0) { ?>
-    <table>
-     <thead>
+    <table class='table'>
+     <thead class='thead-light'>
           <th> <?php echo xlt('Chart'); ?> </th>
           <th> <?php echo xlt('Patient'); ?> </th>
           <th> <?php echo xlt('Location'); ?> </th>
           <th> <?php echo xlt('As Of'); ?> </th>
      </thead>
      <tbody>
-    <?php
+        <?php
     } ?>
 
  <tr>
@@ -108,14 +108,14 @@ while ($row = sqlFetchArray($res)) {
     <?php echo text(oeFormatDateTime($row['ct_when'], "global", true)); ?>
   </td>
  </tr>
-<?php
+    <?php
 
-$data_ctr++;
+    $data_ctr++;
 } // end while
 
 if ($data_ctr < 1) { ?>
 <span class='text'><?php echo xla('There are no charts checked out.'); ?></span>
-<?php
+    <?php
 }
 ?>
 

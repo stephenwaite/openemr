@@ -7,6 +7,7 @@
 [-* as published by the Free Software Foundation; either version 2            *-]
 [-* of the License, or (at your option) any later version.                    *-]
 [-*****************************************************************************-]
+[-* RM add address if configured to month print- first two lines *-]
 [-config_load file="default.conf"-]
 [-*Load the Language Definitions*-]
 [-config_load file="lang.$USER_LANG"-]
@@ -156,7 +157,7 @@ div.tiny { width:1px; height:1px; font-size:1px; }
     font-size: 10pt;
 }
 .timeslot {
-    height: [-php-]echo $timeslotHeightVal.$timeslotHeightUnit;[-/php-];
+    height: [-php-]echo attr(($timeslotHeightVal ?? "").($timeslotHeightUnit ?? ""));[-/php-];
     margin: 0px;
     padding: 0px;
 }
@@ -259,16 +260,15 @@ foreach ($providers as $provider) {
     $addPagebreak = true;
 
     echo "<div id='bigCalHeader'>";
-    //echo "<img src='/images/cfa_logo_small.gif' style='position:relative; z-index:-100'/>";
 
     echo "<div id='bigCalText'>";
     // output the provider name
-    echo "<span id='provname'>".$provider['fname'] . " " . $provider['lname']."</span>";
-    echo "<br>";
+    echo "<span id='provname'>" . text($provider['fname']) . " " . text($provider['lname']) . "</span>";
+    echo "<br />";
     // output the date range
     $atmp = array_keys($A_EVENTS);
     echo "<span id='daterange'>";
-    echo  xl(date('F', strtotime($Date))). " " . date('Y', strtotime($Date));
+    echo  xlt(date('F', strtotime($Date))) . " " . text(date('Y', strtotime($Date)));
     echo "</span>";
     echo "</div>";
 
@@ -301,7 +301,7 @@ foreach ($providers as $provider) {
     foreach ($A_EVENTS as $date => $events) {
         if ($defaultDate == "") $defaultDate = date("Ymd", strtotime($date));
         echo "<th>";
-        echo xl(date("l", strtotime($date)));
+        echo xlt(date("l", strtotime($date)));
         echo "</th>";
         if ($dowCount++ == 6) { break; }
     }
@@ -313,18 +313,18 @@ foreach ($providers as $provider) {
         $eventdate = substr($date, 0, 4) . substr($date, 5, 2) . substr($date, 8, 2);
 
         $gotoURL = pnModURL(__POSTCALENDAR__,'user','view',
-                        array('tplview'=>$template_view,
+                        array('tplview'=>($template_view ?? null),
                         'viewtype'=>'day',
                         'Date'=> date("Ymd", strtotime($date)),
-                        'pc_username'=>$pc_username,
-                        'pc_category'=>$category,
-                        'pc_topic'=>$topic));
+                        'pc_username'=>($pc_username ?? null),
+                        'pc_category'=>($category ?? null),
+                        'pc_topic'=>($topic ?? null)));
 
         if (date("w", strtotime($date)) == $DOWlist[0]) { echo "<tr>"; }
         echo "<td class='schedule'>";
         echo "<div style='position: relative; height: 100%; width: 100%;'>\n";
         echo "<div style='width:100%; font-size: 0.8em; text-align:right; background-color:lightgrey; padding:1px 2px 1px 2px;'>";
-        echo date("d", strtotime($date))."</div>";
+        echo text(date("d", strtotime($date))) . "</div>";
 
         if (count($events) == 0) { echo "&nbsp;"; }
 
@@ -379,19 +379,20 @@ foreach ($providers as $provider) {
                     $evtClass = "event_appointment";
                     break;
             }
+            // eventViewClass allows the event class to override the template (such as from a dispatched system event).
+            $evtClass = $event['eventViewClass'] ?? $evtClass;
 
             // now, output the event DIV
 
 
             $eventid = $event['eid'];
             $patientid = $event['pid'];
-            $commapos = strpos($event['patient_name'], ",");
-            $lname = substr($event['patient_name'], 0, $commapos);
-	    $fname = substr($event['patient_name'], $commapos + 2);
+            [$lname, $fname] = preg_split('/,\s*/', ($event['patient_name'] ?? ''), 2) + ['', ''];
+            $address = $event['patient_address'];
             $patient_dob = $event['patient_dob'];
             $patient_age = $event['patient_age'];
             $catid = $event['catid'];
-            $comment = addslashes($event['hometext']);
+            $comment = $event['hometext'];
             $catname = $event['catname'];
             $title = "Age $patient_age ($patient_dob)";
 
@@ -407,25 +408,28 @@ foreach ($providers as $provider) {
             $content = "";
             if ($comment && $GLOBALS['calendar_appt_style'] < 4) $title .= " " . $comment;
 
+
             if ($catid == 4 || $catid == 8 || $catid == 11) {
                 if ($catid ==  4) $catname = xl("VACATION");
                 else if ($catid ==  8) $catname = xl("LUNCH");
                 else if ($catid == 11) $catname = xl("RESERVED");
 
-                $content .= $displayTime." ";
-                $content .= $catname;
-                if ($comment) $content .= " - $comment";
+                $content .= text($displayTime) . " ";
+                $content .= text($catname);
+                if ($comment) $content .= " - " . text($comment);
             }
             else {
                 // some sort of patient appointment
 
-                $content .= $displayTime. " ";
-                if ($catid == 1) $content .= "<strike>";
-                $content .= htmlspecialchars($lname);
-                if ($catid == 1) $content .= "</strike>";
+                $content .= text($displayTime). " ";
+                if ($catid == 1) $content .= "<s>";
+                $content .= text($lname);
+                if ($catid == 1) $content .= "</s>";
+                if ($GLOBALS['calendar_appt_style'] == 5 )
+                        $content .= ", " . $fname .  " , " .  $address . $comment; //RM
             }
 
-            echo "<div class='".$evtClass."' style='background-color:".$event['catcolor'].";'>";
+            echo "<div data-eid='" . attr($eventid) . "' class='" . attr($evtClass) . "' style='background-color:" . attr($event['catcolor']) . ";'>";
             echo $content;
             echo "</div>\n";
         } // end EVENT loop
@@ -439,10 +443,6 @@ foreach ($providers as $provider) {
     echo "</div>";
 } // end provider
 
- // [-*footer*-]
- // [-include file="$TPL_NAME/views/global/footer.html"-]
- // [-include file="$TPL_NAME/views/footer.html"-]
-
 /* output a small calendar, based on the date-picker code from the normal calendar */
 function PrintDatePicker($caldate, $DOWlist, $daynames) {
 
@@ -453,12 +453,12 @@ function PrintDatePicker($caldate, $DOWlist, $daynames) {
     echo '<table>';
     echo '<tr>';
     echo '<td colspan="7" class="tdMonthName-small">';
-    echo date('F Y', $caldate);
+    echo text(date('F Y', $caldate));
     echo '</td>';
     echo '</tr>';
     echo '<tr>';
     foreach ($DOWlist as $dow) {
-        echo "<td class='tdDOW-small'>".$daynames[$dow]."</td>";
+        echo "<td class='tdDOW-small'>" . text($daynames[$dow]) . "</td>";
     }
     echo '</tr>';
 
@@ -490,7 +490,7 @@ function PrintDatePicker($caldate, $DOWlist, $daynames) {
             $tdClass = "tdWeekend-small";
         }
 
-        if (date('Ymd',$currdate) == $Date) {
+        if (!empty($Date) && (date('Ymd',$currdate) == $Date)) {
             // $Date is defined near the top of this file
             // and is equal to whatever date the user has clicked
             $tdClass .= " currentDate";
@@ -501,11 +501,11 @@ function PrintDatePicker($caldate, $DOWlist, $daynames) {
 
         // output the TD
         $td = "<td ";
-        $td .= "class=\"".$tdClass."\" ";
-        //$td .= "id=\"".date("Ymd", $currdate)."\" ";
-        $td .= "id=\"".date("Ymd", $currdate)."\" ";
-        $td .= "title=\"Go to week of ".date('M d, Y', $currdate)."\" ";
-        $td .= "> ".date('d', $currdate)."</td>\n";
+        $td .= "class=\"" . attr($tdClass) . "\" ";
+        //$td .= "id=\"" . attr(date("Ymd", $currdate)) . "\" ";
+        $td .= "id=\"" . attr(date("Ymd", $currdate)) . "\" ";
+        $td .= "title=\"Go to week of " . attr(date('M d, Y', $currdate)) . "\" ";
+        $td .= "> " . text(date('d', $currdate)) . "</td>\n";
         if ($skipit == true) { echo "<td></td>"; }
         else { echo $td; }
 
@@ -523,8 +523,8 @@ function PrintDatePicker($caldate, $DOWlist, $daynames) {
 
 </body>
 
-<script language='JavaScript'>
-$(document).ready(function(){
+<script>
+$(function () {
     var win = top.printLogPrint ? top : opener.top;
     win.printLogPrint(window);
 });

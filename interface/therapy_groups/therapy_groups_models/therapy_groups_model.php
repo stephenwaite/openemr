@@ -1,4 +1,5 @@
 <?php
+
 /**
  * interface/therapy_groups/therapy_groups_models/therapy_groups_model.php contains the model for the therapy groups.
  *
@@ -26,7 +27,6 @@
 
 class Therapy_Groups
 {
-
     const TABLE = 'therapy_groups';
 
     public function getAllGroups()
@@ -34,7 +34,7 @@ class Therapy_Groups
 
         $sql = 'SELECT * FROM ' . self::TABLE . ' ORDER BY ' . self::TABLE . '.group_start_date DESC;';
 
-        $therapy_groups = array();
+        $therapy_groups = [];
         $result = sqlStatement($sql);
         while ($tg = sqlFetchArray($result)) {
             $therapy_groups[] = $tg;
@@ -48,7 +48,7 @@ class Therapy_Groups
 
         $sql = "SELECT * FROM " . self::TABLE . " WHERE group_id = ?";
 
-        $group = sqlQuery($sql, array($groupId));
+        $group = sqlQuery($sql, [$groupId]);
 
         return $group;
     }
@@ -74,14 +74,14 @@ class Therapy_Groups
         $sql .= ' WHERE group_id = ?';
         array_push($groupData, $groupData['group_id']);
         $result = sqlStatement($sql, $groupData);
-        return !$result ? false :true;
+        return !$result ? false : true;
     }
 
     public function existGroup($name, $startDate, $groupId = null)
     {
 
         $sql = "SELECT COUNT(*) AS count FROM " . self::TABLE . " WHERE group_name = ? AND group_start_date = ?";
-        $conditions = array($name, $startDate);
+        $conditions = [$name, $startDate];
 
         if (!is_null($groupId)) {
             $sql .= " AND group_id <> ?";
@@ -104,7 +104,7 @@ class Therapy_Groups
 
         $sql = "UPDATE " . self::TABLE . " SET `group_status` = ? WHERE group_id = ?";
 
-        sqlStatement($sql, array($status, $group_id));
+        sqlStatement($sql, [$status, $group_id]);
     }
 
     /**
@@ -122,10 +122,10 @@ class Therapy_Groups
             $sql .= ' AND group_status = 10 ';
         }
 
-        $sql .='ORDER BY group_start_date DESC;';
+        $sql .= 'ORDER BY group_start_date DESC;';
         $search_params = '%' . $search_params . '%';
-        $result = sqlStatement($sql, array($search_params));
-        $final_result = array();
+        $result = sqlStatement($sql, [$search_params]);
+        $final_result = [];
         while ($row = sqlFetchArray($result)) {
             $final_result[] = $row;
         }

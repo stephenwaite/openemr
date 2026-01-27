@@ -1,5 +1,7 @@
 <?php
+
 /** @package    verysimple::Phreeze */
+
 require_once("IRenderEngine.php");
 
 /**
@@ -28,7 +30,7 @@ class PHPRenderEngine implements IRenderEngine
     /**
      * stores the assigned vars
      */
-    public $model = array ();
+    public $model =  [];
 
     /**
      *
@@ -40,7 +42,7 @@ class PHPRenderEngine implements IRenderEngine
     {
         $this->templatePath = $templatePath;
 
-        if (substr($this->templatePath, - 1) != '/' && substr($this->templatePath, - 1) != '\\') {
+        if (!str_ends_with($this->templatePath, '/') && !str_ends_with($this->templatePath, '\\')) {
             $this->templatePath .= "/";
         }
     }
@@ -65,7 +67,7 @@ class PHPRenderEngine implements IRenderEngine
         } elseif ($template == "_error.tpl") {
             die("<h4>" . $this->model ['message'] . "</h4>" . $this->model ['stacktrace']);
         } else {
-            if ($this->verifyExtension && substr($template, - 4) != '.php') {
+            if ($this->verifyExtension && !str_ends_with($template, '.php')) {
                 $template .= ".php";
             }
 
@@ -122,7 +124,7 @@ class PHPRenderEngine implements IRenderEngine
      */
     function clearAll()
     {
-        $this->model == array ();
+        $this->model ==  [];
     }
 
     /**

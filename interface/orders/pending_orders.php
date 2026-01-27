@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Pending orders.
  *
@@ -11,15 +12,27 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
-require_once("$srcdir/patient.inc");
-require_once("$srcdir/acl.inc");
+require_once("$srcdir/patient.inc.php");
 require_once "$srcdir/options.inc.php";
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
-function thisLineItem($row)
+if (!AclMain::aclCheckCore('patients', 'lab')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Pending Orders")]);
+    exit;
+}
+
+/**
+ * Render a line item for the pending orders html table.
+ *
+ * @param array $row
+ * @return void
+ */
+function pendingOrdersLineItem(array $row): void
 {
     $provname = $row['provider_lname'];
     if (!empty($row['provider_fname'])) {
@@ -30,15 +43,15 @@ function thisLineItem($row)
     }
 
     if ($_POST['form_csvexport']) {
-        echo '"' . addslashes($row['patient_name'  ]) . '",';
-        echo '"' . addslashes($row['pubpid'        ]) . '",';
-        echo '"' . addslashes(oeFormatShortDate($row['date_ordered'  ])) . '",';
-        echo '"' . addslashes($row['organization'  ]) . '",';
-        echo '"' . addslashes($provname) . '",';
-        echo '"' . addslashes($row['priority_name' ]) . '",';
-        echo '"' . addslashes($row['status_name'   ]) . '"' . "\n";
+        echo csvEscape($row['patient_name'  ]) . ',';
+        echo csvEscape($row['pubpid'        ]) . ',';
+        echo csvEscape(oeFormatShortDate($row['date_ordered'  ])) . ',';
+        echo csvEscape($row['organization'  ]) . ',';
+        echo csvEscape($provname) . ',';
+        echo csvEscape($row['priority_name' ]) . ',';
+        echo csvEscape($row['status_name'   ]) . "\n";
     } else {
-    ?>
+        ?>
    <tr>
     <td class="detail"><?php echo text($row['patient_name'  ]); ?></td>
     <td class="detail"><?php echo text($row['pubpid'        ]); ?></td>
@@ -48,21 +61,17 @@ function thisLineItem($row)
     <td class="detail"><?php echo text($row['priority_name' ]); ?></td>
     <td class="detail"><?php echo text($row['status_name'   ]); ?></td>
  </tr>
-<?php
+        <?php
     } // End not csv export
-}
-
-if (! acl_check('acct', 'rep')) {
-    die(xlt("Unauthorized access."));
 }
 
 $form_from_date = isset($_POST['form_from_date']) ? DateToYYYYMMDD($_POST['form_from_date']) : date('Y-m-d');
 $form_to_date   = isset($_POST['form_to_date']) ? DateToYYYYMMDD($_POST['form_to_date']) : date('Y-m-d');
-$form_facility  = $_POST['form_facility'];
+$form_facility  = $_POST['form_facility'] ?? null;
 
-if ($_POST['form_csvexport']) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+if (!empty($_POST['form_csvexport'])) {
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 
     header("Pragma: public");
@@ -72,25 +81,25 @@ if ($_POST['form_csvexport']) {
     header("Content-Disposition: attachment; filename=pending_orders.csv");
     header("Content-Description: File Transfer");
   // CSV headers:
-    echo '"' . xl('Patient') . '",';
-    echo '"' . xl('ID') . '",';
-    echo '"' . xl('Ordered') . '",';
-    echo '"' . xl('From') . '",';
-    echo '"' . xl('Procedure') . '",';
-    echo '"' . xl('Provider') . '",';
-    echo '"' . xl('Priority') . '",';
-    echo '"' . xl('Status') . '"' . "\n";
+    echo csvEscape(xl('Patient')) . ',';
+    echo csvEscape(xl('ID')) . ',';
+    echo csvEscape(xl('Ordered')) . ',';
+    echo csvEscape(xl('From')) . ',';
+    echo csvEscape(xl('Procedure')) . ',';
+    echo csvEscape(xl('Provider')) . ',';
+    echo csvEscape(xl('Priority')) . ',';
+    echo csvEscape(xl('Status')) . "\n";
 } else { // not export
-?>
+    ?>
 <html>
 <head>
     <title><?php echo xlt('Pending Orders') ?></title>
 
     <?php Header::setupHeader('datetime-picker'); ?>
 
-    <script language="JavaScript">
+    <script>
 
-        $(document).ready(function() {
+        $(function () {
             var win = top.printLogSetup ? top : opener.top;
             win.printLogSetup(document.getElementById('printbutton'));
 
@@ -105,28 +114,28 @@ if ($_POST['form_csvexport']) {
     </script>
 </head>
 
-<body leftmargin='0' topmargin='0' marginwidth='0' marginheight='0'>
+<body class='m-0'>
 <center>
 
 <h2><?php echo xlt('Pending Orders')?></h2>
 
 <form method='post' action='pending_orders.php' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
-<table border='0' cellpadding='3'>
+<table class='border-0' cellpadding='3'>
 
  <tr>
   <td>
     <?php dropdown_facility($form_facility, 'form_facility', false); ?>
   </td>
-  <td class='control-label'>
+  <td class='col-form-label'>
    &nbsp;<?php echo xlt('From')?>:
   </td>
   <td>
    <input type='text' class='datepicker form-control' name='form_from_date' id="form_from_date" size='10' value='<?php echo attr(oeFormatShortDate($form_from_date)); ?>'>
   </td>
-  <td class='control-label'>
-   &nbsp;<?php echo xlt('To')?>:
+  <td class='col-form-label'>
+   &nbsp;<?php echo xlt('To{{Range}}')?>:
   </td>
   <td>
    <input type='text' class='datepicker form-control' name='form_to_date' id="form_to_date" size='10' value='<?php echo attr(oeFormatShortDate($form_to_date)); ?>'>
@@ -135,9 +144,9 @@ if ($_POST['form_csvexport']) {
  <tr>
   <td>
    <div class="btn-group" role="group">
-    <button type='submit' class='btn btn-default btn-refresh' name='form_refresh'><?php echo xlt('Refresh'); ?></button>
-    <button type='submit' class='btn btn-default btn-transmit' name='form_csvexport'><?php echo xlt('Export to CSV'); ?></button>
-    <button type='button' class='btn btn-default btn-print' id='printbutton'><?php echo xlt('Print'); ?></button>
+    <button type='submit' class='btn btn-secondary btn-refresh' name='form_refresh'><?php echo xlt('Refresh'); ?></button>
+    <button type='submit' class='btn btn-secondary btn-transmit' name='form_csvexport'><?php echo xlt('Export to CSV'); ?></button>
+    <button type='button' class='btn btn-secondary btn-print' id='printbutton'><?php echo xlt('Print'); ?></button>
    </div>
   </td>
  </tr>
@@ -149,27 +158,29 @@ if ($_POST['form_csvexport']) {
 
 </table>
 
-<table border='0' cellpadding='1' cellspacing='2' width='98%'>
- <tr bgcolor="#dddddd">
-  <td class="dehead"><?php echo xlt('Patient'); ?></td>
-  <td class="dehead"><?php echo xlt('ID'); ?></td>
-  <td class="dehead"><?php echo xlt('Ordered'); ?></td>
-  <td class="dehead"><?php echo xlt('From'); ?></td>
-  <td class="dehead"><?php echo xlt('Provider'); ?></td>
-  <td class="dehead"><?php echo xlt('Priority'); ?></td>
-  <td class="dehead"><?php echo xlt('Status'); ?></td>
+<table class='table border-0' cellpadding='1' cellspacing='2' width='98%'>
+<thead class='thead-light'>
+ <tr>
+  <th class="dehead"><?php echo xlt('Patient'); ?></th>
+  <th class="dehead"><?php echo xlt('ID'); ?></th>
+  <th class="dehead"><?php echo xlt('Ordered'); ?></th>
+  <th class="dehead"><?php echo xlt('From'); ?></th>
+  <th class="dehead"><?php echo xlt('Provider'); ?></th>
+  <th class="dehead"><?php echo xlt('Priority'); ?></th>
+  <th class="dehead"><?php echo xlt('Status'); ?></th>
  </tr>
-<?php
+</thead>
+    <?php
 } // end not export
 
 // If generating a report.
 //
-if ($_POST['form_refresh'] || $_POST['form_csvexport']) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+if (!empty($_POST['form_refresh']) || !empty($_POST['form_csvexport'])) {
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 
-    $sqlBindArray = array();
+    $sqlBindArray = [];
     $query = "SELECT po.patient_id, po.date_ordered, " .
     "pd.pubpid, " .
     "CONCAT(pd.lname, ', ', pd.fname, ' ', pd.mname) AS patient_name, " .
@@ -203,12 +214,12 @@ if ($_POST['form_refresh'] || $_POST['form_csvexport']) {
 
     $res = sqlStatement($query, $sqlBindArray);
     while ($row = sqlFetchArray($res)) {
-        thisLineItem($row);
+        pendingOrdersLineItem($row);
     }
 } // end report generation
 
-if (! $_POST['form_csvexport']) {
-?>
+if (empty($_POST['form_csvexport'])) {
+    ?>
 
 </table>
 </form>
@@ -216,6 +227,6 @@ if (! $_POST['form_csvexport']) {
 </body>
 
 </html>
-<?php
+    <?php
 } // End not csv export
 ?>

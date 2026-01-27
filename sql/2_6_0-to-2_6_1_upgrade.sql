@@ -171,7 +171,7 @@ INSERT INTO `geo_zone_reference` VALUES (52, 223, 'PR', 'Puerto Rico');
 INSERT INTO `geo_zone_reference` VALUES (53, 223, 'RI', 'Rhode Island');
 INSERT INTO `geo_zone_reference` VALUES (54, 223, 'SC', 'South Carolina');
 INSERT INTO `geo_zone_reference` VALUES (55, 223, 'SD', 'South Dakota');
-INSERT INTO `geo_zone_reference` VALUES (56, 223, 'TN', 'Tenessee');
+INSERT INTO `geo_zone_reference` VALUES (56, 223, 'TN', 'Tennessee');
 INSERT INTO `geo_zone_reference` VALUES (57, 223, 'TX', 'Texas');
 INSERT INTO `geo_zone_reference` VALUES (58, 223, 'UT', 'Utah');
 INSERT INTO `geo_zone_reference` VALUES (59, 223, 'VT', 'Vermont');
@@ -460,9 +460,9 @@ UNIQUE (`foreign_id`,`foreign_table`,`local_id`,`local_table`)
 
 ALTER TABLE `x12_partners` ADD `id_number` VARCHAR( 255 ) AFTER `name` ;
 
-ALTER TABLE `phone_numbers` CHANGE `prefix` `prefix` VARCHAR( 3 ) DEFAULT NULL; 
+ALTER TABLE `phone_numbers` CHANGE `prefix` `prefix` VARCHAR( 3 ) DEFAULT NULL;
 ALTER TABLE `phone_numbers` CHANGE `area_code` `area_code` VARCHAR( 3 ) DEFAULT NULL;
-ALTER TABLE `phone_numbers` CHANGE `number` `number` VARCHAR( 4 ) DEFAULT NULL; 
+ALTER TABLE `phone_numbers` CHANGE `number` `number` VARCHAR( 4 ) DEFAULT NULL;
 
 #
 # Table structure for table `integration_mapping`

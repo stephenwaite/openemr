@@ -1,4 +1,5 @@
 <?php
+
 /**
  * prior auth form
  *
@@ -9,25 +10,25 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
-require_once($GLOBALS['fileroot'] . "/library/forms.inc");
+require_once($GLOBALS['fileroot'] . "/library/forms.inc.php");
 require_once("FormPriorAuth.class.php");
+
+use OpenEMR\Common\Csrf\CsrfUtils;
 
 class C_FormPriorAuth extends Controller
 {
-
-    var $template_dir;
+    public $template_dir;
 
     function __construct($template_mod = "general")
     {
         parent::__construct();
         $returnurl = 'encounter_top.php';
         $this->template_mod = $template_mod;
-        $this->template_dir = dirname(__FILE__) . "/templates/prior_auth/";
+        $this->template_dir = __DIR__ . "/templates/prior_auth/";
         $this->assign("FORM_ACTION", $GLOBALS['web_root']);
         $this->assign("DONT_SAVE_LINK", $GLOBALS['form_exit_url']);
         $this->assign("STYLE", $GLOBALS['style']);
-        $this->assign("CSRF_TOKEN_FORM", collectCsrfToken());
+        $this->assign("CSRF_TOKEN_FORM", CsrfUtils::collectCsrfToken());
     }
 
     function default_action()
@@ -39,11 +40,7 @@ class C_FormPriorAuth extends Controller
 
     function view_action($form_id)
     {
-        if (is_numeric($form_id)) {
-            $prior_auth = new FormPriorAuth($form_id);
-        } else {
-            $prior_auth = new FormPriorAuth();
-        }
+        $prior_auth = is_numeric($form_id) ? new FormPriorAuth($form_id) : new FormPriorAuth();
 
         $this->assign("VIEW", true);
         $this->assign("prior_auth", $prior_auth);
@@ -56,17 +53,19 @@ class C_FormPriorAuth extends Controller
             return;
         }
 
-        $this->prior_auth = new FormPriorAuth($_POST['id']);
-        parent::populate_object($this->prior_auth);
+        $this->form = new FormPriorAuth($_POST['id']);
+        parent::populate_object($this->form);
 
 
-        $this->prior_auth->persist();
+        $this->form->persist();
         if ($GLOBALS['encounter'] == "") {
             $GLOBALS['encounter'] = date("Ymd");
         }
 
-        addForm($GLOBALS['encounter'], "Prior Authorization Form", $this->prior_auth->id, "prior_auth", $GLOBALS['pid'], $_SESSION['userauthorized']);
-        $_POST['process'] = "";
+        if (empty($_POST['id'])) {
+            addForm($GLOBALS['encounter'], "Prior Authorization", $this->form->id, "prior_auth", $GLOBALS['pid'], $_SESSION['userauthorized']);
+            $_POST['process'] = "";
+        }
         return;
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 // NOTE: This code has been licensed for use to verysimple, inc. by
 // Keyvan Minoukadeh under the terms of the LGPL license on 8/10/05.
 //
@@ -64,7 +65,7 @@ class Mime_Types
      * @var array
      * @access private
      */
-    var $mime_types = array (
+    public $mime_types =  [
             'txt' => 'text/plain',
             'gif' => 'image/gif',
             'jpg' => 'image/jpeg',
@@ -72,16 +73,16 @@ class Mime_Types
             'pdf' => 'application/pdf',
             'doc' => 'application/msword',
             'htm' => 'text/html'
-    );
-    
+    ];
+
     /**
      * Path to file command - empty string disables the use of the file command
      *
      * @var string
      */
-    var $file_cmd = '';
+    public $file_cmd = '';
     // var $file_cmd = '/usr/bin/file';
-    
+
     /**
      * File options, used with the file command
      * Example:
@@ -91,11 +92,11 @@ class Mime_Types
      *
      * @var array
      */
-    var $file_options = array (
+    public $file_options =  [
             'b' => null,
             'i' => null
-    );
-    
+    ];
+
     /**
      * Constructor
      * optional parameter can be either a string containing the path to the
@@ -119,11 +120,11 @@ class Mime_Types
             $this->set($mime_types);
         }
     }
-    
+
     /**
      * Scan - goes through all MIME types passing the extension and type to the callback function.
      * The types will be sent in alphabetical order.
-     * If a type has multiple extensions, each extension will be passed seperately (not as an array).
+     * If a type has multiple extensions, each extension will be passed separately (not as an array).
      *
      * The callback function can be a method from another object (eg. array(&$my_obj, 'my_method')).
      * The callback function should accept 3 arguments:
@@ -151,22 +152,18 @@ class Mime_Types
         $mime_types = $this->mime_types;
         asort($mime_types);
         foreach ($mime_types as $ext => $type) {
-            $ext_type = array (
+            $ext_type =  [
                     $ext,
                     $type
-            );
-            if (isset($method)) {
-                $res = $callback [0]->$method ( $this, $ext_type, $param );
-            } else {
-                $res = $callback ( $this, $ext_type, $param );
-            }
+            ];
+            $res = isset($method) ? $callback [0]->$method($this, $ext_type, $param) : $callback($this, $ext_type, $param);
 
             if (! $res) {
                 return;
             }
         }
     }
-    
+
     /**
      * Get file type - returns MIME type by trying to guess it using the file command.
      *
@@ -207,7 +204,8 @@ class Mime_Types
                 $result = strtolower($result);
                 $pattern = '[a-z0-9.+_-]';
                 if (preg_match('!((' . $pattern . '+)/' . $pattern . '+)!', $result, $match)) {
-                    if (in_array($match [2], array (
+                    if (
+                        in_array($match [2], [
                             'application',
                             'audio',
                             'image',
@@ -217,7 +215,8 @@ class Mime_Types
                             'video',
                             'chemical',
                             'model'
-                    )) || (substr($match [2], 0, 2) == 'x-')) {
+                        ]) || (str_starts_with($match [2], 'x-'))
+                    ) {
                         $type = $match [1];
                     }
                 }
@@ -238,7 +237,7 @@ class Mime_Types
 
         return $type;
     }
-    
+
     /**
      * Get type - returns MIME type based on the file extension.
      * Example:
@@ -265,7 +264,7 @@ class Mime_Types
 
         return false;
     }
-    
+
     /**
      * Set - set extension and MIME type
      * Example:
@@ -284,7 +283,7 @@ class Mime_Types
      *          either array containing type and extensions, or the type as string
      * @param mixed $exts
      *          either array holding extensions, or string holding extensions
-     *          seperated by space.
+     *          separated by space.
      * @return void
      */
     function set($type, $exts = null)
@@ -317,7 +316,7 @@ class Mime_Types
 
             // loop through extensions
         if (! is_array($exts)) {
-            $exts = explode(' ', $exts);
+            $exts = explode(' ', (string) $exts);
         }
 
         foreach ($exts as $ext) {
@@ -329,7 +328,7 @@ class Mime_Types
             $this->mime_types [strtolower($ext)] = $type;
         }
     }
-    
+
     /**
      * Has extension - returns true if extension $ext exists, false otherwise
      * Example:
@@ -342,7 +341,7 @@ class Mime_Types
     {
         return (isset($this->mime_types [strtolower($ext)]));
     }
-    
+
     /**
      * Has type - returns true if type $type exists, false otherwise
      * Example:
@@ -355,7 +354,7 @@ class Mime_Types
     {
         return (in_array(strtolower($type), $this->mime_types));
     }
-    
+
     /**
      * Get extension - returns string containing a extension associated with $type
      * Example:
@@ -376,7 +375,7 @@ class Mime_Types
 
         return false;
     }
-    
+
     /**
      * Get extensions - returns array containing extension(s)
      * Example:
@@ -391,7 +390,7 @@ class Mime_Types
         $type = strtolower($type);
         return (array_keys($this->mime_types, $type));
     }
-    
+
     /**
      * Remove extension
      * Example:
@@ -402,23 +401,23 @@ class Mime_Types
      * $mime->remove_extension(array('txt', 'exe', 'html'));
      *
      * @param mixed $exts
-     *          string holding extension(s) seperated by space, or array
+     *          string holding extension(s) separated by space, or array
      * @return void
      */
     function remove_extension($exts)
     {
         if (! is_array($exts)) {
-            $exts = explode(' ', $exts);
+            $exts = explode(' ', (string) $exts);
         }
 
         foreach ($exts as $ext) {
-            $ext = strtolower(trim($ext));
+            $ext = strtolower(trim((string) $ext));
             if (isset($this->mime_types [$ext])) {
                 unset($this->mime_types [$ext]);
             }
         }
     }
-    
+
     /**
      * Remove type
      * Example:
@@ -437,7 +436,7 @@ class Mime_Types
     function remove_type($type = null)
     {
         if (! isset($type)) {
-            $this->mime_types = array ();
+            $this->mime_types =  [];
             return;
         }
 
@@ -445,23 +444,20 @@ class Mime_Types
         if (! $slash_pos) {
             return;
         }
-        
-        $type_info = array (
+
+        $type_info =  [
                 'last_match' => false,
                 'wildcard' => false,
                 'type' => $type
-        );
+        ];
         if (substr($type, $slash_pos) == '/*') {
             $type_info ['wildcard'] = true;
             $type_info ['type'] = substr($type, 0, $slash_pos);
         }
 
-        $this->scan(array (
-                &$this,
-                '_remove_type_callback'
-        ), $type_info);
+        $this->scan($this->_remove_type_callback(...), $type_info);
     }
-    
+
     /**
      * Load file - load file containing mime types.
      * Example:
@@ -501,11 +497,11 @@ class Mime_Types
 
         return true;
     }
-    
+
     //
     // private methods
     //
-    
+
     /**
      * Remove type callback
      *
@@ -519,9 +515,9 @@ class Mime_Types
     {
         // temporarily we'll put match to false
         $matched = false;
-        list ( $ext, $type ) = $ext_type;
+        [$ext, $type] = $ext_type;
         if ($type_info ['wildcard']) {
-            if (substr($type, 0, strpos($type, '/')) == $type_info ['type']) {
+            if (substr((string) $type, 0, strpos((string) $type, '/')) == $type_info ['type']) {
                 $matched = true;
             }
         } elseif ($type == $type_info ['type']) {

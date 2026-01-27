@@ -1,4 +1,5 @@
 <?php
+
 /**
  * interface/therapy_groups/therapy_groups_models/therapy_groups_encounters_model.php contains the model for therapy group encounters.
  *
@@ -26,7 +27,6 @@
 
 class Therapy_Groups_Encounters
 {
-
     const TABLE = 'form_groups_encounter';
 
     /**
@@ -37,7 +37,7 @@ class Therapy_Groups_Encounters
     public function getGroupEncounters($gid)
     {
         $sql = "SELECT * FROM " . self::TABLE . " WHERE group_id = ? AND date >= CURDATE();";
-        $result = sqlStatement($sql, array($gid));
+        $result = sqlStatement($sql, [$gid]);
         while ($row = sqlFetchArray($result)) {
             $encounters[] = $row;
         }

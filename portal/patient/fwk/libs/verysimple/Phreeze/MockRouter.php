@@ -1,4 +1,5 @@
 <?php
+
 /** @package    verysimple::Phreeze */
 
 /**
@@ -17,10 +18,10 @@ require_once('IRouter.php');
  */
 class MockRouter implements IRouter
 {
-    private $_params = array ();
+    private $_params =  [];
     private $_uri;
     private $_url;
-    
+
     /**
      * Backwards compatibility for Phreeze 2.0
      *
@@ -41,7 +42,7 @@ class MockRouter implements IRouter
         $this->delim = $delim;
         return $this->GetUrl($controller, $method, $params);
     }
-    
+
     /**
      *
      * @param string $paramName
@@ -51,14 +52,14 @@ class MockRouter implements IRouter
     {
         $this->_params [$paramName] = $value;
     }
-    
+
     /**
      * @inheritdocs
      */
     public function GetRoute($uri = "")
     {
     }
-    
+
     /**
      *
      * @see IRouter::GetUri()
@@ -67,7 +68,7 @@ class MockRouter implements IRouter
     {
         return $this->_uri;
     }
-    
+
     /**
      * @inheritdocs
      */
@@ -75,7 +76,7 @@ class MockRouter implements IRouter
     {
         return $this->_url;
     }
-    
+
     /**
      * @inheritdocs
      */
@@ -83,7 +84,7 @@ class MockRouter implements IRouter
     {
         return $this->_params;
     }
-    
+
     /**
      * @inheritdocs
      */
@@ -91,7 +92,7 @@ class MockRouter implements IRouter
     {
         return array_key_exists($paramKey, $this->_params) ? $this->_params [$paramKey] : "";
     }
-    
+
     /**
      *
      * @param unknown_type $value
@@ -100,7 +101,7 @@ class MockRouter implements IRouter
     {
         $this->_uri = $value;
     }
-    
+
     /**
      *
      * @param unknown_type $value
@@ -111,6 +112,6 @@ class MockRouter implements IRouter
     }
     public function ClearUrlParams()
     {
-        $this->_params = array ();
+        $this->_params =  [];
     }
 }

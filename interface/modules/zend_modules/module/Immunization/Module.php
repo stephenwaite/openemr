@@ -1,84 +1,43 @@
 <?php
+
 namespace Immunization;
 
-use Immunization\Model\Immunization;
-use Immunization\Model\ImmunizationTable;
-use Zend\Db\ResultSet\ResultSet;
-use Zend\Db\TableGateway\TableGateway;
-use Zend\ModuleManager\ModuleManager;
-use Zend\View\Helper\Openemr\Emr;
-use Zend\View\Helper\Openemr\Menu;
+use Laminas\ModuleManager\ModuleManager;
 
 class Module
 {
     public function getAutoloaderConfig()
     {
-        return array(
-            'Zend\Loader\ClassMapAutoloader' => array(
+        return [
+            \Laminas\Loader\ClassMapAutoloader::class => [
                 __DIR__ . '/autoload_classmap.php',
-            ),
-            'Zend\Loader\StandardAutoloader' => array(
-                'namespaces' => array(
+            ],
+            \Laminas\Loader\StandardAutoloader::class => [
+                'namespaces' => [
                     __NAMESPACE__ => __DIR__ . '/src/' . __NAMESPACE__,
-                    
-                ),
-            ),
-        );
+
+                ],
+            ],
+        ];
     }
 
     public function getConfig()
     {
         return include __DIR__ . '/config/module.config.php';
     }
-    
+
     public function init(ModuleManager $moduleManager)
     {
+        // TODO: it needs to be documented why we want to inject the current_controller and current_action here..
         $sharedEvents = $moduleManager->getEventManager()->getSharedManager();
-        $sharedEvents->attach(__NAMESPACE__, 'dispatch', function ($e) {
+        $sharedEvents->attach(__NAMESPACE__, 'dispatch', function ($e): void {
             $controller = $e->getTarget();
             $controller->layout('immunization/layout/layout');
                 $route = $controller->getEvent()->getRouteMatch();
-                $controller->getEvent()->getViewModel()->setVariables(array(
+                $controller->getEvent()->getViewModel()->setVariables([
                     'current_controller' => $route->getParam('controller'),
                     'current_action' => $route->getParam('action'),
-                ));
+                ]);
         }, 100);
-    }
-    
-    public function getServiceConfig()
-    {
-        return array(
-            'factories' => array(
-                'Immunization\Model\ImmunizationTable' =>  function ($sm) {
-                    $tableGateway = $sm->get('ImmunizationTableGateway');
-                    $table = new ImmunizationTable($tableGateway);
-                    return $table;
-                },
-                'ImmunizationTableGateway' => function ($sm) {
-                    $dbAdapter = $sm->get('Zend\Db\Adapter\Adapter');
-                    $resultSetPrototype = new ResultSet();
-                    $resultSetPrototype->setArrayObjectPrototype(new Immunization());
-                    return new TableGateway('module_menu', $dbAdapter, null, $resultSetPrototype);
-                },
-            ),
-        );
-    }
-
-    
-    public function getViewHelperConfig()
-    {
-        return array(
-            'factories' => array(
-                // the array key here is the name you will call the view helper by in your view scripts
-                'emr_helper' => function ($sm) {
-                    $locator = $sm->getServiceLocator(); // $sm is the view helper manager, so we need to fetch the main service manager
-                    return new Emr($locator->get('Request'));
-                },
-                'menu' => function ($sm) {
-                    $locator = $sm->getServiceLocator();
-                    return new Menu();
-                },
-            ),
-        );
     }
 }

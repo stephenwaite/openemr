@@ -1,4 +1,5 @@
 <?php
+
 /** @package    verysimple::Phreeze */
 
 /**
@@ -18,11 +19,9 @@ require_once("verysimple/Util/ExceptionThrower.php");
  */
 class CacheMemCache implements ICache
 {
-    private $_memcache = null;
     private $_prefix = "";
-    private $_suppressServerErrors = false;
     private $_lockFilePath = "";
-    
+
     /**
      * Constructor requires a reference to a MemCache object
      *
@@ -33,14 +32,12 @@ class CacheMemCache implements ICache
      * @param
      *          bool set to true to ignore errors if a connection can't be made to the cache server
      */
-    public function __construct($memcache, $uniquePrefix = "CACHE-", $suppressServerErrors = false)
+    public function __construct(private $_memcache, $uniquePrefix = "CACHE-", private $_suppressServerErrors = false)
     {
-        $this->_memcache = $memcache;
         $this->_prefix = $uniquePrefix ? $uniquePrefix . "-" : "";
-        $this->_suppressServerErrors = $suppressServerErrors;
         $this->LastServerError;
     }
-    
+
     /**
      * @inheritdocs
      */
@@ -58,10 +55,10 @@ class CacheMemCache implements ICache
                 throw $ex;
             }
         }
-        
+
         return $obj;
     }
-    
+
     /**
      * @inheritdocs
      */
@@ -79,10 +76,10 @@ class CacheMemCache implements ICache
                 throw $ex;
             }
         }
-        
+
         return $result;
     }
-    
+
     /**
      * @inheritdocs
      */
@@ -100,7 +97,7 @@ class CacheMemCache implements ICache
                 throw $ex;
             }
         }
-        
+
         return $result;
     }
 }

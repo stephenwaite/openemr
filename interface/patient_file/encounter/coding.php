@@ -1,5 +1,7 @@
 <?php
+
 /**
+ * TODO: @adunsulag need to find out if this file is used anywhere anymore since it links out to prescriptions and will be impacted by encounter navigation changes.
  * coding.php
  *
  * @package   OpenEMR
@@ -9,7 +11,6 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../../globals.php");
 require_once("../../../custom/code_types.inc.php");
 
@@ -17,7 +18,7 @@ use OpenEMR\Core\Header;
 ?>
 <html>
 <head>
-<?php Header::setupHeader(['no_bootstrap', 'no_fontawesome', 'no_textformat', 'no_dialog']); ?>
+<?php Header::setupHeader(); ?>
 
 <!-- DBC STUFF ================ -->
 
@@ -35,7 +36,7 @@ use OpenEMR\Core\Header;
 <?php foreach ($code_types as $key => $value) { ?>
 <dd><a class="text" href="search_code.php?type=<?php echo attr_url($key); ?>"
  target="Codes" onclick="top.restoreSession()">
-<?php echo text($key); ?> <?php echo xlt('Search'); ?></a></dd>
+    <?php echo text($key); ?> <?php echo xlt('Search'); ?></a></dd>
 <?php } ?>
 
 <dd><a class="text" href="copay.php" target="Codes" onclick="top.restoreSession()"><?php echo xlt('Copay'); ?></a></dd>

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Copyright Medical Information Integration,LLC info@mi-squared.com
  * This program is free software; you can redistribute it and/or
@@ -15,10 +16,10 @@
  * remember that include paths are calculated relative to the including script, not this file.
  * to lock the path to this script (so if called from different scripts) use the dirname(FILE) variable
 */
-require_once(dirname(__FILE__).'/../globals.php');
+require_once(__DIR__ . '/../globals.php');
 
 /* For the addform() function */
-require_once($GLOBALS['srcdir'] . '/forms.inc');
+require_once($GLOBALS['srcdir'] . '/forms.inc.php');
 
 /**
  * @class C_AbstractClickmap
@@ -33,7 +34,7 @@ abstract class C_AbstractClickmap extends Controller
      *
      * @var template_dir
      */
-    var $template_dir;
+    public $template_dir;
 
     /**
      * @brief Initialize a newly created object belonging to this class
@@ -64,7 +65,7 @@ abstract class C_AbstractClickmap extends Controller
     abstract public function createModel($form_id = "");
 
     /**
-     * @brief Override this abstract function with your implememtation of getImage
+     * @brief Override this abstract function with your implementation of getImage
      *
      * @return The path to the image backing this form relative to the webroot.
      */
@@ -78,7 +79,7 @@ abstract class C_AbstractClickmap extends Controller
     abstract function getOptionsLabel();
 
     /**
-     * @brief Override this abstract functon to return a hash of the optionlist (key=>value pairs).
+     * @brief Override this abstract function to return a hash of the optionlist (key=>value pairs).
      *
      * @return A hash of key=>value pairs, representing all the possible options in the dropdown boxes on this form.
      */
@@ -113,6 +114,7 @@ abstract class C_AbstractClickmap extends Controller
         $model = $this->createModel();
         $this->assign("form", $model);
         $this->set_context($model);
+        $this->assign("reportMode", false);
         return $this->fetch($this->template_dir . $this->template_mod . "_new.html");
     }
 
@@ -129,6 +131,7 @@ abstract class C_AbstractClickmap extends Controller
         $model = $this->createModel($form_id);
         $this->assign("form", $model);
         $this->set_context($model);
+        $this->assign("reportMode", false);
         return $this->fetch($this->template_dir . $this->template_mod . "_new.html");
     }
 
@@ -146,6 +149,7 @@ abstract class C_AbstractClickmap extends Controller
         $this->assign("form", $model);
         $this->set_context($model);
         $model->hideNav = "true";
+        $this->assign("reportMode", true);
         return $this->fetch($this->template_dir . $this->template_mod . "_new.html");
     }
 
@@ -158,9 +162,9 @@ abstract class C_AbstractClickmap extends Controller
             return;
         }
 
-        $this->model = $this->createModel($_POST['id']);
-        parent::populate_object($this->model);
-        $this->model->persist();
+        $model = $this->createModel($_POST['id']);
+        parent::populate_object($model);
+        $model->persist();
         if ($GLOBALS['encounter'] == "") {
             $GLOBALS['encounter'] = date("Ymd");
         }
@@ -168,9 +172,9 @@ abstract class C_AbstractClickmap extends Controller
         if (empty($_POST['id'])) {
             addForm(
                 $GLOBALS['encounter'],
-                $this->model->getTitle(),
-                $this->model->id,
-                $this->model->getCode(),
+                $model->getTitle(),
+                $model->id,
+                $model->getCode(),
                 $GLOBALS['pid'],
                 $_SESSION['userauthorized']
             );

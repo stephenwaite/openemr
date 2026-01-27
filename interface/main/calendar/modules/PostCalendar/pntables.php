@@ -1,4 +1,5 @@
 <?php
+
 /**
  *  $Id$
  *
@@ -24,7 +25,7 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
- 
+
 /**
  * This function is called internally by the core whenever the module is
  * loaded.  It adds in the information
@@ -32,13 +33,13 @@
 function postcalendar_pntables()
 {
     // Initialise table array
-    $pntable = array();
+    $pntable = [];
     $prefix = pnConfigGetVar('prefix');
     //$prefix = 'Rogue';
 
     $pc_events = $prefix . '_postcalendar_events';
     $pntable['postcalendar_events'] = $pc_events;
-    $pntable['postcalendar_events_column'] = array(
+    $pntable['postcalendar_events_column'] = [
         'eid'           => 'pc_eid',
         'catid'         => 'pc_catid',
         'lid'           => 'pc_lid',
@@ -68,13 +69,13 @@ function postcalendar_pntables()
         'eventstatus'   => 'pc_eventstatus',
         'sharing'       => 'pc_sharing',
         'language'      => 'pc_language'
-        );
-    
+        ];
+
     // @since version 3.1
     // new category table
     $pc_categories = $prefix . '_postcalendar_categories';
     $pntable['postcalendar_categories'] = $pc_categories;
-    $pntable['postcalendar_categories_column'] = array(
+    $pntable['postcalendar_categories_column'] = [
         'catid'         => 'pc_catid',
         'catname'       => 'pc_catname',
         'catcolor'      => 'pc_catcolor',
@@ -84,15 +85,6 @@ function postcalendar_pntables()
         'recurrfreq'    =>  'pc_recurrfreq',
         'duration'      =>  'pc_duration',
         'limit'         =>  'pc_dailylimit'
-        );
-    $pc_limit = $prefix . '_postcalendar_limits';
-    $pntable['postcalendar_limits'] = $pc_limit;
-    $pntable['postcalendar_limits_column'] = array(
-        'limitid'       =>  'pc_limitid',
-        'catid'         =>  'pc_catid',
-        'starttime'     =>  'pc_starttime',
-        'endtime'       =>  'pc_endtime',
-        'limit'         =>  'pc_limit'
-        );
+        ];
     return $pntable;
 }

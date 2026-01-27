@@ -1,4 +1,5 @@
 <?php
+
 /**
  * This report lists non reported patient diagnoses for a given date range.
  * Ensoftek: Jul-2015: Modified HL7 generation to 2.5.1 spec and MU2 compliant.
@@ -17,16 +18,23 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
-require_once("$srcdir/patient.inc");
+require_once("$srcdir/patient.inc.php");
 require_once("../../custom/code_types.inc.php");
 
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Core\Header;
 
+if (!AclMain::aclCheckCore('patients', 'med')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Syndromic Surveillance - Non Reported Issues")]);
+    exit;
+}
+
 if (!empty($_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 }
 
@@ -34,7 +42,7 @@ if (!empty($_POST)) {
 function getLoggedInUserFacility()
 {
     $sql = "SELECT f.name, f.facility_npi FROM users AS u LEFT JOIN facility AS f ON u.facility_id = f.id WHERE u.id=?";
-    $res = sqlStatement($sql, array($_SESSION['authUserID']));
+    $res = sqlStatement($sql, [$_SESSION['authUserID']]);
     while ($arow = sqlFetchArray($res)) {
         return $arow;
     }
@@ -46,25 +54,14 @@ function getLoggedInUserFacility()
 function mapCodeType($incode)
 {
     $outcode = null;
-    $code = explode(":", $incode);
-    switch ($code[0]) {
-        case "ICD9":
-            $outcode = "I9CDX";
-            break;
-        case "ICD10":
-            $outcode = "I10";
-            break;
-        case "SNOMED-CT":
-            $outcode = "SCT";
-            break;
-        case "US Ext SNOMEDCT":
-            $outcode = "SCT";
-            break;
-        default:
-            $outcode = "I9CDX"; // default to ICD9
-            break;
-             // Only ICD9, ICD10 and SNOMED codes allowed in Syndromic Surveillance
-    }
+    $code = explode(":", (string) $incode);
+    $outcode = match ($code[0]) {
+        "ICD9" => "I9CDX",
+        "ICD10" => "I10",
+        "SNOMED-CT" => "SCT",
+        "US Ext SNOMEDCT" => "SCT",
+        default => "I9CDX",
+    };
 
     return $outcode;
 }
@@ -74,57 +71,42 @@ $from_date = (!empty($_POST['form_from_date'])) ? DateToYYYYMMDD($_POST['form_fr
 $to_date = (!empty($_POST['form_to_date'])) ? DateToYYYYMMDD($_POST['form_to_date']) : '';
 
 //
-$form_code = isset($_POST['form_code']) ? $_POST['form_code'] : array();
-//
-if (empty($form_code)) {
-    $query_codes = '';
-} else {
-    $query_codes = 'c.id in (';
-    foreach ($form_code as $code) {
-        $query_codes .= add_escape_custom($code) . ",";
-    }
-
-      $query_codes = substr($query_codes, 0, -1);
-      $query_codes .= ') and ';
-}
-
-//
 function tr($a)
 {
     return (str_replace(' ', '^', $a));
 }
 
-  $sqlBindArray = array();
+  $sqlBindArray = [];
   $query =
   "select " .
   "l.pid as patientid, " .
-  "p.language, ".
+  "p.language, " .
   "l.diagnosis , " ;
-if ($_POST['form_get_hl7']==='true') {
+if (!empty($_POST['form_get_hl7']) && ($_POST['form_get_hl7'] === 'true')) {
     $query .=
-    "DATE_FORMAT(p.DOB,'%Y%m%d') as DOB, ".
-    "concat(p.street, '^',p.postal_code,'^', p.city, '^', p.state) as address, ".
-    "p.country_code, ".
-    "p.phone_home, ".
-    "p.phone_biz, ".
-    "p.status, ".
-    "p.sex, ".
-    "p.ethnoracial, ".
-    "c.code_text, ".
-    "c.code, ".
-    "c.code_type, ".
-    "DATE_FORMAT(l.date,'%Y%m%d') as issuedate, ".
+    "DATE_FORMAT(p.DOB,'%Y%m%d') as DOB, " .
+    "concat(p.street, '^',p.postal_code,'^', p.city, '^', p.state) as address, " .
+    "p.country_code, " .
+    "p.phone_home, " .
+    "p.phone_biz, " .
+    "p.status, " .
+    "p.sex, " .
+    "p.ethnoracial, " .
+    "c.code_text, " .
+    "c.code, " .
+    "c.code_type, " .
+    "DATE_FORMAT(l.date,'%Y%m%d') as issuedate, " .
     "concat(p.fname, '^',p.mname,'^', p.lname) as patientname, ";
 } else {
-    $query .= "concat(p.fname, ' ',p.mname,' ', p.lname) as patientname, ".
+    $query .= "concat(p.fname, ' ',p.mname,' ', p.lname) as patientname, " .
     "l.date as issuedate, "  ;
 }
 
   $query .=
-  "l.id as issueid, l.title as issuetitle, DATE_FORMAT(l.begdate,'%Y%m%d%H%i') as begin_date ". // Ensoftek: Jul-2015: Get begin date
-  "from lists l, patient_data p, codes c ".
-  "where ".
-  "c.reportable=1 and ".
+  "l.id as issueid, l.title as issuetitle, DATE_FORMAT(l.begdate,'%Y%m%d%H%i') as begin_date " . // Ensoftek: Jul-2015: Get begin date
+  "from lists l, patient_data p, codes c " .
+  "where " .
+  "c.reportable=1 and " .
   "l.id not in (select lists_id from syndromic_surveillance) and ";
 if (!empty($from_date)) {
     $query .= "l.date >= ? " ;
@@ -144,36 +126,49 @@ if (!empty($from_date) || !empty($to_date)) {
     $query .= " and " ;
 }
 
-  $query .= "l.pid=p.pid and ".
+$form_code = $_POST['form_code'] ?? [];
+if (empty($form_code)) {
+    $query_codes = '';
+} else {
+    $query_codes = 'c.id in (';
+    foreach ($form_code as $code) {
+        $query_codes .= '?,';
+        array_push($sqlBindArray, $code);
+    }
+    $query_codes = substr($query_codes, 0, -1);
+    $query_codes .= ') and ';
+}
+
+  $query .= "l.pid=p.pid and " .
   $query_codes .
-  "l.diagnosis LIKE 'ICD9:%' and ".
+  "l.diagnosis LIKE 'ICD9:%' and " .
   "substring(l.diagnosis,6) = c.code ";
 
 //echo "<p> DEBUG query: $query </p>\n"; // debugging
 
-$D="\r";
+$D = "\r";
 $nowdate = date('YmdHi');
 $now = date('YmdGi');
 $now1 = date('Y-m-d G:i');
-$filename = "syn_sur_". $now . ".hl7";
+$filename = "syn_sur_" . $now . ".hl7";
 
 
 // Ensoftek: Jul-2015: Get logged in user's facility to be used in the MSH segment
 $facility_info = getLoggedInUserFacility();
 
 // GENERATE HL7 FILE
-if ($_POST['form_get_hl7']==='true') {
+if (!empty($_POST['form_get_hl7']) && ($_POST['form_get_hl7'] === 'true')) {
     $content = '';
 
     $res = sqlStatement($query, $sqlBindArray);
 
     while ($r = sqlFetchArray($res)) {
         // MSH
-        $content .= "MSH|^~\&|".strtoupper($openemr_name).
+        $content .= "MSH|^~\&|" . strtoupper((string) $openemr_name) .
         "|" . $facility_info['name'] . "^" . $facility_info['facility_npi'] . "^NPI" .
-        "|||$now||".
+        "|||$now||" .
         "ADT^A01^ADT_A01" . // Hard-code to A01: Patient visits provider/facility
-        "|$nowdate|P^T|2.5.1|||||||||PH_SS-NoAck^SS Sender^2.16.840.1.114222.4.10.3^ISO" . // No acknowlegement
+        "|$nowdate|P^T|2.5.1|||||||||PH_SS-NoAck^SS Sender^2.16.840.1.114222.4.10.3^ISO" . // No acknowledgement
         "$D";
 
         // EVN
@@ -184,35 +179,35 @@ if ($_POST['form_get_hl7']==='true') {
         "|" . $facility_info['name'] . "^" . $facility_info['facility_npi'] . "^NPI" .
         "$D" ;
 
-        if ($r['sex']==='Male') {
+        if ($r['sex'] === 'Male') {
             $r['sex'] = 'M';
         }
 
-        if ($r['sex']==='Female') {
+        if ($r['sex'] === 'Female') {
             $r['sex'] = 'F';
         }
 
-        if ($r['status']==='married') {
+        if ($r['status'] === 'married') {
             $r['status'] = 'M';
         }
 
-        if ($r['status']==='single') {
+        if ($r['status'] === 'single') {
             $r['status'] = 'S';
         }
 
-        if ($r['status']==='divorced') {
+        if ($r['status'] === 'divorced') {
             $r['status'] = 'D';
         }
 
-        if ($r['status']==='widowed') {
+        if ($r['status'] === 'widowed') {
             $r['status'] = 'W';
         }
 
-        if ($r['status']==='separated') {
+        if ($r['status'] === 'separated') {
             $r['status'] = 'A';
         }
 
-        if ($r['status']==='domestic partner') {
+        if ($r['status'] === 'domestic partner') {
             $r['status'] = 'P';
         }
 
@@ -220,11 +215,11 @@ if ($_POST['form_get_hl7']==='true') {
         $content .= "PID|" .
         "1|" . // 1. Set id
         "|" .
-        $r['patientid']."^^^^MR"."|". // 3. (R) Patient indentifier list
+        $r['patientid'] . "^^^^MR" . "|" . // 3. (R) Patient identifier list
         "|" . // 4. (B) Alternate PID
-        "^^^^^^~^^^^^^S"."|" . // 5.R. Name
-        "|" . // 6. Mather Maiden Name
-        $r['DOB']."|" . // 7. Date, time of birth
+        "^^^^^^~^^^^^^S" . "|" . // 5.R. Name
+        "|" . // 6. Mother's Maiden Name
+        $r['DOB'] . "|" . // 7. Date, time of birth
         $r['sex'] . // 8. Sex
         "|||^^^||||||||||||||||||||||||||||" .
         "$D" ;
@@ -262,7 +257,7 @@ if ($_POST['form_get_hl7']==='true') {
         // mark if issues generated/sent
         $query_insert = "insert into syndromic_surveillance(lists_id, submission_date, filename) " .
          "values (?, ?, ?)";
-        sqlStatement($query_insert, array($r['issueid'], $now1, $filename));
+        sqlStatement($query_insert, [$r['issueid'], $now1, $filename]);
     }
 
   // Ensoftek: Jul-2015: No need to tr the content
@@ -284,11 +279,11 @@ if ($_POST['form_get_hl7']==='true') {
 
     <?php Header::setupHeader('datetime-picker'); ?>
 
-    <script language="JavaScript">
+    <script>
 
         <?php require($GLOBALS['srcdir'] . "/restoreSession.php"); ?>
 
-        $(document).ready(function() {
+        $(function () {
             var win = top.printLogSetup ? top : opener.top;
             win.printLogSetup(document.getElementById('printbutton'));
 
@@ -303,7 +298,7 @@ if ($_POST['form_get_hl7']==='true') {
 
     </script>
 
-    <style type="text/css">
+    <style>
     /* specifically include & exclude from printing */
     @media print {
         #report_parameters {
@@ -337,11 +332,11 @@ if ($_POST['form_get_hl7']==='true') {
 <span class='title'><?php echo xlt('Report'); ?> - <?php echo xlt('Syndromic Surveillance - Non Reported Issues'); ?></span>
 
 <div id="report_parameters_daterange">
-<?php echo text(oeFormatShortDate($from_date)) ." &nbsp; " . xlt('to')  . "&nbsp; ". text(oeFormatShortDate($to_date)); ?>
+<?php echo text(oeFormatShortDate($from_date)) . " &nbsp; " . xlt('to{{Range}}')  . "&nbsp; " . text(oeFormatShortDate($to_date)); ?>
 </div>
 
 <form name='theform' id='theform' method='post' action='non_reported.php' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 <div id="report_parameters">
 <input type='hidden' name='form_refresh' id='form_refresh' value=''/>
 <input type='hidden' name='form_get_hl7' id='form_get_hl7' value=''/>
@@ -351,14 +346,14 @@ if ($_POST['form_get_hl7']==='true') {
     <div style='float:left'>
       <table class='text'>
         <tr>
-          <td class='control-label'>
+          <td class='col-form-label'>
             <?php echo xlt('Diagnosis'); ?>:
           </td>
           <td>
 <?php
  // Build a drop-down list of codes.
  //
- $query1 = "select id, code as name, code_type from codes ".
+ $query1 = "select id, code as name, code_type from codes " .
    " where reportable=1 ORDER BY name";
  $cres = sqlStatement($query1);
  echo "   <select multiple='multiple' size='3' name='form_code[]' class='form-control'>\n";
@@ -381,7 +376,7 @@ while ($crow = sqlFetchArray($cres)) {
  echo "   </select>\n";
 ?>
           </td>
-          <td class='control-label'>
+          <td class='col-form-label'>
             <?php echo xlt('From'); ?>:
           </td>
           <td>
@@ -389,8 +384,8 @@ while ($crow = sqlFetchArray($cres)) {
             class='datepicker form-control'
             size='10' value='<?php echo attr(oeFormatShortDate($from_date)); ?>'>
           </td>
-          <td class='control-label'>
-            <?php echo xlt('To'); ?>:
+          <td class='col-form-label'>
+            <?php echo xlt('To{{Range}}'); ?>:
           </td>
           <td>
             <input type='text' name='form_to_date' id="form_to_date"
@@ -401,13 +396,13 @@ while ($crow = sqlFetchArray($cres)) {
       </table>
     </div>
   </td>
-  <td align='left' valign='middle' height="100%">
-    <table style='border-left:1px solid; width:100%; height:100%' >
+  <td class='h-100' align='left' valign='middle'>
+    <table class='w-100 h-100' style='border-left:1px solid;'>
       <tr>
         <td>
           <div class="text-center">
             <div class="btn-group" role="group">
-              <a href='#' class='btn btn-default btn-refresh'
+              <a href='#' class='btn btn-secondary btn-refresh'
                 onclick='
                   $("#form_refresh").attr("value","true");
                   $("#form_get_hl7").attr("value","false");
@@ -415,11 +410,11 @@ while ($crow = sqlFetchArray($cres)) {
                 '>
                 <?php echo xlt('Refresh'); ?>
               </a>
-                <?php if ($_POST['form_refresh']) { ?>
-                <a href='#' class='btn btn-default btn-print' id='printbutton'>
+                <?php if (!empty($_POST['form_refresh'])) { ?>
+                <a href='#' class='btn btn-secondary btn-print' id='printbutton'>
                     <?php echo xlt('Print'); ?>
                 </a>
-                <a href='#' class='btn btn-default btn-transmit' onclick=
+                <a href='#' class='btn btn-secondary btn-transmit' onclick=
                   "if(confirm(<?php echo xlj('This step will generate a file which you have to save for future use. The file cannot be generated again. Do you want to proceed?'); ?>)) {
                     $('#form_get_hl7').attr('value','true');
                     $('#theform').submit();
@@ -439,11 +434,11 @@ while ($crow = sqlFetchArray($cres)) {
 
 
 <?php
-if ($_POST['form_refresh']) {
-?>
+if (!empty($_POST['form_refresh'])) {
+    ?>
 <div id="report_results">
-<table>
-<thead align="left">
+<table class='table'>
+<thead class='thead-light' align="left">
 <th> <?php echo xlt('Patient ID'); ?> </th>
 <th> <?php echo xlt('Patient Name'); ?> </th>
 <th> <?php echo xlt('Diagnosis'); ?> </th>
@@ -452,38 +447,38 @@ if ($_POST['form_refresh']) {
 <th> <?php echo xlt('Issue Date'); ?> </th>
 </thead>
 <tbody>
-<?php
-$total = 0;
+    <?php
+    $total = 0;
 //echo "<p> DEBUG query: $query </p>\n"; // debugging
-$res = sqlStatement($query, $sqlBindArray);
+    $res = sqlStatement($query, $sqlBindArray);
 
 
-while ($row = sqlFetchArray($res)) {
-?>
+    while ($row = sqlFetchArray($res)) {
+        ?>
 <tr>
 <td>
-<?php echo text($row['patientid']) ?>
+        <?php echo text($row['patientid']) ?>
 </td>
 <td>
-<?php echo text($row['patientname']) ?>
+        <?php echo text($row['patientname']) ?>
 </td>
 <td>
-<?php echo text($row['diagnosis']) ?>
+        <?php echo text($row['diagnosis']) ?>
 </td>
 <td>
-<?php echo text($row['issueid']) ?>
+        <?php echo text($row['issueid']) ?>
 </td>
 <td>
-<?php echo text($row['issuetitle']) ?>
+        <?php echo text($row['issuetitle']) ?>
 </td>
 <td>
-<?php echo text($row['issuedate']) ?>
+        <?php echo text($row['issuedate']) ?>
 </td>
 </tr>
-<?php
-++$total;
-}
-?>
+        <?php
+        ++$total;
+    }
+    ?>
 <tr class="report_totals">
  <td colspan='9'>
     <?php echo xlt('Total Number of Issues'); ?>
@@ -497,7 +492,7 @@ while ($row = sqlFetchArray($res)) {
 </div> <!-- end of results -->
 <?php } else { ?>
 <div class='text'>
-    <?php echo xlt('Click Refresh to view all results, or please input search criteria above to view specific results.'); ?><br>
+    <?php echo xlt('Click Refresh to view all results, or please input search criteria above to view specific results.'); ?><br />
   (<?php echo xlt('This report currently only works for ICD9 codes.'); ?>)
 </div>
 <?php } ?>

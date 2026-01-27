@@ -1,4 +1,5 @@
 <?php
+
 /**
  *  $Id$
  *
@@ -24,8 +25,13 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
+
 require_once $this->_get_plugin_filepath('shared', 'make_timestamp');
-function smarty_function_pc_date_format($args)
+
+//This provides a cross-platform alternative to strftime() for when it will be removed from PHP.
+use function PHP81_BC\strftime;
+
+function smarty_function_pc_date_format($args): void
 {
     extract($args);
     unset($args);
@@ -35,7 +41,7 @@ function smarty_function_pc_date_format($args)
     }
 
     if (isset($date)) {
-        list($y,$m,$d) = explode('-', $date);
+        [$y, $m, $d] = explode('-', $date);
         echo strftime($format, smarty_make_timestamp($date));
     } else {
         echo strftime($format, time());

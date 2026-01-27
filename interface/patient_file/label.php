@@ -1,4 +1,5 @@
 <?php
+
 /**
  * interface/patient_file/label.php Displaying a PDF file of Labels for printing.
  *
@@ -15,7 +16,6 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
 
 //Get the data to place on labels
@@ -24,7 +24,7 @@ $patdata = sqlQuery("SELECT " .
   "p.fname, p.mname, p.lname, p.pubpid, p.DOB, " .
   "p.street, p.city, p.state, p.postal_code, p.pid " .
   "FROM patient_data AS p " .
-  "WHERE p.pid = ? LIMIT 1", array($pid));
+  "WHERE p.pid = ? LIMIT 1", [$pid]);
 
 // re-order the dates
 //
@@ -58,7 +58,7 @@ $text = sprintf("  %s %s\n  %s\n  %s\n  %s", $patdata['fname'], $patdata['lname'
 // For loop for printing the labels
 //
 
-for ($i=1; $i<=$last; $i++) {
+for ($i = 1; $i <= $last; $i++) {
     $pdf->Add_Label($text);
 }
 

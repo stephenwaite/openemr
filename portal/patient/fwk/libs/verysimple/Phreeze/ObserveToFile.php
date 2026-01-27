@@ -1,4 +1,5 @@
 <?php
+
 /** @package    verysimple::Phreeze */
 
 /**
@@ -18,15 +19,10 @@ require_once("verysimple/HTTP/RequestUtil.php");
  */
 class ObserveToFile implements IObserver
 {
-    private $filepath;
-    private $eventtype;
     private $fh;
     private $fileIsOpen = false;
-    public function __construct($filepath, $eventtype = null)
+    public function __construct(private $filepath, private $eventtype = null)
     {
-        $this->filepath = $filepath;
-        $this->eventtype = $eventtype;
-        
         $this->Init();
     }
     public function __destruct()
@@ -42,29 +38,25 @@ class ObserveToFile implements IObserver
     }
     public function Observe($obj, $ltype = OBSERVE_INFO)
     {
-        if (is_object($obj) || is_array($obj)) {
-            $msg = "<pre>" . print_r($obj, 1) . "</pre>";
-        } else {
-            $msg = $obj;
-        }
-        
-        $msg = date("Y-m-d H:i:s:u") . "\t" . getmypid() . "\t" . str_replace(array (
+        $msg = is_object($obj) || is_array($obj) ? "<pre>" . print_r($obj, 1) . "</pre>" : $obj;
+
+        $msg = date("Y-m-d H:i:s:u") . "\t" . getmypid() . "\t" . str_replace([
                 "\t",
                 "\r",
                 "\n"
-        ), array (
+        ], [
                 " ",
                 " ",
                 " "
-        ), $msg);
-        
+        ], $msg);
+
         if ($this->eventtype == null || $this->eventtype & $ltype) {
             // this can occur if the file has been closed due to the php script terminating
             if (! $this->fileIsOpen) {
                 $this->Init();
                 fwrite($this->fh, "WARN:\t" . date("Y-m-d H:i:s:u") . "\tfilehandle was re-opened due to Observe being called after destruction\r\n");
             }
-            
+
             switch ($ltype) {
                 case OBSERVE_DEBUG:
                     fwrite($this->fh, "DEBUG:\t$msg\r\n");
@@ -89,23 +81,23 @@ class ObserveToFile implements IObserver
     {
         $msg = "";
         $delim = "";
-        
+
         $calling_function = "";
         $calling_line = "[?]";
-        for ($x = count($tb); $x > 0; $x --) {
+        for ($x = count($tb); $x > 0; $x--) {
             $stack = $tb [$x - 1];
             $s_file = isset($stack ['file']) ? basename($stack ['file']) : "[?]";
-            $s_line = isset($stack ['line']) ? $stack ['line'] : "[?]";
-            $s_function = isset($stack ['function']) ? $stack ['function'] : "";
-            $s_class = isset($stack ['class']) ? $stack ['class'] : "";
-            $s_type = isset($stack ['type']) ? $stack ['type'] : "";
-            
+            $s_line = $stack ['line'] ?? "[?]";
+            $s_function = $stack ['function'] ?? "";
+            $s_class = $stack ['class'] ?? "";
+            $s_type = $stack ['type'] ?? "";
+
             $msg .= $delim . "$calling_function" . ($show_lines ? " ($s_file Line $s_line)" : "");
             $calling_function = $s_class . $s_type . $s_function;
-            
+
             $delim = $join;
         }
-        
+
         return $msg;
     }
 }

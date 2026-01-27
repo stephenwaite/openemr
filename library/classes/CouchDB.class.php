@@ -1,4 +1,5 @@
 <?php
+
 // +-----------------------------------------------------------------------------+
 // Copyright (C) 2012 Z&H Consultancy Services Private Limited <sam@zhservices.com>
 //
@@ -25,13 +26,17 @@
 //
 // +------------------------------------------------------------------------------+
 
+use OpenEMR\Common\Crypto\CryptoGen;
+use OpenEMR\Common\Uuid\UuidRegistry;
+
 class CouchDB
 {
     function __construct()
     {
         $this->host = $GLOBALS['couchdb_host'];
         $this->user = ($GLOBALS['couchdb_user'] != '') ? $GLOBALS['couchdb_user'] : null;
-        $this->pass = (decryptStandard($GLOBALS['couchdb_pass']) != '') ? decryptStandard($GLOBALS['couchdb_pass']) : null;
+        $cryptoGen = new CryptoGen();
+        $this->pass = ($cryptoGen->decryptStandard($GLOBALS['couchdb_pass']) != '') ? $cryptoGen->decryptStandard($GLOBALS['couchdb_pass']) : null;
         $this->port = $GLOBALS['couchdb_port'];
         $this->dbase = $GLOBALS['couchdb_dbase'];
     }
@@ -39,7 +44,7 @@ class CouchDB
     function check_connection()
     {
         $resp = $this->send("GET", "/"); // response: string(46) "{"couchdb": "Welcome", "version": "0.7.0a553"}"
-        $response = json_decode($resp);
+        $response = json_decode((string) $resp);
         if ($response->couchdb && $response->version) {
             return true;
         } else {
@@ -47,97 +52,110 @@ class CouchDB
         }
     }
 
-    function createDB($db)
+    function createDB()
     {
-        $resp = $this->send("PUT", "/".$db);
+        $resp = $this->send("PUT", "/" . $this->dbase);
         return true;
     }
 
-    function createView($db)
+    // note this will include _id (and not allow _rev) in the $data
+    function save_doc($data)
     {
-
-        $resp = $this->send("PUT", "/".$db."/_design/FilteringViews", '{"_id":"_design/FilteringViews","views": {"FilterPid": {"map": "function(doc) { if(doc.pid){emit(doc._id, doc);} }"},
-                                                                                                                "FilterEncounter": {"map": "function(doc) { if(doc.encounter){emit(doc._id, doc);} }"},
-                                                                                                                "FilterPidEncounter": {"map": "function(doc) { if(doc.pid && doc.encounter){emit(doc._id, doc);} }"}}}');
-        return json_decode($resp);
-    }
-
-    function check_saveDOC($data)
-    {
-        list($db,$docid,$patient_id,$encounter,$type,$json, $th_json) = $data;
-        $couch_json = array();
-        $couch_json['_id'] = $docid;
-        $couch_json['pid'] = $patient_id;
-        $couch_json['encounter'] = $encounter;
-        $couch_json['mimetype'] = $type;
-        $couch_json['data'] = $json;
-        if ($th_json) {
-            $couch_json['th_data'] = $th_json;
+        $couch_json = [];
+        foreach ($data as $key => $value) {
+            if ($key == '_rev') {
+                continue;
+            }
+            $couch_json[$key] = $value;
         }
-
-        $resp = $this->send("PUT", "/".$db."/".$docid, json_encode($couch_json));
-        return json_decode($resp);
+        $resp = $this->send("PUT", "/" . $this->dbase . "/" . $data['_id'], json_encode($couch_json));
+        return json_decode((string) $resp);
     }
 
+    // note this will include _id and _rev in the $data
     function update_doc($data)
     {
-        list($db,$docid,$revid,$patient_id,$encounter,$type,$json, $th_json) = $data;
-        $couch_json = array();
-        $couch_json['_id'] = $docid;
-        $couch_json['_rev'] = $revid;
-        $couch_json['pid'] = $patient_id;
-        $couch_json['encounter'] = $encounter;
-        $couch_json['mimetype'] = $type;
-        $couch_json['data'] = $json;
-        if ($th_json) {
-            $couch_json['th_data'] = $th_json;
+        $couch_json = [];
+        foreach ($data as $key => $value) {
+            $couch_json[$key] = $value;
         }
-
-        $resp = $this->send("PUT", "/".$db."/".$docid, json_encode($couch_json));
-        return json_decode($resp);
+        $resp = $this->send("PUT", "/" . $this->dbase . "/" . $data['_id'], json_encode($couch_json));
+        return json_decode((string) $resp);
     }
 
-    function DeleteDoc($db, $docid, $revid)
+    function DeleteDoc($docid, $revid)
     {
-        $resp = $this->send("DELETE", "/".$db."/".$docid."?rev=".$revid);
+        $resp = $this->send("DELETE", "/" . $this->dbase . "/" . $docid . "?rev=" . $revid);
         return true;
     }
 
-    function retrieve_doc($data)
+    function retrieve_doc($docid)
     {
-        list($db,$docid) = $data;
-        $resp = $this->send("GET", "/".$db."/".$docid);
-        return json_decode($resp); // string(47) "{"_id":"123","_rev":"2039697587","data":"Foo"}"
+        $resp = $this->send("GET", "/" . $this->dbase . "/" . $docid);
+        return json_decode((string) $resp); // string(47) "{"_id":"123","_rev":"2039697587","data":"Foo"}"
     }
 
-    function stringToId($string, $replace = '_')
+    // category is either documents or ccda
+    function createDocId($category)
     {
-        // First translit string to ASCII, as this characters are most probably
-        // supported everywhere
-        // Note that musl library (used in alpine os) does not support below iconv
-        //  call, so if return is empty, then will try another iconv call, and
-        //  if that is empty, will then not do iconv.
-        $string_iconv = iconv('UTF-8', 'ASCII//TRANSLIT', $string);
-        if (empty($string_iconv)) {
-            $string_iconv = iconv('UTF-8', 'ASCII', $string);
-        }
-        if (empty($string_iconv)) {
-            $string_iconv = $string;
-        }
-        $string = $string_iconv;
-
-        // And then still replace any obscure characters by _ to ensure nothing
-        // "bad" happens with this string.
-        $string = preg_replace('([^A-Za-z0-9.-]+)', $replace, $string);
-
-        // Additionally we convert the string to lowercase, so that we get case
-        // insensitive fetching
-        return strtolower($string);
+        return UuidRegistry::uuidToString((new UuidRegistry(['couchdb' => $category]))->createUuid());
     }
 
     function send($method, $url, $post_data = null)
     {
-        $s = fsockopen($this->host, $this->port, $errno, $errstr);
+        if ($GLOBALS['couchdb_connection_ssl']) {
+            // encrypt couchdb over the wire
+            if (
+                file_exists($GLOBALS['OE_SITE_DIR'] . "/documents/certificates/couchdb-ca") &&
+                file_exists($GLOBALS['OE_SITE_DIR'] . "/documents/certificates/couchdb-cert") &&
+                file_exists($GLOBALS['OE_SITE_DIR'] . "/documents/certificates/couchdb-key")
+            ) {
+                // support cacert_file and client certificates
+                $stream_context = stream_context_create(
+                    [
+                        'ssl' =>
+                            [
+                                'cafile' => "{$GLOBALS['OE_SITE_DIR']}/documents/certificates/couchdb-ca",
+                                'local_cert' => "{$GLOBALS['OE_SITE_DIR']}/documents/certificates/couchdb-cert",
+                                'local_pk' => "{$GLOBALS['OE_SITE_DIR']}/documents/certificates/couchdb-key"
+                            ]
+                    ]
+                );
+                $s = stream_socket_client('ssl://' . $this->host . ":" . $this->port, $errno, $errstr, ini_get("default_socket_timeout"), STREAM_CLIENT_CONNECT, $stream_context);
+            } elseif (file_exists($GLOBALS['OE_SITE_DIR'] . "/documents/certificates/couchdb-ca")) {
+                // support cacert_file
+                $stream_context = stream_context_create(
+                    [
+                        'ssl' =>
+                            [
+                                'cafile' => "{$GLOBALS['OE_SITE_DIR']}/documents/certificates/couchdb-ca"
+                            ]
+                    ]
+                );
+                $s = stream_socket_client('ssl://' . $this->host . ":" . $this->port, $errno, $errstr, ini_get("default_socket_timeout"), STREAM_CLIENT_CONNECT, $stream_context);
+            } else {
+                if ($GLOBALS['couchdb_ssl_allow_selfsigned']) {
+                    // support self-signed
+                    $stream_context = stream_context_create(
+                        [
+                            'ssl' =>
+                                [
+                                    'verify_peer' => false,
+                                    'allow_self_signed' => true
+                                ]
+                        ]
+                    );
+                    $s = stream_socket_client('ssl://' . $this->host . ":" . $this->port, $errno, $errstr, ini_get("default_socket_timeout"), STREAM_CLIENT_CONNECT, $stream_context);
+                } else {
+                    // self-signed, not supported so do not proceed and return false
+                    return false;
+                }
+            }
+        } else {
+            // do not encrypt couchdb over the wire
+            $s = stream_socket_client('tcp://' . $this->host . ":" . $this->port, $errno, $errstr);
+        }
+
         if (!$s) {
             return false;
         }
@@ -145,11 +163,11 @@ class CouchDB
         $request = "$method $url HTTP/1.0\r\nHost: $this->host\r\n";
 
         if ($this->user) {
-            $request .= 'Authorization: Basic '.base64_encode($this->user.':'.$this->pass)."\r\n";
+            $request .= 'Authorization: Basic ' . base64_encode($this->user . ':' . $this->pass) . "\r\n";
         }
 
         if ($post_data) {
-            $request .= "Content-Length: ".strlen($post_data)."\r\n\r\n";
+            $request .= "Content-Length: " . strlen((string) $post_data) . "\r\n\r\n";
             $request .= "$post_data\r\n";
         } else {
             $request .= "\r\n";
@@ -162,7 +180,7 @@ class CouchDB
             $response .= fgets($s);
         }
 
-        list($this->headers, $this->body) = explode("\r\n\r\n", $response);
+        [$this->headers, $this->body] = explode("\r\n\r\n", $response);
         return $this->body;
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * painmap report.php
  *
@@ -9,10 +10,10 @@
  */
 
 /* include globals.php, required. */
-require_once(dirname(__FILE__).'/../../globals.php');
+require_once(__DIR__ . '/../../globals.php');
 
-/* include api.inc, required. */
-require_once($GLOBALS['srcdir'].'/api.inc');
+/* include api.inc.php, required. */
+require_once($GLOBALS['srcdir'] . '/api.inc.php');
 
 /* include our smarty derived controller class. */
 require('C_FormPainMap.class.php');
@@ -20,7 +21,7 @@ require('C_FormPainMap.class.php');
 /**
  * @brief report function, to display a form in the 'view enounter' page, and in the medical records reports.
  */
-function painmap_report($pid, $encounter, $cols, $id)
+function painmap_report($pid, $encounter, $cols, $id): void
 {
     /* Create a form object. */
     $c = new C_FormPainMap();

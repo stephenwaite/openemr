@@ -24,9 +24,8 @@
  *
  *
  */
-class Savant3_Error
+class Savant3_Error implements \Stringable
 {
-    
     /**
      *
      * The error code, typically a Savant 'ERR_*' string.
@@ -37,7 +36,7 @@ class Savant3_Error
      *
      */
     public $code = null;
-    
+
     /**
      *
      * An array of error-specific information.
@@ -47,8 +46,8 @@ class Savant3_Error
      * @var array
      *
      */
-    public $info = array ();
-    
+    public $info =  [];
+
     /**
      *
      * The error severity level.
@@ -59,7 +58,7 @@ class Savant3_Error
      *
      */
     public $level = E_USER_ERROR;
-    
+
     /**
      *
      * A debug backtrace for the error, if any.
@@ -70,7 +69,7 @@ class Savant3_Error
      *
      */
     public $trace = null;
-    
+
     /**
      *
      * Constructor.
@@ -83,19 +82,19 @@ class Savant3_Error
      *          property.
      *
      */
-    public function __construct($conf = array())
+    public function __construct($conf = [])
     {
         // set public properties
         foreach ($conf as $key => $val) {
             $this->$key = $val;
         }
-        
+
         // add a backtrace
         if ($conf ['trace'] === true) {
             $this->trace = debug_backtrace();
         }
     }
-    
+
     /**
      *
      * Magic method for output dump.
@@ -104,11 +103,11 @@ class Savant3_Error
      *
      * @return void
      */
-    public function __toString()
+    public function __toString(): string
     {
         ob_start();
-        echo get_class($this) . ': ';
+        echo static::class . ': ';
         print_r(get_object_vars($this));
-        return ob_get_clean();
+        return (string) ob_get_clean();
     }
 }

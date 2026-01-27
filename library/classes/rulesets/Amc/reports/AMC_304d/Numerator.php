@@ -1,4 +1,5 @@
 <?php
+
 // Copyright (C) 2011 Brady Miller <brady.g.miller@gmail.com>
 //
 // This program is free software; you can redistribute it and/or
@@ -14,11 +15,11 @@ class AMC_304d_Numerator implements AmcFilterIF
     {
         return "AMC_304d Numerator";
     }
-    
+
     public function test(AmcPatient $patient, $beginDate, $endDate)
     {
         // Were sent an appropriate reminder during the EHR reporting period
-        $result_query = sqlQuery("SELECT * FROM `patient_reminders` WHERE `pid`=? AND `date_sent`>=? AND `date_sent`<=?", array($patient->id,$beginDate,$endDate));
+        $result_query = sqlQuery("SELECT * FROM `patient_reminders` WHERE `pid`=? AND `date_sent`>=? AND `date_sent`<=?", [$patient->id,$beginDate,$endDate]);
         if (!(empty($result_query))) {
             return true;
         } else {

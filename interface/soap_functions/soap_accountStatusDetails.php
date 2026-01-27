@@ -2,7 +2,7 @@
 
 /**
  * interface/soap_functions/soap_accountStatusDetails.php Display current
- * patients NewCrop account status.
+ * patients Ensora eRx account status.
  *
  * Copyright (C) 2011 ZMG LLC <sam@zhservices.com>
  *
@@ -17,28 +17,29 @@
  * If not, see <http://opensource.org/licenses/gpl-license.php>.
  *
  * @package    OpenEMR
- * @subpackage NewCrop
+ * @subpackage Ensora
  * @author     Eldho Chacko <eldho@zhservices.com>
  * @author     Vinish K <vinish@zhservices.com>
  * @author     Sam Likins <sam.likins@wsi-services.com>
  * @link       http://www.open-emr.org
  */
 
+require_once(__DIR__ . '/../globals.php');
+require_once($GLOBALS['fileroot'] . '/interface/eRxGlobals.php');
+require_once($GLOBALS['fileroot'] . '/interface/eRxStore.php');
+require_once($GLOBALS['srcdir'] . '/xmltoarray_parser_htmlfix.php');
+require_once($GLOBALS['srcdir'] . '/lists.inc.php');
+require_once($GLOBALS['srcdir'] . '/amc.php');
+require_once($GLOBALS['fileroot'] . '/interface/eRxSOAP.php');
+require_once($GLOBALS['fileroot'] . '/interface/eRx_xml.php');
 
-require_once(__DIR__.'/../globals.php');
-require_once($GLOBALS['fileroot'].'/interface/eRxGlobals.php');
-require_once($GLOBALS['fileroot'].'/interface/eRxStore.php');
-require_once($GLOBALS['srcdir'].'/xmltoarray_parser_htmlfix.php');
-require_once($GLOBALS['srcdir'].'/lists.inc');
-require_once($GLOBALS['srcdir'].'/amc.php');
-require_once($GLOBALS['fileroot'].'/interface/eRxSOAP.php');
-require_once($GLOBALS['fileroot'].'/interface/eRx_xml.php');
+use OpenEMR\Core\Header;
 
 set_time_limit(0);
-
-$eRxSOAP = new eRxSOAP;
-$eRxSOAP->setGlobals(new eRxGlobals($GLOBALS))
-    ->setStore(new eRxStore)
+$GLOBALS_REF = $GLOBALS;
+$eRxSOAP = new eRxSOAP();
+$eRxSOAP->setGlobals(new eRxGlobals($GLOBALS_REF))
+    ->setStore(new eRxStore())
     ->setAuthUserId($_SESSION['authUserID']);
 
 if (array_key_exists('patient', $_REQUEST)) {
@@ -52,7 +53,7 @@ $accountStatus = $eRxSOAP->getAccountStatus()
 
 ?>
 <head>
-    <link rel="stylesheet" href="<?php echo $css_header; ?>" type="text/css">
+    <?php Header::setupHeader(); ?>
 </head>
 <body class='body_top'>
     <table class='text' align=center width='90%' height='80%' style='padding-top:6%'>

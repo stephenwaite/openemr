@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Report columns:
  * Product Name (blank where repeated)
@@ -15,18 +16,21 @@
  * @author    Rod Roark <rod@sunsetsystems.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2010-2016 Rod Roark <rod@sunsetsystems.com>
- * @copyright Copyright (c) 2017-2018 Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2017-2019 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once("../globals.php");
-require_once("$srcdir/patient.inc");
-require_once("$srcdir/acl.inc");
+require_once("$srcdir/patient.inc.php");
+
+use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Twig\TwigContainer;
+use OpenEMR\Core\Header;
 
 if (!empty($_POST)) {
-    if (!verifyCsrfToken($_POST["csrf_token_form"])) {
-        csrfNotVerified();
+    if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
+        CsrfUtils::csrfNotVerified();
     }
 }
 
@@ -35,11 +39,6 @@ $product_first = (!empty($_POST['form_by']) && $_POST['form_by'] == 'w') ? 0 : 1
 
 $last_warehouse_id = '~';
 $last_product_id = 0;
-
-function esc4Export($str)
-{
-    return str_replace('"', '\\"', $str);
-}
 
 // Get ending inventory for the report's end date.
 // Optionally restricts by product ID and/or warehouse ID.
@@ -68,36 +67,50 @@ function getEndInventory($product_id = 0, $warehouse_id = '~')
     $eirow = sqlQuery("SELECT sum(di.on_hand) AS on_hand " .
     "FROM drug_inventory AS di WHERE " .
     "( di.destroy_date IS NULL OR di.destroy_date > ? ) " .
-    "$prodcond $whidcond", array($form_to_date));
+    "$prodcond $whidcond", [$form_to_date]);
 
   // Get sum of sales/adjustments/purchases after the report end date.
     $sarow = sqlQuery("SELECT sum(ds.quantity) AS quantity " .
     "FROM drug_sales AS ds, drug_inventory AS di WHERE " .
     "ds.sale_date > ? AND " .
     "di.inventory_id = ds.inventory_id " .
-    "$prodcond $whidcond", array($form_to_date));
+    "$prodcond $whidcond", [$form_to_date]);
 
   // Get sum of transfers out after the report end date.
     $xfrow = sqlQuery("SELECT sum(ds.quantity) AS quantity " .
     "FROM drug_sales AS ds, drug_inventory AS di WHERE " .
     "ds.sale_date > ? AND " .
     "di.inventory_id = ds.xfer_inventory_id " .
-    "$prodcond $whidcond", array($form_to_date));
+    "$prodcond $whidcond", [$form_to_date]);
 
     return $eirow['on_hand'] + $sarow['quantity'] - $xfrow['quantity'];
 }
 
-function thisLineItem(
-    $product_id,
-    $warehouse_id,
-    $patient_id,
-    $encounter_id,
-    $rowprod,
-    $rowwh,
-    $transdate,
-    $qtys,
-    $irnumber = ''
-) {
+/**
+ * Render a line item for the inventory activity report HTML table.
+ *
+ * @param int $product_id
+ * @param int $warehouse_id
+ * @param int $patient_id
+ * @param int $encounter_id
+ * @param string $rowprod
+ * @param string $rowwh
+ * @param string $transdate
+ * @param array $qtys
+ * @param string $irnumber
+ * @return void
+ */
+function inventoryActivityLineItem(
+    int $product_id,
+    int $warehouse_id,
+    int $patient_id,
+    int $encounter_id,
+    string $rowprod,
+    string $rowwh,
+    string $transdate,
+    array $qtys,
+    string $irnumber = ''
+): void {
 
     global $warehouse, $product, $secqtys, $priqtys, $grandqtys;
     global $whleft, $prodleft; // left 2 columns, blank where repeated
@@ -127,20 +140,20 @@ function thisLineItem(
                 // Export:
                 if (! $_POST['form_details']) {
                     if ($product_first) {
-                        echo '"'  . esc4Export($product)   . '"';
-                        echo ',"' . esc4Export($warehouse) . '"';
+                        echo csvEscape($product);
+                        echo ',' . csvEscape($warehouse);
                     } else {
-                        echo '"'  . esc4Export($warehouse) . '"';
-                        echo ',"' . esc4Export($product)   . '"';
+                        echo csvEscape($warehouse);
+                        echo ',' . csvEscape($product);
                     }
 
-                    echo ',"' . ($secei - $secqtys[0] - $secqtys[1] - $secqtys[2] - $secqtys[3] - $secqtys[4]) . '"'; // start inventory
-                    echo ',"' . $secqtys[0] . '"'; // sales
-                    echo ',"' . $secqtys[1] . '"'; // distributions
-                    echo ',"' . $secqtys[2] . '"'; // purchases
-                    echo ',"' . $secqtys[3] . '"'; // transfers
-                    echo ',"' . $secqtys[4] . '"'; // adjustments
-                    echo ',"' . $secei      . '"'; // end inventory
+                    echo ',' . csvEscape($secei - $secqtys[0] - $secqtys[1] - $secqtys[2] - $secqtys[3] - $secqtys[4]); // start inventory
+                    echo ',' . csvEscape($secqtys[0]); // sales
+                    echo ',' . csvEscape($secqtys[1]); // distributions
+                    echo ',' . csvEscape($secqtys[2]); // purchases
+                    echo ',' . csvEscape($secqtys[3]); // transfers
+                    echo ',' . csvEscape($secqtys[4]); // adjustments
+                    echo ',' . csvEscape($secei); // end inventory
                     echo "\n";
                 }
             } else {
@@ -194,11 +207,11 @@ function thisLineItem(
                     <?php echo text($secei); ?>
                 </td>
                 </tr>
-            <?php
+                <?php
             } // End not csv export
         }
 
-        $secqtys = array(0, 0, 0, 0, 0);
+        $secqtys = [0, 0, 0, 0, 0];
         if ($product_first) {
             $whleft = $warehouse = $rowwh;
             $last_warehouse_id = $warehouse_id;
@@ -209,15 +222,19 @@ function thisLineItem(
     }
 
     // If first column is changing, time for its totals.
-    if (($product_first && $product_id != $last_product_id) ||
-      (!$product_first && $warehouse_id != $last_warehouse_id)) {
-        if (($product_first && $last_product_id) ||
-        (!$product_first && $last_warehouse_id != '~')) {
+    if (
+        ($product_first && $product_id != $last_product_id) ||
+        (!$product_first && $warehouse_id != $last_warehouse_id)
+    ) {
+        if (
+            ($product_first && $last_product_id) ||
+            (!$product_first && $last_warehouse_id != '~')
+        ) {
             $priei = $product_first ? getEndInventory($last_product_id) :
               getEndInventory(0, $last_warehouse_id);
             // Print first column total.
             if ($form_action != 'export') {
-            ?>
+                ?>
 
                 <tr bgcolor="#ffdddd">
                 <td class="detail">
@@ -253,7 +270,7 @@ function thisLineItem(
             } // End not csv export
         }
 
-        $priqtys = array(0, 0, 0, 0, 0);
+        $priqtys = [0, 0, 0, 0, 0];
         if ($product_first) {
             $prodleft = $product = $rowprod;
             $last_product_id = $product_id;
@@ -267,20 +284,20 @@ function thisLineItem(
     if ($_POST['form_details'] && $product_id && ($qtys[0] + $qtys[1] + $qtys[2] + $qtys[3] + $qtys[4])) {
         if ($form_action == 'export') {
             if ($product_first) {
-                echo '"'  . esc4Export($product)  . '"';
-                echo ',"' . esc4Export($warehouse) . '"';
+                echo csvEscape($product);
+                echo ',' . csvEscape($warehouse);
             } else {
-                echo '"'  . esc4Export($warehouse) . '"';
-                echo ',"' . esc4Export($product)   . '"';
+                echo csvEscape($warehouse);
+                echo ',' . csvEscape($product);
             }
 
-            echo ',"' . oeFormatShortDate($transdate) . '"';
-            echo ',"' . esc4Export($invnumber) . '"';
-            echo ',"' . $qtys[0]             . '"'; // sales
-            echo ',"' . $qtys[1]             . '"'; // distributions
-            echo ',"' . $qtys[2]             . '"'; // purchases
-            echo ',"' . $qtys[3]             . '"'; // transfers
-            echo ',"' . $qtys[4]             . '"'; // adjustments
+            echo ',' . csvEscape(oeFormatShortDate($transdate));
+            echo ',' . csvEscape($invnumber);
+            echo ',' . csvEscape($qtys[0]); // sales
+            echo ',' . csvEscape($qtys[1]); // distributions
+            echo ',' . csvEscape($qtys[2]); // purchases
+            echo ',' . csvEscape($qtys[3]); // transfers
+            echo ',' . csvEscape($qtys[4]); // adjustments
             echo "\n";
         } else {
             ?>
@@ -342,8 +359,9 @@ function thisLineItem(
     }
 } // end function
 
-if (! acl_check('acct', 'rep')) {
-    die(xlt("Unauthorized access."));
+if (! AclMain::aclCheckCore('acct', 'rep')) {
+    echo (new TwigContainer(null, $GLOBALS['kernel']))->getTwig()->render('core/unauthorized.html.twig', ['pageTitle' => xl("Inventory Activity")]);
+    exit;
 }
 
 // this is "" or "submit" or "export".
@@ -362,42 +380,39 @@ if ($form_action == 'export') {
     header("Content-Description: File Transfer");
   // CSV headers:
     if ($product_first) {
-        echo '"' . esc4export(xl('Product')) . '",';
-        echo '"' . esc4export(xl('Warehouse')) . '",';
+        echo csvEscape(xl('Product')) . ',';
+        echo csvEscape(xl('Warehouse')) . ',';
     } else {
-        echo '"' . esc4export(xl('Warehouse')) . '",';
-        echo '"' . esc4export(xl('Product')) . '",';
+        echo csvEscape(xl('Warehouse')) . ',';
+        echo csvEscape(xl('Product')) . ',';
     }
 
     if ($_POST['form_details']) {
-        echo '"' . esc4export(xl('Date')) . '",';
-        echo '"' . esc4export(xl('Invoice')) . '",';
-        echo '"' . esc4export(xl('Sales')) . '",';
-        echo '"' . esc4export(xl('Distributions')) . '",';
-        echo '"' . esc4export(xl('Purchases')) . '",';
-        echo '"' . esc4export(xl('Transfers')) . '",';
-        echo '"' . esc4export(xl('Adjustments')) . '"' . "\n";
+        echo csvEscape(xl('Date')) . ',';
+        echo csvEscape(xl('Invoice')) . ',';
+        echo csvEscape(xl('Sales')) . ',';
+        echo csvEscape(xl('Distributions')) . ',';
+        echo csvEscape(xl('Purchases')) . ',';
+        echo csvEscape(xl('Transfers')) . ',';
+        echo csvEscape(xl('Adjustments')) . "\n";
     } else {
-        echo '"' . esc4export(xl('Start')) . '",';
-        echo '"' . esc4export(xl('Sales')) . '",';
-        echo '"' . esc4export(xl('Distributions')) . '",';
-        echo '"' . esc4export(xl('Purchases')) . '",';
-        echo '"' . esc4export(xl('Transfers')) . '",';
-        echo '"' . esc4export(xl('Adjustments')) . '",';
-        echo '"' . esc4export(xl('End')) . '"' . "\n";
+        echo csvEscape(xl('Start')) . ',';
+        echo csvEscape(xl('Sales')) . ',';
+        echo csvEscape(xl('Distributions')) . ',';
+        echo csvEscape(xl('Purchases')) . ',';
+        echo csvEscape(xl('Transfers')) . ',';
+        echo csvEscape(xl('Adjustments')) . ',';
+        echo csvEscape(xl('End')) . "\n";
     }
-} // end export
-else {
-?>
+} else { // end export
+    ?>
 <html>
 <head>
-<?php html_header_show();?>
 <title><?php echo xlt('Inventory Activity'); ?></title>
 
-<link rel='stylesheet' href='<?php echo $css_header ?>' type='text/css'>
-<link rel="stylesheet" href="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-datetimepicker/build/jquery.datetimepicker.min.css">
+    <?php Header::setupHeader(['datetime-picker', 'report-helper']); ?>
 
-<style type="text/css">
+<style>
  /* specifically include & exclude from printing */
  @media print {
   #report_parameters {visibility: hidden; display: none;}
@@ -409,8 +424,8 @@ else {
   #report_parameters_daterange {visibility: hidden; display: none;}
  }
  body       { font-family:sans-serif; font-size:10pt; font-weight:normal }
- .dehead    { color:#000000; font-family:sans-serif; font-size:10pt; font-weight:bold }
- .detail    { color:#000000; font-family:sans-serif; font-size:10pt; font-weight:normal }
+ .dehead    { color:var(--black); font-family:sans-serif; font-size:10pt; font-weight:bold }
+ .detail    { color:var(--black); font-family:sans-serif; font-size:10pt; font-weight:normal }
 
 table.mymaintable, table.mymaintable td, table.mymaintable th {
  border: 1px solid #aaaaaa;
@@ -421,15 +436,9 @@ table.mymaintable td, table.mymaintable th {
 }
 </style>
 
+<script>
 
-<script type="text/javascript" src="../../library/textformat.js?v=<?php echo $v_js_includes; ?>"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-1-9-1/jquery.min.js"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-datetimepicker/build/jquery.datetimepicker.full.min.js"></script>
-<script type="text/javascript" src="../../library/js/report_helper.js?v=<?php echo $v_js_includes; ?>"></script>
-
-<script language='JavaScript'>
-
-    $(document).ready(function() {
+    $(function () {
         oeFixedHeaderSetup(document.getElementById('mymaintable'));
         var win = top.printLogSetup ? top : opener.top;
         win.printLogSetup(document.getElementById('printbutton'));
@@ -461,7 +470,7 @@ table.mymaintable td, table.mymaintable th {
 <h2><?php echo xlt('Inventory Activity'); ?></h2>
 
 <form method='post' action='inventory_activity.php?product=<?php echo attr_url($product_first); ?>' onsubmit='return top.restoreSession()'>
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(collectCsrfToken()); ?>" />
+<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
 
 <div id="report_parameters">
 <!-- form_action is set to "submit" or "export" at form submit time -->
@@ -488,7 +497,7 @@ table.mymaintable td, table.mymaintable th {
        value='<?php echo attr(oeFormatShortDate($form_from_date)); ?>'>
      </td>
      <td class='label_custom'>
-        <?php echo xlt('To'); ?>:
+        <?php echo xlt('To{{Range}}'); ?>:
      </td>
      <td nowrap>
       <input type='text' class='datepicker' name='form_to_date' id="form_to_date" size='10'
@@ -500,25 +509,25 @@ table.mymaintable td, table.mymaintable th {
         <?php echo xlt('For'); ?>:
      </td>
      <td nowrap>
-<?php
+    <?php
 // Build a drop-down list of products.
 //
-$query = "SELECT drug_id, name FROM drugs ORDER BY name, drug_id";
-$pres = sqlStatement($query);
-echo "      <select name='form_product'>\n";
-echo "       <option value=''>-- " . xlt('All Products') . " --\n";
-while ($prow = sqlFetchArray($pres)) {
-    $drug_id = $prow['drug_id'];
-    echo "       <option value='" . attr($drug_id) . "'";
-    if ($drug_id == $form_product) {
-        echo " selected";
+    $query = "SELECT drug_id, name FROM drugs ORDER BY name, drug_id";
+    $pres = sqlStatement($query);
+    echo "      <select name='form_product'>\n";
+    echo "       <option value=''>-- " . xlt('All Products') . " --\n";
+    while ($prow = sqlFetchArray($pres)) {
+        $drug_id = $prow['drug_id'];
+        echo "       <option value='" . attr($drug_id) . "'";
+        if ($drug_id == $form_product) {
+            echo " selected";
+        }
+
+        echo ">" . text($prow['name']) . "\n";
     }
 
-    echo ">" . text($prow['name']) . "\n";
-}
-
-echo "      </select>\n";
-?>
+    echo "      </select>\n";
+    ?>
      </td>
      <td class='label_custom'>
         <?php echo xlt('Details'); ?>:
@@ -530,17 +539,17 @@ echo "      </select>\n";
    </table>
   </td>
   <td align='left' valign='middle'>
-   <table style='border-left:1px solid; width:100%; height:100%'>
+   <table class='w-100 h-100' style='border-left:1px solid;'>
     <tr>
      <td valign='middle'>
-      <a href='#' class='css_button' onclick='mysubmit("submit")' style='margin-left:1em'>
+      <a href='#' class='btn btn-primary' onclick='mysubmit("submit")' style='margin-left:1em'>
        <span><?php echo xlt('Submit'); ?></span>
       </a>
-<?php if ($form_action) { ?>
-      <a href='#' class='css_button' id='printbutton' style='margin-left:1em'>
+    <?php if ($form_action) { ?>
+      <a href='#' class='btn btn-primary' id='printbutton' style='margin-left:1em'>
        <span><?php echo xlt('Print'); ?></span>
       </a>
-      <a href='#' class='css_button' onclick='mysubmit("export")' style='margin-left:1em'>
+      <a href='#' class='btn btn-primary' onclick='mysubmit("export")' style='margin-left:1em'>
        <span><?php echo xlt('CSV Export'); ?></span>
       </a>
 <?php } ?>
@@ -552,56 +561,55 @@ echo "      </select>\n";
 </table>
 </div>
 
-<?php if ($form_action) { // if submit (already not export here) ?>
-
+    <?php if ($form_action) { // if submit (already not export here) ?>
 <div id="report_results">
 <table width='98%' id='mymaintable' class='mymaintable'>
  <thead>
  <tr bgcolor="#dddddd">
   <td class="dehead">
-    <?php echo text($product_first ? xl('Product') : xl('Warehouse')); ?>
+        <?php echo text($product_first ? xl('Product') : xl('Warehouse')); ?>
   </td>
-<?php if ($_POST['form_details']) { ?>
+        <?php if ($_POST['form_details']) { ?>
   <td class="dehead">
-    <?php echo text($product_first ? xl('Warehouse') : xl('Product')); ?>
-  </td>
-  <td class="dehead">
-    <?php echo xlt('Date'); ?>
+            <?php echo text($product_first ? xl('Warehouse') : xl('Product')); ?>
   </td>
   <td class="dehead">
-    <?php echo xlt('Invoice'); ?>
+            <?php echo xlt('Date'); ?>
+  </td>
+  <td class="dehead">
+            <?php echo xlt('Invoice'); ?>
   </td>
 <?php } else { ?>
   <td class="dehead" colspan="3">
-    <?php echo text($product_first ? xl('Warehouse') : xl('Product')); ?>
+            <?php echo text($product_first ? xl('Warehouse') : xl('Product')); ?>
   </td>
 <?php } ?>
   <td class="dehead" align="right" width="8%">
-    <?php echo xlt('Start'); ?>
+        <?php echo xlt('Start'); ?>
   </td>
   <td class="dehead" align="right" width="8%">
-    <?php echo xlt('Sales'); ?>
+        <?php echo xlt('Sales'); ?>
   </td>
   <td class="dehead" align="right" width="8%">
-    <?php echo xlt('Distributions'); ?>
+        <?php echo xlt('Distributions'); ?>
   </td>
   <td class="dehead" align="right" width="8%">
-    <?php echo xlt('Purchases'); ?>
+        <?php echo xlt('Purchases'); ?>
   </td>
   <td class="dehead" align="right" width="8%">
-    <?php echo xlt('Transfers'); ?>
+        <?php echo xlt('Transfers'); ?>
   </td>
   <td class="dehead" align="right" width="8%">
-    <?php echo xlt('Adjustments'); ?>
+        <?php echo xlt('Adjustments'); ?>
   </td>
   <td class="dehead" align="right" width="8%">
-    <?php echo xlt('End'); ?>
+        <?php echo xlt('End'); ?>
   </td>
  </tr>
  </thead>
  <tbody>
-<?php
-} // end if submit
+        <?php
+    } // end if submit
 } // end not export
 
 if ($form_action) { // if submit or export
@@ -612,12 +620,12 @@ if ($form_action) { // if submit or export
     $prodleft  = "";
     $warehouse = "";
     $whleft    = "";
-    $grandqtys = array(0, 0, 0, 0, 0);
-    $priqtys   = array(0, 0, 0, 0, 0);
-    $secqtys   = array(0, 0, 0, 0, 0);
+    $grandqtys = [0, 0, 0, 0, 0];
+    $priqtys   = [0, 0, 0, 0, 0];
+    $secqtys   = [0, 0, 0, 0, 0];
     $last_inventory_id = 0;
 
-    $sqlBindArray = array();
+    $sqlBindArray = [];
 
     $query = "SELECT s.sale_id, s.sale_date, s.quantity, s.fee, s.pid, s.encounter, " .
     "s.xfer_inventory_id, s.distributor_id, d.name, lo.title, " .
@@ -632,7 +640,8 @@ if ($form_action) { // if submit or export
     "LEFT JOIN list_options AS lo ON lo.list_id = 'warehouse' AND " .
     "lo.option_id = di.warehouse_id AND lo.activity = 1 " .
     "LEFT JOIN form_encounter AS fe ON fe.pid = s.pid AND fe.encounter = s.encounter " .
-    "WHERE ( di.destroy_date IS NULL OR di.destroy_date >= ? )";
+    "WHERE ( di.destroy_date IS NULL OR di.destroy_date >= ? ) AND " .
+    "( di.on_hand != 0 OR s.sale_id IS NOT NULL )";
 
     array_push($sqlBindArray, $from_date, $to_date, $form_from_date);
 
@@ -656,9 +665,11 @@ if ($form_action) { // if submit or export
         // generate a pseudo-adjustment for that.
         if ($row['inventory_id'] != $last_inventory_id) {
             $last_inventory_id = $row['inventory_id'];
-            if (!empty($row['destroy_date']) && $row['on_hand'] != 0
-            && $row['destroy_date'] <= $form_to_date) {
-                thisLineItem(
+            if (
+                !empty($row['destroy_date']) && $row['on_hand'] != 0
+                && $row['destroy_date'] <= $form_to_date
+            ) {
+                inventoryActivityLineItem(
                     $row['drug_id'],
                     $row['warehouse_id'],
                     0,
@@ -666,33 +677,29 @@ if ($form_action) { // if submit or export
                     $row['name'],
                     $row['title'],
                     $row['destroy_date'],
-                    array(0, 0, 0, 0, 0 - $row['on_hand']),
+                    [0, 0, 0, 0, 0 - $row['on_hand']],
                     xl('Destroyed')
                 );
             }
         }
 
-        $qtys = array(0, 0, 0, 0, 0);
+        $qtys = [0, 0, 0, 0, 0];
         if ($row['sale_id']) {
             if ($row['xfer_inventory_id']) {
                 // A transfer sale item will appear twice, once with each lot.
-                if ($row['inventory_id'] == $row['xfer_inventory_id']) {
-                    $qtys[3] = $row['quantity'];
-                } else {
-                    $qtys[3] = 0 - $row['quantity'];
-                }
-            } else if ($row['pid']) {
+                $qtys[3] = $row['inventory_id'] == $row['xfer_inventory_id'] ? $row['quantity'] : 0 - $row['quantity'];
+            } elseif ($row['pid']) {
                 $qtys[0] = 0 - $row['quantity'];
-            } else if ($row['distributor_id']) {
+            } elseif ($row['distributor_id']) {
                 $qtys[1] = 0 - $row['quantity'];
-            } else if ($row['fee'] != 0) {
+            } elseif ($row['fee'] != 0) {
                 $qtys[2] = 0 - $row['quantity'];
             } else { // no pid, distributor, source lot or fee: must be an adjustment
                 $qtys[4] = 0 - $row['quantity'];
             }
         }
 
-        thisLineItem(
+        inventoryActivityLineItem(
             $row['drug_id'],
             $row['warehouse_id'],
             $row['pid'] + 0,
@@ -706,7 +713,7 @@ if ($form_action) { // if submit or export
     }
 
     // Generate totals for last product and warehouse.
-    thisLineItem(0, '~', 0, 0, '', '', '0000-00-00', array(0, 0, 0, 0, 0));
+    inventoryActivityLineItem(0, '~', 0, 0, '', '', '0000-00-00', [0, 0, 0, 0, 0]);
 
     // Grand totals line.
     if ($form_action != 'export') { // if submit

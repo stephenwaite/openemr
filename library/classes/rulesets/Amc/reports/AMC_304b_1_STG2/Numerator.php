@@ -1,4 +1,5 @@
 <?php
+
 /**
  *
  * AMC 304b 1 STAGE2 Numerator
@@ -28,7 +29,7 @@ class AMC_304b_1_STG2_Numerator implements AmcFilterIF
     {
         return "AMC_304b_1_STG2 Numerator";
     }
-    
+
     public function test(AmcPatient $patient, $beginDate, $endDate)
     {
         //The number of prescriptions in the denominator generated, queried for a drug formulary and transmitted electronically

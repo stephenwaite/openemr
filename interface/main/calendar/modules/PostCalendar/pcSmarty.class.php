@@ -1,4 +1,5 @@
 <?php
+
 /**
  *  $Id$
  *
@@ -24,13 +25,13 @@
  *  http://www.gnu.org/copyleft/gpl.html
  *
  */
-class pcSmarty extends Smarty
+
+require_once(__DIR__ . '/../../../../../library/smarty_legacy/smarty/Smarty_Legacy.class.php');
+
+class pcSmarty extends Smarty_Legacy
 {
     function __construct()
     {
-        $theme = pnUserGetTheme();
-        $osTheme = pnVarPrepForOS($theme);
-        pnThemeLoad($theme);
         global $bgcolor1,$bgcolor2,$bgcolor3,$bgcolor4,$bgcolor5,$bgcolor6,$textcolor1,$textcolor2;
 
         // call constructor
@@ -50,33 +51,27 @@ class pcSmarty extends Smarty
         array_push($this->plugins_dir, "modules/$pcDir/pnincludes/Smarty/plugins");
         array_push($this->plugins_dir, "modules/$pcDir/plugins");
         array_push($this->plugins_dir, "../../../../library/smarty/plugins");
-        $this->compile_dir      =   "modules/$pcDir/pntemplates/compiled";
-        $this->cache_dir        =   "modules/$pcDir/pntemplates/cache";
-        $this->caching          =   _SETTING_USE_CACHE;
-        $this->cache_lifetime   =   _SETTING_CACHE_LIFETIME;
+        $this->compile_dir      =   $GLOBALS['OE_SITE_DIR'] . '/documents/smarty/main';
+        $this->caching      =   0;
         $this->left_delimiter   =   '[-';
         $this->right_delimiter  =   '-]';
 
         //============================================================
-        //	checks for safe mode
-        //	i think it's safe to say we can do this automagically now
+        //  checks for safe mode
+        //  i think it's safe to say we can do this automagically now
         //============================================================
         $safe_mode      = ini_get('safe_mode');
         $safe_mode_gid  = ini_get('safe_mode_gid');
         $open_basedir   = ini_get('open_basedir');
 
         $use_safe_mode = ((bool)$safe_mode || (bool)$safe_mode_gid || !empty($open_basedir));
-        if ($use_safe_mode) {
-            $this->use_sub_dirs = false;
-        } else {
-            $this->use_sub_dirs = true;
-        }
+        $this->use_sub_dirs = $use_safe_mode ? false : true;
 
         unset($use_safe_mode, $safe_mode, $safe_mode_gid, $open_basedir);
 
-        $this->autoload_filters = array('output' => array('trimwhitespace'));
+        $this->autoload_filters = ['output' => ['trimwhitespace']];
 
-        $lang = pnUserGetLang();
+        $lang = 'eng';
         $func = pnVarCleanFromInput('func');
         $print = pnVarCleanFromInput('print');
         // assign theme globals
@@ -100,15 +95,6 @@ class pcSmarty extends Smarty
         $this->assign('24HOUR_TIME', _SETTING_TIME_24HOUR);
         $this->assign_by_ref('MODULE_NAME', $pcDisplayName);
         $this->assign_by_ref('MODULE_DIR', $pcDir);
-        $this->assign('ACCESS_NONE', PC_ACCESS_NONE);
-        $this->assign('ACCESS_OVERVIEW', PC_ACCESS_OVERVIEW);
-        $this->assign('ACCESS_READ', PC_ACCESS_READ);
-        $this->assign('ACCESS_COMMENT', PC_ACCESS_COMMENT);
-        $this->assign('ACCESS_MODERATE', PC_ACCESS_MODERATE);
-        $this->assign('ACCESS_EDIT', PC_ACCESS_EDIT);
-        $this->assign('ACCESS_ADD', PC_ACCESS_ADD);
-        $this->assign('ACCESS_DELETE', PC_ACCESS_DELETE);
-        $this->assign('ACCESS_ADMIN', PC_ACCESS_ADMIN);
         //=================================================================
         //  Find out what Template we're using
         //=================================================================
@@ -128,9 +114,8 @@ class pcSmarty extends Smarty
         $this->config_dir = "modules/$pcDir/pntemplates/$template_name/config/";
         $this->assign_by_ref('TPL_NAME', $template_name);
         $this->assign_by_ref('TPL_VIEW', $template_view);
-        $this->assign('TPL_IMAGE_PATH', $GLOBALS['rootdir']."/main/calendar/modules/$pcDir/pntemplates/$template_name/images");
+        $this->assign('TPL_IMAGE_PATH', $GLOBALS['rootdir'] . "/main/calendar/modules/$pcDir/pntemplates/$template_name/images");
         $this->assign('TPL_ROOTDIR', $GLOBALS['rootdir']);
         $this->assign('TPL_STYLE_PATH', "modules/$pcDir/pntemplates/$template_name/style");
-        $this->assign('THEME_PATH', "themes/$osTheme");
     }
 }
