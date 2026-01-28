@@ -342,6 +342,7 @@ if ($res) {
         // Create DD template rows (one per measure)
         foreach ($measure_results as $measure_num => $measure_data) {
             $dd_report_rows[] = array(
+                'pid' => $patient_base['pid'],
                 'PatientID' => $patient_base['patient_id'],
                 'First Name' => $patient_base['first_name'],
                 'Last Name' => $patient_base['last_name'],
@@ -393,7 +394,7 @@ if ($export_csv) {
      // CSV data rows
     foreach ($dd_report_rows as $row) {
         fputcsv($output, array( 
-            $pid,
+            $row['pid'],
             $row['PatientID'],
             $row['First Name'],
             $row['Last Name'],
@@ -617,6 +618,7 @@ if ($export_csv) {
     <table>
         <thead>
             <tr>
+                <th>PID</th>
                 <th>Patient ID</th>
                 <th>First Name</th>
                 <th>Last Name</th>
@@ -636,6 +638,7 @@ if ($export_csv) {
         <tbody>
             <?php foreach ($dd_report_rows as $row): ?>
             <tr class="measure-<?php echo htmlspecialchars($row['Measure Number']); ?>">
+                <td><?php echo htmlspecialchars($row['pid']); ?></td>   
                 <td><?php echo htmlspecialchars($row['PatientID']); ?></td>
                 <td><?php echo htmlspecialchars($row['First Name']); ?></td>
                 <td><?php echo htmlspecialchars($row['Last Name']); ?></td>
