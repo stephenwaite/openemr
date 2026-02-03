@@ -1536,6 +1536,30 @@
             ]
           },
           {
+            "label": "MIPS 039",
+            "menu_id": "rep0",
+            "target": "rep1",
+            "url": "/interface/reports/measure_039_report.php",
+            "children": [],
+            "requirement": 0,
+            "acl_req": [
+              "encounters",
+              "coding_a"
+            ]
+          },
+          {
+            "label": "2Test MIPS 039",
+            "menu_id": "rep0",
+            "target": "rep1",
+            "url": "/interface/reports/39_diers_report.php",
+            "children": [],
+            "requirement": 0,
+            "acl_req": [
+              "encounters",
+              "coding_a"
+            ]
+          },
+          {
             "label": "Appt-Enc",
             "menu_id": "rep0",
             "target": "rep",
