@@ -1547,6 +1547,54 @@
               "coding_a"
             ]
           },
+           {
+            "label": "MIPS 176",
+            "menu_id": "rep0",
+            "target": "rep1",
+            "url": "/interface/reports/measure_176_report.php",
+            "children": [],
+            "requirement": 0,
+            "acl_req": [
+              "encounters",
+              "coding_a"
+            ]
+          },
+          {
+            "label": "MIPS 177",
+            "menu_id": "rep0",
+            "target": "rep1",
+            "url": "/interface/reports/measure_177_report.php",
+            "children": [],
+            "requirement": 0,
+            "acl_req": [
+              "encounters",
+              "coding_a"
+            ]
+          },
+             {
+            "label": "MIPS 178",
+            "menu_id": "rep0",
+            "target": "rep1",
+            "url": "/interface/reports/measure_178_report.php",
+            "children": [],
+            "requirement": 0,
+            "acl_req": [
+              "encounters",
+              "coding_a"
+            ]
+          },
+          {
+            "label": "MIPS 180",
+            "menu_id": "rep0",
+            "target": "rep1",
+            "url": "/interface/reports/measure_180_report.php",
+            "children": [],
+            "requirement": 0,
+            "acl_req": [
+              "encounters",
+              "coding_a"
+            ]
+          },
           {
             "label": "Appt-Enc",
             "menu_id": "rep0",
