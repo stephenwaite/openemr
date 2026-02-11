@@ -235,9 +235,40 @@ while ($row = sqlFetchArray($res)) {
         }
     }
     
-    if (!$has90DaySeparation) {
+   if (!$has90DaySeparation) {
         // Patient excluded - does not meet 90-day separation requirement
         $excludedNoSeparation++;
+        
+        // Still check for assessments even though excluded
+        $assessmentQuery = "
+        SELECT 
+            DATE(date) as assessment_date,
+            result,
+            YEAR(date) as assessment_year
+        FROM rule_patient_data
+        WHERE pid = ?
+        AND item = 'act_glucocorticoid'
+        AND date BETWEEN '$priorPeriodStart' AND '$performancePeriodEnd'
+        ORDER BY date
+        ";
+        
+        $assessmentRes = sqlStatement($assessmentQuery, array($pid));
+        $assessmentDetails = array();
+        $assessmentDetails2024 = array();
+        $assessmentDetails2025 = array();
+        
+        while ($assessRow = sqlFetchArray($assessmentRes)) {
+            $detail = $assessRow['assessment_date'] . ' (Result: ' . ($assessRow['result'] ?: 'N/A') . ')';
+            $assessmentDetails[] = $detail;
+            
+            if ($assessRow['assessment_year'] == '2024') {
+                $assessmentDetails2024[] = $detail;
+            } else if ($assessRow['assessment_year'] == '2025') {
+                $assessmentDetails2025[] = $detail;
+            }
+        }
+        
+        $hasAssessment = count($assessmentDetails) > 0;
         
         $results[] = array(
             'pid' => $pid,
@@ -253,10 +284,68 @@ while ($row = sqlFetchArray($res)) {
             'perf_period_encounter_count' => count($perfPeriodEncounters),
             'encounter_dates' => implode('; ', array_column($encounters, 'date')),
             'ra_codes' => implode('; ', array_unique(array_filter(array_column($encounters, 'ra_codes')))),
-            'assessment_found' => 'N/A',
-            'assessment_details' => '',
-            'assessment_details_2024' => '',
-            'assessment_details_2025' => ''
+            'assessment_found' => $hasAssessment ? 'YES' : 'NO',
+            'assessment_details' => implode('; ', $assessmentDetails),
+            'assessment_details_2024' => implode('; ', $assessmentDetails2024),
+            'assessment_details_2025' => implode('; ', $assessmentDetails2025)
+        );
+        continue;
+    }
+    
+    // **NEW CHECK** - Ensure at least one encounter is in the performance period (2025)
+    if (count($perfPeriodEncounters) == 0) {
+        // Patient excluded - no encounter in performance period
+        $excludedNoSeparation++;
+        
+        // Still check for assessments even though excluded
+        $assessmentQuery = "
+        SELECT 
+            DATE(date) as assessment_date,
+            result,
+            YEAR(date) as assessment_year
+        FROM rule_patient_data
+        WHERE pid = ?
+        AND item = 'act_glucocorticoid'
+        AND date BETWEEN '$priorPeriodStart' AND '$performancePeriodEnd'
+        ORDER BY date
+        ";
+        
+        $assessmentRes = sqlStatement($assessmentQuery, array($pid));
+        $assessmentDetails = array();
+        $assessmentDetails2024 = array();
+        $assessmentDetails2025 = array();
+        
+        while ($assessRow = sqlFetchArray($assessmentRes)) {
+            $detail = $assessRow['assessment_date'] . ' (Result: ' . ($assessRow['result'] ?: 'N/A') . ')';
+            $assessmentDetails[] = $detail;
+            
+            if ($assessRow['assessment_year'] == '2024') {
+                $assessmentDetails2024[] = $detail;
+            } else if ($assessRow['assessment_year'] == '2025') {
+                $assessmentDetails2025[] = $detail;
+            }
+        }
+        
+        $hasAssessment = count($assessmentDetails) > 0;
+        
+        $results[] = array(
+            'pid' => $pid,
+            'pubpid' => $row['pubpid'],
+            'last_name' => $row['last_name'],
+            'first_name' => $row['first_name'],
+            'middle_name' => $row['middle_name'],
+            'date_of_birth' => $row['date_of_birth'],
+            'sex' => $row['sex'],
+            'denominator_status' => 'EXCLUDED',
+            'exclusion_reason' => 'No encounter in 2025 performance period',
+            'encounter_count' => count($encounters),
+            'perf_period_encounter_count' => count($perfPeriodEncounters),
+            'encounter_dates' => implode('; ', array_column($encounters, 'date')),
+            'ra_codes' => implode('; ', array_unique(array_filter(array_column($encounters, 'ra_codes')))),
+            'assessment_found' => $hasAssessment ? 'YES' : 'NO',
+            'assessment_details' => implode('; ', $assessmentDetails),
+            'assessment_details_2024' => implode('; ', $assessmentDetails2024),
+            'assessment_details_2025' => implode('; ', $assessmentDetails2025)
         );
         continue;
     }
@@ -429,7 +518,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         <div class="summary-item"><strong>Total Patients Evaluated:</strong> <?php echo count($results); ?></div>
         <div class="summary-item"><strong>Patients in Denominator (Included):</strong> <?php echo $denominatorCount; ?></div>
         <div class="summary-item"><strong>Patients with Assessment Found:</strong> <?php echo $patientsWithAssessments; ?></div>
-        <div class="summary-item"><strong>Excluded - No 90-day Separation:</strong> <?php echo $excludedNoSeparation; ?></div>
+        <div class="summary-item"><strong>Excluded Patients:</strong> <?php echo $excludedNoSeparation; ?></div>
         <?php if ($denominatorCount > 0): ?>
         <div class="summary-item"><strong>Assessment Rate:</strong> <?php echo number_format(($patientsWithAssessments / $denominatorCount) * 100, 2); ?>%</div>
         <?php endif; ?>
