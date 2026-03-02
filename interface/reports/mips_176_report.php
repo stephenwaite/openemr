@@ -85,88 +85,47 @@ $allDxCodesStr = "'" . implode("','", $allDxCodes) . "'";
 
 // Build therapy keyword conditions against fd.dictation (case-insensitive)
 $therapyKeywords = "
-    (LOWER(fd.dictation) LIKE '%abatacept%'
+    (LOWER(fd.dictation) LIKE '%cyltezo%'
+    OR LOWER(fd.dictation) LIKE '%simlandi%'
     OR LOWER(fd.dictation) LIKE '%adalimumab%'
-    OR LOWER(fd.dictation) LIKE '%adalimumab-aacf%'
-    OR LOWER(fd.dictation) LIKE '%adalimumab-aaty%'
-    OR LOWER(fd.dictation) LIKE '%adalimumab-adaz%'
-    OR LOWER(fd.dictation) LIKE '%adalimumab-adbm%'
-    OR LOWER(fd.dictation) LIKE '%adalimumab-afzb%'
-    OR LOWER(fd.dictation) LIKE '%adalimumab-atto%'
-    OR LOWER(fd.dictation) LIKE '%adalimumab-aqvh%'
-    OR LOWER(fd.dictation) LIKE '%adalimumab-bwwd%'
-    OR LOWER(fd.dictation) LIKE '%adalimumab-fkjp%'
-    OR LOWER(fd.dictation) LIKE '%anakinra%'
-    OR LOWER(fd.dictation) LIKE '%baricitinib%'
-    OR LOWER(fd.dictation) LIKE '%brodalumab%'
-    OR LOWER(fd.dictation) LIKE '%canakinumab%'
-    OR LOWER(fd.dictation) LIKE '%certolizumab%'
-    OR LOWER(fd.dictation) LIKE '%lyophilized certolizumab pegol%'
-    OR LOWER(fd.dictation) LIKE '%etanercept%'
-    OR LOWER(fd.dictation) LIKE '%golimumab%'
-    OR LOWER(fd.dictation) LIKE '%guselkumab%'
-    OR LOWER(fd.dictation) LIKE '%infliximab%'
-    OR LOWER(fd.dictation) LIKE '%infliximab-abda%'
-    OR LOWER(fd.dictation) LIKE '%infliximab-axxq%'
-    OR LOWER(fd.dictation) LIKE '%infliximab-dyyb%'
-    OR LOWER(fd.dictation) LIKE '%ixekizumab%'
-    OR LOWER(fd.dictation) LIKE '%risankizumab-rzaa%'
-    OR LOWER(fd.dictation) LIKE '%sarilumab%'
-    OR LOWER(fd.dictation) LIKE '%secukinumab%'
-    OR LOWER(fd.dictation) LIKE '%tildrakizumab%'
-    OR LOWER(fd.dictation) LIKE '%tocilizumab%'
-    OR LOWER(fd.dictation) LIKE '%tofacitinib%'
-    OR LOWER(fd.dictation) LIKE '%upadacitinib%'
-    OR LOWER(fd.dictation) LIKE '%ustekinumab%'
-    OR LOWER(fd.dictation) LIKE '%orencia%'
-    OR LOWER(fd.dictation) LIKE '%humira%'
-    OR LOWER(fd.dictation) LIKE '%idacio%'
-    OR LOWER(fd.dictation) LIKE '%yuflyma%'
-    OR LOWER(fd.dictation) LIKE '%hyrimoz%'
-    OR LOWER(fd.dictation) LIKE '%cyltezo%'
-    OR LOWER(fd.dictation) LIKE '%abrilada%'
-    OR LOWER(fd.dictation) LIKE '%amjevita%'
-    OR LOWER(fd.dictation) LIKE '%hadlima%'
-    OR LOWER(fd.dictation) LIKE '%hulio%'
-    OR LOWER(fd.dictation) LIKE '%kineret%'
-    OR LOWER(fd.dictation) LIKE '%olumiant%'
-    OR LOWER(fd.dictation) LIKE '%siliq%'
-    OR LOWER(fd.dictation) LIKE '%ilaris%'
-    OR LOWER(fd.dictation) LIKE '%cimzia%'
     OR LOWER(fd.dictation) LIKE '%enbrel%'
-    OR LOWER(fd.dictation) LIKE '%simponi%'
-    OR LOWER(fd.dictation) LIKE '%tremfya%'
+    OR LOWER(fd.dictation) LIKE '%etanercept%'
     OR LOWER(fd.dictation) LIKE '%remicade%'
-    OR LOWER(fd.dictation) LIKE '%renflexis%'
-    OR LOWER(fd.dictation) LIKE '%avsola%'
-    OR LOWER(fd.dictation) LIKE '%inflectra%'
-    OR LOWER(fd.dictation) LIKE '%taltz%'
-    OR LOWER(fd.dictation) LIKE '%skyrizi%'
-    OR LOWER(fd.dictation) LIKE '%kevzara%'
-    OR LOWER(fd.dictation) LIKE '%cosentyx%'
-    OR LOWER(fd.dictation) LIKE '%ilumya%'
+    OR LOWER(fd.dictation) LIKE '%infliximab%'
+    OR LOWER(fd.dictation) LIKE '%cimzia%'
+    OR LOWER(fd.dictation) LIKE '%simponi%'
+    OR LOWER(fd.dictation) LIKE '%benlysta%'
     OR LOWER(fd.dictation) LIKE '%actemra%'
-    OR LOWER(fd.dictation) LIKE '%xeljanz%'
-    OR LOWER(fd.dictation) LIKE '%rinvoq%'
+    OR LOWER(fd.dictation) LIKE '%tocilizumab%'
+    OR LOWER(fd.dictation) LIKE '%tremfya%'
+    OR LOWER(fd.dictation) LIKE '%guselkumab%'
     OR LOWER(fd.dictation) LIKE '%stelara%'
-    OR LOWER(fd.dictation) LIKE '%therapy%'
+    OR LOWER(fd.dictation) LIKE '%ustekinumab%'
+    OR LOWER(fd.dictation) LIKE '%xeljanz%'
+    OR LOWER(fd.dictation) LIKE '%tofacitinib%'
+    OR LOWER(fd.dictation) LIKE '%rinvoq%'
+    OR LOWER(fd.dictation) LIKE '%upadacitinib%'
+    OR LOWER(fd.dictation) LIKE '%rituxan%'
+    OR LOWER(fd.dictation) LIKE '%rituximab%'
+    OR LOWER(fd.dictation) LIKE '%avacopan%'
+    OR LOWER(fd.dictation) LIKE '%tavneos%'
     OR LOWER(fd.dictation) LIKE '%biologic%'
-    OR LOWER(fd.dictation) LIKE '%immune%'
+    OR LOWER(fd.dictation) LIKE '%immun%'
     OR LOWER(fd.dictation) LIKE '%modifier%')
 ";
 
 $sql = "
 SELECT
     pd.pid,
+    pd.pubpid as External_ID,
     pd.lname AS last_name,
     pd.fname AS first_name,
     pd.DOB AS date_of_birth,
     pd.sex,
     TIMESTAMPDIFF(YEAR, pd.DOB, MIN(fe.date)) AS age_at_first_encounter,
-    COUNT(DISTINCT fe.encounter) AS encounter_count,
-    MIN(fe.date) AS first_encounter_date,
-    MAX(fe.date) AS last_encounter_date,
+    GROUP_CONCAT(DISTINCT DATE(fe.date) ORDER BY fe.date SEPARATOR ', ') AS encounter_dates,
     GROUP_CONCAT(DISTINCT fe.encounter ORDER BY fe.date SEPARATOR ', ') AS encounter_ids,
+    GROUP_CONCAT(DISTINCT bcpt.code ORDER BY bcpt.code SEPARATOR ', ') AS cpt_codes,
     GROUP_CONCAT(DISTINCT b.code ORDER BY b.code SEPARATOR ', ') AS billing_codes
 FROM form_dictation fd
 JOIN forms f ON f.form_id = fd.id
@@ -178,6 +137,10 @@ JOIN patient_data pd ON pd.pid = f.pid
 JOIN billing b ON b.encounter = f.encounter
     AND b.pid = f.pid
     AND b.activity = 1
+LEFT JOIN billing bcpt ON bcpt.encounter = f.encounter
+    AND bcpt.pid = f.pid
+    AND bcpt.activity = 1
+    AND bcpt.code_type IN ('CPT4', 'HCPCS')
 WHERE
     fe.date BETWEEN '$performancePeriodStart' AND '$performancePeriodEnd'
     AND TIMESTAMPDIFF(YEAR, pd.DOB, fe.date) >= 18
@@ -207,30 +170,30 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
 
     fputcsv($output, array(
         'Patient ID',
+        'External ID',
         'Last Name',
         'First Name',
         'Date of Birth',
         'Sex',
         'Age at First Encounter',
-        'Encounter Count',
-        'First Encounter Date',
-        'Last Encounter Date',
+        'Encounter Dates',
         'Encounter IDs',
-        'Billing Codes'
+        'CPT Codes',
+        'ICD-10 Codes'
     ));
 
     foreach ($results as $row) {
         fputcsv($output, array(
             $row['pid'],
+            $row['External_ID'],
             $row['last_name'],
             $row['first_name'],
             $row['date_of_birth'],
             $row['sex'],
             $row['age_at_first_encounter'],
-            $row['encounter_count'],
-            $row['first_encounter_date'],
-            $row['last_encounter_date'],
+            $row['encounter_dates'],
             $row['encounter_ids'],
+            $row['cpt_codes'],
             $row['billing_codes']
         ));
     }
@@ -281,11 +244,10 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <th>DOB</th>
                 <th>Age</th>
                 <th>Sex</th>
-                <th># Encounters</th>
-                <th>First Encounter</th>
-                <th>Last Encounter</th>
+                <th>Encounter Dates</th>
                 <th>Encounter IDs</th>
-                <th>Billing Codes</th>
+                <th>CPT Codes</th>
+                <th>ICD-10 Codes</th>
             </tr>
 
             <?php foreach ($results as $row): ?>
@@ -295,10 +257,9 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
                 <td><?php echo htmlspecialchars($row['date_of_birth']); ?></td>
                 <td><?php echo htmlspecialchars($row['age_at_first_encounter']); ?></td>
                 <td><?php echo htmlspecialchars($row['sex']); ?></td>
-                <td><?php echo htmlspecialchars($row['encounter_count']); ?></td>
-                <td><?php echo htmlspecialchars($row['first_encounter_date']); ?></td>
-                <td><?php echo htmlspecialchars($row['last_encounter_date']); ?></td>
+                <td><?php echo htmlspecialchars($row['encounter_dates']); ?></td>
                 <td><?php echo htmlspecialchars($row['encounter_ids']); ?></td>
+                <td><?php echo htmlspecialchars($row['cpt_codes']); ?></td>
                 <td><?php echo htmlspecialchars($row['billing_codes']); ?></td>
             </tr>
             <?php endforeach; ?>
