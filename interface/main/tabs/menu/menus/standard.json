@@ -1547,6 +1547,18 @@
               "coding_a"
             ]
           },
+                   {
+            "label": "MIPS 130",
+            "menu_id": "rep0",
+            "target": "rep1",
+            "url": "/interface/reports/MIPS_130_Report.php",
+            "children": [],
+            "requirement": 0,
+            "acl_req": [
+              "encounters",
+              "coding_a"
+            ]
+          },
                     {
             "label": "MIPS 176",
             "menu_id": "rep0",
