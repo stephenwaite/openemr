@@ -14,6 +14,7 @@
 
 namespace OpenEMR\Billing;
 
+use Countable;
 use InsuranceCompany;
 use OpenEMR\Billing\InvoiceSummary;
 use OpenEMR\Common\Utils\ValidationUtils;
@@ -46,7 +47,7 @@ class Claim
     public $payers;            // array of arrays, for all payers
     public $copay;             // total of copays from the ar_activity table
     public $facilityService;   // via matthew.vita orm work :)
-    public $pay_to_provider;   // to be implemented in facility ui
+    public $pay_to_provider_address;   // to be implemented in facility ui
     private $encounterService;
     public $billing_prov_id;
     public $line_item_adjs;    // adjustment array with key of [group code][reason code] needed for secondary claims
@@ -66,12 +67,16 @@ class Claim
         $this->copay = $this->getCopay($this->pid, $this->encounter_id);
         $this->facilityService = new FacilityService();
         $this->facility = $this->facilityService->getById($this->encounter['facility_id']);
-        $this->pay_to_provider = ''; // will populate from facility someday :)
         $this->x12_partner = $this->getX12Partner($x12_partner_id);
         $this->provider = (new UserService())->getUser($this->encounter['provider_id']);
+        // user id is 6 for incident 2 billing for esp
+        if ($_SESSION['site_id'] == '1500') {
+            $this->provider = (new UserService())->getUser(6);
+        }
         $this->billing_facility = empty($this->encounter['billing_facility']) ?
             $this->facilityService->getPrimaryBillingLocation() :
             $this->facilityService->getById($this->encounter['billing_facility']);
+        $this->pay_to_provider_address = ($this->payToFacilityStreet()) ? true : false;
         $this->insurance_numbers = $this->getInsuranceNumbers(
             $this->procs[0]['payer_id'],
             $this->encounter['provider_id']
@@ -338,77 +343,56 @@ class Claim
             $code = substr((string) $code, 0, $tmp);
         }
 
-        // For payments, source always starts with "Ins" or "Pt".
-        // Nonzero adjustment reason examples:
-        //   Ins1 adjust code 42 (Charges exceed ... (obsolete))
-        //   Ins1 adjust code 45 (Charges exceed your contracted/ legislated fee arrangement)
-        //   Ins1 adjust code 97 (Payment is included in the allowance for another service/procedure)
-        //   Ins1 adjust code A2 (Contractual adjustment)
-        //   Ins adjust Ins1
-        //   adjust code 45
-        // Zero adjustment reason examples:
-        //   Co-pay: 25.00
-        //   Coinsurance: 11.46  (code 2)   Note: fix remits to identify insurance
-        //   To deductible: 0.22 (code 1)   Note: fix remits to identify insurance
-        //   To copay Ins1 (manual entry)
-        //   To ded'ble Ins1 (manual entry)
-
         if (!empty($this->invoice[$code])) {
             $date = '';
             $deductible  = 0;
             $coinsurance = 0;
+            $copay       = 0;
             $inslabel = ($this->payerSequence($ins) == 'S') ? 'Ins2' : 'Ins1';
             $insnumber = substr($inslabel, 3);
 
-            // Compute this procedure's patient responsibility amount as of this
-            // prior payer, which is the original charge minus all insurance
-            // payments and "hard" adjustments up to this payer.
             $ptresp = $this->invoice[$code]['chg'] + $this->invoice[$code]['adj'] ?? '';
             foreach ($this->invoice[$code]['dtl'] as $key => $value) {
-                // plv (from ar_activity.payer_type) exists to
-                // indicate the payer level.
                 if (isset($value['pmt']) && $value['pmt'] != 0) {
                     if ($value['plv'] > 0 && $value['plv'] <= $insnumber) {
                         $ptresp -= $value['pmt'];
                     }
                 } elseif (isset($value['chg']) && trim(substr((string) $key, 0, 10))) {
-                  // non-blank key indicates this is an adjustment and not a charge
                     if ($value['plv'] > 0 && $value['plv'] <= $insnumber) {
-                        $ptresp += $value['chg']; // adjustments are negative charges
+                        $ptresp += $value['chg'];
                     }
                 }
 
-                $msp = $value['msp'] ?? null; // record the reason for adjustment
+                $msp = $value['msp'] ?? null;
             }
 
             if ($ptresp < 0) {
-                $ptresp = 0; // we may be insane but try to hide it
+                $ptresp = 0;
             }
 
-            // Main loop, to extract adjustments for this payer and procedure.
             foreach ($this->invoice[$code]['dtl'] as $key => $value) {
                 $tmp = str_replace('-', '', trim(substr((string) $key, 0, 10)));
                 if ($tmp) {
                     $date = $tmp;
                 }
 
-                if ($tmp && (($value['pmt'] ?? null) == 0)) { // not original charge and not a payment
+                if ($tmp && (($value['pmt'] ?? null) == 0)) {
                     $rsn = $value['rsn'];
-                    $chg = 0 - $value['chg']; // adjustments are negative charges
+                    $chg = 0 - $value['chg'];
 
-                    $gcode = 'CO'; // default group code = contractual obligation
-                    $rcode = '45'; // default reason code = max fee exceeded (code 42 is obsolete)
+                    $gcode = 'CO';
+                    $rcode = '45';
 
                     if (preg_match("/Ins adjust/i", (string) $rsn, $tmp)) {
                         // From manual post. Take the defaults.
                     } elseif (preg_match("/To copay/i", (string) $rsn, $tmp) && !$chg) {
-                        $coinsurance = $ptresp; // from manual post
+                        $coinsurance = $ptresp;
                         continue;
                     } elseif (preg_match("/To ded'ble/i", (string) $rsn, $tmp) && !$chg) {
-                        $deductible = $ptresp; // from manual post
+                        $deductible = $ptresp;
                         continue;
                     } elseif (preg_match("/copay: (\S+)/i", (string) $rsn, $tmp) && !$chg) {
-                        $coinsurance = $tmp[1]; // from 835 as of 6/2007
+                        $copay = $tmp[1]; // from 835 as of 6/2007
                         continue;
                     } elseif (preg_match("/coins: (\S+)/i", (string) $rsn, $tmp) && !$chg) {
                         $coinsurance = $tmp[1]; // from 835 and manual post as of 6/2007
@@ -417,86 +401,84 @@ class Claim
                         $deductible = $tmp[1]; // from 835 and manual post as of 6/2007
                         continue;
                     } elseif (preg_match("/ptresp: (\S+)/i", (string) $rsn, $tmp) && !$chg) {
-                        continue; // from 835 as of 6/2007
+                        continue;
                     } elseif (preg_match("/adjust code (\S+)/i", (string) $rsn, $tmp)) {
-                        $rcode = $tmp[1]; // from 835
+                        $rcode = $tmp[1];
                     } elseif (preg_match("/$inslabel/i", (string) $rsn, $tmp)) {
                         // Take the defaults.
                     } elseif (preg_match('/Ins(\d)/i', (string) $rsn, $tmp) && $tmp[1] != $insnumber) {
-                        continue; // it's for some other payer
+                        continue;
                     } elseif ($insnumber == '1') {
                         if (preg_match("/Adjust code (\S+)/i", (string) $rsn, $tmp)) {
-                            $rcode = $tmp[1]; // from 835
+                            $rcode = $tmp[1];
                         } elseif ($chg) {
                             // Other adjustments default to Ins1.
                         } elseif (
                             preg_match("/Co-pay: (\S+)/i", (string) $rsn, $tmp) ||
                             preg_match("/Coins: (\S+)/i", (string) $rsn, $tmp)
                         ) {
-                            $coinsurance = 0 + $tmp[1]; // from 835 before 6/2007
+                            $coinsurance = 0 + $tmp[1];
                             continue;
                         } elseif (preg_match("/To deductible: (\S+)/i", (string) $rsn, $tmp)) {
-                            $deductible = 0 + $tmp[1]; // from 835 before 6/2007
+                            $deductible = 0 + $tmp[1];
                             continue;
                         } else {
-                            continue; // there is no adjustment amount
+                            continue;
                         }
                     } else {
-                        continue; // it's for primary and that's not us
+                        continue;
                     }
 
                     if ($rcode == '42') {
-                        $rcode = '45'; // reason 42 is obsolete
+                        $rcode = '45';
                     }
 
-                    $aadj[] = [$date, $gcode, $rcode, sprintf('%.2f', $chg)];
+                    $aadj[$ins][] = [$date, $gcode, $rcode, sprintf('%.2f', $chg)];
                 } // end if
             } // end foreach
 
-            // If we really messed it up, at least avoid negative numbers.
             if ($coinsurance > $ptresp) {
                 $coinsurance = $ptresp;
             }
 
-            if ($deductible  > $ptresp) {
-                $deductible  = $ptresp;
+            if ($deductible > $ptresp) {
+                $deductible = $ptresp;
             }
 
-            // Find out if this payer paid anything at all on this claim.  This will
-            // help us allocate any unknown patient responsibility amounts.
             $thispaidanything = 0;
             foreach ($this->invoice as $codeval) {
                 foreach ($codeval['dtl'] as $value) {
-                    // plv exists to indicate the payer level.
                     if (isset($value['plv']) && $value['plv'] == $insnumber) {
                         $thispaidanything += $value['pmt'];
                     }
                 }
             }
 
-            // Allocate any unknown patient responsibility by guessing if the
-            // deductible has been satisfied.
-            if ($thispaidanything) {
+            /*if ($thispaidanything) {
                 $coinsurance = $ptresp - $deductible;
             } else {
                 $deductible = $ptresp - $coinsurance;
-            }
+            }*/
 
             $deductible  = sprintf('%.2f', $deductible);
             $coinsurance = sprintf('%.2f', $coinsurance);
+            $copay       = sprintf('%.2f', $copay);
 
             if ($date && $deductible != 0) {
-                $aadj[] = [$date, 'PR', '1', $deductible, $msp];
+                $aadj[$ins][] = [$date, 'PR', '1', $deductible, $msp];
             }
 
             if ($date && $coinsurance != 0) {
-                $aadj[] = [$date, 'PR', '2', $coinsurance, $msp];
+                $aadj[$ins][] = [$date, 'PR', '2', $coinsurance, $msp];
+            }
+
+            if ($date && $copay != 0) {
+                $aadj[$ins][] = [$date, 'PR', '3', $copay, $msp];
             }
         } // end if
 
         return $aadj;
     }
-
   // Return date, total payments and total "hard" adjustments from the given
   // prior payer. If $code is specified then only that procedure key is
   // selected, otherwise it's for the whole claim.
@@ -533,7 +515,7 @@ class Claim
             }
 
             $aarr = $this->payerAdjustments($ins, $codekey);
-            foreach ($aarr as $a) {
+            foreach ($aarr[$ins] as $a) {
                 if (strcmp((string) $a[1], 'PR') != 0) {
                     $adjtotal += $a[3];
                 }
@@ -597,7 +579,7 @@ class Claim
   // Number of payers for this claim. Ranges from 1 to 3.
     public function payerCount()
     {
-        return count($this->payers);
+        return is_countable($this->payers) ? count($this->payers) : 0;
     }
 
     public function x12gsversionstring()
@@ -737,6 +719,31 @@ class Claim
     public function billingFacilityZip()
     {
         return $this->x12Zip($this->billing_facility['postal_code']);
+    }
+
+    public function payToFacilityStreet()
+    {
+        return $this->x12Clean(trim($this->billing_facility['mail_street'] ?? ''));
+    }
+
+    public function payToFacilityStreet2()
+    {
+        return $this->x12Clean(trim($this->billing_facility['mail_street2']));
+    }
+
+    public function payToFacilityCity()
+    {
+        return $this->x12Clean(trim($this->billing_facility['mail_city']));
+    }
+
+    public function payToFacilityState()
+    {
+        return $this->x12Clean(trim($this->billing_facility['mail_state']));
+    }
+
+    public function payToFacilityZip()
+    {
+        return $this->x12Zip($this->billing_facility['mail_zip']);
     }
 
     public function billingFacilityETIN()
@@ -1812,10 +1819,10 @@ class Claim
      * @param  array $aarr Payer adjustment array from the X12837 script with payer adjustments
      * @return array       Returns a grouped array to the 837 for output in the CAS segment
      */
-    public function getLineItemAdjustments($aarr)
+    public function getLineItemAdjustments($aarr, $ins)
     {
         $this->line_item_adjs = [];
-        foreach ($aarr as $a) {
+        foreach ($aarr[$ins] as $a) {
             if (!array_key_exists($a[1], $this->line_item_adjs)) {
                 $this->line_item_adjs[$a[1]] = [];
             }
