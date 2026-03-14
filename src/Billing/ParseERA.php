@@ -24,57 +24,68 @@ class ParseERA
                 $out['production_date'] = $out['check_date'];
             }
 
-            // Force the sum of service payments to equal the claim payment
-            // amount, and the sum of service adjustments to equal the CLP's
-            // (charged amount - paid amount - patient responsibility amount).
-            // This may result from claim-level adjustments, and in this case the
-            // first SVC item that we stored was a 'Claim' type.  It also may result
-            // from poorly reported payment reversals, in which case we may need to
-            // create the 'Claim' service type here.
-            //
-            if ($GLOBALS['force_claim_balancing']) {
-                $chgtotal = floatval($out['amount_charged']);
-                $paytotal = floatval($out['amount_approved']);
-                $pattotal = floatval($out['amount_patient']);
-                $adjtotal = $chgtotal - $paytotal - $pattotal;
-                foreach ($out['svc'] as $svc) {
-                    $paytotal -= $svc['paid'];
-                    foreach ($svc['adj'] as $adj) {
-                        if ($adj['group_code'] != 'PR') {
-                            $adjtotal -= $adj['amount'];
-                        }
+            $charged_amt = floatval($out['amount_charged']);
+            $paytotal = floatval($out['amount_approved']);
+            $pattotal = floatval($out['amount_patient']);
+            $adjtotal = $charged_amt - $paytotal - $pattotal;
+            foreach ($out['svc'] as $svc) {
+                $paytotal -= $svc['paid'];
+                foreach ($svc['adj'] as $adj) {
+                    if (
+                        (
+                            $adj['group_code'] == 'CO'
+                            && (
+                                $adj['reason_code'] == '45'
+                                || $adj['reason_code'] == '253'
+                                || $adj['reason_code'] == '59'
+                            )
+                        )
+                        || (
+                            $adj['group_code'] == 'OA'
+                            && $adj['reason_code'] == '253'
+                        )
+                        || (
+                            $adj['group_code'] == 'PI'
+                            && (
+                                $adj['reason_code'] == '253'
+                                || $adj['reason_code'] == '59'
+                                || $adj['reason_code'] == 'B10'
+                            )
+                        )
+                    ) {
+                        $adjtotal -= $adj['amount'];
                     }
                 }
+            }
 
-                $paytotal = round($paytotal, 2);
-                $adjtotal = round($adjtotal, 2);
-                if ($paytotal != 0 || $adjtotal != 0) {
-                    if ($out['svc'][0]['code'] != 'Claim') {
-                        array_unshift($out['svc'], []);
-                        $out['svc'][0]['code'] = 'Claim';
-                        $out['svc'][0]['mod'] = '';
-                        $out['svc'][0]['chg'] = '0';
-                        $out['svc'][0]['paid'] = '0';
-                        $out['svc'][0]['adj'] = [];
-                        $out['warnings'] .= "Procedure 'Claim' is inserted artificially to " .
-                            "force claim balancing.\n";
-                    }
-
-                    $out['svc'][0]['paid'] += $paytotal;
-                    if ($adjtotal) {
-                        $j = count($out['svc'][0]['adj']);
-                        $out['svc'][0]['adj'][$j] = [];
-                        $out['svc'][0]['adj'][$j]['group_code'] = 'CR'; // presuming a correction or reversal
-                        $out['svc'][0]['adj'][$j]['reason_code'] = 'Balancing';
-                        $out['svc'][0]['adj'][$j]['amount'] = $adjtotal;
-                    }
-
-                    // if ($out['svc'][0]['code'] != 'Claim') {
-                    //   $out['warnings'] .= "First service item payment amount " .
-                    //   "adjusted by $paytotal due to payment imbalance. " .
-                    //   "This should not happen!\n";
-                    // }
+            $paytotal = round($paytotal, 2);
+            $adjtotal = round($adjtotal, 2);
+            if (($paytotal != 0 || $adjtotal != 0) && $out['claim_status_code'] == '1') {
+                /* if ($out['svc'][0]['code'] != 'Claim') {
+                    array_unshift($out['svc'], array());
+                    $out['svc'][0]['code'] = 'Claim';
+                    $out['svc'][0]['mod'] = '';
+                    $out['svc'][0]['chg'] = '0';
+                    $out['svc'][0]['paid'] = '0';
+                    $out['svc'][0]['adj'] = array();
+                    $out['warnings'] .= "Procedure 'Claim' is inserted artificially to " .
+                        "force claim balancing.\n";
                 }
+
+                $out['svc'][0]['paid'] += $paytotal;
+                if ($adjtotal) {
+                    $j = count($out['svc'][0]['adj']);
+                    $out['svc'][0]['adj'][$j] = array();
+                    $out['svc'][0]['adj'][$j]['group_code'] = 'CR'; // presuming a correction or reversal
+                    $out['svc'][0]['adj'][$j]['reason_code'] = 'Balancing';
+                    $out['svc'][0]['adj'][$j]['amount'] = $adjtotal;
+                } */
+
+                // if ($out['svc'][0]['code'] != 'Claim') {
+                //   $out['warnings'] .= "First service item payment amount " .
+                //   "adjusted by $paytotal due to payment imbalance. " .
+                //   "This should not happen!\n";
+                // }
             }
             $cb($out);
         }
@@ -314,7 +325,7 @@ class ParseERA
             } elseif ($segid == 'NM1' && $out['loopid'] == '2100') { // PR = Corrected Payer
                 // $out['warnings'] .= "NM1 segment at claim level ignored.\n";
             } elseif ($segid == 'MOA' && $out['loopid'] == '2100') {
-                $out['warnings'] .= "MOA segment at claim level ignored.\n";
+                //$out['warnings'] .= "MOA segment at claim level ignored.\n";
             } elseif ($segid == 'REF' && $seg[1] == '1W' && $out['loopid'] == '2100') {
                 // REF segments may provide various identifying numbers, where REF02
                 // indicates the type of number.
@@ -351,14 +362,31 @@ class ParseERA
                     // SVC06 if present is our original procedure code that they are changing.
                     // We will log a note and treat it as adjustments to our originally submitted coding.
                     $svc = explode($delimiter3, $seg[6]);
-                    $tmp = explode($delimiter3, $seg[1]);
-                    $out['warnings'] .= "Payer is restating our procedure " . $svc[1] .
+                    // NDCs are stated here so we want to ignore and use the HC qualifier in $seg[6]
+                    if ($svc[0] == 'N4') {
+                        $out['warnings'] .= "SVC segment with N4 qualifier at service level ignored.\n";
+                        $svc = explode($delimiter3, $seg[1]);
+                    } elseif ($seg[1]) {
+                            $tmp = explode($delimiter3, $seg[1]);
+                        if (in_array('51', $tmp)) {
+                            array_pop($tmp);
+                            $svc = $tmp;
+                        }
+                    } else {
+                        $tmp = explode($delimiter3, $seg[1]);
+                        $out['warnings'] .= "Payer is restating our procedure " . $svc[1] .
                         " as " . $tmp[1] . ".\n";
+                    }
                 } else {
                     $svc = explode($delimiter3, $seg[1]);
                 }
 
-                if ($svc[0] != 'HC') {
+                if (
+                    !(
+                        $svc[0] != 'HC' ||
+                        $svc[0] != 'N4'
+                     )
+                ) {
                     return 'SVC segment has unexpected qualifier';
                 }
 
@@ -394,13 +422,6 @@ class ParseERA
                 for ($k = 2; $k < 20; $k += 3) {
                     if (empty($seg[$k])) {
                         break;
-                    }
-
-                    // removing inversion for CO*144 MIPS incentive adjustment to prevent claim balancing
-                    if ($seg[1] == 'CO' && $seg[$k + 1] < 0 && $seg[$k] !== '144') {
-                        $out['warnings'] .= "Negative Contractual Obligation adjustment " .
-                            "seems wrong. Inverting, but should be checked!\n";
-                        $seg[$k + 1] = 0 - $seg[$k + 1];
                     }
 
                     $j = count($out['svc'][$i]['adj']);
