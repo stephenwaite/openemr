@@ -13,6 +13,7 @@
 namespace OpenEMR\Modules\FaxSMS\Controller;
 
 use MyMailer;
+use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Crypto\CryptoGen;
 use OpenEMR\Common\Session\SessionUtil;
@@ -56,6 +57,9 @@ abstract class AppDispatch
             self::$_apiModule = $_REQUEST['type'] ?? $_SESSION["oefax_current_module_type"] ?? null;
         }
         $this->crypto = new CryptoGen();
+        if (!$this->verifyAcl()) {
+            AccessDeniedHelper::deny('FaxSMS module access denied');
+        }
         $this->dispatchActions();
         $this->render();
     }
