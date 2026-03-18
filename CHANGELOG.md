@@ -1,5 +1,145 @@
 # CHANGELOG.md
 
+## [8.0.0.2](https://github.com/openemr/openemr/milestone/27?closed=1) - 2026-03-18
+
+### Fixed
+
+#### Security
+
+- **[Critical]** [RCE in backup.php command injection](https://github.com/openemr/openemr-ghsa-6pmc-3xm7-pm86)
+- **[High]** [Stored XSS in Eye Exam form answers](https://github.com/openemr/openemr-ghsa-pgvq-f22q-2whp)
+- **[High]** [SSRF via PDF generator](https://github.com/openemr/openemr-ghsa-5pc3-2crw-96rv)
+- **[High]** [Arbitrary file read via PDF generator](https://github.com/openemr/openemr-ghsa-v9v3-q973-xp2h)
+- **[High]** [zhAclCheck ignores explicit ACL denies](https://github.com/openemr/openemr-ghsa-v68v-pwc4-8p2m)
+- **[Medium]** [DICOM path traversal](https://github.com/openemr/openemr-ghsa-rppw-f689-6hrm)
+- **[Medium]** [Vitals IDOR (POST + PUT + legacy form)](https://github.com/openemr/openemr-ghsa-mv9m-j65p-g55f)
+- **[Medium]** [DOM XSS via SearchHighlight](https://github.com/openemr/openemr-ghsa-q283-5j7f-r6hp)
+- **[Medium]** [Stored XSS in portal credential print view](https://github.com/openemr/openemr-ghsa-cp37-pmfx-5mhm)
+- **[Medium]** [Authorization bypass in dated reminders log](https://github.com/openemr/openemr-ghsa-66j9-ffq4-h222)
+- **[Medium]** [Authorization bypass in FaxSMS AppDispatch](https://github.com/openemr/openemr-ghsa-r973-h5cq-35rc)
+
+- PHPSessionWrapper constructor bypasses read_and_close session mode, causing lock contention ([#10931](https://github.com/openemr/openemr/issues/10931))
+ 
+### Changed
+- FHIR API documentation minor fixes ([#11104](https://github.com/openemr/openemr/pull/11104))
+- remove 2015 reference with schemaspy regen for rel-800 ([#11101](https://github.com/openemr/openemr/pull/11101))
+
+## [8.0.0.1](https://github.com/openemr/openemr/milestone/26?closed=1) - 2026-03-11
+
+### Fixed
+- Security fixes
+  - https://github.com/openemr/openemr/security/advisories/GHSA-v8q6-h79f-736x
+  - https://github.com/openemr/openemr/security/advisories/GHSA-752v-x6m4-6cf8
+  - https://github.com/openemr/openemr/security/advisories/GHSA-244w-vxhp-7x99
+  - https://github.com/openemr/openemr/security/advisories/GHSA-9hw7-22mr-qhfc
+  - https://github.com/openemr/openemr/security/advisories/GHSA-j4mm-wg7q-v57q
+  - https://github.com/openemr/openemr/security/advisories/GHSA-rwf9-px3c-3prw
+  - https://github.com/openemr/openemr/security/advisories/GHSA-68fr-xm3v-p4vw
+  - https://github.com/openemr/openemr/security/advisories/GHSA-4gh4-q39r-45wf
+  - https://github.com/openemr/openemr/security/advisories/GHSA-55qj-x8wh-m4rm
+- Backport #10408 (sms class rename) to rel-800 to fix non-deterministic PHPStan baseline ([#11013](https://github.com/openemr/openemr/issues/11013))
+
+### Changed
+-  Unable to edit/add prescriptions after 7.0.4 upgrade ([#10834](https://github.com/openemr/openemr/issues/10834))
+-  Update path for phpstan baseline artifacts ([#10242](https://github.com/openemr/openemr/pull/10242))
+-  pass encounter/pid in navbar form URLs to prevent stale session ([#10865](https://github.com/openemr/openemr/pull/10865))
+-  voice vendor ID 6 breaks UI after upgrade ([#10947](https://github.com/openemr/openemr/issues/10947))
+-  use AccessDeniedHelper for ACL denial patterns ([#10683](https://github.com/openemr/openemr/pull/10683))
+-  Split conflicting class name definitions ([#10408](https://github.com/openemr/openemr/pull/10408))
+
+
+## [8.0.0](https://github.com/openemr/openemr/milestone/23?closed=1) - 2026-02-11
+
+### Added
+-  add HTI-1 pronouns to demographics ([#10201](https://github.com/openemr/openemr/issues/10201))
+
+### Fixed
+-  Fixes #10233 cqm reporting period and deps updates ([#10234](https://github.com/openemr/openemr/pull/10234))
+- Add cache-buster to refactored payment JS scripts ([#10156](https://github.com/openemr/openemr/issues/10156))
+- Break when adding a new patient. (appears secondary to session breakage) ([#10529](https://github.com/openemr/openemr/issues/10529))
+- Catch all for various bug fixes. ([#9995](https://github.com/openemr/openemr/issues/9995))
+- Fax service new vendor add ([#9866](https://github.com/openemr/openemr/issues/9866))
+- FaxSMS Module Requires SMTP Username/Password Even When Not Needed ([#9066](https://github.com/openemr/openemr/issues/9066))
+- FaxSMS service introduction updates ([#10169](https://github.com/openemr/openemr/issues/10169))
+- Flow Board Colors are unset when you set them ([#9401](https://github.com/openemr/openemr/issues/9401))
+- Implement Symfony Sessions for Portal ([#9277](https://github.com/openemr/openemr/issues/9277))
+- Introduce a Module Installer ([#9986](https://github.com/openemr/openemr/issues/9986))
+- Portal Appointment save fails. ([#10228](https://github.com/openemr/openemr/issues/10228))
+- Portal audit fails with PHP error ([#9963](https://github.com/openemr/openemr/issues/9963))
+- Refactor API passed session requirement to access Portal CCDA actions. ([#9949](https://github.com/openemr/openemr/issues/9949))
+- Refactor portal custom Medical Reports ([#10197](https://github.com/openemr/openemr/issues/10197))
+- Relabel NewCrop to Ensora ([#9890](https://github.com/openemr/openemr/issues/9890))
+- Setup random fail with collate exception ([#10235](https://github.com/openemr/openemr/issues/10235))
+- Standardize session timeout mechanics ([#10215](https://github.com/openemr/openemr/issues/10215))
+- Unable to find template "portal/partial/reports/patient_report/_documents.html.twig" ([#10266](https://github.com/openemr/openemr/issues/10266))
+-  Add FHIR Care Team to patient compartment interface ([#10358](https://github.com/openemr/openemr/issues/10358))
+-  Broken edit button for questionnaires ([#8244](https://github.com/openemr/openemr/issues/8244))
+-  Care team upgrade on 7.0.4 times out w/ database of 15K patients and 450K entries in uuid_registry ([#10323](https://github.com/openemr/openemr/issues/10323))
+-  Comlink Telehealth Module throws fatal error on fresh install from Admin -> Config ([#10550](https://github.com/openemr/openemr/issues/10550))
+-  Flow board does not change color ([#8190](https://github.com/openemr/openemr/issues/8190))
+-  New Patient form no longer sets default options for lists where Default is checked ([#10250](https://github.com/openemr/openemr/issues/10250))
+-  Patient Statement Email ([#8321](https://github.com/openemr/openemr/issues/8321))
+-  Prior Authorization Module adding new authorization generates fatal error. ([#10552](https://github.com/openemr/openemr/issues/10552))
+-  Related Person form fails to add relation for existing patient when global date format is not yyyy-mm-dd ([#10251](https://github.com/openemr/openemr/issues/10251))
+-  fax module php fatal error allowed memory size exhausted ([#10150](https://github.com/openemr/openemr/issues/10150))
+- ci testing breaking in the docker build testing ([#10223](https://github.com/openemr/openemr/issues/10223))
+- full support for nginx/php-fpm ([#1696](https://github.com/openemr/openemr/issues/1696))
+- main menu - user dropdown width restricted ([#10205](https://github.com/openemr/openemr/issues/10205))
+
+### Changed
+-  Carry over NDC info from previous encounters in Fee Sheet ([#8557](https://github.com/openemr/openemr/issues/8557))
+-  Major Save Issues ([#10095](https://github.com/openemr/openemr/issues/10095))
+-  Unable to add document category ([#10538](https://github.com/openemr/openemr/issues/10538))
+-  Flaky testUserAdd test fails with TimeoutException ([#10286](https://github.com/openemr/openemr/issues/10286))
+-  sql query error modifier can not be null ([#10198](https://github.com/openemr/openemr/issues/10198))
+-  Exception thrown on Authentication RC service ([#10248](https://github.com/openemr/openemr/issues/10248))
+-  one-time token for portal document notification broken ([#10517](https://github.com/openemr/openemr/issues/10517))
+-   PHP Fatal error:  Uncaught TypeError: receiptDetailLine(): Argument #4 ($quantity) must be of type int ([#10291](https://github.com/openemr/openemr/issues/10291))
+-  undefined global var $_SESSION in patient portal ([#10200](https://github.com/openemr/openemr/issues/10200))
+-  various session and type errors. ([#10553](https://github.com/openemr/openemr/issues/10553))
+-  bump the selenium-updates group across 3 directories with 1 update ([#10367](https://github.com/openemr/openemr/pull/10367))
+-  prep upgrade mechanism for docker 8.0.0 release ([#10268](https://github.com/openemr/openemr/issues/10268))
+-  change dev version to 7.0.5 ([#9513](https://github.com/openemr/openemr/issues/9513))
+-  change next planned version from 7.0.5 to 8.0.0 ([#10029](https://github.com/openemr/openemr/issues/10029))
+-  some release prep for 8.0.0 ([#10558](https://github.com/openemr/openemr/issues/10558))
+-  add pronouns and fix other layout oddities ([#10202](https://github.com/openemr/openemr/pull/10202))
+-  add SignalWire integration ([#10171](https://github.com/openemr/openemr/pull/10171))
+-  symfony sessions ([#9340](https://github.com/openemr/openemr/pull/9340))
+-  Create 2026 Real World Testing report ([#10284](https://github.com/openemr/openemr/issues/10284))
+-  add php-fpm web server instructions to Step 5 ([#10478](https://github.com/openemr/openemr/pull/10478))
+-  Report population capture and environment flag ([#10290](https://github.com/openemr/openemr/issues/10290))
+-  health check endpoints (healthz / livez / ready endpoints) ([#6133](https://github.com/openemr/openemr/issues/6133))
+-  skip audit logging for health check endpoints ([#10176](https://github.com/openemr/openemr/pull/10176))
+-  prevent sending blank statement emails ([#10486](https://github.com/openemr/openemr/pull/10486))
+-  use correct matrix variable for isolated-tests composer cache ([#10469](https://github.com/openemr/openemr/pull/10469))
+-  fix issue with loading `Juggernaut\OpenEMR\Modules\PriorAuthModule\` ([#10425](https://github.com/openemr/openemr/pull/10425))
+-  Fix returned value of InTransaction ([#10524](https://github.com/openemr/openemr/pull/10524))
+-  assert $pid is defined in portal_payment.php ([#10446](https://github.com/openemr/openemr/issues/10446))
+-  uncaught syntax error prevents CDR alert popup ([#10441](https://github.com/openemr/openemr/pull/10441))
+-  prevent inflated totals in Financial Summary by Service Code ([#10438](https://github.com/openemr/openemr/pull/10438))
+-  escape unescaped URL attributes in Twig templates ([#10474](https://github.com/openemr/openemr/pull/10474))
+-  API requests with portal cookies cause session conflict error ([#10416](https://github.com/openemr/openemr/issues/10416))
+-  increase app cookie expire time and better wrapper selection logic ([#10227](https://github.com/openemr/openemr/pull/10227))
+-  correct collate field id attribute and add default value ([#10472](https://github.com/openemr/openemr/pull/10472))
+-  nginx config doc path fix. ([#10526](https://github.com/openemr/openemr/pull/10526))
+-  add title for eRx tab ([#9130](https://github.com/openemr/openemr/pull/9130))
+-  Geo Location and population data placement ([#10429](https://github.com/openemr/openemr/pull/10429))
+-  add translation support for BMI status display ([#10406](https://github.com/openemr/openemr/pull/10406))
+-  #10323 care team upgrade optimization ([#10347](https://github.com/openemr/openemr/pull/10347))
+-  #10332 uuid generation large dataset ([#10346](https://github.com/openemr/openemr/pull/10346))
+-  #10436 redis session storage ([#10437](https://github.com/openemr/openemr/pull/10437))
+-  #10454 webroot session fix ([#10455](https://github.com/openemr/openemr/pull/10455))
+-  #10481 EHR launch skip login screen ([#10482](https://github.com/openemr/openemr/pull/10482))
+-  10456 ccda author session fix ([#10470](https://github.com/openemr/openemr/pull/10470))
+-  FHIR DocumentReference endpoint returns clinical notes associated with the wrong patient ([#10168](https://github.com/openemr/openemr/issues/10168))
+-  correct typos in clinical notes and track_anything forms ([#10457](https://github.com/openemr/openemr/pull/10457))
+-  docker documentation typo ([#10418](https://github.com/openemr/openemr/issues/10418))
+-  remove redundant syncAlertMsg wrapper ([#10411](https://github.com/openemr/openemr/issues/10411))
+-  remove unused PredisSessionHandler class ([#10528](https://github.com/openemr/openemr/pull/10528))
+-  consolidate email validation to use ValidationUtils ([#10304](https://github.com/openemr/openemr/pull/10304))
+-  Consolidate IP address validation using filter_var ([#10305](https://github.com/openemr/openemr/issues/10305))
+-  Consolidate NPI validation in ValidationUtils ([#10310](https://github.com/openemr/openemr/issues/10310))
+
 ## [7.0.4](https://github.com/openemr/openemr/milestone/17?closed=1) - 2025-12-23
 
 ### Added
