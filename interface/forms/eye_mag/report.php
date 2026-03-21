@@ -486,7 +486,7 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                     $tempDocC = new C_Document();
                     $tempDocC->onReturnRetrieveKey();
                     try {
-                        $fileTemp = $tempDocC->retrieve_action($pid, -1, false, true, true, true, 'patient_picture');
+                        $fileTemp = $tempDocC->retrieve_action($pid, $result['id'], false, true, true, true, 'patient_picture');
                         if (!empty($fileTemp)) {
                             if ($PDF_OUTPUT) {
                                 // tmp file in ../documents/temp since need to be available via webroot
@@ -2515,7 +2515,7 @@ function display_draw_image($zone, $encounter, $pid): void
         if ($PDF_OUTPUT) {
             $tempDocC = new C_Document();
             $tempDocC->onReturnRetrieveKey();
-            $fileTemp = $tempDocC->retrieve_action($pid, $doc['id'], false, original_file: true, true);
+            $fileTemp = $tempDocC->retrieve_action($pid, $doc['id'], false, original_file: true, disable_exit: true, false);
             // tmp file in ../documents/temp since need to be available via webroot
             $from_file_tmp_web_name = tempnam($GLOBALS['OE_SITE_DIR'] . '/documents/temp', "oer");
             file_put_contents($from_file_tmp_web_name, $fileTemp);
