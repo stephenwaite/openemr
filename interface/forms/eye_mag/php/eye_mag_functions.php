@@ -4128,11 +4128,9 @@ function menu_overhaul_left($pid, $encounter): void
 
             if (!empty($documents['docs_in_name']['Patient Photograph'][0])) {
                 ?>
-                <object><embed
-                            src="<?php echo $GLOBALS['webroot']; ?>/controller.php?document&retrieve&patient_id=<?php echo attr($pid); ?>&document_id=<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['id']); ?>&as_file=false&original_file=true&disable_exit=false&show_original=true&context=patient_picture"
-
-                            Xsrc="<?php echo $GLOBALS['webroot']; ?>/controller.php?document&amp;retrieve&amp;patient_id=<?php echo attr($pid); ?>&amp;document_id=<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['id']); ?>&amp;as_file=false" frameborder="0"
-                     type="<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['mimetype']); ?>" allowscriptaccess="always" allowfullscreen="false" height="100"></embed></object>
+                <img
+    src="<?php echo $GLOBALS['webroot']; ?>/controller.php?document&retrieve&patient_id=<?php echo attr($pid); ?>&document_id=<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['id']); ?>&as_file=false"
+    height="100" style="max-width:150px;" alt="Patient Photograph" />
                 <?php
             } else {
                 ?>
