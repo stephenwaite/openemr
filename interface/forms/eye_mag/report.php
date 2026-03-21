@@ -484,6 +484,7 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                 } else {
                     //get patient photo
                     $tempDocC = new C_Document();
+                    $tempDocC->onReturnRetrieveKey();
                     try {
                         $fileTemp = $tempDocC->retrieve_action($pid, -1, false, true, true, true, 'patient_picture');
                         if (!empty($fileTemp)) {
@@ -494,7 +495,7 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                                 echo "<img src='" . $from_file_tmp_web_name . "' style='width:220px;'>";
                                 $tmp_files_remove[] = $from_file_tmp_web_name;
                             } else {
-                                $filetoshow = $GLOBALS['webroot'] . "/controller.php?document&retrieve&patient_id=" . attr_url($pid) . "&document_id=-1&as_file=false&original_file=true&disable_exit=false&show_original=true&context=patient_picture";
+                                $filetoshow = $GLOBALS['webroot'] . "/controller.php?document&retrieve&patient_id=" . attr_url($pid) . "&document_id=" . attr_url($result['id']) . "&as_file=false";
                                 echo "<img src='" . $filetoshow . "' style='width:220px;'>";
                             }
                         }
@@ -2513,7 +2514,8 @@ function display_draw_image($zone, $encounter, $pid): void
         //               if ($extension == ".png" || $extension == ".jpg" || $extension == ".jpeg" || $extension == ".gif") {
         if ($PDF_OUTPUT) {
             $tempDocC = new C_Document();
-            $fileTemp = $tempDocC->retrieve_action($pid, $doc['id'], false, true, true);
+            $tempDocC->onReturnRetrieveKey();
+            $fileTemp = $tempDocC->retrieve_action($pid, $doc['id'], false, original_file: true, true);
             // tmp file in ../documents/temp since need to be available via webroot
             $from_file_tmp_web_name = tempnam($GLOBALS['OE_SITE_DIR'] . '/documents/temp', "oer");
             file_put_contents($from_file_tmp_web_name, $fileTemp);
@@ -2542,4 +2544,4 @@ function report_ACT($term)
     $term = nl2br(htmlspecialchars((string) $term, ENT_NOQUOTES));
     return $term . "&nbsp;";
 }
-?>
+
