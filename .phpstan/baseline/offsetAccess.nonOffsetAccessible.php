@@ -35982,7 +35982,7 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../library/payment.inc.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Cannot access offset \'assigned_to\' on array\\|false\\.$#',
+    'message' => '#^Cannot access offset \'assigned_to\' on array\\<mixed\\>\\|false\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../library/pnotes.inc.php',
 ];
@@ -35992,13 +35992,13 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../library/pnotes.inc.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Cannot access offset \'message_status\' on array\\|false\\.$#',
+    'message' => '#^Cannot access offset \'message_status\' on array\\<mixed\\>\\|false\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../library/pnotes.inc.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Cannot access offset \'pid\' on mixed\\.$#',
-    'count' => 1,
+    'count' => 2,
     'path' => __DIR__ . '/../../library/pnotes.inc.php',
 ];
 $ignoreErrors[] = [
