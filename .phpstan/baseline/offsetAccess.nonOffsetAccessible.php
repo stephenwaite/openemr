@@ -822,7 +822,7 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../custom/ajax_download.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Cannot access offset mixed on mixed\\.$#',
+    'message' => '#^Cannot access offset string on mixed\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../custom/ajax_download.php',
 ];

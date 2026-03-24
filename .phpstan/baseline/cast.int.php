@@ -13,6 +13,11 @@ $ignoreErrors[] = [
 ];
 $ignoreErrors[] = [
     'message' => '#^Cannot cast mixed to int\\.$#',
+    'count' => 2,
+    'path' => __DIR__ . '/../../custom/ajax_download.php',
+];
+$ignoreErrors[] = [
+    'message' => '#^Cannot cast mixed to int\\.$#',
     'count' => 3,
     'path' => __DIR__ . '/../../custom/export_registry_xml.php',
 ];

@@ -193,7 +193,7 @@ $ignoreErrors[] = [
 ];
 $ignoreErrors[] = [
     'message' => '#^Direct access to \\$_POST is forbidden\\. Use Symfony\'s Request object or filter_input\\(\\) instead\\.$#',
-    'count' => 4,
+    'count' => 3,
     'path' => __DIR__ . '/../../custom/ajax_download.php',
 ];
 $ignoreErrors[] = [

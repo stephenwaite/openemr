@@ -602,11 +602,6 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../custom/ajax_download.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Binary operation "\\." between mixed and \'_NQF_\' results in an error\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../custom/ajax_download.php',
-];
-$ignoreErrors[] = [
     'message' => '#^Binary operation "\\." between mixed and mixed results in an error\\.$#',
     'count' => 2,
     'path' => __DIR__ . '/../../custom/ajax_download.php',
@@ -619,11 +614,6 @@ $ignoreErrors[] = [
 $ignoreErrors[] = [
     'message' => '#^Binary operation "\\." between mixed and string results in an error\\.$#',
     'count' => 3,
-    'path' => __DIR__ . '/../../custom/ajax_download.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Binary operation "\\." between non\\-falsy\\-string and mixed results in an error\\.$#',
-    'count' => 1,
     'path' => __DIR__ . '/../../custom/ajax_download.php',
 ];
 $ignoreErrors[] = [
