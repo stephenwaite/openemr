@@ -783,7 +783,7 @@ if (
                     $d = new Document();
                     $doc_pid = $inv_pid[$inv_count];
                     $invoice_category_id = 0;
-                    $catrow = sqlQuery("SELECT id FROM categories WHERE name = ?", ['Invoices']);
+                    $catrow = sqlQuery("SELECT id FROM categories WHERE name = ?", ['7.Statements']);
                     if (!empty($catrow['id'])) {
                         $invoice_category_id = $catrow['id'];
                     }
