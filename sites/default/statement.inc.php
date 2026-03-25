@@ -18,7 +18,7 @@
  * @author Jerry Padgett <sjpadgett@gmail.com>
  * @copyright Copyright (c) 2017 Jerry Padgett <sjpadgett@gmail.com>
  * @author Stephen Waite <stephen.waite@cmsvt.com>
- * @copyright Copyright (c) 2020 Stephen Waite <stephen.waite@cmsvt.com>
+ * @copyright Copyright (c) 2020-2024 Stephen Waite <stephen.waite@cmsvt.com>
  * @author Daniel Pflieger <daniel@growlingflea.com>
  * @copyright Copyright (c) 2018 Daniel Pflieger <daniel@growlingflea.com>
  * @link https://github.com/openemr/openemr/tree/master
@@ -54,10 +54,18 @@ function make_statement($stmt)
         } else {
             return create_HTML_statement($stmt);
         }
+    // LOCAL: appearance='2' CMS statement branch. rel-800 removes this entirely.
+    // Keep as long as any deployment uses statement_appearance = 2 in globals.
+    // If dropping, also remove create_cms_statement() below and its helper functions
+    // in sl_eob_search.php (printHeader/printBody/printFooter and the upload_file_to_client_pdf
+    // appearance='2' branch).
+    } elseif ($GLOBALS['statement_appearance'] == "2") {
+        return create_cms_statement($stmt);
     } else {
         return create_statement($stmt);
     }
 }
+
 /**
  * This prints a header for documents.  Keeps the brand uniform...
  *  @param string $pid patient_id
@@ -71,6 +79,7 @@ function report_header_2($stmt, $providerID = '1')
     //We get the service facility from the encounter.  In cases with multiple service facilities
     //OpenEMR sends the correct facility
 
+    // MERGED-FROM-REL800: short array syntax
     $service_query = sqlStatement("SELECT * FROM `form_encounter` fe join facility f on fe.facility_id = f.id where fe.id = ?", [$stmt['fid']]);
     $facility = sqlFetchArray($service_query);
 
@@ -139,6 +148,7 @@ function create_HTML_statement($stmt)
     }
 
 // Facility (service location) modified by Daniel Pflieger at Growlingflea Software
+    // MERGED-FROM-REL800: short array syntax
     $service_query = sqlStatement("SELECT * FROM `form_encounter` fe join facility f on fe.facility_id = f.id where fe.id = ? ", [$stmt['fid']]);
     $row = sqlFetchArray($service_query);
     $clinic_name = "{$row['name']}";
@@ -147,6 +157,7 @@ function create_HTML_statement($stmt)
 
 
 // Billing location modified by Daniel Pflieger at Growlingflea Software
+    // MERGED-FROM-REL800: short array syntax
     $service_query = sqlStatement("SELECT * FROM `form_encounter` fe join facility f on fe.billing_facility = f.id where fe.id = ?", [$stmt['fid']]);
     $row = sqlFetchArray($service_query);
     $remit_name = "{$row['name']}";
@@ -156,6 +167,7 @@ function create_HTML_statement($stmt)
     ob_start();
     ?><div style="padding-left:25px; page-break-after:always;">
     <?php
+    // MERGED-FROM-REL800: short array syntax
     $find_provider = sqlQuery("SELECT * FROM form_encounter " .
         "WHERE pid = ? AND encounter = ? " .
         "ORDER BY id DESC LIMIT 1", [$stmt['pid'],$stmt['encounter']]);
@@ -229,6 +241,7 @@ function create_HTML_statement($stmt)
     $count = 5;
 
     $num_ages = 4;
+    // MERGED-FROM-REL800: short array syntax
     $aging = [];
     for ($age_index = 0; $age_index < $num_ages; ++$age_index) {
         $aging[$age_index] = 0.00;
@@ -238,8 +251,10 @@ function create_HTML_statement($stmt)
 
     // This generates the detail lines.  Again, note that the values must be specified in the order used.
     foreach ($stmt['lines'] as $line) {
+        // MERGED-FROM-REL800: ternary with (string) cast replaces if/else block
         $description = $GLOBALS['use_custom_statement'] ? substr((string) $line['desc'], 0, 30) : $line['desc'];
 
+        // MERGED-FROM-REL800: (string) cast; in_array() replaces chained == comparisons
         $tmp = substr((string) $description, 0, 14);
         if (in_array($tmp, ['Procedure 9920', 'Procedure 9921', 'Procedure 9200', 'Procedure 9201'])) {
             $description = str_replace("Procedure", xl('Office Visit') . ":", $description);
@@ -256,6 +271,7 @@ function create_HTML_statement($stmt)
         $prev_ddate = '';
         $last_activity_date = $dos;
         foreach ($line['detail'] as $dkey => $ddata) {
+            // MERGED-FROM-REL800: (string) cast
             $ddate = substr((string) $dkey, 0, 10);
             if (preg_match('/^(\d\d\d\d)(\d\d)(\d\d)\s*$/', $ddate, $matches)) {
                 $ddate = $matches[1] . '-' . $matches[2] . '-' . $matches[3];
@@ -269,12 +285,14 @@ function create_HTML_statement($stmt)
 
             if (!empty($ddata['pmt'])) {
                 $amount = sprintf("%.2f", 0 - $ddata['pmt']);
+                // MERGED-FROM-REL800: (string) casts on oeFormatShortDate args
                 $desc = xl('Paid') . ' ' . substr((string) oeFormatShortDate($ddate), 0, 6) .
                     substr((string) oeFormatShortDate($ddate), 8, 2) .
                     ': ' . $ddata['src'] . ' ' . $ddata['pmt_method'] . ' ' . $ddata['insurance_company'];
                 // $ddata['plv'] is the 'payer_type' field in `ar_activity`, passed in via InvoiceSummary
                 if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
                     $pt_paid_flag = true;
+                    // MERGED-FROM-REL800: (string) casts
                     $desc = xl('Pt paid') . ' ' . substr((string) oeFormatShortDate($ddate), 0, 6) .
                     substr((string) oeFormatShortDate($ddate), 8, 2);
                 }
@@ -288,6 +306,7 @@ function create_HTML_statement($stmt)
                             // only 1 note per item or results in too much detail
                             continue;
                         } else {
+                            // MERGED-FROM-REL800: (string) casts
                             $desc = xl('Note') . ' ' . substr((string) oeFormatShortDate($ddate), 0, 6) .
                                 substr((string) oeFormatShortDate($ddate), 8, 2) .
                                 ': ' . ': ' . $ddata['rsn'] . ' ' . $ddata['pmt_method'] . ' ' . $ddata['insurance_company'];
@@ -321,7 +340,7 @@ function create_HTML_statement($stmt)
             ++$count;
         }
 
-        // don't print a balance after a "Paidpatient payment since it's on it's own line
+        // don't print a balance after a "Paid" patient payment since it's on its own line
         if (!$pt_paid_flag) {
             $out .= sprintf("%-10s  %-45s%8s\n", oeFormatShortDate($dos), "Item balance ", sprintf("%.2f", ($line['amount'] - $line['paid'])));
             ++$count;
@@ -332,8 +351,10 @@ function create_HTML_statement($stmt)
         // If first bill then make the amount due current and reset aging date
         if ($stmt['dun_count'] == '0') {
             $last_activity_date = date('Y-m-d');
+            // MERGED-FROM-REL800: short array syntax
             sqlStatement("UPDATE billing SET bill_date = ? WHERE pid = ? AND encounter = ?", [date('Y-m-d'), $row['pid'], $row['encounter']]);
         }
+        // MERGED-FROM-REL800: (string) cast
         $age_in_days = (int) (($todays_time - strtotime((string) $last_activity_date)) / (60 * 60 * 24));
         $age_index = (int) (($age_in_days - 1) / 30);
         $age_index = max(0, min($num_ages - 1, $age_index));
@@ -370,6 +391,7 @@ function create_HTML_statement($stmt)
 
     // This is the top portion of the page.
     $out .= "\n\n\n";
+    // MERGED-FROM-REL800: (string) cast
     if (strlen((string) $stmt['bill_note']) != 0 && $GLOBALS['statement_bill_note_print']) {
         $out .= sprintf("%-46s\n", $stmt['bill_note']);
         $count++;
@@ -424,7 +446,9 @@ function create_HTML_statement($stmt)
         #loop to add the appointments
         for ($x = 1; $x <= $num_appts; $x++) {
             $next_appoint_date = oeFormatShortDate($events[$j]['pc_eventDate']);
+            // MERGED-FROM-REL800: (string) cast
             $next_appoint_time = substr((string) $events[$j]['pc_startTime'], 0, 5);
+            // MERGED-FROM-REL800: fixed bare `umname` constant bug; was strlen(umname)
             if (strlen((string) $events[$j]['umname']) != 0) {
                 $next_appoint_provider = $events[$j]['ufname'] . ' ' . $events[$j]['umname'] . ' ' .  $events[$j]['ulname'];
             } else {
@@ -478,6 +502,11 @@ function create_HTML_statement($stmt)
     $out .= ' </pre>
   <div style="width:7.0in;border-top:1pt solid black;"><br />';
     $out .= " <table style='width:7.0in;margin:auto;'><tr>";
+    // LOCAL: address block uses to[0..3] because sl_eob_search.php adds street_line_2 at to[2],
+    // shifting city/state/zip to to[3]. Upstream only uses to[0..2].
+    // NOTE: to[3] (city/state/zip) is intentionally omitted here to match the original
+    // local layout. Add it if your statement template needs to show city/state/zip
+    // in the address block (e.g.: . $stmt['to'][3] . '<br />').
     $out .= '<td style="margin:auto;"></td><td style="width:3.0in;"><b>'
         . $label_addressee . '</b><br />'
         . $stmt['to'][0] . '<br />'
@@ -585,6 +614,7 @@ function create_statement($stmt)
     // TBD: read this from the facility table
 
     // Facility (service location) modified by Daniel Pflieger at Growlingflea Software
+    // MERGED-FROM-REL800: short array syntax
     $service_query = sqlStatement("SELECT * FROM `form_encounter` fe join facility f on fe.facility_id = f.id where fe.id = ?", [$stmt['fid']]);
     $row = sqlFetchArray($service_query);
     $clinic_name = "{$row['name']}";
@@ -593,6 +623,7 @@ function create_statement($stmt)
 
 
     // Billing location modified by Daniel Pflieger at Growlingflea Software
+    // MERGED-FROM-REL800: short array syntax
     $service_query = sqlStatement("SELECT * FROM `form_encounter` fe join facility f on fe.billing_facility = f.id where fe.id = ?", [$stmt['fid']]);
     $row = sqlFetchArray($service_query);
     $remit_name = "{$row['name']}";
@@ -601,6 +632,7 @@ function create_statement($stmt)
 
 
     // Contacts
+    // MERGED-FROM-REL800: short array syntax
     $atres = sqlStatement("select f.attn,f.phone from facility f " .
         " left join users u on f.id=u.facility_id " .
         " left join  billing b on b.provider_id=u.id and b.pid = ?  " .
@@ -675,6 +707,7 @@ function create_statement($stmt)
     $out .= sprintf("       %-30s %-s\n", $label_addressee, $label_remitto);
     $out .= sprintf("       %-30s %s\n", $stmt['to'][0], $remit_name);
     $out .= sprintf("       %-30s %s\n", $stmt['to'][1], $remit_addr);
+    // LOCAL: to[2] = street_line_2, to[3] = city/state/zip (upstream has to[2] = city/state/zip)
     $out .= sprintf("       %-30s %s\n", $stmt['to'][2], $remit_csz);
 
     if ($stmt['to'][3] != '') { //to avoid double blank lines the if condition is put.
@@ -704,6 +737,7 @@ function create_statement($stmt)
     //
     $count = 25;
     $num_ages = 4;
+    // MERGED-FROM-REL800: short array syntax
     $aging = [];
     for ($age_index = 0; $age_index < $num_ages; ++$age_index) {
         $aging[$age_index] = 0.00;
@@ -715,10 +749,11 @@ function create_statement($stmt)
     // be specified in the order used.
     //
 
-
     foreach ($stmt['lines'] as $line) {
+        // MERGED-FROM-REL800: ternary with (string) cast
         $description = $GLOBALS['use_custom_statement'] ? substr((string) $line['desc'], 0, 30) : $line['desc'];
 
+        // MERGED-FROM-REL800: (string) cast; in_array() replaces chained == comparisons
         $tmp = substr((string) $description, 0, 14);
         if (in_array($tmp, ['Procedure 9920', 'Procedure 9921', 'Procedure 9200', 'Procedure 9201'])) {
             $description = str_replace("Procedure", xl('Office Visit') . ":", $description);
@@ -730,12 +765,14 @@ function create_statement($stmt)
         ksort($line['detail']);
         # Compute the aging bucket index and accumulate into that bucket.
         #
+        // MERGED-FROM-REL800: (string) cast
         $age_in_days = (int) (($todays_time - strtotime((string) $dos)) / (60 * 60 * 24));
         $age_index = (int) (($age_in_days - 1) / 30);
         $age_index = max(0, min($num_ages - 1, $age_index));
         $aging[$age_index] += $line['amount'] - $line['paid'];
 
         foreach ($line['detail'] as $dkey => $ddata) {
+            // MERGED-FROM-REL800: (string) cast
             $ddate = substr((string) $dkey, 0, 10);
             if (preg_match('/^(\d\d\d\d)(\d\d)(\d\d)\s*$/', $ddate, $matches)) {
                 $ddate = $matches[1] . '-' . $matches[2] . '-' . $matches[3];
@@ -796,6 +833,7 @@ function create_statement($stmt)
 
     // This is the bottom portion of the page.
     $out .= "\n";
+    // MERGED-FROM-REL800: (string) cast
     if (strlen((string) $stmt['bill_note']) != 0 && $GLOBALS['statement_bill_note_print']) {
         $out .= sprintf("%-46s\n", $stmt['bill_note']);
     }
@@ -846,7 +884,9 @@ function create_statement($stmt)
         #loop to add the appointments
         for ($x = 1; $x <= $num_appts; $x++) {
             $next_appoint_date = oeFormatShortDate($events[$j]['pc_eventDate']);
+            // MERGED-FROM-REL800: (string) cast
             $next_appoint_time = substr((string) $events[$j]['pc_startTime'], 0, 5);
+            // MERGED-FROM-REL800: fixed bare `umname` constant bug; was strlen(umname)
             if (strlen((string) $events[$j]['umname']) != 0) {
                 $next_appoint_provider = $events[$j]['ufname'] . ' ' . $events[$j]['umname'] .
                     ' ' .  $events[$j]['ulname'];
@@ -881,6 +921,7 @@ function osp_create_HTML_statement($stmt)
     }
 
     // Facility (service location)
+    // MERGED-FROM-REL800: short array syntax
     $atres = sqlStatement("select f.name,f.street,f.city,f.state,f.postal_code,f.attn,f.phone from facility f " .
     " left join users u on f.id=u.facility_id " .
     " left join  billing b on b.provider_id=u.id and b.pid = ? " .
@@ -900,6 +941,7 @@ function osp_create_HTML_statement($stmt)
     ob_start();
     ?><div style="padding-left:25px;">
     <?php
+    // MERGED-FROM-REL800: short array syntax
     $find_provider = sqlQuery("SELECT * FROM form_encounter " .
         "WHERE pid = ? AND encounter = ? " .
         "ORDER BY id DESC LIMIT 1", [$stmt['pid'],$stmt['encounter']]);
@@ -973,6 +1015,7 @@ function osp_create_HTML_statement($stmt)
     //
     $count = 6;
     $num_ages = 4;
+    // MERGED-FROM-REL800: short array syntax
     $aging = [];
     for ($age_index = 0; $age_index < $num_ages; ++$age_index) {
         $aging[$age_index] = 0.00;
@@ -982,8 +1025,10 @@ function osp_create_HTML_statement($stmt)
 
     // This generates the detail lines.  Again, note that the values must be specified in the order used.
     foreach ($stmt['lines'] as $line) {
+        // MERGED-FROM-REL800: ternary with (string) cast
         $description = $GLOBALS['use_custom_statement'] ? substr((string) $line['desc'], 0, 30) : $line['desc'];
 
+        // MERGED-FROM-REL800: (string) cast; in_array() replaces chained == comparisons
         $tmp = substr((string) $description, 0, 14);
         if (in_array($tmp, ['Procedure 9920', 'Procedure 9921', 'Procedure 9200', 'Procedure 9201'])) {
             $description = str_replace("Procedure", xl('Office Visit') . ":", $description);
@@ -994,12 +1039,14 @@ function osp_create_HTML_statement($stmt)
         $dos = $line['dos'];
         ksort($line['detail']);
         # Compute the aging bucket index and accumulate into that bucket.
+        // MERGED-FROM-REL800: (string) cast
         $age_in_days = (int) (($todays_time - strtotime((string) $dos)) / (60 * 60 * 24));
         $age_index = (int) (($age_in_days - 1) / 30);
         $age_index = max(0, min($num_ages - 1, $age_index));
         $aging[$age_index] += $line['amount'] - $line['paid'];
 
         foreach ($line['detail'] as $dkey => $ddata) {
+            // MERGED-FROM-REL800: (string) cast
             $ddate = substr((string) $dkey, 0, 10);
             if (preg_match('/^(\d\d\d\d)(\d\d)(\d\d)\s*$/', $ddate, $matches)) {
                 $ddate = $matches[1] . '-' . $matches[2] . '-' . $matches[3];
@@ -1058,6 +1105,7 @@ function osp_create_HTML_statement($stmt)
 
     // This is the top portion of the page.
     $out .= "\n";
+    // MERGED-FROM-REL800: (string) cast
     if (strlen((string) $stmt['bill_note']) != 0 && $GLOBALS['statement_bill_note_print']) {
         $out .= sprintf("%-46s\n", $stmt['bill_note']);
         $count++;
@@ -1112,7 +1160,9 @@ function osp_create_HTML_statement($stmt)
         #loop to add the appointments
         for ($x = 1; $x <= $num_appts; $x++) {
             $next_appoint_date = oeFormatShortDate($events[$j]['pc_eventDate']);
+            // MERGED-FROM-REL800: (string) cast
             $next_appoint_time = substr((string) $events[$j]['pc_startTime'], 0, 5);
+            // MERGED-FROM-REL800: fixed bare `umname` constant bug; was strlen(umname)
             if (strlen((string) $events[$j]['umname']) != 0) {
                 $next_appoint_provider = $events[$j]['ufname'] . ' ' . $events[$j]['umname'] . ' ' .  $events[$j]['ulname'];
             } else {
@@ -1156,6 +1206,8 @@ function osp_create_HTML_statement($stmt)
     $out .= ' </pre>
   <div style="width:8in;border-top:1pt solid black;"><br />';
     $out .= " <table style='width:6.0in;margin-left:40px;'><tr>";
+    // LOCAL: to[2] = street_line_2, to[3] would be city/state/zip but portal statements
+    // use service_location facility address for remit, not the patient address city/state/zip.
     $out .= '<td style="width:3.0in;"><b>'
         . $label_addressee . '</b><br />'
         . $stmt['to'][0] . '<br />'
@@ -1175,4 +1227,255 @@ function osp_create_HTML_statement($stmt)
     echo $out;
     $output = ob_get_clean();
     return $output;
+}
+
+// LOCAL: create_cms_statement() is entirely absent from rel-800. It implements
+// statement_appearance = 2 (CMS-style fixed-width text statement with multi-page
+// support via formatDate() and explicit column positioning).
+// Keep as long as any deployment uses statement_appearance = 2 in globals.
+// If dropping, also update make_statement() above and remove the corresponding
+// branches in sl_eob_search.php (upload_file_to_client_pdf appearance='2' and the
+// printHeader/printBody/printFooter helpers).
+function create_cms_statement($stmt)
+{
+    if (! $stmt['pid']) {
+        return ""; // get out if no data
+    }
+    #minimum_amount_to _print
+    if ($stmt['amount'] <= ($GLOBALS['minimum_amount_to_print']) && $GLOBALS['use_statement_print_exclusion'] && ($_REQUEST['form_category'] != "All")) {
+        return "";
+    }
+    // These are your clinics return address, contact etc.  Edit them.
+    // TBD: read this from the facility table
+    // Facility (service location) modified by Daniel Pflieger at Growlingflea Software
+    $service_query = sqlStatement("SELECT * FROM `form_encounter` fe join facility f on fe.facility_id = f.id where fe.id = ?", [$stmt['fid']]);
+    $row = sqlFetchArray($service_query);
+    $clinic_name = "{$row['name']}";
+    $clinic_addr = "{$row['street']}";
+    $clinic_csz = "{$row['city']}, {$row['state']}, {$row['postal_code']}";
+    // Billing location modified by Daniel Pflieger at Growlingflea Software
+    $service_query = sqlStatement("SELECT * FROM `form_encounter` fe join facility f on fe.billing_facility = f.id where fe.id = ?", [$stmt['fid']]);
+    $row = sqlFetchArray($service_query);
+    $remit_name = "{$row['name']}";
+    $remit_addr = "{$row['street']}";
+    $remit_csz = "{$row['city']}, {$row['state']}, {$row['postal_code']}";
+    // Contacts
+    $atres = sqlStatement("select f.attn,f.phone from facility f " .
+        " left join users u on f.id=u.facility_id " .
+        " left join  billing b on b.provider_id=u.id and b.pid = ?  " .
+        " where billing_location=1", [$stmt['pid']]);
+    $row = sqlFetchArray($atres);
+    $billing_contact = "{$row['attn']}";
+    $billing_phone = "{$row['phone']}";
+    // dunning message setup
+    // insurance has paid something
+    // $stmt['age'] how old is the invoice
+    // $stmt['dun_count'] number of statements run
+    // $stmt['level_closed'] <= 3 insurance 4 = patient
+    if ($GLOBALS['use_dunning_message']) {
+        if ($stmt['ins_paid'] != 0 || $stmt['level_closed'] == 4) {
+            // do collection messages
+            switch ($stmt['age']) {
+                case $stmt['age'] <= $GLOBALS['first_dun_msg_set']:
+                    $dun_message = $GLOBALS['first_dun_msg_text'];
+                    break;
+                case $stmt['age'] <= $GLOBALS['second_dun_msg_set']:
+                    $dun_message = $GLOBALS['second_dun_msg_text'];
+                    break;
+                case $stmt['age'] <= $GLOBALS['third_dun_msg_set']:
+                    $dun_message = $GLOBALS['third_dun_msg_text'];
+                    break;
+                case $stmt['age'] <= $GLOBALS['fourth_dun_msg_set']:
+                    $dun_message = $GLOBALS['fourth_dun_msg_text'];
+                    break;
+                case $stmt['age'] >= $GLOBALS['fifth_dun_msg_set']:
+                    $dun_message = $GLOBALS['fifth_dun_msg_text'];
+                    break;
+            }
+        }
+    }
+    // Text only labels
+    $label_addressee = xl('ADDRESSED TO');
+    $label_remitto = xl('REMIT TO');
+    $label_chartnum = xl('Chart Number');
+    $label_insinfo = xl('Insurance information on file');
+    $label_totaldue = xl('Total amount due');
+    $label_payby = xl('If paying by');
+    $label_cards = xl('VISA/MC/Discovery/HSA');
+    $label_cardnum = xl('Card');
+    $label_expiry = xl('Exp');
+    $label_cvv = xl('CVV');
+    $label_sign = xl('Signature');
+    $label_retpay = xl('Return above part with your payment');
+    $label_pgbrk = xl('STATEMENT SUMMARY');
+    $label_visit = xl('Visit Date');
+    $label_desc = xl('Description');
+    $label_amt = xl('Amount');
+    $providerName = getProviderName($stmt['provider_id']);
+    $addrline = strtoupper(preg_replace('/\s+/', ' ', $stmt['to'][1] ?? ''));
+    $addrline2 = strtoupper(preg_replace('/\s+/', ' ', $stmt['to'][2] ?? ''));
+    if (empty($addrline) && empty($addrline2)) {
+        $addrline = "***BAD ADDRESS***";
+    }
+    $out  = sprintf("%-9s %-55s %6s \r\n", '', strtoupper($stmt['to'][0]), $stmt['pid']);
+    $out .= sprintf("%-9s %-43s %-8s \r\n", '', $addrline, date('m d y'));
+
+    if (!empty($addrline2)) {
+        $out .= sprintf("%-9s %-43s \r\n", '', $addrline2);
+    } else {
+        $out .= "\r\n";
+    }
+
+    $out .= sprintf("%-9s %-43s %-8s %9s\r\n", '', strtoupper($stmt['to'][3] ?? ''), date('m d y'), $stmt['amount']);
+
+    $cityStateZip = $stmt['to'][4] ?? '';
+    if (empty($cityStateZip)) {
+        $cityStateZip = "***BAD ADDRESS***";
+    }
+
+    if ($stmt['to'][4] ?? '' != '') { // to avoid double blank lines the if condition is put.
+        $out .= sprintf("   %-32s\r\n", $stmt['to'][3]);
+    }
+    $out .= "\r\n";
+    $out .= "\r\n";
+
+    $header = $out;
+
+    // This must be set to the number of lines generated above.
+    //
+    $count = 25;
+    $num_ages = 4;
+    $aging = [];
+    for ($age_index = 0; $age_index < $num_ages; ++$age_index) {
+        $aging[$age_index] = 0.00;
+    }
+    $todays_time = strtotime(date('Y-m-d'));
+    // This generates the detail lines.  Again, note that the values must
+    // be specified in the order used.
+    //
+
+    $agedate = '0000-00-00';
+    $line_count = 0;
+    $page_count = 0;
+    $continued = false;
+    $continued_text = '';
+
+    foreach ($stmt['lines'] as $line) {
+        $procedureCode = substr($line['desc'], 10, 5) ?? '';
+        $desc_row = sqlQuery("SELECT `code_text` from `codes` WHERE `code` = ? AND `code_type` = ?", [$procedureCode, $line['code_type']]);
+        $description = substr($desc_row['code_text'] ?? $line['desc'], 0, 42);
+        $dos = $line['dos'];
+        ksort($line['detail']);
+        foreach ($line['detail'] as $dkey => $ddata) {
+            if ($continued = true) {
+                $out .= $continued_text;
+            }
+            $continued_text = '';
+
+            $ddate = substr($dkey, 0, 10);
+            if (preg_match('/^(\d\d\d\d)(\d\d)(\d\d)\s*$/', $ddate, $matches)) {
+                $ddate = $matches[1] . '-' . $matches[2] . '-' . $matches[3];
+            }
+            $amount = '';
+
+            if (!empty($insco)) {
+                if (strpos(($ddata['pmt_method'] ?? ''), $insco) !== false) {
+                    $insco = '';
+                }
+            }
+
+            if ($ddata['pmt'] ?? '') {
+                $dos = $ddate;
+                if ($dos > $agedate) {
+                    $agedate = $dos;
+                }
+                $amount = sprintf("%.2f", $ddata['pmt']);
+                $desc = xl('Paid') . ' ' . $ddata['src'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
+                if ($ddata['src'] == 'Pt Paid' || $ddata['plv'] == '0') {
+                    $pt_paid_flag = true;
+                    $desc = xl('Pt paid');
+                    $out .= sprintf("%-8s %-44s           %8s  \r\n", formatDate($dos), $desc, $amount);
+                } else {
+                    $out .= sprintf("%-8s %-44s           %8s\r\n", formatDate($dos), $desc, $amount);
+                }
+            } elseif ($ddata['rsn'] ?? '') {
+                $dos = $ddate;
+                if ($ddata['chg']) {
+                    $amount = sprintf("%.2f", ($ddata['chg'] * -1));
+                    $desc = xl('Adj') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
+                } else {
+                    $desc = xl('Note') . ' ' . substr($ddata['rsn'] ?? '', 0, 40) . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
+                }
+                $out .= sprintf("%-8s %-44s           %8s\r\n", formatDate($dos), $desc, $amount);
+            } elseif ($ddata['chg'] < 0) {
+                $amount = sprintf("%.2f", $ddata['chg']);
+                $desc = xl('Patient Payment');
+                $out .= sprintf("%-8s %-44s           %8s\r\n", formatDate($dos), $desc, $amount);
+            } else {
+                $amount = str_pad(sprintf("%.2f", $ddata['chg']), 7, " ", STR_PAD_LEFT);
+                $dos = $line['dos'];
+                $desc = $description;
+                $bal = str_pad(sprintf("%.2f", ($line['amount'] - $line['paid'])), 7, " ", STR_PAD_LEFT);
+                $out .= sprintf("%-8s %-44s   %-8s          %-8s \r\n", formatDate($dos), $desc, $amount, $bal);
+            }
+
+            ++$count;
+            ++$line_count;
+            if ($line_count % 34 == 0) {
+                $page_count++;
+                $continued = true;
+                $continued_text = "\r\n\r\n";
+                $continued_text .= sprintf("                       %.2f", $stmt['amount']);
+                $continued_text .= "CONTINUED PAGE $page_count \r\n";
+                $continued_text .= "\014"; // this is a form feed
+            }
+        }
+        if ($agedate == '0000-00-00') {
+            $agedate = $dos;
+        }
+
+        // Compute the aging bucket index and accumulate into that bucket.
+        $age_in_days = (int) (($todays_time - strtotime($agedate)) / (60 * 60 * 24));
+        $age_index = (int) (($age_in_days - 1) / 30);
+        $age_index = max(0, min($num_ages - 1, $age_index));
+        if ($stmt['dun_count'] == 0) {
+            $age_index = 0;
+        } else {
+            // add better aging here based on payments made since last bill date
+        }
+        $aging[$age_index] += $line['amount'] - $line['paid'];
+    }
+    // This generates blank lines until we are at line 42.
+    //
+    while ($count++ < 62) {
+        $out .= "\r\n";
+    }
+    # Generate the string of aging text.  This will look like:
+    # Current xxx.xx / 31-60 x.xx / 61-90 x.xx / Over-90 xxx.xx
+    # ....+....1....+....2....+....3....+....4....+....5....+....6....+
+    #
+    $ageline = sprintf(" %7.2f %10s %7.2f", $stmt['amount'], '', $aging[0]);
+    for ($age_index = 1; $age_index < ($num_ages - 1); ++$age_index) {
+        $ageline .= sprintf("   %7.2f", $aging[$age_index]);
+    }
+    // Fixed text labels
+    $label_ptname = xl('Name');
+    $label_today = xl('Date');
+    $label_due = xl('Amount Due');
+    $label_thanks = xl('Thank you for choosing');
+    $label_call = xl('Please call if any of the above information is incorrect.');
+    $label_prompt = xl('We appreciate prompt payment of balances due.');
+    $label_dept = xl('Billing Department');
+    $label_bill_phone = (!empty($GLOBALS['billing_phone_number']) ? $GLOBALS['billing_phone_number'] : $billing_phone );
+    $label_appointments = xl('Future Appointments') . ':';
+    $ageline .= sprintf("      %.2f              %.2f", $aging[$age_index], $stmt['amount']);
+    $out .= $ageline . "\r\n";
+    $out .= "\014"; // this is a form feed
+    return $out;
+}
+
+function formatDate($date)
+{
+    $strtotime = strtotime($date);
+    return date('m d y', $strtotime);
 }
