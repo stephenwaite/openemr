@@ -5,7 +5,7 @@
  * The second is sl_eob_invoice.php.
  *
  * @package   OpenEMR
- * @link      http://www.open-emr.org
+ * @link      https://www.open-emr.org
  * @author    Rod Roark <rod@sunsetsystems.com>
  * @author    Bill Cernansky
  * @author    Tony McCormick
@@ -32,6 +32,7 @@ require_once("$srcdir/patient.inc.php");
 require_once("$srcdir/appointments.inc.php");
 require_once($GLOBALS['OE_SITE_DIR'] . "/statement.inc.php");
 // statement.inc.php sets $STMT_TEMP_FILE and $STMT_PRINT_CMD
+// MERGED-FROM-REL800: added assertions to catch misconfigured environments early
 assert(isset($STMT_TEMP_FILE));
 assert(isset($STMT_PRINT_CMD));
 require_once("$srcdir/api.inc.php");
@@ -49,6 +50,7 @@ use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Common\Utils\FormatMoney;
+// MERGED-FROM-REL800: ValidationUtils replaces the local validEmail() function
 use OpenEMR\Common\Utils\ValidationUtils;
 use OpenEMR\Core\Header;
 use OpenEMR\OeUI\OemrUI;
@@ -80,6 +82,7 @@ if (!empty($GLOBALS['portal_onsite_two_enable'])) {
             if ($pData['allow_patient_portal'] != "YES") {
                 return false;
             } else {
+                // MERGED-FROM-REL800: added (string) cast for strict type safety
                 $_SESSION['portalUser'] = strtolower((string) $pData['fname']) . $pData['id'];
                 return true;
             }
@@ -158,6 +161,7 @@ if (!empty($GLOBALS['portal_onsite_two_enable'])) {
 }
 
 // This is called back by ParseERA::parseERA() if we are processing X12 835's.
+// MERGED-FROM-REL800: added ': void' return type
 function era_callback(&$out): void
 {
     global $where, $eracount, $eraname;
@@ -165,10 +169,12 @@ function era_callback(&$out): void
     ++$eracount;
     // $eraname = $out['isa_control_number'];
     // since it's always sent we use isa_sender_id if payer_id is not provided
+    // MERGED-FROM-REL800: added (string) casts for strict type safety
     $eraname = $out['gs_date'] . '_' . ltrim((string) $out['isa_control_number'], '0') .
         '_' . ltrim((string) $out['payer_id'] ?: (string) $out['isa_sender_id'], '0');
 
     if (!empty($out['our_claim_id'])) {
+        // MERGED-FROM-REL800: short-hand list() destructuring
         [$pid, $encounter, $invnumber] = SLEOB::slInvoiceNumber($out);
         if ($pid && $encounter) {
             if ($where) {
@@ -180,30 +186,49 @@ function era_callback(&$out): void
     }
 }
 
-/**
- * Email a patient statement bill.
- *
- * @param non-empty-string $message
- * @throws \InvalidArgumentException if message has no text content
- * @throws \RuntimeException if the email cannot be sent
- */
-function emailLogin(int $patient_id, string $message): void
+// CONFLICT: emailLogin() and email dispatch strategy
+//
+// LOCAL VERSION (kept): emailLogin() returns bool and is called via upload_file_to_client_email()
+// after the full statement loop completes. This batches all statements to a temp file first,
+// then sends email once at the end.
+//
+// REL-800 VERSION: emailLogin() is void, throws RuntimeException, and is called INSIDE the
+// per-invoice loop so each statement is emailed immediately as it is generated. The
+// upload_file_to_client_email() function is removed entirely.
+//
+// DECISION REQUIRED: If you want per-invoice emailing with proper error reporting, adopt
+// the rel-800 approach. If you need batch-file emailing, keep the local version.
+// The local version is preserved below unchanged.
+//
+// ALSO NOTE: rel-800 replaces the local validEmail() with ValidationUtils::isValidEmail().
+// The local validEmail() is preserved here for compatibility with upload_file_to_client_email(),
+// but should be removed if you adopt the rel-800 email approach.
+
+function validEmail($email)
 {
-    if (trim(strip_tags($message)) === '') {
-        throw new InvalidArgumentException('Statement message has no text content');
+    // LOCAL: kept for upload_file_to_client_email() compatibility.
+    // rel-800 removes this function and uses ValidationUtils::isValidEmail() everywhere.
+    if (preg_match("^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,3})$^", $email)) {
+        return true;
     }
 
+    return false;
+}
+
+function emailLogin($patient_id, $message)
+{
+    // LOCAL: returns bool. rel-800 changes signature to (int, string): void and throws exceptions.
     $patientData = sqlQuery("SELECT * FROM `patient_data` WHERE `pid`=?", [$patient_id]);
-    if ($patientData['hipaa_allowemail'] != "YES" || ($patientData['email'] ?? '') === '' || ($GLOBALS['patient_reminder_sender_email'] ?? '') === '') {
-        throw new RuntimeException(xl('Email is not allowed or not configured for this patient'));
+    if ($patientData['hipaa_allowemail'] != "YES" || empty($patientData['email']) || empty($GLOBALS['patient_reminder_sender_email'])) {
+        return false;
     }
 
-    if (!(ValidationUtils::isValidEmail($patientData['email']))) {
-        throw new RuntimeException(xl('Patient email address is invalid'));
+    if (!(validEmail($patientData['email']))) {
+        return false;
     }
 
-    if (!(ValidationUtils::isValidEmail($GLOBALS['patient_reminder_sender_email']))) {
-        throw new RuntimeException(xl('Sender email address is not configured or invalid'));
+    if (!(validEmail($GLOBALS['patient_reminder_sender_email']))) {
+        return false;
     }
 
     if ($_SESSION['pc_facility']) {
@@ -228,16 +253,17 @@ function emailLogin(int $patient_id, string $message): void
     $mail->AltBody = $message;
 
     if ($mail->Send()) {
-        return;
+        return true;
+    } else {
+        $email_status = $mail->ErrorInfo;
+        error_log("EMAIL ERROR: " . errorLogEscape($email_status), 0);
+        return false;
     }
-
-    $email_status = $mail->ErrorInfo;
-    error_log("EMAIL ERROR: " . errorLogEscape($email_status), 0);
-    throw new RuntimeException(xl('Failed to send statement email'));
 }
 
 // Upload a file to the client's browser
 //
+// MERGED-FROM-REL800: added ': void' return type; added (string) cast on basename() arg
 function upload_file_to_client($file_to_send): void
 {
     header("Pragma: public");
@@ -256,6 +282,27 @@ function upload_file_to_client($file_to_send): void
     sleep(1);
 }
 
+// LOCAL: kept for batch-email dispatch. rel-800 removes this function entirely.
+function upload_file_to_client_email($ppid, $file_to_send)
+{
+    $message = "";
+    global $STMT_TEMP_FILE_PDF;
+    $file = fopen($file_to_send, "r");//this file contains the text to be converted to pdf.
+    while (!feof($file)) {
+        $OneLine = fgets($file);//one line is read
+
+        $message = $message . $OneLine . '<br />';
+
+        $countline++;
+    }
+
+    emailLogin($ppid, $message);
+}
+
+// MERGED-FROM-REL800: added ': void' return type; added (string) casts; added (string) cast on basename() arg
+// LOCAL: the statement_appearance == '2' (complex multi-page Cezpdf) branch is preserved below.
+// rel-800 removes appearance='2' entirely, keeping only mPDF (appearance='1') and a simple
+// single-pass Cezpdf fallback. If your deployment uses appearance='2', do NOT take rel-800's version.
 function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID = null, $flagCFN = false): void
 {
     //modified for statement title name
@@ -269,6 +316,9 @@ function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID =
     }
 
     global $srcdir;
+    global $page_count;
+    // we need page count so we don't create a blank page at the beginning
+    $page_count = -1;
 
     if ($GLOBALS['statement_appearance'] == '1') {
         $config_mpdf = Config_Mpdf::getConfigMpdf();
@@ -285,36 +335,150 @@ function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID =
         $pdf2->Output($temp_filename, 'F');
     } else {
         $pdf = new Cezpdf('LETTER');//pdf creation starts
-        $pdf->ezSetMargins(45, 9, 36, 10);
-        $pdf->selectFont('Courier');
-        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-        $countline = 1;
-        // this file contains the text to be converted to pdf.
-        $file = fopen($file_to_send, "r");
-        while (!feof($file)) {
-            // one line is read
-            $OneLine = fgets($file);
-            // form feed means we should start a new page.
-            if (stristr($OneLine, "\014") == true && !feof($file)) {
-                $pdf->ezNewPage();
-                $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-                str_replace("\014", "", $OneLine);
-            }
+        if ($GLOBALS['statement_appearance'] == '2') {
+            // LOCAL: appearance='2' complex multi-page branch. rel-800 removes this entirely.
+            // Keep if any deployment uses statement_appearance = 2 in globals.
+            $pdf->ezSetMargins(170, 0, 10, 0);
+            $pdf->selectFont('Courier');
+            $page_count = 0;
+            $continued = false;
+            $is_continued = false;
+            $was_continued = false;
+            $body_count = 0;
+            $old_body = '';
+            $header = '';
+            $total_body_count = 0;
+            $content = file_get_contents($file_to_send);
+            $multi_pages = strpos($content, "\014");
+            $pages = explode("\014", $content); // form feeds separate pages
+            foreach ($pages as $page) {
+                $page_lines = explode("\012", $page);
+                $page_lines_count = count($page_lines);
+                $page_count++;
+                $body_count = 0;
+                if (!$page_lines[0] && $page_lines_count == 1) {
+                    continue;
+                }
 
-            if (
-                stristr($OneLine, 'REMIT TO') == true ||
-                stristr($OneLine, 'Visit Date') == true ||
-                stristr($OneLine, 'Future Appointments') == true ||
-                stristr($OneLine, 'Current') == true
-            ) {
-                // lines are made bold when 'REMIT TO' or 'Visit Date' is there.
-                $pdf->ezText('<b>' . $OneLine . '</b>', 12, ['justification' => 'left', 'leading' => 6]);
-            } else {
-                $pdf->ezText($OneLine, 12, ['justification' => 'left', 'leading' => 6]);
-            }
+                $was_continued = $is_continued;
+                if (!strpos($page, "CONTINUED")) {
+                    $is_continued = false;
+                    if (!$was_continued) {
+                        $header = '';
+                    }
+                } else {
+                    $is_continued = true;
+                }
 
-            $countline++;
+                if (!$was_continued) {
+                    for ($i = 0; $i < 5; $i++) {
+                        if (isset($page_lines[$i])) {
+                            $header .= $page_lines[$i];
+                        }
+                    }
+                }
+
+                $body = '';
+                for ($i = 5; $i < ($page_lines_count - 4); $i++) {
+                    $body .= $page_lines[$i];
+                    $body_count++;
+                }
+                $footer = '';
+                if ((!$is_continued && $was_continued) || !$is_continued) {
+                    for ($i = ($page_lines_count - 2); $i < $page_lines_count; $i++) {
+                        if (isset($page_lines[$i])) {
+                            if ($page_lines[$i] == '') {
+                                $footer .= $page_lines[$i] . "\r";
+                            }
+                            $footer .= $page_lines[$i];
+                        }
+                    }
+                } else {
+                    $footer = "CONTINUED \r\n";
+                }
+
+                if (!$is_continued && !$was_continued) {
+                    printHeader($header, $pdf);
+                    printBody($body, $pdf);
+                    printFooter($footer, $pdf);
+                    $total_body_count = 0;
+                    $header = '';
+                    $is_continued = false;
+                }
+                if ($is_continued && !$was_continued) {
+                    $old_body .= $body;
+                    $total_body_count += $body_count;
+                }
+                if (!$is_continued && $was_continued) {
+                    $total_body_count += $body_count;
+                    if ($total_body_count < 35) {
+                        $old_body .= $body;
+                        printHeader($header, $pdf);
+                        printBody($old_body, $pdf);
+                        printFooter($footer, $pdf);
+                        $old_body = '';
+                        $total_body_count = 0;
+                        $header = '';
+                    } else {
+                        printHeader($header, $pdf);
+                        printBody($old_body, $pdf);
+                        printFooter($footer, $pdf);
+                        $body = "\r" . $body;
+                        printHeader($header, $pdf);
+                        printBody($body, $pdf);
+                        printFooter($footer, $pdf);
+                        $old_body = '';
+                        $total_body_count = 0;
+                        $header = '';
+                    }
+                }
+                if ($is_continued && $was_continued) {
+                    $total_body_count += $body_count;
+                    if ($total_body_count < 41) {
+                        $old_body .= $body;
+                    } else {
+                        printHeader($header, $pdf);
+                        printBody($old_body, $pdf);
+                        printFooter($footer, $pdf);
+                        $old_body = "\r" . $body;
+                        $total_body_count = $body_count;
+                    }
+                }
+            }
+        } else {
+            // Simple single-pass Cezpdf (appearance != '1' and != '2')
+            $pdf->ezSetMargins(45, 9, 36, 10);
+            $pdf->selectFont('Courier');
+            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
+            $countline = 1;
+            // this file contains the text to be converted to pdf.
+            $file = fopen($file_to_send, "r");
+            while (!feof($file)) {
+                // one line is read
+                $OneLine = fgets($file);
+                // form feed means we should start a new page.
+                if (stristr($OneLine, "\014") == true && !feof($file)) {
+                    $pdf->ezNewPage();
+                    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
+                    str_replace("\014", "", $OneLine);
+                }
+
+                if (
+                    stristr($OneLine, 'REMIT TO') == true ||
+                    stristr($OneLine, 'Visit Date') == true ||
+                    stristr($OneLine, 'Future Appointments') == true ||
+                    stristr($OneLine, 'Current') == true
+                ) {
+                    // lines are made bold when 'REMIT TO' or 'Visit Date' is there.
+                    $pdf->ezText('<b>' . $OneLine . '</b>', 12, ['justification' => 'left', 'leading' => 6]);
+                } else {
+                    $pdf->ezText($OneLine, 12, ['justification' => 'left', 'leading' => 6]);
+                }
+
+                $countline++;
+            }
         }
+
         // stored to a pdf file
         $fh = @fopen($STMT_TEMP_FILE_PDF, 'w');
         if ($fh) {
@@ -328,6 +492,7 @@ function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID =
     header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
     header("Content-Type: application/force-download");
     header("Content-Length: " . filesize($STMT_TEMP_FILE_PDF));
+    // MERGED-FROM-REL800: added (string) cast on basename() arg
     header("Content-Disposition: attachment; filename=" . basename((string) $STMT_TEMP_FILE_PDF));
     header("Content-Description: File Transfer");
     readfile($STMT_TEMP_FILE_PDF);
@@ -340,6 +505,38 @@ function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID =
     sleep(1);
 }
 
+// LOCAL: these three helper functions support the appearance='2' branch above.
+// rel-800 removes them. Keep until appearance='2' is no longer used.
+function printHeader($header, $pdf)
+{
+    global $page_count;
+    $png = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
+    if ($page_count > 1) {
+        $pdf->ezNewPage();
+    }
+    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
+    $pdf->addPngFromFile($png, 0, 0, 612, 792);
+    $pdf->ezText($header, 12, [
+        'justification' => 'left',
+        'leading' => 12
+    ]);
+}
+function printBody($content, $pdf)
+{
+    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
+    $pdf->ezText($content, 12, [
+        'justification' => 'left',
+        'leading' => 12
+    ]);
+}
+function printFooter($footer, $pdf)
+{
+    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 570);
+    $pdf->ezText($footer, 12, [
+        'justification' => 'left',
+        'leading' => 12
+    ]);
+}
 
 $today = date("Y-m-d");
 
@@ -364,6 +561,7 @@ if (
 
     $fhprint = fopen($STMT_TEMP_FILE, 'w');
 
+    // MERGED-FROM-REL800: short array syntax
     $sqlBindArray = [];
     $where = "";
     foreach ($_REQUEST['form_cb'] as $key => $value) {
@@ -376,14 +574,16 @@ if (
         $where = '( ' . $where . ' ) AND';
     }
 
+    // LOCAL: street_line_2 preserved in SELECT. rel-800 drops it, losing second address lines.
     $res = sqlStatement("SELECT " .
         "f.id, f.date, f.pid, f.encounter, f.stmt_count, f.last_stmt_date, f.last_level_closed, f.last_level_billed, f.billing_note as enc_billing_note, " .
-        "p.fname, p.mname, p.lname, p.street, p.city, p.state, p.postal_code, p.billing_note as pat_billing_note, f.provider_id " .
+        "p.fname, p.mname, p.lname, p.street, p.street_line_2, p.city, p.state, p.postal_code, p.billing_note as pat_billing_note, f.provider_id " .
         "FROM form_encounter AS f, patient_data AS p " .
         "WHERE $where " .
         "p.pid = f.pid " .
         "ORDER BY p.lname, p.fname, f.pid, f.date, f.encounter", $sqlBindArray);
 
+    // MERGED-FROM-REL800: short array syntax
     $stmt = [];
     $stmt_count = 0;
 
@@ -395,6 +595,7 @@ if (
 
     // get pids for delimits
     // need to only use summary invoice for multi visits
+    // MERGED-FROM-REL800: short array syntax
     $inv_pid = [];
     $inv_count = -1;
     if (!empty($_REQUEST['form_portalnotify'])) {
@@ -415,6 +616,7 @@ if (
     // This loops once for each invoice/encounter.
     //
     for ($rcnt = 0; $row = $rows[$rcnt] ?? null; $rcnt++) {
+        // MERGED-FROM-REL800: (string) cast
         $svcdate = substr((string) $row['date'], 0, 10);
         $duedate = $svcdate; // TBD?
         $duncount = $row['stmt_count'];
@@ -471,13 +673,21 @@ if (
             #If you use the field in demographics layout called
             #guardiansname this will allow you to send statements to the parent
             #of a child or a guardian etc
-            $stmt['to'] = empty($row['guardiansname']) ? [$row['fname'] . ' ' . $row['lname']] : [$row['guardiansname']];
-
-            if ($row['street']) {
-                $stmt['to'][] = $row['street'];
+            if (empty($row['guardiansname'])) {
+                $stmt['to'] = [trim($row['fname']) . ' ' . $row['lname']];
+            } else {
+                $stmt['to'] = [$row['guardiansname']];
             }
 
+            // LOCAL: street_line_2 preserved. rel-800 drops it and wraps street in an if() check.
+            // Using ?? '' matches our original behaviour of including blank lines rather than
+            // skipping them. Switch to rel-800's `if ($row['street'])` guard if blank lines
+            // in the address block cause formatting problems in your statement templates.
+            $stmt['to'][] = $row['street'] ?? '';
+            $stmt['to'][] = $row['street_line_2'] ?? '';
+
             $stmt['to'][] = $row['city'] . ", " . $row['state'] . " " . $row['postal_code'];
+            // MERGED-FROM-REL800: short array syntax
             $stmt['lines'] = [];
             $stmt['amount'] = '0.00';
             $stmt['ins_paid'] = 0;
@@ -491,12 +701,14 @@ if (
         }
 
         // Recompute age at each invoice.
+        // MERGED-FROM-REL800: (string) cast on $stmt['duedate']
         $stmt['age'] = round((strtotime($today) - strtotime((string) $stmt['duedate'])) / (24 * 60 * 60));
         // grab last bill date from billing
         $bdrow = sqlQuery("select bill_date from billing where pid = ? AND encounter = ? limit 1", [$row['pid'], $row['encounter']]);
 
         $invlines = InvoiceSummary::arGetInvoiceSummary($row['pid'], $row['encounter'], true);
         foreach ($invlines as $key => $value) {
+            // MERGED-FROM-REL800: short array syntax
             $line = [];
             $line['dos'] = $svcdate;
             if ($GLOBALS['use_custom_statement']) {
@@ -505,21 +717,29 @@ if (
                 $line['desc'] = ($key == 'CO-PAY') ? "Patient Payment" : "Procedure $key";
             }
 
+            // LOCAL: code_type lookup preserved. rel-800 removes this block entirely.
+            if (!empty($value['code_type'])) {
+                $codeTypeId = sqlQuery("SELECT `ct_id` FROM `code_types` WHERE `ct_key` = ?", [$value['code_type']])['ct_id'];
+            }
+
             $line['amount'] = sprintf("%.2f", $value['chg']);
             $line['adjust'] = sprintf("%.2f", ($value['adj'] ?? null));
             $line['paid'] = sprintf("%.2f", $value['chg'] - $value['bal']);
             $line['notice'] = $duncount + 1;
             $line['detail'] = $value['dtl'];
             $line['bill_date'] = $bdrow['bill_date'];
+            // LOCAL: code_type field on line preserved. rel-800 removes this.
+            $line['code_type'] = $codeTypeId ?? '';
             $stmt['lines'][] = $line;
             $stmt['amount'] = sprintf("%.2f", $stmt['amount'] + $value['bal']);
-            $stmt['ins_paid'] += $value['ins'] ?? null;
+            $stmt['ins_paid'] = $stmt['ins_paid'] + ($value['ins'] ?? null);
         }
 
         // Record that this statement was run.
         if (!$DEBUG && empty($_REQUEST['form_without'])) {
             sqlStatement("UPDATE form_encounter SET " .
                 "last_stmt_date = ?, stmt_count = stmt_count + 1 " .
+                // MERGED-FROM-REL800: short array syntax
                 "WHERE id = ?", [$today, $row['id']]);
         }
         $inv_count += 1;
@@ -531,12 +751,14 @@ if (
             $pvoice[] = $stmt;
             // we don't want to send the portal multiple invoices, thus this. Last invoice for pid is summary.
             if ($inv_pid[$inv_count] != $inv_pid[$inv_count + 1]) {
+                // MERGED-FROM-REL800: (string) cast on make_statement()
                 fwrite($fhprint, (string) make_statement($stmt));
                 if (!notify_portal($stmt['pid'], $pvoice, $STMT_TEMP_FILE, $stmt['pid'] . "-" . $stmt['encounter'])) {
                     $alertmsg = xlt('Notification FAILED');
                     break;
                 }
 
+                // MERGED-FROM-REL800: short array syntax
                 $pvoice = [];
                 flush();
                 ftruncate($fhprint, 0);
@@ -551,17 +773,11 @@ if (
                     unset($stmt);
                 } else {
                     $tmp = make_statement($stmt);
-                    if (!empty($_REQUEST['form_email']) && $tmp !== '') {
-                        try {
-                            emailLogin($inv_pid[$inv_count], $tmp);
-                        } catch (RuntimeException $e) {
-                            $alertmsg = $e->getMessage();
-                        }
-                    }
                     if (empty($tmp)) {
                         $tmp = xlt("This EOB item does not meet minimum print requirements setup in Globals or there is an unknown error.") . " " . xlt("EOB Id") . ":" . text($inv_pid[$inv_count]) . " " . xlt("Encounter") . ":" . text($stmt['encounter']) . "\n";
                         $tmp .= "<br />\n\014<br /><br />";
                     }
+                    // MERGED-FROM-REL800: (string) cast on fwrite arg
                     fwrite($fhprint, (string) $tmp);
                     // now save it to pt documents
                     $d = new Document();
@@ -608,6 +824,10 @@ if (
         upload_file_to_client($STMT_TEMP_FILE);
     } elseif ($_REQUEST['form_pdf']) {
         upload_file_to_client_pdf($STMT_TEMP_FILE, $aPatientFirstName, $aPatientID, $usePatientNamePdf);
+    } elseif ($_REQUEST['form_email']) {
+        // LOCAL: batch email dispatch. rel-800 moves email into the per-invoice loop above.
+        // See CONFLICT comment near emailLogin() for details.
+        upload_file_to_client_email($stmt['pid'], $STMT_TEMP_FILE);
     } elseif ($_REQUEST['form_portalnotify']) {
         if ($alertmsg == "") {
             $alertmsg = xl('Sending Invoice to Patient Portal Completed');
@@ -616,6 +836,7 @@ if (
         if ($DEBUG) {
             $alertmsg = xl("Printing skipped; see test output in") . ' ' . $STMT_TEMP_FILE;
         } else {
+            // MERGED-FROM-REL800: (string) cast on escapeshellarg arg
             exec(escapeshellcmd($STMT_PRINT_CMD) . " " . escapeshellarg((string) $STMT_TEMP_FILE));
             if ($_REQUEST['form_without']) {
                 $alertmsg = xl('Now printing') . ' ' . $stmt_count . ' ' . xl('statements; invoices will not be updated.');
@@ -646,7 +867,7 @@ if (
     <title><?php echo xlt('EOB Posting - Search'); ?></title>
     <script>
         $(function() {
-            // Show spinner modal when search form is submitted
+            // MERGED-FROM-REL800: show spinner modal when search form is submitted
             $('#formSearch').on('submit', function(e) {
                 var clickedButton = $(document.activeElement);
                 var buttonName = clickedButton.attr('name');
@@ -662,6 +883,7 @@ if (
         function reSubmit() {
             opener.$('#btn-inv-search').click();
         }
+        // MERGED-FROM-REL800: rewrote editInvoice() to use URLSearchParams and a named dialog
         function editInvoice(e, id) {
             e.preventDefault();
             const params = new URLSearchParams({
@@ -769,6 +991,7 @@ if (
         }
     </style>
     <?php
+    // MERGED-FROM-REL800: short array syntax
     $arrOeUiSettings = [
     'heading_title' => xl('EOB Posting - Search'),
     'include_patient_name' => false,
@@ -887,6 +1110,7 @@ if (
                                 <label class="control-label" for="type_name"><?php echo xlt('Type'); ?>:</label>
                                 <select name='form_category' id='form_category' class='form-control'>
                                     <?php
+                                    // MERGED-FROM-REL800: short array syntax
                                     foreach ([xl('Open'), xl('All'), xl('Due Pt'), xl('Due Ins')] as $value) {
                                         echo "    <option value='" . attr($value) . "'";
                                         if (!empty($_REQUEST['form_category']) && ($_REQUEST['form_category'] == $value)) {
@@ -935,6 +1159,7 @@ if (
                                 CsrfUtils::csrfNotVerified();
                             }
 
+                            // MERGED-FROM-REL800: (string) casts on trim() args
                             $form_name = trim((string) $_REQUEST['form_name']);
                             $form_pid = trim((string) $_REQUEST['form_pid']);
                             $form_encounter = trim((string) $_REQUEST['form_encounter']);
@@ -949,6 +1174,7 @@ if (
                                 $tmp_name = $_FILES['form_erafile']['tmp_name'];
 
                                 // Handle .zip extension if present.  Probably won't work on Windows.
+                                // MERGED-FROM-REL800: (string) cast on substr() arg
                                 if (strtolower(substr((string) $_FILES['form_erafile']['name'], -4)) == '.zip') {
                                     rename($tmp_name, "$tmp_name.zip");
                                     exec("unzip -p " . escapeshellarg($tmp_name . ".zip") . " > " . escapeshellarg((string) $tmp_name));
@@ -1102,6 +1328,7 @@ if (
                                 // Determine if customer is in collections.
                                 //
                                 $billnote = $row['billing_note'];
+                                // MERGED-FROM-REL800: (string) cast on stristr() arg
                                 $in_collections = stristr((string) $billnote, 'IN COLLECTIONS') !== false
                                     || $row['in_collection'] == 1;
 
@@ -1129,6 +1356,7 @@ if (
 
                                 // Skip invoices not in the desired "Due..." category.
                                 //
+                                // MERGED-FROM-REL800: str_starts_with() replaces substr() comparison
                                 if (str_starts_with((string) $_REQUEST['form_category'], 'Due') && !$isdueany) {
                                     continue;
                                 }
@@ -1141,6 +1369,7 @@ if (
 
                                 $bgcolor = ((++$orow & 1) ? "#ffdddd" : "#ddddff");
 
+                                // MERGED-FROM-REL800: (string) cast
                                 $svcdate = substr((string) $row['date'], 0, 10);
                                 $last_stmt_date = empty($row['last_stmt_date']) ? '' : $row['last_stmt_date'];
 
@@ -1186,6 +1415,7 @@ if (
                                     <?php } ?>
                                     <td class="detail text-left">
                                         <?php
+                                        // MERGED-FROM-REL800: ValidationUtils::isValidEmail() replaces local validEmail()
                                         $patientData = sqlQuery("SELECT * FROM `patient_data` WHERE `pid`=?", [$row['pid']]);
                                         if ($patientData['hipaa_allowemail'] == "YES" && $patientData['allow_patient_portal'] == "YES" && $patientData['hipaa_notice'] == "YES" && ValidationUtils::isValidEmail($patientData['email'])) {
                                             echo xlt("YES");
@@ -1239,6 +1469,7 @@ if (
 </div> <!--End of Container div-->
 <?php $oemr_ui->oeBelowContainerDiv();?>
 
+<!-- MERGED-FROM-REL800: search spinner modal -->
 <div class="modal fade" id="searchSpinnerModal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-labelledby="searchSpinnerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
@@ -1255,6 +1486,7 @@ if (
 
 <script>
 
+    // MERGED-FROM-REL800: rewrote processERA() to use URLSearchParams instead of string concat
     function processERA() {
         var f = document.forms[0];
         var debug = f.form_without.checked ? '1' : '0';
@@ -1335,6 +1567,7 @@ if (
     });
     <?php
     if ($alertmsg) {
+        // MERGED-FROM-REL800: (string) cast on $alertmsg
         echo "alert('" . addslashes((string) $alertmsg) . "');\n";
     }
     ?>
