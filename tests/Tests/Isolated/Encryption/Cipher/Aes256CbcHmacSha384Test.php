@@ -19,6 +19,7 @@ namespace OpenEMR\Tests\Isolated\Encryption\Cipher;
 
 use OpenEMR\Common\Crypto\CryptoGenException;
 use OpenEMR\Encryption\Cipher\Aes256CbcHmacSha384;
+use OpenEMR\Encryption\Ciphertext;
 use OpenEMR\Encryption\Keys\KeyMaterial;
 use OpenEMR\Tests\Fixtures\CryptoFixtureManager;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -26,13 +27,7 @@ use PHPUnit\Framework\TestCase;
 
 final class Aes256CbcHmacSha384Test extends TestCase
 {
-    private CryptoFixtureManager $fixtures;
-
-    protected function setUp(): void
-    {
-        // No install() needed - we only use the static test vectors
-        $this->fixtures = new CryptoFixtureManager('/dev/null');
-    }
+    use CipherTestHelperTrait;
 
     /**
      * @return iterable<string, array{version: int, keyPrefix: string}>
@@ -67,14 +62,15 @@ final class Aes256CbcHmacSha384Test extends TestCase
             hmacKey: new KeyMaterial($this->fixtures->getTestKey('sevenb')),
         );
 
-        $rawCiphertext = $this->extractRawCiphertext($this->fixtures->getCiphertext(7));
+        $rawCiphertext = $this->extractRawCiphertext($this->fixtures->getCiphertext(7))
+            ->wrapped;
 
         // Tamper with HMAC (first 48 bytes)
         $tampered = chr(ord($rawCiphertext[0]) ^ 0xFF) . substr($rawCiphertext, 1);
 
         $this->expectException(CryptoGenException::class);
         $this->expectExceptionMessage('HMAC invalid');
-        $cipher->decrypt($tampered);
+        $cipher->decrypt(new Ciphertext($tampered));
     }
 
     public function testThrowsOnTamperedCiphertext(): void
@@ -84,7 +80,8 @@ final class Aes256CbcHmacSha384Test extends TestCase
             hmacKey: new KeyMaterial($this->fixtures->getTestKey('sevenb')),
         );
 
-        $rawCiphertext = $this->extractRawCiphertext($this->fixtures->getCiphertext(7));
+        $rawCiphertext = $this->extractRawCiphertext($this->fixtures->getCiphertext(7))
+            ->wrapped;
 
         // Tamper with ciphertext (after HMAC + IV = 48 + 16 = 64 bytes)
         $tampered = substr($rawCiphertext, 0, 64)
@@ -93,7 +90,7 @@ final class Aes256CbcHmacSha384Test extends TestCase
 
         $this->expectException(CryptoGenException::class);
         $this->expectExceptionMessage('HMAC invalid');
-        $cipher->decrypt($tampered);
+        $cipher->decrypt(new Ciphertext($tampered));
     }
 
     public function testThrowsOnWrongEncryptionKey(): void
@@ -136,16 +133,6 @@ final class Aes256CbcHmacSha384Test extends TestCase
         $truncated = str_repeat("\x00", 32);
 
         $this->expectException(CryptoGenException::class);
-        $cipher->decrypt($truncated);
-    }
-
-    /**
-     * Strip version prefix and base64 decode to get raw ciphertext.
-     */
-    private function extractRawCiphertext(string $encoded): string
-    {
-        $raw = base64_decode(substr($encoded, 3), strict: true);
-        self::assertIsString($raw, 'Test vector base64 decode failed');
-        return $raw;
+        $cipher->decrypt(new Ciphertext($truncated));
     }
 }

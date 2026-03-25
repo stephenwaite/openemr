@@ -6,7 +6,10 @@ namespace OpenEMR\Encryption\Cipher;
 
 use OpenEMR\Common\Crypto\CryptoGenException;
 use OpenEMR\Encryption\Keys\KeyMaterial;
-use OpenEMR\Encryption\Plaintext;
+use OpenEMR\Encryption\{
+    Ciphertext,
+    Plaintext,
+};
 
 /**
  * Legacy "version 2-3" handling.
@@ -25,8 +28,9 @@ readonly class Aes256CbcHmacSha256 implements CipherInterface
     ) {
     }
 
-    public function decrypt(string $ciphertext): Plaintext
+    public function decrypt(Ciphertext $ciphertext): Plaintext
     {
+        $ciphertext = $ciphertext->wrapped;
         $hmac = mb_substr($ciphertext, 0, self::HMAC_LENGTH, '8bit');
         $iv = mb_substr($ciphertext, self::HMAC_LENGTH, self::IV_LENGTH, '8bit');
         $data = mb_substr($ciphertext, (self::HMAC_LENGTH + self::IV_LENGTH), null, '8bit');
