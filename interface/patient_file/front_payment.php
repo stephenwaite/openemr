@@ -540,7 +540,7 @@ function toencounter(enc, datestr, topframe) {
         width: 100%;
     }
     table.mini_table>tbody>tr>th {
-        background-color: var(--secondary);
+        background-color: #e9ecef;
         text-align: center;
     }
     body>table.mini_table>tbody>tr>td {
@@ -553,13 +553,13 @@ function toencounter(enc, datestr, topframe) {
         border: 1px solid var(--secondary);
     }
     .bg-color {
-        background-color: var(--secondary);
+        background-color: #e9ecef;
         padding: 2px;
         font-weight: 600;
         -webkit-print-color-adjust: exact;
     }
     .bg-color-w {
-        background-color: var(--secondary);
+        background-color: #e9ecef;
         font-weight: 600;
         -webkit-print-color-adjust: exact!important; }
     @media print {
@@ -568,11 +568,11 @@ function toencounter(enc, datestr, topframe) {
         }
 
         tr.bg-color-w{
-            background-color: var(--secondary)!important;
+            background-color: #e9ecef !important;
             -webkit-print-color-adjust: exact;
         }
         tr.bg-color{
-            background-color: var(--secondary) !important;
+            background-color: #e9ecef !important;
             -webkit-print-color-adjust: exact;
         }
     }
