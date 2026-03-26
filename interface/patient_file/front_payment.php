@@ -587,11 +587,11 @@ function toencounter(enc, datestr, topframe) {
                 <div class="main-section mb-5 mt-10">
                     <div class="section-2">
                         <p style="font-weight:600;">
-                            <bold class="bg-color"><?php echo text($frow['name']) ?></bold> <br /> <br />
+                            <br /><br /><bold><?php echo text($frow['name']) ?></bold> <br />
                             <?php echo text($frow['street']) ?><br />
                             <?php echo text($frow['city'] . ', ' . $frow['state']) . ' ' . text($frow['postal_code']) ?><br />
-                            <?php echo text("[Phone]" . $frow['phone']) ?><br />
-                            <?php echo text("[Email] " . $frow['email']) ?><br />
+                            <?php echo text("Phone:" . ' ' . $frow['phone']) ?><br />
+                            <?php echo text("Email:" . ' ' . $frow['email']) ?><br />
 
 
                             <br />
