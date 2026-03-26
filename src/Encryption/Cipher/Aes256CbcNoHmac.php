@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OpenEMR\Encryption\Cipher;
 
+use BadMethodCallException;
 use OpenEMR\Common\Crypto\CryptoGenException;
 use OpenEMR\Encryption\Keys\KeyMaterial;
 use OpenEMR\Encryption\{
@@ -43,5 +44,13 @@ readonly class Aes256CbcNoHmac implements CipherInterface
             throw new CryptoGenException('Decryption failed');
         }
         return new Plaintext($decrypted);
+    }
+
+    public function encrypt(Plaintext $plaintext): Ciphertext
+    {
+        throw new BadMethodCallException(sprintf(
+            'Encrypting new data with %s is not supported',
+            self::class,
+        ));
     }
 }
