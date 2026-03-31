@@ -191,23 +191,13 @@ function generatePressGaneyCSV() {
 $dob = '';
 if (!empty($row['DOB'])) {
     $timestamp = strtotime($row['DOB']);
-    if ($timestamp !== false) {
-        $formatted_dob = date('n', $timestamp) .      // month without leading zeros
-                        date('j', $timestamp) .      // day without leading zeros
-                        date('Y', $timestamp);       // 4-digit year
-        $dob = $formatted_dob;
-    }
+    $dob = date('mdY', $timestamp);   // m=01-12, d=01-31, Y=4-digit
 }
 
     $visit_date = '';
 if (!empty($row['visit_date'])) {
     $timestamp = strtotime($row['visit_date']);
-    if ($timestamp !== false) {
-        $formatted_visit = date('n', $timestamp) .      // month without leading zeros
-                          date('j', $timestamp) .      // day without leading zeros
-                          date('Y', $timestamp);       // 4-digit year
-        $visit_date = $formatted_visit;
-    }
+    $visit_date = date('mdY', $timestamp);
 }
 
         // Format provider name
