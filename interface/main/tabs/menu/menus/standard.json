@@ -1542,6 +1542,18 @@
             ]
           },
           {
+            "label": "Press Ganey Export",
+            "menu_id": "rep0",
+            "target": "rep",
+            "url": "/interface/reports/press_ganey_export.php",
+            "children": [],
+            "requirement": 0,
+            "acl_req": [
+              "encounters",
+              "coding_a"
+            ]
+          },
+          {
             "label": "Appt-Enc",
             "menu_id": "rep0",
             "target": "rep",
