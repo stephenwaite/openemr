@@ -192,7 +192,7 @@ class Practice extends Base
             $result2 = sqlFetchArray($test2);
             //for custom installs, insert custom apptstatus here that mean appt is not happening/changed
             if (
-                in_array($result2['pc_apptstatus'], ['*', '%', 'x'])
+                in_array($result2['pc_apptstatus'], ['*', '%', 'x', 'r'])
             ) { //cancelled
                 $sqlUPDATE = "UPDATE medex_outgoing SET msg_reply = 'DONE',msg_extra_text=? WHERE msg_uid = ?";
                 sqlQuery($sqlUPDATE, [$result2['pc_apptstatus'],$result2['msg_uid']]);
@@ -347,9 +347,21 @@ class Events extends Base
                 }
                 //T_appt_stats = list of appstat(s) to restrict event to in a '|' separated list
                 //Currently GoGreen only but added this for future flexibility in refining Appt Reminders too
-                if ($event['T_appt_stats'] > '') {
-                    $list = implode('|', $event['T_appt_stats']);
-                    $appt_status = " and pc_appstatus in (" . $list . ")";
+                if (!empty($event['T_appt_stats'])) {
+                    $apptStats = $event['T_appt_stats'];
+                    if (!is_array($apptStats)) {
+                        $apptStats = explode('|', (string) $apptStats);
+                    }
+                    $apptStats = array_values(array_filter($apptStats, static function ($v) {
+                        return $v !== '' && $v !== null;
+                    }));
+                    if (!empty($apptStats)) {
+                        $statPlaceholders = implode(',', array_fill(0, count($apptStats), '?'));
+                        $appt_status = " and pc_apptstatus in (" . $statPlaceholders . ")";
+                        foreach ($apptStats as $stat) {
+                            $escapedArr[] = $stat;
+                        }
+                    }
                 }
 
                 $timing = (int)$event['E_fire_time'] - 1;
@@ -449,7 +461,13 @@ class Events extends Base
                     if ($results == false) {
                         continue;
                     }
-                    $show = $this->MedEx->display->show_progress_recall($recall, $event);
+                    // FIX 2026-03-08: Was passing single $event (one loop iteration) instead of the full
+                    // $events array. show_progress_recall() iterates $events to count pending campaigns ($camps).
+                    // With a single $event passed, foreach() iterated over its scalar VALUES (strings), so
+                    // $event['M_group'] was always null, $camps stayed 0, and every recall returned 'reddish',
+                    // causing ALL recalls to be skipped -> $appt3 empty -> loadAppts never called ->
+                    // nothing sent to MedEx for ANY campaign type when a Recall campaign was active.
+                    $show = $this->MedEx->display->show_progress_recall($recall, $events);
                     if ($show['DONE'] == '1') {
                         $RECALLS_completed[] = $recall;
                         continue;
@@ -485,7 +503,14 @@ class Events extends Base
                     $recall2['phone_home']    = $recall['phone_home'];
                     $recall2['phone_cell']    = $recall['phone_cell'];
                     $recall2['email']         = $recall['email'];
+                    $recall2['e_reason']      = '';
+                    $recall2['pc_apptstatus'] = '';
                     $recall2['C_UID']         = $event['C_UID'];
+                    // FIX 2026-03-08: M_type was missing from $recall2 (present in $appt2 for REMINDERs).
+                    // Without M_type the process() SQL UPDATE WHERE msg_type=? matched nothing (NULL != any value),
+                    // leaving medex_outgoing stuck as 'To Send' forever. Also poisoned the loadAppts batch
+                    // causing the MedEx server to reject all records in it, including valid reminder appointments.
+                    $recall2['M_type']        = $event['M_type'];
                     $recall2['reply']         = "To Send";
                     $recall2['extra']         = "QUEUED";
                     $recall2['status']        = "SENT";
@@ -1158,34 +1183,34 @@ class Events extends Base
                 $rtype = $event_recurrspec['event_repeat_freq_type'];
                 $exdate = $event_recurrspec['exdate'];
                 [$ny, $nm, $nd] = explode('-', (string) $event['pc_eventDate']);
-                $occurence = $event['pc_eventDate'];
+                $occurrence = $event['pc_eventDate'];
 
                 // prep work to start cooking...
                 // ignore dates less than start_date
-                while (strtotime((string) $occurence) < strtotime((string) $start_date)) {
+                while (strtotime((string) $occurrence) < strtotime((string) $start_date)) {
                     // if the start date is later than the recur date start
                     // just go up a unit at a time until we hit start_date
-                    $occurence =& $this->MedEx->events->__increment($nd, $nm, $ny, $rfreq, $rtype);
-                    [$ny, $nm, $nd] = explode('-', (string) $occurence);
+                    $occurrence =& $this->MedEx->events->__increment($nd, $nm, $ny, $rfreq, $rtype);
+                    [$ny, $nm, $nd] = explode('-', (string) $occurrence);
                 }
                 //now we are cooking...
-                while ($occurence <= $stop_date) {
+                while ($occurrence <= $stop_date) {
                     $excluded = false;
                     if (isset($exdate)) {
                         foreach (explode(",", (string) $exdate) as $exception) {
                             // occurrence format == yyyy-mm-dd
                             // exception format == yyyymmdd
-                            if (preg_replace("/-/", "", (string) $occurence) == $exception) {
+                            if (preg_replace("/-/", "", (string) $occurrence) == $exception) {
                                 $excluded = true;
                             }
                         }
                     }
 
                     if ($excluded == false) {
-                        $data[] = $occurence;
+                        $data[] = $occurrence;
                     }
-                    $occurence =& $this->MedEx->events->__increment($nd, $nm, $ny, $rfreq, $rtype);
-                    [$ny, $nm, $nd] = explode('-', (string) $occurence);
+                    $occurrence =& $this->MedEx->events->__increment($nd, $nm, $ny, $rfreq, $rtype);
+                    [$ny, $nm, $nd] = explode('-', (string) $occurrence);
                 }
                 break;
 
@@ -1224,23 +1249,23 @@ class Events extends Base
                     // (YYYY-mm)-dd
                     $dnum = $rnum;
                     do {
-                        $occurence = Date_Calc::NWeekdayOfMonth($dnum--, $rday, $nm, $ny, $format = "%Y-%m-%d");
-                    } while ($occurence === -1);
+                        $occurrence = Date_Calc::NWeekdayOfMonth($dnum--, $rday, $nm, $ny, $format = "%Y-%m-%d");
+                    } while ($occurrence === -1);
 
-                    if ($occurence >= $start_date && $occurence <= $stop_date) {
+                    if ($occurrence >= $start_date && $occurrence <= $stop_date) {
                         $excluded = false;
                         if (isset($exdate)) {
                             foreach (explode(",", (string) $exdate) as $exception) {
                                 // occurrence format == yyyy-mm-dd
                                 // exception format == yyyymmdd
-                                if (preg_replace("/-/", "", (string) $occurence) == $exception) {
+                                if (preg_replace("/-/", "", (string) $occurrence) == $exception) {
                                     $excluded = true;
                                 }
                             }
                         }
 
                         if ($excluded == false) {
-                            $event['pc_eventDate'] = $occurence;
+                            $event['pc_eventDate'] = $occurrence;
                             $event['pc_endDate'] = '0000-00-00';
                             $events2[] = $event;
                             $data[] = $event['pc_eventDate'];
