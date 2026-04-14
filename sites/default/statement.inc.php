@@ -1479,3 +1479,133 @@ function formatDate($date)
     $strtotime = strtotime($date);
     return date('m d y', $strtotime);
 }
+
+// LOCAL: these three helper functions and render_cms_statement_pdf() support the
+// appearance='2' ezPDF pipeline. Moved here from sl_eob_search.php so both the
+// download path and save-to-documents path can share them.
+// Keep until appearance='2' is no longer used.
+function printHeader($header, $pdf)
+{
+    global $page_count;
+    $png = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
+    if ($page_count > 1) {
+        $pdf->ezNewPage();
+    }
+    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
+    $pdf->addPngFromFile($png, 0, 0, 612, 792);
+    $pdf->ezText($header, 12, ['justification' => 'left', 'leading' => 12]);
+}
+function printBody($content, $pdf)
+{
+    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
+    $pdf->ezText($content, 12, ['justification' => 'left', 'leading' => 12]);
+}
+function printFooter($footer, $pdf)
+{
+    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 570);
+    $pdf->ezText($footer, 12, ['justification' => 'left', 'leading' => 12]);
+}
+
+function render_cms_statement_pdf(string $text): string
+{
+    global $page_count;
+    $pdf = new Cezpdf('LETTER');
+    $pdf->ezSetMargins(170, 0, 10, 0);
+    $pdf->selectFont('Courier');
+    $page_count = 0;
+    $is_continued = false;
+    $was_continued = false;
+    $old_body = '';
+    $header = '';
+    $total_body_count = 0;
+
+    $pages = explode("\014", $text);
+    foreach ($pages as $page) {
+        $page_lines = explode("\012", $page);
+        $page_lines_count = count($page_lines);
+        $page_count++;
+        $body_count = 0;
+        if (!$page_lines[0] && $page_lines_count == 1) {
+            continue;
+        }
+        $was_continued = $is_continued;
+        if (!strpos($page, "CONTINUED")) {
+            $is_continued = false;
+            if (!$was_continued) {
+                $header = '';
+            }
+        } else {
+            $is_continued = true;
+        }
+        if (!$was_continued) {
+            for ($i = 0; $i < 5; $i++) {
+                if (isset($page_lines[$i])) {
+                    $header .= $page_lines[$i];
+                }
+            }
+        }
+        $body = '';
+        for ($i = 5; $i < ($page_lines_count - 4); $i++) {
+            $body .= $page_lines[$i];
+            $body_count++;
+        }
+        $footer = '';
+        if ((!$is_continued && $was_continued) || !$is_continued) {
+            for ($i = ($page_lines_count - 2); $i < $page_lines_count; $i++) {
+                if (isset($page_lines[$i])) {
+                    $footer .= ($page_lines[$i] == '') ? $page_lines[$i] . "\r" : $page_lines[$i];
+                }
+            }
+        } else {
+            $footer = "CONTINUED \r\n";
+        }
+        if (!$is_continued && !$was_continued) {
+            printHeader($header, $pdf);
+            printBody($body, $pdf);
+            printFooter($footer, $pdf);
+            $total_body_count = 0;
+            $header = '';
+            $is_continued = false;
+        }
+        if ($is_continued && !$was_continued) {
+            $old_body .= $body;
+            $total_body_count += $body_count;
+        }
+        if (!$is_continued && $was_continued) {
+            $total_body_count += $body_count;
+            if ($total_body_count < 35) {
+                $old_body .= $body;
+                printHeader($header, $pdf);
+                printBody($old_body, $pdf);
+                printFooter($footer, $pdf);
+                $old_body = '';
+                $total_body_count = 0;
+                $header = '';
+            } else {
+                printHeader($header, $pdf);
+                printBody($old_body, $pdf);
+                printFooter($footer, $pdf);
+                $body = "\r" . $body;
+                printHeader($header, $pdf);
+                printBody($body, $pdf);
+                printFooter($footer, $pdf);
+                $old_body = '';
+                $total_body_count = 0;
+                $header = '';
+            }
+        }
+        if ($is_continued && $was_continued) {
+            $total_body_count += $body_count;
+            if ($total_body_count < 41) {
+                $old_body .= $body;
+            } else {
+                printHeader($header, $pdf);
+                printBody($old_body, $pdf);
+                printFooter($footer, $pdf);
+                $old_body = "\r" . $body;
+                $total_body_count = $body_count;
+            }
+        }
+    }
+    return $pdf->ezOutput();
+}

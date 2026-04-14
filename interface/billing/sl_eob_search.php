@@ -303,190 +303,78 @@ function upload_file_to_client_email($ppid, $file_to_send)
 // LOCAL: the statement_appearance == '2' (complex multi-page Cezpdf) branch is preserved below.
 // rel-800 removes appearance='2' entirely, keeping only mPDF (appearance='1') and a simple
 // single-pass Cezpdf fallback. If your deployment uses appearance='2', do NOT take rel-800's version.
+// MERGED-FROM-REL800: added ': void' return type; added (string) casts; added (string) cast on basename() arg
+// LOCAL: the statement_appearance == '2' (complex multi-page Cezpdf) branch is preserved below.
+// rel-800 removes appearance='2' entirely, keeping only mPDF (appearance='1') and a simple
+// single-pass Cezpdf fallback. If your deployment uses appearance='2', do NOT take rel-800's version.
 function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID = null, $flagCFN = false): void
 {
-    //modified for statement title name
-    //Function reads a HTML file and converts to pdf.
+    global $srcdir, $page_count;
 
-    $aPatFName = convert_safe_file_dir_name($aPatFirstName); //modified for statement title name
+    $aPatFName = convert_safe_file_dir_name($aPatFirstName);
     if ($flagCFN) {
         $STMT_TEMP_FILE_PDF = $GLOBALS['temporary_files_dir'] . "/Stmt_{$aPatFName}_{$aPatID}.pdf";
     } else {
         global $STMT_TEMP_FILE_PDF;
     }
 
-    global $srcdir;
-    global $page_count;
-    // we need page count so we don't create a blank page at the beginning
+    // we need page_count so we don't create a blank page at the beginning
     $page_count = -1;
 
     if ($GLOBALS['statement_appearance'] == '1') {
-        $config_mpdf = Config_Mpdf::getConfigMpdf();
-        $pdf2 = new mPDF($config_mpdf);
+        // mPDF: HTML file → PDF
+        $pdf2 = new mPDF(Config_Mpdf::getConfigMpdf());
         if ($_SESSION['language_direction'] == 'rtl') {
             $pdf2->SetDirectionality('rtl');
         }
         ob_start();
-        // this file contains the HTML to be converted to pdf.
         readfile($file_to_send, "r");
         $content = ob_get_clean();
         $pdf2->WriteHTML($content);
-        $temp_filename = $STMT_TEMP_FILE_PDF;
-        $pdf2->Output($temp_filename, 'F');
-    } else {
-        $pdf = new Cezpdf('LETTER');//pdf creation starts
-        if ($GLOBALS['statement_appearance'] == '2') {
-            // LOCAL: appearance='2' complex multi-page branch. rel-800 removes this entirely.
-            // Keep if any deployment uses statement_appearance = 2 in globals.
-            $pdf->ezSetMargins(170, 0, 10, 0);
-            $pdf->selectFont('Courier');
-            $page_count = 0;
-            $continued = false;
-            $is_continued = false;
-            $was_continued = false;
-            $body_count = 0;
-            $old_body = '';
-            $header = '';
-            $total_body_count = 0;
-            $content = file_get_contents($file_to_send);
-            $multi_pages = strpos($content, "\014");
-            $pages = explode("\014", $content); // form feeds separate pages
-            foreach ($pages as $page) {
-                $page_lines = explode("\012", $page);
-                $page_lines_count = count($page_lines);
-                $page_count++;
-                $body_count = 0;
-                if (!$page_lines[0] && $page_lines_count == 1) {
-                    continue;
-                }
-
-                $was_continued = $is_continued;
-                if (!strpos($page, "CONTINUED")) {
-                    $is_continued = false;
-                    if (!$was_continued) {
-                        $header = '';
-                    }
-                } else {
-                    $is_continued = true;
-                }
-
-                if (!$was_continued) {
-                    for ($i = 0; $i < 5; $i++) {
-                        if (isset($page_lines[$i])) {
-                            $header .= $page_lines[$i];
-                        }
-                    }
-                }
-
-                $body = '';
-                for ($i = 5; $i < ($page_lines_count - 4); $i++) {
-                    $body .= $page_lines[$i];
-                    $body_count++;
-                }
-                $footer = '';
-                if ((!$is_continued && $was_continued) || !$is_continued) {
-                    for ($i = ($page_lines_count - 2); $i < $page_lines_count; $i++) {
-                        if (isset($page_lines[$i])) {
-                            if ($page_lines[$i] == '') {
-                                $footer .= $page_lines[$i] . "\r";
-                            }
-                            $footer .= $page_lines[$i];
-                        }
-                    }
-                } else {
-                    $footer = "CONTINUED \r\n";
-                }
-
-                if (!$is_continued && !$was_continued) {
-                    printHeader($header, $pdf);
-                    printBody($body, $pdf);
-                    printFooter($footer, $pdf);
-                    $total_body_count = 0;
-                    $header = '';
-                    $is_continued = false;
-                }
-                if ($is_continued && !$was_continued) {
-                    $old_body .= $body;
-                    $total_body_count += $body_count;
-                }
-                if (!$is_continued && $was_continued) {
-                    $total_body_count += $body_count;
-                    if ($total_body_count < 35) {
-                        $old_body .= $body;
-                        printHeader($header, $pdf);
-                        printBody($old_body, $pdf);
-                        printFooter($footer, $pdf);
-                        $old_body = '';
-                        $total_body_count = 0;
-                        $header = '';
-                    } else {
-                        printHeader($header, $pdf);
-                        printBody($old_body, $pdf);
-                        printFooter($footer, $pdf);
-                        $body = "\r" . $body;
-                        printHeader($header, $pdf);
-                        printBody($body, $pdf);
-                        printFooter($footer, $pdf);
-                        $old_body = '';
-                        $total_body_count = 0;
-                        $header = '';
-                    }
-                }
-                if ($is_continued && $was_continued) {
-                    $total_body_count += $body_count;
-                    if ($total_body_count < 41) {
-                        $old_body .= $body;
-                    } else {
-                        printHeader($header, $pdf);
-                        printBody($old_body, $pdf);
-                        printFooter($footer, $pdf);
-                        $old_body = "\r" . $body;
-                        $total_body_count = $body_count;
-                    }
-                }
-            }
-        } else {
-            // Simple single-pass Cezpdf (appearance != '1' and != '2')
-            $pdf->ezSetMargins(45, 9, 36, 10);
-            $pdf->selectFont('Courier');
-            $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-            $countline = 1;
-            // this file contains the text to be converted to pdf.
-            $file = fopen($file_to_send, "r");
-            while (!feof($file)) {
-                // one line is read
-                $OneLine = fgets($file);
-                // form feed means we should start a new page.
-                if (stristr($OneLine, "\014") == true && !feof($file)) {
-                    $pdf->ezNewPage();
-                    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-                    str_replace("\014", "", $OneLine);
-                }
-
-                if (
-                    stristr($OneLine, 'REMIT TO') == true ||
-                    stristr($OneLine, 'Visit Date') == true ||
-                    stristr($OneLine, 'Future Appointments') == true ||
-                    stristr($OneLine, 'Current') == true
-                ) {
-                    // lines are made bold when 'REMIT TO' or 'Visit Date' is there.
-                    $pdf->ezText('<b>' . $OneLine . '</b>', 12, ['justification' => 'left', 'leading' => 6]);
-                } else {
-                    $pdf->ezText($OneLine, 12, ['justification' => 'left', 'leading' => 6]);
-                }
-
-                $countline++;
-            }
+        $pdf2->Output($STMT_TEMP_FILE_PDF, 'F');
+    } elseif ($GLOBALS['statement_appearance'] == '2') {
+        // LOCAL: CMS fixed-width multi-page — delegate to render_cms_statement_pdf() in statement_inc.php.
+        // rel-800 removes this branch entirely.
+        $fh = @fopen($STMT_TEMP_FILE_PDF, 'w');
+        if ($fh) {
+            fwrite($fh, render_cms_statement_pdf(file_get_contents($file_to_send)));
+            fclose($fh);
         }
-
-        // stored to a pdf file
+    } else {
+        // Simple single-pass Cezpdf fallback (appearance != '1' and != '2')
+        $pdf = new Cezpdf('LETTER');
+        $pdf->ezSetMargins(45, 9, 36, 10);
+        $pdf->selectFont('Courier');
+        $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
+        $countline = 1;
+        $file = fopen($file_to_send, "r");
+        while (!feof($file)) {
+            $OneLine = fgets($file);
+            if (stristr($OneLine, "\014") == true && !feof($file)) {
+                $pdf->ezNewPage();
+                $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
+                str_replace("\014", "", $OneLine);
+            }
+            if (
+                stristr($OneLine, 'REMIT TO') == true ||
+                stristr($OneLine, 'Visit Date') == true ||
+                stristr($OneLine, 'Future Appointments') == true ||
+                stristr($OneLine, 'Current') == true
+            ) {
+                $pdf->ezText('<b>' . $OneLine . '</b>', 12, ['justification' => 'left', 'leading' => 6]);
+            } else {
+                $pdf->ezText($OneLine, 12, ['justification' => 'left', 'leading' => 6]);
+            }
+            $countline++;
+        }
         $fh = @fopen($STMT_TEMP_FILE_PDF, 'w');
         if ($fh) {
             fwrite($fh, $pdf->ezOutput());
             fclose($fh);
         }
     }
-    // this section outputs the pdf file to browser
+
+    // output the pdf file to browser
     header("Pragma: public");
     header("Expires: 0");
     header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
@@ -496,46 +384,8 @@ function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID =
     header("Content-Disposition: attachment; filename=" . basename((string) $STMT_TEMP_FILE_PDF));
     header("Content-Description: File Transfer");
     readfile($STMT_TEMP_FILE_PDF);
-    // flush the content to the browser. If you don't do this, the text from the subsequent
-    // output from this script will be in the file instead of sent to the browser.
     flush();
-    // added to exit from process properly in order to stop bad html code -ehrlive
     exit();
-    // sleep one second to ensure there's no follow-on.
-    sleep(1);
-}
-
-// LOCAL: these three helper functions support the appearance='2' branch above.
-// rel-800 removes them. Keep until appearance='2' is no longer used.
-function printHeader($header, $pdf)
-{
-    global $page_count;
-    $png = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
-    if ($page_count > 1) {
-        $pdf->ezNewPage();
-    }
-    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin']);
-    $pdf->addPngFromFile($png, 0, 0, 612, 792);
-    $pdf->ezText($header, 12, [
-        'justification' => 'left',
-        'leading' => 12
-    ]);
-}
-function printBody($content, $pdf)
-{
-    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 130);
-    $pdf->ezText($content, 12, [
-        'justification' => 'left',
-        'leading' => 12
-    ]);
-}
-function printFooter($footer, $pdf)
-{
-    $pdf->ezSetY($pdf->ez['pageHeight'] - $pdf->ez['topMargin'] - 570);
-    $pdf->ezText($footer, 12, [
-        'justification' => 'left',
-        'leading' => 12
-    ]);
 }
 
 $today = date("Y-m-d");
@@ -779,35 +629,39 @@ if (
                     }
                     // MERGED-FROM-REL800: (string) cast on fwrite arg
                     fwrite($fhprint, (string) $tmp);
-                    // now save it to pt documents
-                    $d = new Document();
-                    $doc_pid = $inv_pid[$inv_count];
-                    $invoice_category_id = 0;
-                    $catrow = sqlQuery("SELECT id FROM categories WHERE name = ?", ['Invoices']);
-                    if (!empty($catrow['id'])) {
-                        $invoice_category_id = $catrow['id'];
-                    }
-                    // even if click download pdf the file content in $tmp is text
-                    // set mimetype and fileext based on statement appearance
-                    $isPdf = ($GLOBALS['statement_appearance'] == 1);
-                    $fileext = $isPdf ? '.pdf' : '.txt';
-                    $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . $fileext;
-                    $mimetype = $isPdf ? 'pdf' : 'text/plain';
-                    if ($isPdf) {
+                    // convert to PDF if needed, then save to pt documents
+                    if ($GLOBALS['statement_appearance'] == 2) {
+                        $tmp = render_cms_statement_pdf($tmp);
+                        $mimetype = 'application/pdf';
+                        $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.pdf';
+                    } elseif ($GLOBALS['statement_appearance'] == 1) {
                         $pdf2 = new mPDF(Config_Mpdf::getConfigMpdf());
                         if ($_SESSION['language_direction'] == 'rtl') {
                             $pdf2->SetDirectionality('rtl');
                         }
                         $pdf2->WriteHTML($tmp);
                         $tmp = $pdf2->Output('', 'S');
+                        $mimetype = 'application/pdf';
+                        $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.pdf';
+                    } else {
+                        $mimetype = 'text/plain';
+                        $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.txt';
                     }
-                    $invoice = $d->createDocument(
-                        $doc_pid,
-                        $invoice_category_id, // TBD: Make sure not 0
-                        $inv_filename,
-                        $mimetype,
-                        $tmp
-                    );
+                    // now save it to pt documents
+                    $d = new Document();
+                    $doc_pid = $inv_pid[$inv_count];
+                    $catrow = sqlQuery("SELECT id FROM categories WHERE name = ?", ['Invoices']);
+                    if (empty($catrow['id'])) {
+                        error_log("Invoice save failed: 'Invoices' category not found in documents");
+                    } else {
+                        $invoice = $d->createDocument(
+                            $doc_pid,
+                            $catrow['id'],
+                            $inv_filename,
+                            $mimetype,
+                            $tmp
+                        );
+                    }
                 }
             }
         }
