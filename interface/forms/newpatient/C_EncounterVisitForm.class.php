@@ -335,7 +335,7 @@ class C_EncounterVisitForm
     function getInCollectionOptionsForTemplate($encounter = null)
     {
         $options = [
-            ['value' => '0', 'title' => xl('No')]
+            ['value' => '0', 'title' => xl('No')],
             ['value' => '1', 'title' => xl('Yes')],
         ];
 
