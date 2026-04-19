@@ -592,7 +592,15 @@ function toencounter(enc, datestr, topframe) {
                             <?php echo text($frow['city'] . ', ' . $frow['state']) . ' ' . text($frow['postal_code']) ?><br />
                             <?php echo text("Phone:" . ' ' . $frow['phone']) ?><br />
                             <?php echo text("Email:" . ' ' . $frow['email']) ?><br />
+                            <?php // AI-generated code start (Claude) - Add patient name and chart number to receipt ?>
+                            <br />
+                            <?php echo xlt('Patient'); ?>:
+                            <?php echo text($patdata['fname'] . ' ' . ($patdata['mname'] ? $patdata['mname'] . ' ' : '') . $patdata['lname']); ?>
 
+                            <br />
+                            <?php echo xlt('Chart Number'); ?>:
+                            <?php echo text($patdata['pubpid']); ?>
+                            <?php // AI-generated code end ?>
 
                             <br />
                             <?php echo xlt('How Paid'); ?>:
