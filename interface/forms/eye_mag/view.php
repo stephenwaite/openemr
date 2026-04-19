@@ -4074,7 +4074,7 @@ if ($refresh and $refresh != 'fullscreen') {
                                                     <?php
                                                       $ures = sqlStatement("SELECT id, fname, lname, specialty FROM users " .
                                                           "WHERE active = 1 AND ( info IS NULL OR info NOT LIKE '%Inactive%' ) " .
-                                                          "AND ( authorized = 1 OR ( username = '' AND npi != '' ) ) " .
+                                                          "AND (authorized = 1 OR ((username = '' OR username IS NULL) AND npi != '' AND npi IS NOT NULL)) " .
                                                           "ORDER BY lname, fname");
                                                       echo "<select name='form_PCP' id='form_PCP' title='" . xla('Primary Care Provider') . "'>";
                                                       echo "<option value=''>" . xlt($empty_title ?? '') . "</option>";
