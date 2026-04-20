@@ -204,31 +204,30 @@ function era_callback(&$out): void
 // The local validEmail() is preserved here for compatibility with upload_file_to_client_email(),
 // but should be removed if you adopt the rel-800 email approach.
 
-function validEmail($email)
+/**
+ * Email a patient statement bill.
+ *
+ * @param non-empty-string $message
+ * @throws \InvalidArgumentException if message has no text content
+ * @throws \RuntimeException if the email cannot be sent
+ */
+function emailLogin(int $patient_id, string $message): void
 {
-    // LOCAL: kept for upload_file_to_client_email() compatibility.
-    // rel-800 removes this function and uses ValidationUtils::isValidEmail() everywhere.
-    if (preg_match("^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,3})$^", $email)) {
-        return true;
+    if (trim(strip_tags($message)) === '') {
+        throw new InvalidArgumentException('Statement message has no text content');
     }
 
-    return false;
-}
-
-function emailLogin($patient_id, $message)
-{
-    // LOCAL: returns bool. rel-800 changes signature to (int, string): void and throws exceptions.
     $patientData = sqlQuery("SELECT * FROM `patient_data` WHERE `pid`=?", [$patient_id]);
-    if ($patientData['hipaa_allowemail'] != "YES" || empty($patientData['email']) || empty($GLOBALS['patient_reminder_sender_email'])) {
-        return false;
+    if ($patientData['hipaa_allowemail'] != "YES" || $patientData['allow_patient_portal'] != "YES" || $patientData['hipaa_notice'] != "YES" || ($patientData['email'] ?? '') === '' || ($GLOBALS['patient_reminder_sender_email'] ?? '') === '') {
+        throw new RuntimeException(xl('Email is not allowed or not configured for this patient'));
     }
 
-    if (!(validEmail($patientData['email']))) {
-        return false;
+    if (!(ValidationUtils::isValidEmail($patientData['email']))) {
+        throw new RuntimeException(xl('Patient email address is invalid'));
     }
 
-    if (!(validEmail($GLOBALS['patient_reminder_sender_email']))) {
-        return false;
+    if (!(ValidationUtils::isValidEmail($GLOBALS['patient_reminder_sender_email']))) {
+        throw new RuntimeException(xl('Sender email address is not configured or invalid'));
     }
 
     if ($_SESSION['pc_facility']) {
@@ -253,13 +252,14 @@ function emailLogin($patient_id, $message)
     $mail->AltBody = $message;
 
     if ($mail->Send()) {
-        return true;
-    } else {
-        $email_status = $mail->ErrorInfo;
-        error_log("EMAIL ERROR: " . errorLogEscape($email_status), 0);
-        return false;
+        return;
     }
+
+    $email_status = $mail->ErrorInfo;
+    error_log("EMAIL ERROR: " . errorLogEscape($email_status), 0);
+    throw new RuntimeException(xl('Failed to send statement email'));
 }
+
 
 // Upload a file to the client's browser
 //
@@ -280,23 +280,6 @@ function upload_file_to_client($file_to_send): void
     exit(); //added to exit from process properly in order to stop bad html code -ehrlive
     // sleep one second to ensure there's no follow-on.
     sleep(1);
-}
-
-// LOCAL: kept for batch-email dispatch. rel-800 removes this function entirely.
-function upload_file_to_client_email($ppid, $file_to_send)
-{
-    $message = "";
-    global $STMT_TEMP_FILE_PDF;
-    $file = fopen($file_to_send, "r");//this file contains the text to be converted to pdf.
-    while (!feof($file)) {
-        $OneLine = fgets($file);//one line is read
-
-        $message = $message . $OneLine . '<br />';
-
-        $countline++;
-    }
-
-    emailLogin($ppid, $message);
 }
 
 // MERGED-FROM-REL800: added ': void' return type; added (string) casts; added (string) cast on basename() arg
@@ -622,13 +605,28 @@ if (
                     // a single encounter may have a balance
                     unset($stmt);
                 } else {
-                    $tmp = make_statement($stmt);
+                    if (!empty($_REQUEST['form_email'])) {
+                        // LOCAL: always use HTML for email regardless of statement_appearance
+                        $tmp = create_HTML_statement($stmt);
+                    } else {
+                        $tmp = make_statement($stmt);
+                    }
                     if (empty($tmp)) {
                         $tmp = xlt("This EOB item does not meet minimum print requirements setup in Globals or there is an unknown error.") . " " . xlt("EOB Id") . ":" . text($inv_pid[$inv_count]) . " " . xlt("Encounter") . ":" . text($stmt['encounter']) . "\n";
                         $tmp .= "<br />\n\014<br /><br />";
                     }
                     // MERGED-FROM-REL800: (string) cast on fwrite arg
                     fwrite($fhprint, (string) $tmp);
+                    // MERGED-FROM-REL800: per-invoice email dispatch
+                    if (!empty($_REQUEST['form_email'])) {
+                        try {
+                            emailLogin((int)$inv_pid[$inv_count], $tmp);
+                        } catch (\RuntimeException $e) {
+                            $alertmsg = $e->getMessage();
+                        } catch (\InvalidArgumentException $e) {
+                            $alertmsg = $e->getMessage();
+                        }
+                    }
                     // convert to PDF if needed, then save to pt documents
                     if ($GLOBALS['statement_appearance'] == 2) {
                         $tmp = render_cms_statement_pdf($tmp);
@@ -678,10 +676,8 @@ if (
         upload_file_to_client($STMT_TEMP_FILE);
     } elseif ($_REQUEST['form_pdf']) {
         upload_file_to_client_pdf($STMT_TEMP_FILE, $aPatientFirstName, $aPatientID, $usePatientNamePdf);
-    } elseif ($_REQUEST['form_email']) {
-        // LOCAL: batch email dispatch. rel-800 moves email into the per-invoice loop above.
-        // See CONFLICT comment near emailLogin() for details.
-        upload_file_to_client_email($stmt['pid'], $STMT_TEMP_FILE);
+    } elseif (!empty($_REQUEST['form_email'])) {
+        // LOCAL: email was sent per-invoice in the loop above
     } elseif ($_REQUEST['form_portalnotify']) {
         if ($alertmsg == "") {
             $alertmsg = xl('Sending Invoice to Patient Portal Completed');
@@ -764,6 +760,18 @@ if (
                 var ename = f.elements[i].name;
                 if (ename.indexOf('form_cb[') == 0)
                     f.elements[i].checked = checked;
+            }
+        }
+
+        function checkAllNotEmail() {
+            var f = document.forms[0];
+            for (var i = 0; i < f.elements.length; ++i) {
+                var ename = f.elements[i].name;
+                if (ename.indexOf('form_cb[') == 0) {
+                    // find the td with data-email-eligible in the same row
+                    var td = f.elements[i].closest('tr').querySelector('td[data-email-eligible]');
+                    f.elements[i].checked = td && td.dataset.emailEligible === '0';
+                }
             }
         }
 
@@ -1267,16 +1275,13 @@ if (
                                             } ?>
                                         </td>
                                     <?php } ?>
-                                    <td class="detail text-left">
-                                        <?php
-                                        // MERGED-FROM-REL800: ValidationUtils::isValidEmail() replaces local validEmail()
-                                        $patientData = sqlQuery("SELECT * FROM `patient_data` WHERE `pid`=?", [$row['pid']]);
-                                        if ($patientData['hipaa_allowemail'] == "YES" && $patientData['allow_patient_portal'] == "YES" && $patientData['hipaa_notice'] == "YES" && ValidationUtils::isValidEmail($patientData['email'])) {
-                                            echo xlt("YES");
-                                        } else {
-                                            echo xlt("NO");
-                                        }
-                                        ?>
+                                    <?php
+                                    // MERGED-FROM-REL800: ValidationUtils::isValidEmail() replaces local validEmail()
+                                    $patientData = sqlQuery("SELECT * FROM `patient_data` WHERE `pid`=?", [$row['pid']]);
+                                    $emailEligible = ($patientData['hipaa_allowemail'] == "YES" && $patientData['allow_patient_portal'] == "YES" && $patientData['hipaa_notice'] == "YES" && ValidationUtils::isValidEmail($patientData['email']));
+                                    ?>
+                                    <td class="detail text-left" data-email-eligible="<?php echo $emailEligible ? '1' : '0'; ?>">
+                                        <?php echo $emailEligible ? xlt("YES") : xlt("NO"); ?>
                                     </td>
                                 </tr>
                                 <?php
@@ -1297,6 +1302,9 @@ if (
                                 <?php
                             } else { ?>
                                 <button type="button" class="btn btn-secondary btn-save" name="Submit1" onclick='checkAll(true)'><?php echo xlt('Select All'); ?></button>
+                                <a href='#' class='btn btn-secondary btn-sm' onclick='checkAllNotEmail(); return false;'>
+                                    <?php echo xlt('Select All Not Email'); ?>
+                                </a>
                                 <button type="button" class="btn btn-secondary btn-undo" name="Submit2" onclick='checkAll(false)'><?php echo xlt('Clear All'); ?></button>
                                 <?php if ($GLOBALS['statement_appearance'] != '1') { ?>
                                     <button type="submit" class="btn btn-secondary btn-print" name='form_print' value="<?php echo xla('Print Selected Statements'); ?>"><?php echo xlt('Print Selected'); ?></button>

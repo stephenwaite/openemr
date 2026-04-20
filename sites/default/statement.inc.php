@@ -48,6 +48,12 @@ $STMT_PRINT_CMD = (new CryptoGen())->decryptStandard($GLOBALS['more_secure']['pr
  */
 function make_statement($stmt)
 {
+    // LOCAL: appearance=2 normally produces plain text for CMS PDF rendering.
+    // For email dispatch, substitute HTML so it renders properly in mail clients.
+    if (!empty($_REQUEST['form_email']) && $GLOBALS['statement_appearance'] == "2") {
+        return create_HTML_statement($stmt);
+    }
+
     if ($GLOBALS['statement_appearance'] == "1") {
         if (!empty($_POST['form_portalnotify']) && is_auth_portal($stmt['pid'])) {
             return osp_create_HTML_statement($stmt);
@@ -85,49 +91,50 @@ function report_header_2($stmt, $providerID = '1')
 
     $DOB = oeFormatShortDate($titleres['DOB']);
     /******************************************************************/
+    $haveLogo = false;
+    $logo_data = '';
+    $logo_mime = '';
+    if (empty(!$GLOBALS['statement_logo'])) {
+        $practice_logo = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
+    } else {
+        $practice_logo = $GLOBALS['OE_SITE_DIR'] . "/images/practice_logo.gif";
+    }
+    if (is_file($practice_logo)) {
+        $logo_data = base64_encode(file_get_contents($practice_logo));
+        $logo_ext = strtolower(pathinfo($practice_logo, PATHINFO_EXTENSION));
+        $logo_mime = ($logo_ext === 'png') ? 'image/png' : 'image/gif';
+        $haveLogo = true;
+    }
     ob_start();
     // Use logo if it exists as 'practice_logo.gif' in the site dir
     // old code used the global custom dir which is no longer a valid
     ?>
-    <table style="width:100%;">
+    <table style="width:100%;border-collapse:collapse;">
         <tr>
-            <?php
-                $haveLogo = false;
-            if (empty(!$GLOBALS['statement_logo'])) {
-                $practice_logo = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
-            } else { // 'ya never know.
-                    $practice_logo = $GLOBALS['OE_SITE_DIR'] . "/images/practice_logo.gif"; // can see is safe...
-            }
-
-                //Author Daniel Pflieger - daniel@growlingflea.com
-                //We only put space for a logo if it exists.
-                //if it does we put the patient name and the service facility on a separate line.
-                //Patients with long names cause formatting issues and it makes the statement look
-                //unprofessional. Additionally, the end user should be able to choose the
-                //statement logo from Administration -> statement.
-                //
-            if (is_file($practice_logo)) { // note: file_exist() will return true if path exist but not file. a truly function name misnomer.
-                echo "<td style='width:15%; height: auto; text-align:center;'>\n";
-                // restrain logo proportionally
-                echo "<img src='" . attr($practice_logo) . "' align='left' style='width:100%; height: auto; margin:0px;'><br />\n";
-                echo "</td>\n";
-                $haveLogo = true;
-            }
-            ?>
-            <td align='center' style='<?php echo ($haveLogo ? text("width:40%;max-width:50%;") : text("width:50%;") ) ?>'> <!--adds some growing room-->
+            <?php if ($haveLogo): ?>
+            <td style='width:50%; text-align:left; vertical-align:top;'>
+                <img src='data:<?php echo $logo_mime; ?>;base64,<?php echo $logo_data; ?>' style='width:200px; height:auto; margin:0px;'><br />
+                <?php echo xlt('Phone') . ': ' . text($facility['phone']); ?><br />
+                <em style="font-weight:bold;font-size:1.4em;"><?php echo text($titleres['fname']) . " " . text($titleres['lname']); ?></em><br />
+                <b style="font-weight:bold;"><?php echo xlt('Chart Number'); ?>:</b> <?php echo text($stmt['pid']); ?><br />
+                <b style="font-weight:bold;"><?php echo xlt('Generated on'); ?>:</b> <?php echo text(oeFormatShortDate()); ?><br />
+                <b><?php echo xlt('Provider') . ':</b>  '; ?><?php echo text(getProviderName($providerID)); ?><br />
+            </td>
+            <?php else: ?>
+            <td align='center' style='width:40%; vertical-align:top;'>
                 <em style="font-weight:bold;font-size:1.4em;"><?php echo text($facility['name']); ?></em><br />
                 <?php echo text($facility['street']); ?><br />
                 <?php echo text($facility['city']); ?>, <?php echo text($facility['state']); ?> <?php echo text($facility['postal_code']); ?><br />
                 <?php echo xlt('Phone') . ': ' . text($facility['phone']); ?><br />
-                <?php echo xlt('Fax') . ': ' . text($facility['fax']); ?><br />
-                <br clear='all' />
+                <?php echo xlt('Fax') . ': ' . text($facility['fax']); ?>
             </td>
-            <td align='center'>
+            <td align='center' style='vertical-align:top; width:40%;'>
                 <em style="font-weight:bold;font-size:1.4em;"><?php echo text($titleres['fname']) . " " . text($titleres['lname']); ?></em><br />
                 <b style="font-weight:bold;"><?php echo xlt('Chart Number'); ?>:</b> <?php echo text($stmt['pid']); ?><br />
                 <b style="font-weight:bold;"><?php echo xlt('Generated on'); ?>:</b> <?php echo text(oeFormatShortDate()); ?><br />
-                <b><?php echo xlt('Provider') . ':</b>  '; ?><?php echo text(getProviderName($providerID)); ?> <br />
+                <b><?php echo xlt('Provider') . ':</b>  '; ?><?php echo text(getProviderName($providerID)); ?><br />
             </td>
+            <?php endif; ?>
         </tr>
     </table>
     <?php
@@ -231,7 +238,8 @@ function create_HTML_statement($stmt)
     // Note that "\n" is a line feed (new line) character.
     // reformatted to handle i8n by tony
 
-    $out  = "<div style='margin-left:60px;margin-top:20px;'><pre>";
+    $marginLeft = !empty($_REQUEST['form_email']) ? '10px' : '60px';
+    $out  = "<div style='margin-left:{$marginLeft};margin-top:20px;'><pre>";
     $out .= "\n";
     $out .= sprintf("_______________________ %s _______________________\n", $label_pgbrk);
     $out .= "\n";
@@ -364,8 +372,10 @@ function create_HTML_statement($stmt)
     // This generates blank lines until we are at line 20.
     //  At line 20 we start middle third.
 
-    while ($count++ < 16) {
-        $out .= "\n";
+    if (empty($_REQUEST['form_email'])) {
+        while ($count++ < 16) {
+            $out .= "\n";
+        }
     }
 
     # Generate the string of aging text.  This will look like:
@@ -415,7 +425,6 @@ function create_HTML_statement($stmt)
     $out .= sprintf("__________________________________________________________________\n");
     $out .= "\n";
     $out .= sprintf("%-s\n", $label_call);
-    $out .= sprintf("%-s\n", $label_prompt);
     $out .= "\n";
     // $out .= sprintf("%-s\n", $billing_contact);
     $out .= sprintf("  %-s %-25s\n", $label_dept, $label_bill_phone);
@@ -465,23 +474,25 @@ function create_HTML_statement($stmt)
         }
     }
 
-    while ($count++ < 29) {
-        $out .= "\n";
+    if (empty($_REQUEST['form_email'])) {
+        while ($count++ < 29) {
+            $out .= "\n";
+        }
     }
 
-    $out .= sprintf("%-10s %s\n", null, $label_retpay);
     $out .= '</pre></div>';
-    $out .= '<div style="width:7.0in;border-top:1pt dotted black;font-size:12px;margin:0px;"><br /><br />
-      <table style="width:7in;margin-left:20px;"><tr><td style="width:4.5in;"><br />
- ';
-    $out .= $label_payby . ' ' . $label_cards;
-    $out .= "<br /><br />";
-    $out .= $label_cardnum . ': __________________________________  ' . $label_expiry . ': ___ / ____ ' . $label_cvv . ':____<br /><br />';
-    $out .= $label_sign . '  ______________________________________________<br />';
-    $out .= "</td><td style='width:2.0in;vertical-align:middle;'>";
-    $practice_cards = $GLOBALS['OE_SITE_DIR'] . "/images/visa_mc_disc_credit_card_logos_176x35.gif";
-    if (file_exists($GLOBALS['OE_SITE_DIR'] . "/images/visa_mc_disc_credit_card_logos_176x35.gif")) {
-        $out .= "<img src='$practice_cards' style='width:90px;height:auto; margin:4px auto;'><br /><p>\n<b>" .
+    $out .= '<div style="width:7.0in;border-top:1pt dotted black;font-size:12px;margin:0px;"><br />
+      <table style="width:7in;margin-left:20px;"><tr><td style="width:2.0in;vertical-align:middle;">';
+    $qr_path = $GLOBALS['OE_SITE_DIR'] . '/images/payment_qr.png';
+    $payment_url = 'https://payments.sunflowerpediatriceyecare.com/b/8x23cncGDfPM8RlgBU3wQ00';
+    if (!empty($_REQUEST['form_email'])) {
+        $out .= "<p><b>" . $label_totaldue . "</b>: " . $stmt['amount'] . "<br/>" .
+            xlt('Payment Tracking Id') . ": " . text($stmt['pid']) . "</p>";
+        $out .= "<a href='" . attr($payment_url) . "' style='display:inline-block;padding:10px 20px;background-color:#0066cc;color:#ffffff;text-decoration:none;border-radius:4px;font-weight:bold;'>" .
+            xlt('Pay Online') . "</a>";
+    } elseif (file_exists($qr_path)) {
+        $qr_data = base64_encode(file_get_contents($qr_path));
+        $out .= "<img src='data:image/png;base64," . $qr_data . "' style='width:90px;height:90px; margin:4px auto;'><br /><p>\n<b>" .
             $label_totaldue . "</b>: " . $stmt['amount'] . "<br/>" . xlt('Payment Tracking Id') . ": " .
             text($stmt['pid']);
         $out .= "<br />" . xlt('Amount Paid') . ": _______ " . xlt('Check') . " #:</p>";
@@ -491,36 +502,18 @@ function create_HTML_statement($stmt)
         $out .= "<br /><p>" . xlt('Amount Paid') . ": _______ " . xlt('Check') . " #:</p>";
     }
 
-    $out .= "</td></tr></table>";
-
-    $out .= '</div><br />
-   <pre>';
-    if (!empty($stmt['to'][3])) { //to avoid double blank lines the if condition is put.
-        $out .= sprintf("   %-32s\n", $stmt['to'][3]);
-    }
-
-    $out .= ' </pre>
-  <div style="width:7.0in;border-top:1pt solid black;"><br />';
-    $out .= " <table style='width:7.0in;margin:auto;'><tr>";
-    // LOCAL: address block uses to[0..3] because sl_eob_search.php adds street_line_2 at to[2],
-    // shifting city/state/zip to to[3]. Upstream only uses to[0..2].
-    // NOTE: to[3] (city/state/zip) is intentionally omitted here to match the original
-    // local layout. Add it if your statement template needs to show city/state/zip
-    // in the address block (e.g.: . $stmt['to'][3] . '<br />').
-    $out .= '<td style="margin:auto;"></td><td style="width:3.0in;"><b>'
-        . $label_addressee . '</b><br />'
+    $out .= "</td><td style='width:2.5in;vertical-align:top;padding-left:10px;border-left:1pt solid black;font-size:12px;'>";
+    $out .= '<b>' . $label_addressee . '</b><br />'
         . $stmt['to'][0] . '<br />'
         . $stmt['to'][1] . '<br />'
-        . ($stmt['to'][2] ?? '') . '
-      </td><td style="width:0.5in;"></td>
-      <td style="margin:auto;"><b>' . $label_remitto . '</b><br />'
+        . ($stmt['to'][2] ?? '') . '<br /><br />';
+    $out .= '<b>' . $label_remitto . '</b><br />'
         . $remit_name . '<br />'
         . $remit_addr . '<br />'
-        . $remit_csz . '
-      </td>
-      </tr></table>';
+        . $remit_csz;
+    $out .= "</td></tr></table></div>";
+    $out .= "      </div>";
 
-    $out .= "      </div></div>";
     $out .= "\014";
     echo $out;
     $output = ob_get_clean();
