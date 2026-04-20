@@ -186,19 +186,10 @@ function era_callback(&$out): void
     }
 }
 
-// CONFLICT: emailLogin() and email dispatch strategy
-//
-// LOCAL VERSION (kept): emailLogin() returns bool and is called via upload_file_to_client_email()
-// after the full statement loop completes. This batches all statements to a temp file first,
-// then sends email once at the end.
-//
+
 // REL-800 VERSION: emailLogin() is void, throws RuntimeException, and is called INSIDE the
 // per-invoice loop so each statement is emailed immediately as it is generated. The
 // upload_file_to_client_email() function is removed entirely.
-//
-// DECISION REQUIRED: If you want per-invoice emailing with proper error reporting, adopt
-// the rel-800 approach. If you need batch-file emailing, keep the local version.
-// The local version is preserved below unchanged.
 //
 // ALSO NOTE: rel-800 replaces the local validEmail() with ValidationUtils::isValidEmail().
 // The local validEmail() is preserved here for compatibility with upload_file_to_client_email(),
@@ -446,6 +437,13 @@ if (
         }
         $rcnt++;
     }
+
+    // Cache category ID for invoice document saves
+    $invoice_catrow = sqlQuery("SELECT id FROM categories WHERE name = ?", ['Invoices']);
+    if (empty($invoice_catrow['id'])) {
+        error_log("Invoice save failed: 'Invoices' category not found in documents");
+    }
+
     // This loops once for each invoice/encounter.
     //
     for ($rcnt = 0; $row = $rows[$rcnt] ?? null; $rcnt++) {
@@ -619,12 +617,20 @@ if (
                     fwrite($fhprint, (string) $tmp);
                     // MERGED-FROM-REL800: per-invoice email dispatch
                     if (!empty($_REQUEST['form_email'])) {
-                        try {
-                            emailLogin((int)$inv_pid[$inv_count], $tmp);
-                        } catch (\RuntimeException $e) {
-                            $alertmsg = $e->getMessage();
-                        } catch (\InvalidArgumentException $e) {
-                            $alertmsg = $e->getMessage();
+                        $patientEmailData = sqlQuery("SELECT hipaa_allowemail, hipaa_notice, allow_patient_portal, email FROM patient_data WHERE pid = ?", [(int)$inv_pid[$inv_count]]);
+                        if (
+                            $patientEmailData['hipaa_allowemail'] == 'YES' &&
+                            $patientEmailData['hipaa_notice'] == 'YES' &&
+                            $patientEmailData['allow_patient_portal'] == 'YES' &&
+                            ValidationUtils::isValidEmail($patientEmailData['email'])
+                        ) {
+                            try {
+                                emailLogin((int)$inv_pid[$inv_count], $tmp);
+                            } catch (\RuntimeException $e) {
+                                $alertmsg .= ($alertmsg ? '; ' : '') . text($stmt['patient']) . ': ' . $e->getMessage();
+                            } catch (\InvalidArgumentException $e) {
+                                $alertmsg .= ($alertmsg ? '; ' : '') . text($stmt['patient']) . ': ' . $e->getMessage();
+                            }
                         }
                     }
                     // convert to PDF if needed, then save to pt documents
@@ -651,10 +657,7 @@ if (
                     // now save it to pt documents
                     $d = new Document();
                     $doc_pid = $inv_pid[$inv_count];
-                    $catrow = sqlQuery("SELECT id FROM categories WHERE name = ?", ['Invoices']);
-                    if (empty($catrow['id'])) {
-                        error_log("Invoice save failed: 'Invoices' category not found in documents");
-                    } else {
+                    if (!(empty($catrow['id']))) {
                         $invoice = $d->createDocument(
                             $doc_pid,
                             $catrow['id'],
@@ -677,7 +680,7 @@ if (
     // Download or print the file, as selected
     if (!empty($_REQUEST['form_download'])) {
         upload_file_to_client($STMT_TEMP_FILE);
-    } elseif ($_REQUEST['form_pdf']) {
+    } elseif (!empty($_REQUEST['form_pdf'])) {
         upload_file_to_client_pdf($STMT_TEMP_FILE, $aPatientFirstName, $aPatientID, $usePatientNamePdf);
     } elseif (!empty($_REQUEST['form_email'])) {
         // LOCAL: email was sent per-invoice in the loop above

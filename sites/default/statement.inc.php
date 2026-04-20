@@ -91,14 +91,17 @@ function report_header_2($stmt, $providerID = '1')
 
     $DOB = oeFormatShortDate($titleres['DOB']);
     /******************************************************************/
-    $haveLogo = false;
-    $logo_data = '';
-    $logo_mime = '';
-    $practice_logo = $GLOBALS['OE_SITE_DIR'] . "/images/practice_logo.gif";
-    if (is_file($practice_logo)) {
-        $logo_data = base64_encode(file_get_contents($practice_logo));
-        $logo_mime = 'image/gif';
-        $haveLogo = true;
+    static $haveLogo = null;
+    static $logo_data = '';
+    static $logo_mime = '';
+    if ($haveLogo === null) {
+        $haveLogo = false;
+        $practice_logo = $GLOBALS['OE_SITE_DIR'] . "/images/practice_logo.png";
+        if (is_file($practice_logo)) {
+            $logo_data = base64_encode(file_get_contents($practice_logo));
+            $logo_mime = 'image/png';
+            $haveLogo = true;
+        }
     }
     ob_start();
     // Use logo if it exists as 'practice_logo.gif' in the site dir
