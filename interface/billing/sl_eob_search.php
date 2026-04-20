@@ -659,7 +659,7 @@ if (
                         // now save it to pt documents
                         $d = new Document();
                         $doc_pid = $inv_pid[$inv_count];
-                        if (!(empty($catrow['id']))) {
+                        if (!(empty($invoice_catrow['id']))) {
                             $invoice = $d->createDocument(
                                 $doc_pid,
                                 $invoice_catrow['id'],
