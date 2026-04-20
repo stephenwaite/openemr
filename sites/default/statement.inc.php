@@ -94,15 +94,10 @@ function report_header_2($stmt, $providerID = '1')
     $haveLogo = false;
     $logo_data = '';
     $logo_mime = '';
-    if (empty(!$GLOBALS['statement_logo'])) {
-        $practice_logo = $GLOBALS['OE_SITE_DIR'] . "/images/" . convert_safe_file_dir_name($GLOBALS['statement_logo']);
-    } else {
-        $practice_logo = $GLOBALS['OE_SITE_DIR'] . "/images/practice_logo.gif";
-    }
+    $practice_logo = $GLOBALS['OE_SITE_DIR'] . "/images/practice_logo.gif";
     if (is_file($practice_logo)) {
         $logo_data = base64_encode(file_get_contents($practice_logo));
-        $logo_ext = strtolower(pathinfo($practice_logo, PATHINFO_EXTENSION));
-        $logo_mime = ($logo_ext === 'png') ? 'image/png' : 'image/gif';
+        $logo_mime = 'image/gif';
         $haveLogo = true;
     }
     ob_start();
@@ -506,7 +501,8 @@ function create_HTML_statement($stmt)
     $out .= '<b>' . $label_addressee . '</b><br />'
         . $stmt['to'][0] . '<br />'
         . $stmt['to'][1] . '<br />'
-        . ($stmt['to'][2] ?? '') . '<br /><br />';
+        . ($stmt['to'][2] ?? '') . '<br />'
+        . ($stmt['to'][3] ?? '') . '<br /><br />';
     $out .= '<b>' . $label_remitto . '</b><br />'
         . $remit_name . '<br />'
         . $remit_addr . '<br />'
