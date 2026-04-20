@@ -187,6 +187,7 @@ function create_HTML_statement($stmt)
     // $stmt['dun_count'] number of statements run
     // $stmt['level_closed'] <= 3 insurance 4 = patient
 
+    $dun_message = '';
     if ($GLOBALS['use_dunning_message']) {
         if ($stmt['ins_paid'] != 0 || $stmt['level_closed'] == 4) {
             // do collection messages
@@ -453,6 +454,9 @@ function create_HTML_statement($stmt)
         $out .= sprintf("%-s\n", $label_appointments);
         #loop to add the appointments
         for ($x = 1; $x <= $num_appts; $x++) {
+            if (empty($events[$j])) {
+                break;
+            }
             $next_appoint_date = oeFormatShortDate($events[$j]['pc_eventDate']);
             // MERGED-FROM-REL800: (string) cast
             $next_appoint_time = substr((string) $events[$j]['pc_startTime'], 0, 5);

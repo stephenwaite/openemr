@@ -782,6 +782,20 @@ if (
             }
         }
 
+        function confirmEmail(form) {
+            var count = 0;
+            for (var i = 0; i < form.elements.length; ++i) {
+                if (form.elements[i].name.indexOf('form_cb[') == 0 && form.elements[i].checked) {
+                    count++;
+                }
+            }
+            if (count === 0) {
+                alert('<?php echo xla('No statements selected.'); ?>');
+                return false;
+            }
+            return confirm('<?php echo xla('Email'); ?> ' + count + ' <?php echo xla('statement(s)?'); ?>');
+        }
+
         function persistCriteria(el, e) {
             e.preventDefault();
             let target = "sl_eob_search.posting_adj_disable";
@@ -1318,6 +1332,11 @@ if (
                                     <button type="submit" class="btn btn-secondary btn-download" name='form_download' value="<?php echo xla('Download Selected Statements'); ?>"><?php echo xlt('Download Selected'); ?></button>
                                 <?php } ?>
                                 <button type="submit" class="btn btn-secondary btn-download" name='form_pdf' value="<?php echo xla('PDF Download Selected Statements'); ?>"><?php echo xlt('PDF Download Selected'); ?></button>
+                                <button type="submit" class="btn btn-secondary btn-mail" name='form_email'
+                                    value="<?php echo xla('Email Selected Statements'); ?>"
+                                    onclick="return confirmEmail(this.form);">
+                                    <?php echo xlt('Email Selected'); ?>
+                                </button>
                                 <button type="submit" class="btn btn-secondary btn-mail" name='form_email' value="<?php echo xla('Email Selected Statements'); ?>"><?php echo xlt('Email Selected'); ?></button>
                                 <?php
                                 if (!empty($is_portal)) { ?>
