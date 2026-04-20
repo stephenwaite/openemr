@@ -615,57 +615,59 @@ if (
                     }
                     // MERGED-FROM-REL800: (string) cast on fwrite arg
                     fwrite($fhprint, (string) $tmp);
-                    // MERGED-FROM-REL800: per-invoice email dispatch
-                    if (!empty($_REQUEST['form_email'])) {
-                        $patientEmailData = sqlQuery("SELECT hipaa_allowemail, hipaa_notice, allow_patient_portal, email FROM patient_data WHERE pid = ?", [(int)$inv_pid[$inv_count]]);
-                        if (
-                            $patientEmailData['hipaa_allowemail'] == 'YES' &&
-                            $patientEmailData['hipaa_notice'] == 'YES' &&
-                            $patientEmailData['allow_patient_portal'] == 'YES' &&
-                            ValidationUtils::isValidEmail($patientEmailData['email'])
-                        ) {
-                            try {
-                                emailLogin((int)$inv_pid[$inv_count], $tmp);
-                                usleep(100000); // 0.1s between sends to avoid SMTP rate limiting
-                            } catch (\RuntimeException $e) {
-                                $alertmsg .= ($alertmsg ? '; ' : '') . text($stmt['patient']) . ': ' . $e->getMessage();
-                            } catch (\InvalidArgumentException $e) {
-                                $alertmsg .= ($alertmsg ? '; ' : '') . text($stmt['patient']) . ': ' . $e->getMessage();
+                    if (empty($_REQUEST['form_without'])) {
+                        // MERGED-FROM-REL800: per-invoice email dispatch
+                        if (!empty($_REQUEST['form_email'])) {
+                            $patientEmailData = sqlQuery("SELECT hipaa_allowemail, hipaa_notice, allow_patient_portal, email FROM patient_data WHERE pid = ?", [(int)$inv_pid[$inv_count]]);
+                            if (
+                                $patientEmailData['hipaa_allowemail'] == 'YES' &&
+                                $patientEmailData['hipaa_notice'] == 'YES' &&
+                                $patientEmailData['allow_patient_portal'] == 'YES' &&
+                                ValidationUtils::isValidEmail($patientEmailData['email'])
+                            ) {
+                                try {
+                                    emailLogin((int)$inv_pid[$inv_count], $tmp);
+                                    usleep(100000); // 0.1s between sends to avoid SMTP rate limiting
+                                } catch (\RuntimeException $e) {
+                                    $alertmsg .= ($alertmsg ? '; ' : '') . text($stmt['patient']) . ': ' . $e->getMessage();
+                                } catch (\InvalidArgumentException $e) {
+                                    $alertmsg .= ($alertmsg ? '; ' : '') . text($stmt['patient']) . ': ' . $e->getMessage();
+                                }
                             }
                         }
-                    }
-                    // convert to PDF if needed, then save to pt documents
-                    if (!empty($_REQUEST['form_email'])) {
-                        $mimetype = 'text/html';
-                        $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.html';
-                    } elseif ($GLOBALS['statement_appearance'] == 2) {
-                        $tmp = render_cms_statement_pdf($tmp);
-                        $mimetype = 'application/pdf';
-                        $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.pdf';
-                    } elseif ($GLOBALS['statement_appearance'] == 1) {
-                        $pdf2 = new mPDF(Config_Mpdf::getConfigMpdf());
-                        if ($_SESSION['language_direction'] == 'rtl') {
-                            $pdf2->SetDirectionality('rtl');
+                        // convert to PDF if needed, then save to pt documents
+                        if (!empty($_REQUEST['form_email'])) {
+                            $mimetype = 'text/html';
+                            $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.html';
+                        } elseif ($GLOBALS['statement_appearance'] == 2) {
+                            $tmp = render_cms_statement_pdf($tmp);
+                            $mimetype = 'application/pdf';
+                            $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.pdf';
+                        } elseif ($GLOBALS['statement_appearance'] == 1) {
+                            $pdf2 = new mPDF(Config_Mpdf::getConfigMpdf());
+                            if ($_SESSION['language_direction'] == 'rtl') {
+                                $pdf2->SetDirectionality('rtl');
+                            }
+                            $pdf2->WriteHTML($tmp);
+                            $tmp = $pdf2->Output('', 'S');
+                            $mimetype = 'application/pdf';
+                            $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.pdf';
+                        } else {
+                            $mimetype = 'text/plain';
+                            $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.txt';
                         }
-                        $pdf2->WriteHTML($tmp);
-                        $tmp = $pdf2->Output('', 'S');
-                        $mimetype = 'application/pdf';
-                        $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.pdf';
-                    } else {
-                        $mimetype = 'text/plain';
-                        $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.txt';
-                    }
-                    // now save it to pt documents
-                    $d = new Document();
-                    $doc_pid = $inv_pid[$inv_count];
-                    if (!(empty($catrow['id']))) {
-                        $invoice = $d->createDocument(
-                            $doc_pid,
-                            $catrow['id'],
-                            $inv_filename,
-                            $mimetype,
-                            $tmp
-                        );
+                        // now save it to pt documents
+                        $d = new Document();
+                        $doc_pid = $inv_pid[$inv_count];
+                        if (!(empty($catrow['id']))) {
+                            $invoice = $d->createDocument(
+                                $doc_pid,
+                                $invoice_catrow['id'],
+                                $inv_filename,
+                                $mimetype,
+                                $tmp
+                            );
+                        }
                     }
                 }
             }
@@ -1337,7 +1339,6 @@ if (
                                     onclick="return confirmEmail(this.form);">
                                     <?php echo xlt('Email Selected'); ?>
                                 </button>
-                                <button type="submit" class="btn btn-secondary btn-mail" name='form_email' value="<?php echo xla('Email Selected Statements'); ?>"><?php echo xlt('Email Selected'); ?></button>
                                 <?php
                                 if (!empty($is_portal)) { ?>
                                     <button type="submit" class="btn btn-secondary btn-save" name='form_portalnotify' value="<?php echo xla('Notify via Patient Portal'); ?>"><?php echo xlt('Notify Patients Portal'); ?></button>
