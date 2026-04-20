@@ -422,7 +422,7 @@ function create_HTML_statement($stmt)
     $out .= "\n";
     if ($GLOBALS['show_aging_on_custom_statement']) {
         # code for ageing
-        $ageline .= ' | ' . xl('Over') . ' ' . ($age_index * 30) . ':' .
+        $ageline .= ' | ' . xl('More than') . ' ' . ($age_index * 30) . ':' .
             sprintf(" %.2f", $aging[$age_index]);
         $out .= "\n" . $ageline . "\n\n";
         $count++;
@@ -502,7 +502,7 @@ function create_HTML_statement($stmt)
     $out .= '<b>' . $label_addressee . '</b><br />'
         . $stmt['to'][0] . '<br />'
         . $stmt['to'][1] . '<br />'
-        . ($stmt['to'][2] ?? '') . '<br />'
+        . (!empty($stmt['to'][2]) ? $stmt['to'][2] . '<br />' : '')
         . ($stmt['to'][3] ?? '') . '<br /><br />';
     $out .= '<b>' . $label_remitto . '</b><br />'
         . $remit_name . '<br />'
