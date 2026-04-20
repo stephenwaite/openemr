@@ -640,9 +640,17 @@ if (
                             $mimetype = 'text/html';
                             $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.html';
                         } elseif ($GLOBALS['statement_appearance'] == 2) {
-                            $tmp = render_cms_statement_pdf($tmp);
-                            $mimetype = 'application/pdf';
-                            $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.pdf';
+                            if (!empty($_REQUEST['form_pdf'])) {
+                                // LOCAL: skip per-invoice PDF rendering on PDF download — render_cms_statement_pdf()
+                                // is too slow for large batches and upload_file_to_client_pdf() handles the full
+                                // temp file conversion. Save plain text to documents as a record instead.
+                                $mimetype = 'text/plain';
+                                $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.txt';
+                            } else {
+                                $tmp = render_cms_statement_pdf($tmp);
+                                $mimetype = 'application/pdf';
+                                $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.pdf';
+                            }
                         } elseif ($GLOBALS['statement_appearance'] == 1) {
                             $pdf2 = new mPDF(Config_Mpdf::getConfigMpdf());
                             if ($_SESSION['language_direction'] == 'rtl') {
