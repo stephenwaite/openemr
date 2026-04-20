@@ -277,12 +277,9 @@ function upload_file_to_client($file_to_send): void
 // LOCAL: the statement_appearance == '2' (complex multi-page Cezpdf) branch is preserved below.
 // rel-800 removes appearance='2' entirely, keeping only mPDF (appearance='1') and a simple
 // single-pass Cezpdf fallback. If your deployment uses appearance='2', do NOT take rel-800's version.
-// MERGED-FROM-REL800: added ': void' return type; added (string) casts; added (string) cast on basename() arg
-// LOCAL: the statement_appearance == '2' (complex multi-page Cezpdf) branch is preserved below.
-// rel-800 removes appearance='2' entirely, keeping only mPDF (appearance='1') and a simple
-// single-pass Cezpdf fallback. If your deployment uses appearance='2', do NOT take rel-800's version.
 function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID = null, $flagCFN = false): void
 {
+    set_time_limit(300); // 5 minutes
     global $srcdir, $page_count;
 
     $aPatFName = convert_safe_file_dir_name($aPatFirstName);
