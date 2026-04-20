@@ -626,6 +626,7 @@ if (
                         ) {
                             try {
                                 emailLogin((int)$inv_pid[$inv_count], $tmp);
+                                usleep(100000); // 0.1s between sends to avoid SMTP rate limiting
                             } catch (\RuntimeException $e) {
                                 $alertmsg .= ($alertmsg ? '; ' : '') . text($stmt['patient']) . ': ' . $e->getMessage();
                             } catch (\InvalidArgumentException $e) {
