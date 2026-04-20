@@ -105,27 +105,28 @@ function report_header_2($stmt, $providerID = '1')
     // old code used the global custom dir which is no longer a valid
     ?>
     <table style="width:100%;border-collapse:collapse;">
-        <tr>
+    <tr>
             <?php if ($haveLogo): ?>
             <td style='width:50%; text-align:left; vertical-align:top;'>
                 <img src='data:<?php echo $logo_mime; ?>;base64,<?php echo $logo_data; ?>' style='width:200px; height:auto; margin:0px;'><br />
-                <?php echo xlt('Phone') . ': ' . text($facility['phone']); ?><br />
+            </td>
+            <td style='width:50%; text-align:right; vertical-align:top;'>
                 <em style="font-weight:bold;font-size:1.4em;"><?php echo text($titleres['fname']) . " " . text($titleres['lname']); ?></em><br />
-                <b style="font-weight:bold;"><?php echo xlt('Chart Number'); ?>:</b> <?php echo text($stmt['pid']); ?><br />
+                <b style="font-weight:bold;"><?php echo xlt('Account Number'); ?>:</b> <?php echo text($stmt['pid']); ?><br />
                 <b style="font-weight:bold;"><?php echo xlt('Generated on'); ?>:</b> <?php echo text(oeFormatShortDate()); ?><br />
                 <b><?php echo xlt('Provider') . ':</b>  '; ?><?php echo text(getProviderName($providerID)); ?><br />
             </td>
             <?php else: ?>
-            <td align='center' style='width:40%; vertical-align:top;'>
+            <td align='center' style='width:50%; vertical-align:top;'>
                 <em style="font-weight:bold;font-size:1.4em;"><?php echo text($facility['name']); ?></em><br />
                 <?php echo text($facility['street']); ?><br />
                 <?php echo text($facility['city']); ?>, <?php echo text($facility['state']); ?> <?php echo text($facility['postal_code']); ?><br />
                 <?php echo xlt('Phone') . ': ' . text($facility['phone']); ?><br />
                 <?php echo xlt('Fax') . ': ' . text($facility['fax']); ?>
             </td>
-            <td align='center' style='vertical-align:top; width:40%;'>
+            <td align='center' style='width:50%; vertical-align:top;'>
                 <em style="font-weight:bold;font-size:1.4em;"><?php echo text($titleres['fname']) . " " . text($titleres['lname']); ?></em><br />
-                <b style="font-weight:bold;"><?php echo xlt('Chart Number'); ?>:</b> <?php echo text($stmt['pid']); ?><br />
+                <b style="font-weight:bold;"><?php echo xlt('Account Number'); ?>:</b> <?php echo text($stmt['pid']); ?><br />
                 <b style="font-weight:bold;"><?php echo xlt('Generated on'); ?>:</b> <?php echo text(oeFormatShortDate()); ?><br />
                 <b><?php echo xlt('Provider') . ':</b>  '; ?><?php echo text(getProviderName($providerID)); ?><br />
             </td>
@@ -167,7 +168,7 @@ function create_HTML_statement($stmt)
     $remit_csz = "{$row['city']}, {$row['state']}, {$row['postal_code']}";
 
     ob_start();
-    ?><div style="padding-left:25px; page-break-after:always;">
+    ?><div style="max-width:700px; margin:0 auto; page-break-after:always;">
     <?php
     // MERGED-FROM-REL800: short array syntax
     $find_provider = sqlQuery("SELECT * FROM form_encounter " .
@@ -210,7 +211,7 @@ function create_HTML_statement($stmt)
 
     $label_addressee = xl('ADDRESSED TO');
     $label_remitto = xl('REMIT TO');
-    $label_chartnum = xl('Chart Number');
+    $label_chartnum = xl('Account Number');
     $label_insinfo = xl('Insurance information on file');
     $label_totaldue = xl('Total amount due');
     $label_payby = xl('If paying by');
@@ -233,10 +234,8 @@ function create_HTML_statement($stmt)
     // Note that "\n" is a line feed (new line) character.
     // reformatted to handle i8n by tony
 
-    $marginLeft = !empty($_REQUEST['form_email']) ? '10px' : '60px';
-    $out  = "<div style='margin-left:{$marginLeft};margin-top:20px;'><pre>";
-    $out .= "\n";
-    $out .= sprintf("_______________________ %s _______________________\n", $label_pgbrk);
+    $out  = "<div style='margin-top:20px; width:600px; margin-left:auto; margin-right:auto;'>";
+    $out .= "<div style='border-top:1px solid black; border-bottom:1px solid black; padding:4px 0;'><pre>";
     $out .= "\n";
     $out .= sprintf("%-11s %-46s %s\n", $label_visit, $label_desc, $label_amt);
 
@@ -407,17 +406,27 @@ function create_HTML_statement($stmt)
         $count++;
     }
 
+    $out .= "</pre></div>";
+    $out .= "<div style='border-top:1px solid black; border-bottom:1px solid black; padding:4px 0;'><pre>";
     $out .= "\n";
-    $out .= sprintf(
-        "%-s: %-25s %-s: %-14s %-s: %8s\n",
-        $label_ptname,
-        $stmt['patient'],
-        $label_today,
-        oeFormatShortDate($stmt['today']),
-        $label_due,
-        $stmt['amount']
-    );
-    $out .= sprintf("__________________________________________________________________\n");
+        $out .= sprintf(
+            "%-s: %-25s %-s: %-14s %-s: %8s\n",
+            $label_ptname,
+            $stmt['patient'],
+            $label_today,
+            oeFormatShortDate($stmt['today']),
+            $label_due,
+            $stmt['amount']
+        );
+    $out .= "</pre></div><pre>";
+    $out .= "\n";
+    if ($GLOBALS['show_aging_on_custom_statement']) {
+        # code for ageing
+        $ageline .= ' | ' . xl('Over') . ' ' . ($age_index * 30) . ':' .
+            sprintf(" %.2f", $aging[$age_index]);
+        $out .= "\n" . $ageline . "\n\n";
+        $count++;
+    }
     $out .= "\n";
     $out .= sprintf("%-s\n", $label_call);
     $out .= "\n";
@@ -425,16 +434,8 @@ function create_HTML_statement($stmt)
     $out .= sprintf("  %-s %-25s\n", $label_dept, $label_bill_phone);
     if ($GLOBALS['statement_message_to_patient']) {
         $out .= "\n";
-        $statement_message = $GLOBALS['statement_msg_text'];
-        $out .= sprintf("%-40s\n", $statement_message);
-        $count++;
-    }
-
-    if ($GLOBALS['show_aging_on_custom_statement']) {
-        # code for ageing
-        $ageline .= ' | ' . xl('Over') . ' ' . ($age_index * 30) . ':' .
-            sprintf(" %.2f", $aging[$age_index]);
-        $out .= "\n" . $ageline . "\n\n";
+        $statement_message = wordwrap($GLOBALS['statement_msg_text'], 80, "\n", true);
+        $out .= $statement_message . "\n";
         $count++;
     }
 
@@ -476,13 +477,13 @@ function create_HTML_statement($stmt)
     }
 
     $out .= '</pre></div>';
-    $out .= '<div style="width:7.0in;border-top:1pt dotted black;font-size:12px;margin:0px;"><br />
-      <table style="width:7in;margin-left:20px;"><tr><td style="width:2.0in;vertical-align:middle;">';
+    $out .= '<div style="width:600px; margin-left:auto; margin-right:auto; border-top:1pt dotted black; font-size:12px; margin-top:0px;"><br />
+      <table style="width:100%;"><tr><td style="width:2.0in;vertical-align:middle;">';
     $qr_path = $GLOBALS['OE_SITE_DIR'] . '/images/payment_qr.png';
     $payment_url = 'https://payments.sunflowerpediatriceyecare.com/b/8x23cncGDfPM8RlgBU3wQ00';
     if (!empty($_REQUEST['form_email'])) {
         $out .= "<p><b>" . $label_totaldue . "</b>: " . $stmt['amount'] . "<br/>" .
-            xlt('Payment Tracking Id') . ": " . text($stmt['pid']) . "</p>";
+            xlt('Account Number') . ": " . text($stmt['pid']) . "</p>";
         $out .= "<a href='" . attr($payment_url) . "' style='display:inline-block;padding:10px 20px;background-color:#0066cc;color:#ffffff;text-decoration:none;border-radius:4px;font-weight:bold;'>" .
             xlt('Pay Online') . "</a>";
     } elseif (file_exists($qr_path)) {
@@ -507,6 +508,7 @@ function create_HTML_statement($stmt)
         . $remit_name . '<br />'
         . $remit_addr . '<br />'
         . $remit_csz;
+
     $out .= "</td></tr></table></div>";
     $out .= "      </div>";
 
@@ -610,7 +612,6 @@ function create_statement($stmt)
     $clinic_addr = "{$row['street']}";
     $clinic_csz = "{$row['city']}, {$row['state']}, {$row['postal_code']}";
 
-
     // Billing location modified by Daniel Pflieger at Growlingflea Software
     // MERGED-FROM-REL800: short array syntax
     $service_query = sqlStatement("SELECT * FROM `form_encounter` fe join facility f on fe.billing_facility = f.id where fe.id = ?", [$stmt['fid']]);
@@ -618,7 +619,6 @@ function create_statement($stmt)
     $remit_name = "{$row['name']}";
     $remit_addr = "{$row['street']}";
     $remit_csz = "{$row['city']}, {$row['state']}, {$row['postal_code']}";
-
 
     // Contacts
     // MERGED-FROM-REL800: short array syntax
