@@ -393,7 +393,7 @@ function create_HTML_statement($stmt)
     $label_thanks = xl('Thank you for choosing');
     $label_call = xl('Please call if any of the above information is incorrect.');
     $label_prompt = xl('We appreciate prompt payment of balances due.');
-    $label_dept = xl('Billing Department');
+    $label_dept = xl('Our office phone number is');
     $label_bill_phone = (!empty($GLOBALS['billing_phone_number']) ? $GLOBALS['billing_phone_number'] : $row['phone'] );
     $label_appointments = xl('Future Appointments') . ':';
 
@@ -429,18 +429,16 @@ function create_HTML_statement($stmt)
         $ageline .= ' | ' . xl('More than') . ' ' . ($age_index * 30) . ':' .
             sprintf(" %.2f", $aging[$age_index]);
         $out .= "\n" . $ageline . "\n\n";
-        $count++;
     }
     $out .= "\n";
-    $out .= sprintf("%-s\n", $label_call);
-    $out .= "\n";
-    // $out .= sprintf("%-s\n", $billing_contact);
-    $out .= sprintf("  %-s %-25s\n", $label_dept, $label_bill_phone);
     if ($GLOBALS['statement_message_to_patient']) {
-        $out .= "\n";
-        $statement_message = wordwrap($GLOBALS['statement_msg_text'], 80, "\n", true);
-        $out .= $statement_message . "\n";
-        $count++;
+        $out .= "</pre>";
+        $out .= "<div style='font-family:sans-serif; font-size:13px; padding:8px 0;'>";
+        $out .= "<p>" . nl2br(wordwrap($GLOBALS['statement_msg_text'], 80, "\n", true)) . "</p>";
+        $out .= "<p>" . $label_prompt . "</p>";
+        $out .= "<p>" . xl('For billing questions please call') . ' ' . $label_bill_phone . ".</p>";
+        $out .= "</div>";
+        $out .= "<pre>";
     }
 
     if ($GLOBALS['number_appointments_on_statement'] != 0) {
