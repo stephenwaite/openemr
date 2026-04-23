@@ -590,12 +590,24 @@ $bnrow = sqlQuery("select billing_note from form_encounter where pid = ? AND enc
                             // we no longer expect any payments from that company for the claim.
                             $last_level_closed = 0 + $ferow['last_level_closed'];
                             foreach ([0 => 'None', 1 => 'Ins1', 2 => 'Ins2', 3 => 'Ins3'] as $key => $value) {
-                                if ($key && !SLEOB::arGetPayerID($patient_id, $svcdate, $key)) {
-                                    continue;
+                                $label = $value;
+                                if ($key) {
+                                    error_log("arGetPayerID called: pid=$patient_id svcdate=$svcdate key=$key");
+                                    $payer_id = SLEOB::arGetPayerID($patient_id, $svcdate, $key);
+                                    if (!$payer_id) {
+                                        continue;
+                                    }
+                                    $ins = sqlQuery(
+                                        "SELECT name FROM insurance_companies WHERE id = ?",
+                                        [$payer_id]
+                                    );
+                                    if (!empty($ins['name'])) {
+                                        $label = $ins['name'];
+                                    }
                                 }
                                 $checked = ($last_level_closed == $key) ? " checked" : "";
                                 echo "<label class='radio-inline'>";
-                                echo "<input type='radio' name='form_done' value='" . attr($key) . "'$checked />" . text($value);
+                                echo "<input type='radio' name='form_done' value='" . attr($key) . "'$checked />" . text($label);
                                 echo "</label>";
                             }
                             ?>
