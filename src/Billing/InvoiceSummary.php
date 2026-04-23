@@ -118,14 +118,21 @@ class InvoiceSummary
                 $codes[$code]['dtl'][$tmpkey] = $tmp;
             }
         }
-        // Get insurance data for stuff
+        // Get insurance data as it was on the encounter's date of service.
         $ins_data = [];
-        $res = sqlStatement("SELECT insurance_data.type as type, insurance_companies.name as name " .
-            "FROM insurance_data " .
-            "INNER JOIN insurance_companies ON insurance_data.provider = insurance_companies.id " .
-            "WHERE insurance_data.pid = ?", [$patient_id]);
-        while ($row = sqlFetchArray($res)) {
-            $ins_data[$row['type']] = $row['name'];
+        $enc_dos_row = sqlQuery(
+            "SELECT date FROM form_encounter WHERE pid = ? AND encounter = ? LIMIT 1",
+            [$patient_id, $encounter_id]
+        );
+        $enc_dos = !empty($enc_dos_row['date']) ? substr($enc_dos_row['date'], 0, 10) : date('Y-m-d');
+        foreach ([1 => 'primary', 2 => 'secondary', 3 => 'tertiary'] as $level => $typename) {
+            $provider_id = SLEOB::arGetPayerID($patient_id, $enc_dos, $level);
+            if ($provider_id) {
+                $ic = sqlQuery("SELECT name FROM insurance_companies WHERE id = ?", [$provider_id]);
+                if (!empty($ic['name'])) {
+                    $ins_data[$typename] = $ic['name'];
+                }
+            }
         }
         // Get payments and adjustments. (includes copays)
         $res = sqlStatement("SELECT " .
