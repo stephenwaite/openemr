@@ -592,8 +592,8 @@ $bnrow = sqlQuery("select billing_note from form_encounter where pid = ? AND enc
                             foreach ([0 => 'None', 1 => 'Ins1', 2 => 'Ins2', 3 => 'Ins3'] as $key => $value) {
                                 $label = $value;
                                 if ($key) {
-                                    error_log("arGetPayerID called: pid=$patient_id svcdate=$svcdate key=$key");
                                     $payer_id = SLEOB::arGetPayerID($patient_id, $svcdate, $key);
+                                    error_log("invoice loop: pid=$patient_id svcdate=$svcdate key=$key -> payer_id=$payer_id");
                                     if (!$payer_id) {
                                         continue;
                                     }
@@ -601,6 +601,7 @@ $bnrow = sqlQuery("select billing_note from form_encounter where pid = ? AND enc
                                         "SELECT name FROM insurance_companies WHERE id = ?",
                                         [$payer_id]
                                     );
+                                    error_log("invoice loop:   name lookup for id=$payer_id -> " . ($ins['name'] ?? 'NULL'));
                                     if (!empty($ins['name'])) {
                                         $label = $ins['name'];
                                     }
