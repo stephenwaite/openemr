@@ -635,7 +635,7 @@ if (
                         // convert to PDF if needed, then save to pt documents
                         if (!empty($_REQUEST['form_email'])) {
                             $mimetype = 'text/html';
-                            $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.html';
+                            $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '-' . $inv_pid[$inv_count] . '.html';
                         } elseif ($GLOBALS['statement_appearance'] == 2) {
                             if (!empty($_REQUEST['form_pdf'])) {
                                 // LOCAL: skip per-invoice PDF rendering on PDF download — render_cms_statement_pdf()
