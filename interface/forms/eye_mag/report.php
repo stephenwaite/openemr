@@ -732,14 +732,14 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                 for ($z = 1; $z < 5; $z++) {
                     $ODzone = "ODVF" . $z;
                     if (${$ODzone} == '1') {
-                        $ODVF[$z] = '<i class="fa fa-square fa-5">X</i>';
+                        $ODVF[$z] = '<i class="fa fa-square"></i>';
                         if ($PDF_OUTPUT) {
                             $ODVF[$z] = 'X';
                         }
 
                         $bad++;
                     } else {
-                        $ODVF[$z] = '<i class="fa fa-square-o fa-5"></i>';
+                        $ODVF[$z] = '<i class="fa fa-square-o"></i>';
                         if ($PDF_OUTPUT) {
                             $ODVF[$z] = 'O';
                         }
@@ -747,14 +747,14 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
 
                     $OSzone = "OSVF" . $z;
                     if (${$OSzone} == "1") {
-                        $OSVF[$z] = '<i class="fa fa-square fa-5">X</i>';
+                        $OSVF[$z] = '<i class="fa fa-square"></i>';
                         if ($PDF_OUTPUT) {
                             $OSVF[$z] = 'X';
                         }
 
                         $bad++;
                     } else {
-                        $OSVF[$z] = '<i class="fa fa-square-o fa-5"></i>';
+                        $OSVF[$z] = '<i class="fa fa-square-o"></i>';
                         if ($PDF_OUTPUT) {
                             $OSVF[$z] = 'O';
                         }
@@ -762,7 +762,7 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                 }
                 ?>
                 <?php
-                if (($bad ?? '') < '1') { ?>
+                if ($VFFTCF == '1') { ?>
             <td style="border-right: 1pt #000 solid;
                           float: left;
                           font-size: 0.9em;

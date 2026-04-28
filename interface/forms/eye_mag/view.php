@@ -1092,7 +1092,7 @@ if ($refresh and $refresh != 'fullscreen') {
                         ?>
                     <div id="Lyr60">
                                 <label for="FieldsNormal" class="input-helper input-helper--checkbox"><?php echo xlt('FTCF{{Full to count fingers}}'); ?></label>
-                                <input id="FieldsNormal" type="checkbox" value="1" <?php echo attr($VFFTCF ?? ''); ?>>
+                                <input id="FieldsNormal" name="VFFTCF" type="checkbox" value="1" <?php echo attr($VFFTCF ?? ''); ?>>
                     </div>
                     <div id="Lyr511">
                         <table cellpadding="1" cellspacing="1">
