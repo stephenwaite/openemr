@@ -774,7 +774,7 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                           vertical-align: top;">
             <b class="underline"><?php echo xlt('Fields{{visual fields}}'); ?></b>
                     <?php
-                    echo "<br /><br />Full to CF OU";
+                    echo "<br /><br />" . xlt('UTP{{Unable to test patient}}');
                 } else {
                     ?>
                 <td style="border-right: 1pt #000 solid;
