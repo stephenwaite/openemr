@@ -1676,7 +1676,7 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                 <table>
                     <tr>
                         <td style="text-align:left;vertical-align:top;padding:1px;">
-                            <b><u><?php echo xlt('Additional Findings'); ?>:</u></b>
+                            <b><u><?php echo xlt('Sensory/Neuro Exam'); ?>:</u></b>
                         <?php if ($ACT == 'on' and $MOTILITYNORMAL == 'on') { ?>
                                 <span id="ACTNORMAL_CHECK" name="ACTNORMAL_CHECK">
                             <?php echo xlt('Orthophoric'); ?>
