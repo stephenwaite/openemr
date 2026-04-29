@@ -228,6 +228,7 @@ function rhl7Date($s)
 
 function rhl7Abnormal($s)
 {
+    $s = trim($s);
     if ($s == '') {
         return 'no';
     }
@@ -1605,6 +1606,9 @@ function poll_hl7_results(&$info = [], $labs = 0)
                 return xl('Login to remote host') . " '$remote_host' " . xl('failed');
             }
 
+            if (!is_array($files)) {
+                $files = $files ? [$files] : [];
+            }
             $files = $sftp->nlist($pathname);
             foreach ($files as $file) {
                 if (str_starts_with($file, '.')) {
