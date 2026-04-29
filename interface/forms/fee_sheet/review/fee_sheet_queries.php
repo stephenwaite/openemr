@@ -288,11 +288,19 @@ function common_diagnoses($limit = 10)
  */
 function fee_sheet_items($pid, $encounter, &$diagnoses, &$procedures)
 {
-    $param = array($encounter);
-    $sql = "SELECT code,code_type,code_text,fee,modifier,justify,units,ct_diag,ct_fee,ct_mod "
-          . " FROM billing, code_types as ct "
-          . " WHERE encounter=? AND billing.activity>0 AND ct.ct_key=billing.code_type "
-          . " ORDER BY id";
+    $param = array($pid, $encounter);
+    $sql = "SELECT billing.code, billing.code_type, billing.code_text, "
+          . " COALESCE(prices.pr_price * NULLIF(billing.units, 0), billing.fee) AS fee, "
+          . " billing.modifier, billing.justify, billing.units, "
+          . " ct.ct_diag, ct.ct_fee, ct.ct_mod "
+          . " FROM billing "
+          . " JOIN code_types AS ct ON ct.ct_key = billing.code_type "
+          . " LEFT JOIN patient_data AS pd ON pd.pid = ? "
+          . " LEFT JOIN codes ON codes.code = billing.code AND codes.code_type = ct.ct_id "
+          . " LEFT JOIN prices ON prices.pr_id = codes.id "
+          . "   AND prices.pr_level = COALESCE(NULLIF(pd.pricelevel, ''), 'standard') "
+          . " WHERE billing.encounter = ? AND billing.activity > 0 "
+          . " ORDER BY billing.id";
     $results = sqlStatement($sql, $param);
     while ($res = sqlFetchArray($results)) {
         $code = $res['code'];
@@ -311,7 +319,6 @@ function fee_sheet_items($pid, $encounter, &$diagnoses, &$procedures)
         }
     }
 }
-
 
 /**
  * retrieve the details of the specified patient's encounters, except for the
