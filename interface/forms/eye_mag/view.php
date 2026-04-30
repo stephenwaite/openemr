@@ -1071,24 +1071,16 @@ if ($refresh and $refresh != 'fullscreen') {
                         for ($z = 1; $z < 5; $z++) {
                             $ODzone = "ODVF" . $z;
                             if (${$ODzone} == '1') {
-                                $ODVF[$z] = 'checked value=1';
                                 $bad++;
-                            } else {
-                                $ODVF[$z] = 'value=0';
                             }
 
                             $OSzone = "OSVF" . $z;
                             if (${$OSzone} == "1") {
-                                $OSVF[$z] = 'checked value=1';
                                 $bad++;
-                            } else {
-                                $OSVF[$z] = 'value=0';
                             }
                         }
 
-                        if (!$bad) {
-                            $VFFTCF = "checked";
-                        }
+                        $VFFTCF = $bad ? '0' : '1';
                         ?>
                     <div id="Lyr60">
                                 <label for="FieldsNormal" class="input-helper input-helper--checkbox"><?php echo xlt('FTCF{{Full to count fingers}}'); ?></label>
@@ -1103,39 +1095,39 @@ if ($refresh and $refresh != 'fullscreen') {
                             </tr>
                             <tr>
                                 <td class="VF_1">
-                                    <input name="ODVF1" id="ODVF1" type="checkbox" value="1" <?php echo ($ODVF['1'] ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
+                                    <input name="ODVF1" id="ODVF1" type="checkbox" value="1" <?php echo ($ODVF1 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="ODVF1" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                                 <td class="VF_2">
-                                    <input name="ODVF2" id="ODVF2" type="checkbox" value="1" <?php echo ($ODVF['2'] ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
+                                    <input name="ODVF2" id="ODVF2" type="checkbox" value="1" <?php echo ($ODVF2 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="ODVF2" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                                 <td></td>
                                 <td class="VF_1">
-                                    <input name="OSVF1" id="OSVF1" type="checkbox" value="1" <?php echo ($OSVF['1'] ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
+                                    <input name="OSVF1" id="OSVF1" type="checkbox" value="1" <?php echo ($OSVF1 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="OSVF1" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                                 <td class="VF_2">
-                                    <input name="OSVF2" id="OSVF2" type="checkbox" value="1" <?php echo ($OSVF['2'] ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
+                                    <input name="OSVF2" id="OSVF2" type="checkbox" value="1" <?php echo ($OSVF2 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="OSVF2" class="input-helper input-helper--checkbox boxed"> </label>
                                 </td>
                             </tr>
                             <tr>
                                 <td class="VF_3">
-                                    <input name="ODVF3" id="ODVF3" type="checkbox" value="1" <?php echo ($ODVF['3'] ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
+                                    <input name="ODVF3" id="ODVF3" type="checkbox" value="1" <?php echo ($ODVF3 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="ODVF3" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                                 <td class="VF_4">
-                                    <input name="ODVF4" id="ODVF4" type="checkbox" value="1" <?php echo ($ODVF['4'] ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
+                                    <input name="ODVF4" id="ODVF4" type="checkbox" value="1" <?php echo ($ODVF4 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="ODVF4" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                                 <td></td>
                                 <td class="VF_3">
-                                    <input name="OSVF3" id="OSVF3" type="checkbox" value="1" <?php echo ($OSVF['3'] ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
+                                    <input name="OSVF3" id="OSVF3" type="checkbox" value="1" <?php echo ($OSVF3 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="OSVF3" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                                 <td class="VF_4">
-                                    <input name="OSVF4" id="OSVF4" type="checkbox" value="1" <?php echo ($OSVF['4'] ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
+                                    <input name="OSVF4" id="OSVF4" type="checkbox" value="1" <?php echo ($OSVF4 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="OSVF4" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                             </tr>

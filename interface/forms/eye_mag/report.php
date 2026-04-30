@@ -728,38 +728,24 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                 <?php
                     // if the VF zone is checked, display it
                     // if ODVF1 = 1 (true boolean) the value="0" checked="true"
-                $bad = 0;
+                    $bad = 0;
                 for ($z = 1; $z < 5; $z++) {
                     $ODzone = "ODVF" . $z;
                     if (${$ODzone} == '1') {
-                        $ODVF[$z] = '<i class="fa fa-square"></i>';
-                        if ($PDF_OUTPUT) {
-                            $ODVF[$z] = 'X';
-                        }
-
+                        $ODVF[$z] = "■";
                         $bad++;
                     } else {
-                        $ODVF[$z] = '<i class="fa fa-square-o"></i>';
-                        if ($PDF_OUTPUT) {
-                            $ODVF[$z] = 'O';
-                        }
+                        $ODVF[$z] = "\u{00A0}";
                     }
-
                     $OSzone = "OSVF" . $z;
                     if (${$OSzone} == "1") {
-                        $OSVF[$z] = '<i class="fa fa-square"></i>';
-                        if ($PDF_OUTPUT) {
-                            $OSVF[$z] = 'X';
-                        }
-
+                        $OSVF[$z] = "■";
                         $bad++;
                     } else {
-                        $OSVF[$z] = '<i class="fa fa-square-o"></i>';
-                        if ($PDF_OUTPUT) {
-                            $OSVF[$z] = 'O';
-                        }
+                        $OSVF[$z] = "\u{00A0}";
                     }
                 }
+                $VFFTCF = $bad ? '0' : '1';
                 ?>
                 <?php
                 if ($VFFTCF == '1') { ?>
