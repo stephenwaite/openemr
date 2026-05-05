@@ -427,7 +427,15 @@ class X125010837P
             //        Here we presume that is not true yet.
             "*";
         if ($claim->policyNumber()) {
-            $out .= $claim->policyNumber();
+            $policyNumber = $claim->policyNumber();
+            if (in_array($claim->claimType(), ['MB'])) {
+                $stripped = str_replace(['-', ' '], '', $policyNumber);
+                if ($stripped !== $policyNumber) {
+                    $log .= "*** Stripped dashes/spaces from Medicare ID '$policyNumber' -> '$stripped'.\n";
+                    $policyNumber = $stripped;
+                }
+            }
+            $out .= $policyNumber;
         } else {
             $log .= "*** Missing policy number.\n";
         }
