@@ -648,7 +648,7 @@ function era_callback(array &$out): void
                         && (
                             $adj['reason_code'] === '45'
                             || $adj['reason_code'] === '59'
-                            || $adj['reason_code'] === '97' 
+                            || ($adj['reason_code'] === '97' && $svc['code'] === '92015')
                         )
                     )
                     && !$is_medicaid_secondary  // LOCAL: $0-pay is expected on Medicaid-secondary
