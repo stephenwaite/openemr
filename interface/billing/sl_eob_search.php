@@ -1306,7 +1306,7 @@ if (
                                     <?php
                                     // MERGED-FROM-REL800: ValidationUtils::isValidEmail() replaces local validEmail()
                                     $patientData = sqlQuery("SELECT * FROM `patient_data` WHERE `pid`=?", [$row['pid']]);
-                                    $emailEligible = ($patientData['hipaa_allowemail'] == "YES" && $patientData['allow_patient_portal'] == "YES" && $patientData['hipaa_notice'] == "YES" && ValidationUtils::isValidEmail($patientData['email']));
+                                    $emailEligible = ($patientData['hipaa_allowemail'] == "YES" && $patientData['hipaa_notice'] == "YES" && ValidationUtils::isValidEmail($patientData['email']));
                                     ?>
                                     <td class="detail text-left" data-email-eligible="<?php echo $emailEligible ? '1' : '0'; ?>">
                                         <?php echo $emailEligible ? xlt("YES") : xlt("NO"); ?>
