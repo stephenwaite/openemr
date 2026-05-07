@@ -390,6 +390,11 @@ if (!empty($_POST['form_save']) || !empty($_POST['form_cancel']) || !empty($_POS
                         $reason .= ' ' . $_POST['form_insurance'];
                     }
                 }
+                // LOCAL: substitute CARC code with human-readable title before saving to ar_activity memo
+                $reason_title_row = sqlQuery("SELECT title FROM list_options WHERE list_id = 'adjreason' AND activity = 1 AND option_id = ?", [$reason]);
+                if (!empty($reason_title_row['title'])) {
+                    $reason = $reason_title_row['title'];
+                }
                 SLEOB::arPostAdjustment($patient_id, $encounter_id, $session_id, $thisadj, $code, $payer_type, $reason, $debug, '', $thiscodetype);
             }
         }
