@@ -661,6 +661,7 @@ if (
                             $mimetype = 'text/plain';
                             $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . '.txt';
                         }
+
                         // now save it to pt documents
                         $d = new Document();
                         $doc_pid = $inv_pid[$inv_count];
@@ -672,6 +673,35 @@ if (
                                 $mimetype,
                                 $tmp
                             );
+                            // LOCAL: audit log of statement sends.
+                            // Note: createDocument() returns an error message string on failure
+                            // and empty string on success, so $invoice can't be used as a success
+                            // indicator. $d->get_id() is the real signal.
+                            $doc_id = (int) $d->get_id();
+                            if ($doc_id) {
+                                $statement_method = match (true) {
+                                    !empty($_REQUEST['form_email'])        => 'email',
+                                    !empty($_REQUEST['form_portalnotify']) => 'portal',
+                                    !empty($_REQUEST['form_print']),
+                                    !empty($_REQUEST['form_download']),
+                                    !empty($_REQUEST['form_pdf'])          => 'mail',
+                                    default                                => 'other',
+                                };
+                                sqlStatement(
+                                    "INSERT INTO patient_statements " .
+                                    "(pid, encounter, statement_date, method, amount, document_id, created_by) " .
+                                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                    [
+                                        (int) $doc_pid,
+                                        (int) $stmt['encounter'],
+                                        $today,
+                                        $statement_method,
+                                        (float) $stmt['amount'],
+                                        (int) $d->get_id(),
+                                        (int) ($_SESSION['authUserID'] ?? 0),
+                                    ]
+                                );
+                            }
                         }
                     }
                 }
@@ -1222,19 +1252,17 @@ if (
                                 $in_collections = stristr((string) $billnote, 'IN COLLECTIONS') !== false
                                     || $row['in_collection'] == 1;
 
-                                // $duncount was originally supposed to be the number of times that
-                                // the patient was sent a statement for this invoice.
-                                //
+                                // LOCAL: always check open-insurance status, not just when stmt_count is 0.
+                                // Upstream short-circuits this check once any statement has been sent, which
+                                // means an encounter that was billed once and then re-submitted to insurance
+                                // (e.g. after a denial) slips through the Due Pt filter forever.
                                 $duncount = $row['stmt_count'];
 
-                                // But if we have not yet billed the patient, then compute $duncount as a
-                                // negative count of the number of insurance plans for which we have not
-                                // yet closed out insurance.
-                                //
-                                if (!$duncount) {
-                                    for ($i = 1; $i <= 3 && SLEOB::arGetPayerID($row['pid'], $row['date'], $i); ++$i) {
-                                    }
-                                    $duncount = $row['last_level_closed'] + 1 - $i;
+                                for ($i = 1; $i <= 3 && SLEOB::arGetPayerID($row['pid'], $row['date'], $i); ++$i) {
+                                }
+                                $open_levels = ($i - 1) - (int) $row['last_level_closed'];
+                                if ($open_levels > 0) {
+                                    $duncount = -$open_levels;
                                 }
 
                                 $isdueany = ($balance > 0);

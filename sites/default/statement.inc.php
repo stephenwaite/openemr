@@ -270,7 +270,7 @@ function create_HTML_statement($stmt)
 
         $dos = $line['dos'];
         ksort($line['detail']);
-        // suppressing individual adjustments = improved statement printing
+
         $adj_flag = false;
         $note_flag = false;
         $pt_paid_flag = false;
@@ -304,22 +304,21 @@ function create_HTML_statement($stmt)
                 }
             } elseif (!empty($ddata['rsn'])) {
                 if ($ddata['chg']) {
-                    // this is where the adjustments used to be printed individually
-                    $adj_flag = true;
+                    // LOCAL: emit each adjustment with its reason title instead of aggregating
+                    // into a single "Insurance adjusted" line. Sign-flip to match the previous
+                    // aggregate display (adjustments shown as negative on the statement).
+                    $amount = sprintf("%.2f", 0 - $ddata['chg']);
+                    $desc = $ddata['rsn'];
                 } else {
-                    if ($ddate == $prev_ddate) {
-                        if ($note_flag) {
-                            // only 1 note per item or results in too much detail
-                            continue;
-                        } else {
-                            // MERGED-FROM-REL800: (string) casts
-                            $desc = xl('Note') . ' ' . substr((string) oeFormatShortDate($ddate), 0, 6) .
-                                substr((string) oeFormatShortDate($ddate), 8, 2) .
-                                ': ' . ': ' . $ddata['rsn'] . ' ' . $ddata['pmt_method'] . ' ' . $ddata['insurance_company'];
-                            $note_flag = true;
-                        }
+                    if ($note_flag) {
+                        // only 1 note per item or results in too much detail
+                        continue;
                     } else {
-                        continue; // no need to print notes for 2nd insurances
+                        // MERGED-FROM-REL800: (string) casts
+                        $desc = substr((string) oeFormatShortDate($ddate), 0, 6) .
+                            substr((string) oeFormatShortDate($ddate), 8, 2) .
+                            ': ' . $ddata['rsn'];
+                        $note_flag = true;
                     }
                 }
             } elseif ($ddata['chg'] < 0) {
@@ -341,10 +340,10 @@ function create_HTML_statement($stmt)
             $prev_ddate = $ddate;
         }
         // print the adjustments summed after all other postings
-        if ($line['adjust'] !== '0.00') {
-            $out .= sprintf("%-10s  %-45s%8s\n", oeFormatShortDate($dos), "Insurance adjusted", sprintf("%.2f", 0 - $line['adjust']));
-            ++$count;
-        }
+        //if ($line['adjust'] !== '0.00') {
+        //    $out .= sprintf("%-10s  %-45s%8s\n", oeFormatShortDate($dos), "Insurance adjusted", sprintf("%.2f", 0 - $line['adjust']));
+        //    ++$count;
+        //}
 
         // don't print a balance after a "Paid" patient payment since it's on its own line
         if (!$pt_paid_flag) {
@@ -1398,7 +1397,7 @@ function create_cms_statement($stmt)
                     $amount = sprintf("%.2f", ($ddata['chg'] * -1));
                     $desc = xl('Adj') . ' ' . $ddata['rsn'] . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                 } else {
-                    $desc = xl('Note') . ' ' . substr($ddata['rsn'] ?? '', 0, 40) . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
+                    $desc = substr($ddata['rsn'] ?? '', 0, 40) . ' ' . ($ddata['pmt_method'] ?? '') . ' ' . ($insco ?? '');
                 }
                 $out .= sprintf("%-8s %-44s           %8s\r\n", formatDate($dos), $desc, $amount);
             } elseif ($ddata['chg'] < 0) {
