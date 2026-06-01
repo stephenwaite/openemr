@@ -84,16 +84,33 @@ class X12RemoteTracker extends BaseService
                 continue;
             }
 
-            // Attempt to login
-            $sftp = new SFTP($x12_remote['x12_sftp_host'], $x12_remote['x12_sftp_port']);
-            $decrypted_password = $cryptoGen->decryptStandard($x12_remote['x12_sftp_pass']);
-            if (false === $sftp->login($x12_remote['x12_sftp_login'], $decrypted_password)) {
+            // LOCAL: phpseclib 3.x intermittent login regression + server overload backoff
+            $sftp = null;
+            $login_attempts = 0;
+            $max_attempts = 4;
+            $backoff_ms = [0, 1000000, 3000000, 8000000]; // 0s, 1s, 3s, 8s
+            $connect_timeout = 10; // seconds per attempt
+
+            while ($login_attempts < $max_attempts) {
+                if ($backoff_ms[$login_attempts] > 0) {
+                    usleep($backoff_ms[$login_attempts]);
+                }
+                $sftp = new SFTP($x12_remote['x12_sftp_host'], $x12_remote['x12_sftp_port'], $connect_timeout);
+                $sftp->setTimeout($connect_timeout);
+                $decrypted_password = $cryptoGen->decryptStandard($x12_remote['x12_sftp_pass']);
+                if ($sftp->login($x12_remote['x12_sftp_login'], $decrypted_password)) {
+                    break;
+                }
+                $login_attempts++;
+            }
+
+            if ($login_attempts >= $max_attempts) {
                 $x12_remote['status'] = self::STATUS_LOGIN_ERROR;
-                $x12_remote['messages'][] = "Invalid Username or Password.";
-                $x12_remote['messages'] = array_merge($x12_remote['messages'], $sftp->getSFTPErrors());
+                $x12_remote['messages'][] = "SFTP login failed after $max_attempts attempts (last error: " . $sftp->getLastSFTPError() . ")";
                 $remoteTracker->update($x12_remote);
                 continue;
             }
+            // END LOCAL
 
             if (false === $sftp->chdir($x12_remote['x12_sftp_remote_dir'])) {
                 $x12_remote['status'] = self::STATUS_CHDIR_ERROR;
