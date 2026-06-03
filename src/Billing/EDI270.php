@@ -506,6 +506,7 @@ class EDI270
             $error_accum = '';
         }
         // parse the 271 responses from 270 requests sent.
+        error_log("EDI270 ACCUM 271: " . $down_accum);
         $process = self::parseEdi271($down_accum);
         $log = xlt("List of ") . $rowCount . " " . xlt("Requests Sent") . ":\n" . $log . "\n" . $process;
         if ($eFlag) {
@@ -863,6 +864,8 @@ class EDI270
             return $errors;
         }
 
+        error_log("EDI271 HTTP " . $response->getStatusCode() . " CT=" . $contentType);
+        error_log("EDI271 PAYLOAD: " . var_export($formData['Payload'] ?? '(none)', true));
         return $formData['Payload'];
     }
 
