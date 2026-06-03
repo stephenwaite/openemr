@@ -112,13 +112,17 @@ class X12RemoteTracker extends BaseService
             }
             // END LOCAL
 
+            // LOCAL: phpseclib 3.x SFTP subsystem not fully initialized immediately after login —
+            // prime the channel with chdir('.') to force synchronous handshake completion
+            $sftp->chdir('.');
             if (false === $sftp->chdir($x12_remote['x12_sftp_remote_dir'])) {
                 $x12_remote['status'] = self::STATUS_CHDIR_ERROR;
                 $x12_remote['messages'][] = "Could not change to SFTP remote DIR.";
-                $x12_remote['messages'] = array_merge($x12_remote['messages'], $sftp->getSFTPErrors());
+                $x12_remote['messages'][] = $sftp->getLastSFTPError();
                 $remoteTracker->update($x12_remote);
                 continue;
             }
+            // END LOCAL
 
             // Change status from waiting to in-progress
             $x12_remote['status'] = self::STATUS_IN_PROGRESS;
