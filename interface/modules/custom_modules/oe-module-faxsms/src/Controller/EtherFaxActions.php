@@ -195,9 +195,9 @@ class EtherFaxActions extends AppDispatch
         $tag = $user['username'] ?? '';
         $fileName = '';
 
-        // Validate file path if not content
+        // Validate file path if not content and not a stored document
         $allowedTempDir = realpath($this->baseDir . '/send/');
-        if (empty($isContent)) {
+        if (empty($isContent) && !$isDocuments) {
             if (str_starts_with((string)$file, 'file://')) {
                 $file = substr((string)$file, 7);
             }
@@ -213,7 +213,7 @@ class EtherFaxActions extends AppDispatch
                 return xlt('Error: No Fax content');
             }
         }
-
+        
         // If document mode, load from Document table instead
         if ($isDocuments) {
             $doc = new Document($docId);

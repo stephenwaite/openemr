@@ -1013,7 +1013,7 @@ if ($refresh and $refresh != 'fullscreen') {
                         $AMSLEROS = "0";
                     }
 
-                    $checked = $AMSLEROD || $AMSLEROS ? 'value="0"' : 'value="1" checked';
+                    $amslerNormal = !$AMSLEROD && !$AMSLEROS;
 
                     ?>
                     <input type="hidden" id="AMSLEROD" name="AMSLEROD" value='<?php echo attr($AMSLEROD); ?>'>
@@ -1021,7 +1021,7 @@ if ($refresh and $refresh != 'fullscreen') {
 
                     <div id="Lyr501">
                         <label for="Amsler-Normal" class="input-helper input-helper--checkbox"><?php echo xlt('Normal'); ?></label>
-                        <input id="Amsler-Normal" type="checkbox" <?php echo attr($checked); ?> tabindex="56">
+                        <input id="Amsler-Normal" type="checkbox" <?php echo $amslerNormal ? 'checked' : ''; ?> tabindex="56">
                     </div>
                     <div id="Lyr51">
                         <table cellpadding=0 cellspacing=0>
@@ -1071,28 +1071,20 @@ if ($refresh and $refresh != 'fullscreen') {
                         for ($z = 1; $z < 5; $z++) {
                             $ODzone = "ODVF" . $z;
                             if (${$ODzone} == '1') {
-                                $ODVF[$z] = 'checked value=1';
                                 $bad++;
-                            } else {
-                                $ODVF[$z] = 'value=0';
                             }
 
                             $OSzone = "OSVF" . $z;
                             if (${$OSzone} == "1") {
-                                $OSVF[$z] = 'checked value=1';
                                 $bad++;
-                            } else {
-                                $OSVF[$z] = 'value=0';
                             }
                         }
 
-                        if (!$bad) {
-                            $VFFTCF = "checked";
-                        }
+                        $VFFTCF = $bad ? '0' : '1';
                         ?>
                     <div id="Lyr60">
                                 <label for="FieldsNormal" class="input-helper input-helper--checkbox"><?php echo xlt('FTCF{{Full to count fingers}}'); ?></label>
-                                <input id="FieldsNormal" type="checkbox" value="1" <?php echo attr($VFFTCF ?? ''); ?>>
+                                <input id="FieldsNormal" name="VFFTCF" type="checkbox" value="1" <?php echo ($VFFTCF ?? '') == '1' ? 'checked' : ''; ?>>
                     </div>
                     <div id="Lyr511">
                         <table cellpadding="1" cellspacing="1">
@@ -1103,39 +1095,39 @@ if ($refresh and $refresh != 'fullscreen') {
                             </tr>
                             <tr>
                                 <td class="VF_1">
-                                    <input name="ODVF1" id="ODVF1" type="checkbox" <?php echo attr($ODVF['1'])?> class="hidden">
+                                    <input name="ODVF1" id="ODVF1" type="checkbox" value="1" <?php echo ($ODVF1 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="ODVF1" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                                 <td class="VF_2">
-                                    <input name="ODVF2" id="ODVF2" type="checkbox" <?php echo attr($ODVF['2'])?> class="hidden">
+                                    <input name="ODVF2" id="ODVF2" type="checkbox" value="1" <?php echo ($ODVF2 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="ODVF2" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                                 <td></td>
                                 <td class="VF_1">
-                                    <input name="OSVF1" id="OSVF1" type="checkbox" <?php echo attr($OSVF['1']); ?> class="hidden" >
+                                    <input name="OSVF1" id="OSVF1" type="checkbox" value="1" <?php echo ($OSVF1 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="OSVF1" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                                 <td class="VF_2">
-                                    <input name="OSVF2" id="OSVF2" type="checkbox" <?php echo attr($OSVF['2']); ?> class="hidden">
+                                    <input name="OSVF2" id="OSVF2" type="checkbox" value="1" <?php echo ($OSVF2 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="OSVF2" class="input-helper input-helper--checkbox boxed"> </label>
                                 </td>
                             </tr>
                             <tr>
                                 <td class="VF_3">
-                                    <input name="ODVF3" id="ODVF3" type="checkbox"  class="hidden" <?php echo attr($ODVF['3']); ?>>
+                                    <input name="ODVF3" id="ODVF3" type="checkbox" value="1" <?php echo ($ODVF3 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="ODVF3" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                                 <td class="VF_4">
-                                    <input  name="ODVF4" id="ODVF4" type="checkbox"  class="hidden" <?php echo attr($ODVF['4']); ?>>
+                                    <input name="ODVF4" id="ODVF4" type="checkbox" value="1" <?php echo ($ODVF4 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="ODVF4" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                                 <td></td>
                                 <td class="VF_3">
-                                    <input name="OSVF3" id="OSVF3" type="checkbox"  class="hidden" <?php echo attr($OSVF['3']); ?>>
+                                    <input name="OSVF3" id="OSVF3" type="checkbox" value="1" <?php echo ($OSVF3 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="OSVF3" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                                 <td class="VF_4">
-                                    <input name="OSVF4" id="OSVF4" type="checkbox"  class="hidden" <?php echo attr($OSVF['4']); ?>>
+                                    <input name="OSVF4" id="OSVF4" type="checkbox" value="1" <?php echo ($OSVF4 ?? '') == '1' ? 'checked' : ''; ?> class="hidden">
                                     <label for="OSVF4" class="input-helper input-helper--checkbox boxed"></label>
                                 </td>
                             </tr>
@@ -4074,7 +4066,7 @@ if ($refresh and $refresh != 'fullscreen') {
                                                     <?php
                                                       $ures = sqlStatement("SELECT id, fname, lname, specialty FROM users " .
                                                           "WHERE active = 1 AND ( info IS NULL OR info NOT LIKE '%Inactive%' ) " .
-                                                          "AND ( authorized = 1 OR ( username = '' AND npi != '' ) ) " .
+                                                          "AND (authorized = 1 OR ((username = '' OR username IS NULL) AND npi != '' AND npi IS NOT NULL)) " .
                                                           "ORDER BY lname, fname");
                                                       echo "<select name='form_PCP' id='form_PCP' title='" . xla('Primary Care Provider') . "'>";
                                                       echo "<option value=''>" . xlt($empty_title ?? '') . "</option>";
@@ -4406,14 +4398,16 @@ if ($refresh and $refresh != 'fullscreen') {
             <?php endif; ?>
         }
         function doscript(type,id,encounter,rx_number) {
-             const params = new URLSearchParams({
-                 encounter: encounter,
-                 form_id: <?php echo js_escape($form_id); ?>,
-                 id: id,
-                 REFTYPE: type,
-                 rx_number: rx_number
-             });
-             dlgopen('../../forms/eye_mag/SpectacleRx.php?' + params.toString(), '_blank', 660, 700,'', <?php echo xlj('Dispense Rx'); ?>);
+            let rxType = document.querySelector('input[name="RX_TYPE_1"]:checked')?.value;
+            const params = new URLSearchParams({
+                encounter: encounter,
+                form_id: <?php echo js_escape($form_id); ?>,
+                id: id,
+                REFTYPE: type,
+                rx_number: rx_number,
+                rx_type: rxType
+            });
+            dlgopen('../../forms/eye_mag/SpectacleRx.php?' + params.toString(), '_blank', 660, 700,'', <?php echo xlj('Dispense Rx'); ?>);
         }
 
         function dispensed(pid) {

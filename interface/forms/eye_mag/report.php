@@ -484,8 +484,9 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                 } else {
                     //get patient photo
                     $tempDocC = new C_Document();
+                    $tempDocC->onReturnRetrieveKey();
                     try {
-                        $fileTemp = $tempDocC->retrieve_action($pid, -1, false, true, true, true, 'patient_picture');
+                        $fileTemp = $tempDocC->retrieve_action($pid, $result['id'], false, true, true, true, 'patient_picture');
                         if (!empty($fileTemp)) {
                             if ($PDF_OUTPUT) {
                                 // tmp file in ../documents/temp since need to be available via webroot
@@ -494,7 +495,7 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                                 echo "<img src='" . $from_file_tmp_web_name . "' style='width:220px;'>";
                                 $tmp_files_remove[] = $from_file_tmp_web_name;
                             } else {
-                                $filetoshow = $GLOBALS['webroot'] . "/controller.php?document&retrieve&patient_id=" . attr_url($pid) . "&document_id=-1&as_file=false&original_file=true&disable_exit=false&show_original=true&context=patient_picture";
+                                $filetoshow = $GLOBALS['webroot'] . "/controller.php?document&retrieve&patient_id=" . attr_url($pid) . "&document_id=" . attr_url($result['id']) . "&as_file=false";
                                 echo "<img src='" . $filetoshow . "' style='width:220px;'>";
                             }
                         }
@@ -727,41 +728,27 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                 <?php
                     // if the VF zone is checked, display it
                     // if ODVF1 = 1 (true boolean) the value="0" checked="true"
-                $bad = 0;
+                    $bad = 0;
                 for ($z = 1; $z < 5; $z++) {
                     $ODzone = "ODVF" . $z;
                     if (${$ODzone} == '1') {
-                        $ODVF[$z] = '<i class="fa fa-square fa-5">X</i>';
-                        if ($PDF_OUTPUT) {
-                            $ODVF[$z] = 'X';
-                        }
-
+                        $ODVF[$z] = "■";
                         $bad++;
                     } else {
-                        $ODVF[$z] = '<i class="fa fa-square-o fa-5"></i>';
-                        if ($PDF_OUTPUT) {
-                            $ODVF[$z] = 'O';
-                        }
+                        $ODVF[$z] = "\u{00A0}";
                     }
-
                     $OSzone = "OSVF" . $z;
                     if (${$OSzone} == "1") {
-                        $OSVF[$z] = '<i class="fa fa-square fa-5">X</i>';
-                        if ($PDF_OUTPUT) {
-                            $OSVF[$z] = 'X';
-                        }
-
+                        $OSVF[$z] = "■";
                         $bad++;
                     } else {
-                        $OSVF[$z] = '<i class="fa fa-square-o fa-5"></i>';
-                        if ($PDF_OUTPUT) {
-                            $OSVF[$z] = 'O';
-                        }
+                        $OSVF[$z] = "\u{00A0}";
                     }
                 }
+                $VFFTCF = $bad ? '0' : '1';
                 ?>
                 <?php
-                if (($bad ?? '') < '1') { ?>
+                if ($VFFTCF == '1') { ?>
             <td style="border-right: 1pt #000 solid;
                           float: left;
                           font-size: 0.9em;
@@ -773,7 +760,7 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                           vertical-align: top;">
             <b class="underline"><?php echo xlt('Fields{{visual fields}}'); ?></b>
                     <?php
-                    echo "<br /><br />Full to CF OU";
+                    echo "<br /><br />" . xlt('UTP{{Unable to test patient}}');
                 } else {
                     ?>
                 <td style="border-right: 1pt #000 solid;
@@ -1675,7 +1662,7 @@ function narrative($pid, $encounter, $cols, $form_id, $choice = 'full'): void
                 <table>
                     <tr>
                         <td style="text-align:left;vertical-align:top;padding:1px;">
-                            <b><u><?php echo xlt('Additional Findings'); ?>:</u></b>
+                            <b><u><?php echo xlt('Sensory/Neuro Exam'); ?>:</u></b>
                         <?php if ($ACT == 'on' and $MOTILITYNORMAL == 'on') { ?>
                                 <span id="ACTNORMAL_CHECK" name="ACTNORMAL_CHECK">
                             <?php echo xlt('Orthophoric'); ?>
@@ -2513,7 +2500,8 @@ function display_draw_image($zone, $encounter, $pid): void
         //               if ($extension == ".png" || $extension == ".jpg" || $extension == ".jpeg" || $extension == ".gif") {
         if ($PDF_OUTPUT) {
             $tempDocC = new C_Document();
-            $fileTemp = $tempDocC->retrieve_action($pid, $doc['id'], false, true, true);
+            $tempDocC->onReturnRetrieveKey();
+            $fileTemp = $tempDocC->retrieve_action($pid, $doc['id'], false, true, true, false);
             // tmp file in ../documents/temp since need to be available via webroot
             $from_file_tmp_web_name = tempnam($GLOBALS['OE_SITE_DIR'] . '/documents/temp', "oer");
             file_put_contents($from_file_tmp_web_name, $fileTemp);
@@ -2542,4 +2530,4 @@ function report_ACT($term)
     $term = nl2br(htmlspecialchars((string) $term, ENT_NOQUOTES));
     return $term . "&nbsp;";
 }
-?>
+

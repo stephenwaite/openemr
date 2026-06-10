@@ -80,8 +80,12 @@ $info_msg = "";
             const pelement = f['form_line[' + code + '][pay]'];
             const aelement = f['form_line[' + code + '][adj]'];
             const relement = f['form_line[' + code + '][reason]'];
-            const tmp = belement.value - pelement.value;
-            aelement.value = Number(tmp).toFixed(2);
+
+            const bal = parseFloat(String(belement.value).replace(/,/g, '')) || 0;
+            const pay = parseFloat(String(pelement.value).replace(/,/g, '')) || 0;
+            const tmp = bal - pay;
+
+            aelement.value = tmp.toFixed(2);
             if (aelement.value && !relement.value) {
                 relement.selectedIndex = 1;
             }
@@ -224,12 +228,10 @@ $info_msg = "";
                 <?php require($GLOBALS['srcdir'] . '/js/xl/jquery-datetimepicker-2-5-4.js.php'); ?>
                 <?php // can add any additional javascript settings to datetimepicker here; need to prepend first setting with a comma ?>
             });
+            $("#ins_done_group").on("change", "input[name='form_done']", function() {
+                $("#ins_done").val('changed');
+            });
         });
-
-        $("#ins_done").on("change", function() {
-            $("#ins_done").val('changed');
-        });
-
     </script>
     <style>
         @media only screen and (max-width: 768px) {
@@ -359,39 +361,48 @@ if (!empty($_POST['form_save']) || !empty($_POST['form_cancel']) || !empty($_POS
                 $paytotal += $thispay;
             }
 
-// Be sure to record adjustment reasons, even for zero adjustments if
-// they happen to be comments.
+            // Be sure to record adjustment reasons, even for zero adjustments if
+            // they happen to be comments.
+            // LOCAL: look up human-readable title for the memo without disturbing
+            // the existing $reason-based branching logic.
+            $reason_title_row = sqlQuery(
+                "SELECT title FROM list_options WHERE list_id = 'adjreason' AND activity = 1 AND option_id = ?",
+                [$reason]
+            );
+            $reason_readable = !empty($reason_title_row['title']) ? $reason_title_row['title'] : $reason;
+
             if (
                 (0.0 + $thisadj) ||
                 ($reason && $reason_type == 5) ||
                 ($reason && ($reason_type > 1 && $reason_type < 6))
             ) {
-// "To copay" and "To ded'ble" need to become a comment in a zero
-// adjustment, formatted just like sl_eob_process.php.
                 if ($reason_type == '2') {
-                    $reason = $_POST['form_insurance'] . " coins: $thisadj";
+                    $reason_for_save = $_POST['form_insurance'] . " coins: $thisadj";
                     $thisadj = 0;
                 } elseif ($reason_type == '3') {
-                    $reason = $_POST['form_insurance'] . " dedbl: $thisadj";
+                    $reason_for_save = $_POST['form_insurance'] . " dedbl: $thisadj";
                     $thisadj = 0;
                 } elseif ($reason_type == '4') {
-                    $reason = $_POST['form_insurance'] . " ptresp: $thisadj $reason";
+                    $reason_for_save = $_POST['form_insurance'] . " ptresp: $thisadj $reason_readable";
                     $thisadj = 0;
                 } elseif ($reason_type == '5') {
-                    $reason = $_POST['form_insurance'] . " note: $thisadj $reason";
+                    $reason_for_save = $_POST['form_insurance'] . " note: $thisadj $reason_readable";
                     $thisadj = 0;
                 } else {
-// An adjustment reason including "Ins" is assumed to be assigned by
-// insurance, and in that case we identify which one by appending
-// Ins1, Ins2 or Ins3.
+                    $reason_for_save = $reason_readable;
+                    // "ins" check still operates on the original $reason code, preserving prior behavior
                     if (str_contains(strtolower((string) $reason), 'ins')) {
-                        $reason .= ' ' . $_POST['form_insurance'];
+                        $reason_for_save .= ' ' . $_POST['form_insurance'];
                     }
                 }
-                SLEOB::arPostAdjustment($patient_id, $encounter_id, $session_id, $thisadj, $code, $payer_type, $reason, $debug, '', $thiscodetype);
+                SLEOB::arPostAdjustment(
+                    $patient_id, $encounter_id, $session_id,
+                    $thisadj, $code, $payer_type,
+                    $reason_for_save,
+                    $debug, '', $thiscodetype
+                );
             }
         }
-
 // Maintain which insurances are marked as finished.
 
         $form_done = 0 + $_POST['form_done'];
@@ -576,7 +587,8 @@ $bnrow = sqlQuery("select billing_note from form_encounter where pid = ? AND enc
                             <input name='form_eobs' type='hidden' value='<?php echo attr($arrow['shipvia'] ?? '') ?>'/>
                         </div>
                     </div>
-                    <div class="form-group col-lg" id='ins_done'>
+                    <div class="form-group col-lg" id='ins_done_group'>
+                        <input type="hidden" name="ins_done" id="ins_done" value="">
                         <label class="col-form-label" for=""><?php echo xlt('Done with'); ?>:</label>
                         <a class="btn btn-save bg-light text-primary"
                             onclick="document.forms[0].isLastClosed.value='3'; document.forms[0].submit()"><?php echo xlt("Save Level"); ?>
@@ -587,12 +599,23 @@ $bnrow = sqlQuery("select billing_note from form_encounter where pid = ? AND enc
                             // we no longer expect any payments from that company for the claim.
                             $last_level_closed = 0 + $ferow['last_level_closed'];
                             foreach ([0 => 'None', 1 => 'Ins1', 2 => 'Ins2', 3 => 'Ins3'] as $key => $value) {
-                                if ($key && !SLEOB::arGetPayerID($patient_id, $svcdate, $key)) {
-                                    continue;
+                                $label = $value;
+                                if ($key) {
+                                    $payer_id = SLEOB::arGetPayerID($patient_id, $svcdate, $key);
+                                    if (!$payer_id) {
+                                        continue;
+                                    }
+                                    $ins = sqlQuery(
+                                        "SELECT name FROM insurance_companies WHERE id = ?",
+                                        [$payer_id]
+                                    );
+                                    if (!empty($ins['name'])) {
+                                        $label = $ins['name'];
+                                    }
                                 }
                                 $checked = ($last_level_closed == $key) ? " checked" : "";
                                 echo "<label class='radio-inline'>";
-                                echo "<input type='radio' name='form_done' value='" . attr($key) . "'$checked />" . text($value);
+                                echo "<input type='radio' name='form_done' value='" . attr($key) . "'$checked />" . text($label);
                                 echo "</label>";
                             }
                             ?>

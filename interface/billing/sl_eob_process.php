@@ -347,6 +347,16 @@ function era_callback(array &$out): void
         };
 
         $primary = ($inslabel === 'Ins1');
+        // LOCAL: KanCare/March Vision as secondary are Medicaid payers of last resort.
+        //        Per 42 CFR 447.15, their adjustments are real write-offs, not
+        //        duplicative notes. The default secondary-adjustment handling treats
+        //        them as "garbage" comments, which causes phantom patient balances.
+        //        Flag these here so the adjustment loop handles them correctly.
+        $MEDICAID_SECONDARY_PAYER_IDS = ['96385', '52461'];
+        $is_medicaid_secondary = (
+            !$primary
+            && in_array((string)($out['payer_id'] ?? ''), $MEDICAID_SECONDARY_PAYER_IDS, true)
+        );
         echo getMessageLine(
             $bgcolor,
             'infdetail',
@@ -592,7 +602,9 @@ function era_callback(array &$out): void
             foreach ($svc['adj'] as $adj) {
                 $description = ($adj['reason_code'] ?? '') . ': ' .
                     BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[$adj['reason_code'] ?? ''];
-                if ($adj['group_code'] === 'PR' || !$primary) {
+                // LOCAL: Added !$is_medicaid_secondary guard so Medicaid-secondary
+                //        adjustments fall through to the real write-off branch below.
+                if (($adj['group_code'] === 'PR' || !$primary) && !$is_medicaid_secondary) {
                     // Group code PR is Patient Responsibility.  Enter these as zero
                     // adjustments to retain the note without crediting the claim.
                     if ($primary) {
@@ -630,18 +642,24 @@ function era_callback(array &$out): void
                     echo getMessageLine($bgcolor, $class, $description . ' ' .
                     sprintf("%.2f", $adj['amount']));
                 } elseif (
-                    $svc['paid'] === 0
+                   (float) $svc['paid'] === 0.0
                     && !(
                         $adj['group_code'] === "CO"
                         && (
                             $adj['reason_code'] === '45'
                             || $adj['reason_code'] === '59'
+                            || ($adj['reason_code'] === '97' && $svc['code'] === '92015')
                         )
                     )
+                    && !$is_medicaid_secondary  // LOCAL: $0-pay is expected on Medicaid-secondary
                 ) {
                     $class = 'errdetail';
                     $error = true;
                 } elseif (!$error && !$debug) {
+                    // LOCAL: Tag Medicaid-absorbed writeoffs distinctly for A/R audit clarity.
+                    $adj_reason = $is_medicaid_secondary
+                        ? ("Medicaid w/o " . $adj['group_code'] . '-' . $adj['reason_code'])
+                        : ("Adjust code " . $adj['reason_code']);
                     SLEOB::arPostAdjustment(
                         patient_id: $pid,
                         encounter_id: $encounter,
@@ -649,7 +667,7 @@ function era_callback(array &$out): void
                         amount: $adj['amount'],
                         code: $codekey,
                         payer_type: substr($inslabel, 3),
-                        reason: "Adjust code " . $adj['reason_code'],
+                        reason: $adj_reason,
                         debug: $debug,
                         time: '',
                         codetype: $codetype,

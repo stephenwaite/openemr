@@ -540,7 +540,7 @@ function toencounter(enc, datestr, topframe) {
         width: 100%;
     }
     table.mini_table>tbody>tr>th {
-        background-color: var(--secondary);
+        background-color: #e9ecef;
         text-align: center;
     }
     body>table.mini_table>tbody>tr>td {
@@ -553,13 +553,13 @@ function toencounter(enc, datestr, topframe) {
         border: 1px solid var(--secondary);
     }
     .bg-color {
-        background-color: var(--secondary);
+        background-color: #e9ecef;
         padding: 2px;
         font-weight: 600;
         -webkit-print-color-adjust: exact;
     }
     .bg-color-w {
-        background-color: var(--secondary);
+        background-color: #e9ecef;
         font-weight: 600;
         -webkit-print-color-adjust: exact!important; }
     @media print {
@@ -568,11 +568,11 @@ function toencounter(enc, datestr, topframe) {
         }
 
         tr.bg-color-w{
-            background-color: var(--secondary)!important;
+            background-color: #e9ecef !important;
             -webkit-print-color-adjust: exact;
         }
         tr.bg-color{
-            background-color: var(--secondary) !important;
+            background-color: #e9ecef !important;
             -webkit-print-color-adjust: exact;
         }
     }
@@ -587,12 +587,20 @@ function toencounter(enc, datestr, topframe) {
                 <div class="main-section mb-5 mt-10">
                     <div class="section-2">
                         <p style="font-weight:600;">
-                            <bold class="bg-color"><?php echo text($frow['name']) ?></bold> <br /> <br />
+                            <br /><br /><bold><?php echo text($frow['name']) ?></bold> <br />
                             <?php echo text($frow['street']) ?><br />
                             <?php echo text($frow['city'] . ', ' . $frow['state']) . ' ' . text($frow['postal_code']) ?><br />
-                            <?php echo text("[Phone]" . $frow['phone']) ?><br />
-                            <?php echo text("[Email] " . $frow['email']) ?><br />
+                            <?php echo text("Phone:" . ' ' . $frow['phone']) ?><br />
+                            <?php echo text("Email:" . ' ' . $frow['email']) ?><br />
+                            <?php // AI-generated code start (Claude) - Add patient name and chart number to receipt ?>
+                            <br />
+                            <?php echo xlt('Patient'); ?>:
+                            <?php echo text($patdata['fname'] . ' ' . ($patdata['mname'] ? $patdata['mname'] . ' ' : '') . $patdata['lname']); ?>
 
+                            <br />
+                            <?php echo xlt('Chart Number'); ?>:
+                            <?php echo text($patdata['pubpid']); ?>
+                            <?php // AI-generated code end ?>
 
                             <br />
                             <?php echo xlt('How Paid'); ?>:
