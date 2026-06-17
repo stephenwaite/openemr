@@ -397,7 +397,6 @@ class X125010837P
             $log .= "*** Error: Insurance information is missing!\n";
         }
 
-
         ++$edicount;
         $out .= "SBR" .    // Subscriber Information
             "*" . $claim->payerSequence() .
@@ -446,7 +445,7 @@ class X125010837P
         }
         $out .= "~\n";
 
-        $commercialTypes = ['BL', 'CI', '11', '12', '13', '14', '15', 'HM'];
+        $commercialTypes = ['BL', 'CI', '11', '12', '13', '14', '15', '16', 'HM',];
         $claimType = $claim->claimType();
 
         if (in_array($claimType, $commercialTypes, true)) {
