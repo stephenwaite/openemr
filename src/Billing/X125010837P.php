@@ -397,6 +397,7 @@ class X125010837P
             $log .= "*** Error: Insurance information is missing!\n";
         }
 
+
         ++$edicount;
         $out .= "SBR" .    // Subscriber Information
             "*" . $claim->payerSequence() .
@@ -444,6 +445,18 @@ class X125010837P
             $log .= "*** Missing policy number.\n";
         }
         $out .= "~\n";
+
+        $commercialTypes = ['BL', 'CI', '11', '12', '13', '14', '15', 'HM'];
+        $claimType = $claim->claimType();
+
+        if (in_array($claimType, $commercialTypes, true)) {
+            $rel = $claim->insuredRelationship();
+            // age as of date of service (serviceDate() is already YYYYMMDD)
+            if ($claim->isMinor($claim->serviceDate()) && $rel !== '19') {
+                $log .= "WARNING: patient under 18 on commercial plan ($claimType) "
+                    . "but insured relationship is '$rel', not '19' (child)\n";
+            }
+        }
 
         // For 5010, further subscriber info is sent only if they are the patient.
         if ($claim->isSelfOfInsured()) {

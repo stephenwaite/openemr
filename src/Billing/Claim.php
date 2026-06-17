@@ -53,6 +53,7 @@ class Claim
     public $billing_prov_id;
     public $line_item_adjs;    // adjustment array with key of [group code][reason code] needed for secondary claims
     public $using_modifiers;
+    private readonly PatientService $patientService;
 
 
     /**
@@ -78,7 +79,8 @@ class Claim
             $this->procs[0]['payer_id'],
             $this->encounter['provider_id']
         );
-        $this->patient_data = (new PatientService())->findByPid($this->pid);
+        $this->patientService = new PatientService();
+        $this->patient_data = $this->patientService->findByPid($this->pid);
         $this->billing_options = $this->getMiscBillingOptions($this->pid, $this->encounter_id);
         $this->referrer = (new UserService())->getUser($this->getReferrerId());
         $this->billing_prov_id = (new UserService())->getUser($this->billing_options['provider_id'] ?? null);
@@ -1008,7 +1010,7 @@ class Claim
 
   // Returns the HIPAA code of the patient-to-subscriber relationship.
   //
-    public function insuredRelationship($ins = 0)
+    public function insuredRelationship($ins = 0): string
     {
         $tmp = strtolower(($this->payers[$ins]['data']['subscriber_relationship'] ?? ''));
         if (strcmp($tmp, 'self') == 0) {
@@ -1390,6 +1392,38 @@ class Claim
     public function patientOccupation()
     {
         return strtoupper((string) $this->x12Clean(trim((string) $this->patient_data['occupation'])));
+    }
+
+    /**
+     * Returns the patient's age, delegating to PatientService::getPatientAge().
+     *
+     * The return type mirrors the upstream method:
+     *   - ''               if the patient has no DOB on file
+     *   - "N month" string if the patient is under ~2 years old
+     *   - int year count   if the patient is 2 years or older
+     *
+     * Use isMinor() rather than comparing this value directly, since the
+     * under-2 "N month" string will not behave as expected in a numeric
+     * comparison.
+     *
+     * @param string|null $asOfYMD Date to compute age as of, in YYYYMMDD format
+     *                             (e.g. serviceDate()); defaults to today if null.
+     * @return string|int Age as described above, or '' when DOB is unknown.
+     */
+    public function patientAge(?string $asOfYMD = null): int|string
+    {
+        $age = $this->patientService->getPatientAge($this->patientDOB(), $asOfYMD);
+        if (is_int($age)) {
+            return $age;
+        }
+        return is_string($age) ? $age : '';
+    }
+    // Clean boolean for the under-18 check.
+    public function isMinor(?string $asOfYMD = null): bool
+    {
+        $age = $this->patientAge($asOfYMD);
+        // under-2 returns a "N month" string (always a minor); older returns int years
+        return ($age !== '') && (!is_numeric($age) || (int) $age < 18);
     }
 
     /**
