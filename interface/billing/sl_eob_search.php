@@ -873,6 +873,11 @@ if (
             });
         });
 
+        function invertStatementSelection() {
+            const boxes = document.querySelectorAll("input[type='checkbox'][name^='form_cb']");
+            boxes.forEach(box => { box.checked = !box.checked; });
+        }
+
     </script>
     <style>
         @media only screen and (max-width: 768px) {
@@ -1233,6 +1238,34 @@ if (
                             <?php
                             $orow = -1;
 
+                            // LOCAL: fetch per-patient counts of unsuccessful email statements (email sent
+                            // >= 21 days ago with no payment posted on that encounter since). Used below to
+                            // pre-uncheck the Due Pt checkbox for patients where email clearly isn't working,
+                            // so the biller can run the email batch and then flip selection for a print batch.
+                            $unsuccessful_emails_by_pid = [];
+                            if ($_REQUEST['form_category'] == 'Due Pt') {
+                                $eqres = sqlStatement(
+                                    "SELECT ps.pid, COUNT(*) AS unpaid_count " .
+                                    "FROM patient_statements ps " .
+                                    "LEFT JOIN (" .
+                                    "    SELECT ps2.id AS statement_id, SUM(ar.pay_amount) AS paid_amt " .
+                                    "    FROM patient_statements ps2 " .
+                                    "    JOIN ar_activity ar ON ar.pid = ps2.pid AND ar.encounter = ps2.encounter " .
+                                    "        AND ar.deleted IS NULL AND ar.pay_amount > 0 " .
+                                    "    JOIN ar_session ars ON ars.session_id = ar.session_id " .
+                                    "        AND ars.check_date >= ps2.statement_date " .
+                                    "    GROUP BY ps2.id" .
+                                    ") paid ON paid.statement_id = ps.id " .
+                                    "WHERE ps.method = 'email' " .
+                                    "AND ps.statement_date <= CURDATE() - INTERVAL 21 DAY " .
+                                    "AND (paid.paid_amt IS NULL OR paid.paid_amt = 0) " .
+                                    "GROUP BY ps.pid"
+                                );
+                                while ($erow = sqlFetchArray($eqres)) {
+                                    $unsuccessful_emails_by_pid[$erow['pid']] = (int) $erow['unpaid_count'];
+                                }
+                            }
+
                             while ($row = sqlFetchArray($t_res)) {
                                 $balance = sprintf("%.2f", $row['charges'] + $row['copays'] - $row['payments'] - $row['adjustments']);
                                 //new filter only patients with debt.
@@ -1269,8 +1302,12 @@ if (
 
                                 // An invoice is now due from the patient if money is owed and we are
                                 // not waiting for insurance to pay.
-                                //
-                                $isduept = ($duncount >= 0 && $isdueany && !$in_collections) ? " checked" : "";
+                                // LOCAL: pre-uncheck Due Pt checkbox for patients with >= 2 unsuccessful email
+                                // statements. Biller runs email batch on the checked set, then inverts selection
+                                // (via "Invert Selection" button) to run print batch on this population.
+                                $unpaid_emails = $unsuccessful_emails_by_pid[$row['pid']] ?? 0;
+                                $should_print_not_email = ($unpaid_emails >= 2);
+                                $isduept = ($duncount >= 0 && $isdueany && !$in_collections && !$should_print_not_email) ? " checked" : "";
 
                                 // Skip invoices not in the desired "Due..." category.
                                 //
@@ -1324,6 +1361,11 @@ if (
                                                 echo "<span class='font-weight-bold text-danger'>IC</span>";
                                             } ?>
                                             <?php
+                                            if ($should_print_not_email) {
+                                                echo " <span class='badge badge-warning' title='"
+                                                    . attr($unpaid_emails) . " unpaid email statements — print instead'>PRINT</span>";
+                                            } ?>
+                                            <?php
                                             if (function_exists('is_auth_portal') ? is_auth_portal($row['pid']) : false) {
                                                 echo(' PPt');
                                                 echo("<input type='hidden' name='form_invpids[" . attr($row['id']) . "][" . attr($row['pid']) . "]' />");
@@ -1371,6 +1413,11 @@ if (
                                     value="<?php echo xla('Email Selected Statements'); ?>"
                                     onclick="return confirmEmail(this.form);">
                                     <?php echo xlt('Email Selected'); ?>
+                                </button>
+                                <button type='button' class='btn btn-secondary btn-sm'
+                                        onclick='invertStatementSelection()'
+                                        title='<?php echo xla("Toggle all statement checkboxes — useful after running an email batch to select the print batch"); ?>'>
+                                    <?php echo xlt('Invert Selection'); ?>
                                 </button>
                                 <?php
                                 if (!empty($is_portal)) { ?>
