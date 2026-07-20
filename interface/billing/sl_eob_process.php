@@ -283,7 +283,31 @@ function era_callback(&$out)
         if ($csc == '3' || $csc == '21') {
             $inslabel = 'Ins3';
         }
-
+        // Payers do not reliably report their true COB position in CLP02.
+        // A tertiary Medicaid unaware of an intermediate Medigap plan will
+        // report itself as secondary (CLP02 = 2), posting the payment at
+        // the wrong level.  Our own posting history is a better indicator:
+        // if payer levels 1..N already have postings, this remittance is
+        // for level N+1.  Only elevate to the next unposted level, never
+        // demote.
+        if (!$inverror) {
+            $postedrow = sqlQuery(
+                "SELECT MAX(payer_type) AS max_level FROM ar_activity WHERE " .
+                "pid = ? AND encounter = ? AND deleted IS NULL AND payer_type > 0",
+                array($pid, $encounter)
+            );
+            $max_level = (int)($postedrow['max_level'] ?? 0);
+            $next_level = $max_level + 1;
+            if ($next_level <= 3 && $next_level > (int)substr($inslabel, 3)) {
+                writeMessageLine(
+                    $bgcolor,
+                    'infdetail',
+                    "Payer reported claim status $csc but payer levels 1-$max_level " .
+                    "are already posted for this encounter; posting as Ins$next_level"
+                );
+                $inslabel = 'Ins' . $next_level;
+            }
+        }
         $primary = ($inslabel == 'Ins1');
         writeMessageLine(
             $bgcolor,
