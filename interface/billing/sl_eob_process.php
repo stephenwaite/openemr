@@ -285,27 +285,40 @@ function era_callback(&$out)
         }
         // Payers do not reliably report their true COB position in CLP02.
         // A tertiary Medicaid unaware of an intermediate Medigap plan will
-        // report itself as secondary (CLP02 = 2), posting the payment at
-        // the wrong level.  Our own posting history is a better indicator:
-        // if payer levels 1..N already have postings, this remittance is
-        // for level N+1.  Only elevate to the next unposted level, never
-        // demote.
+        // report itself as secondary (CLP02 = 2). If the reported level
+        // already has postings on this encounter, assume this remit is from
+        // the next payer in the COB chain and post it at the lowest level
+        // that has no postings yet. A remit reporting a level that is
+        // still unposted (e.g. a primary remit posted late, after the
+        // secondary) is left at its reported level.
         if (!$inverror) {
-            $postedrow = sqlQuery(
-                "SELECT MAX(payer_type) AS max_level FROM ar_activity WHERE " .
+            $postedlevels = array();
+            $res = sqlStatement(
+                "SELECT DISTINCT payer_type FROM ar_activity WHERE " .
                 "pid = ? AND encounter = ? AND deleted IS NULL AND payer_type > 0",
                 array($pid, $encounter)
             );
-            $max_level = (int)($postedrow['max_level'] ?? 0);
-            $next_level = $max_level + 1;
-            if ($next_level <= 3 && $next_level > (int)substr($inslabel, 3)) {
-                writeMessageLine(
-                    $bgcolor,
-                    'infdetail',
-                    "Payer reported claim status $csc but payer levels 1-$max_level " .
-                    "are already posted for this encounter; posting as Ins$next_level"
-                );
-                $inslabel = 'Ins' . $next_level;
+            while ($row = sqlFetchArray($res)) {
+                $postedlevels[(int)$row['payer_type']] = true;
+            }
+            $reported = (int)substr($inslabel, 3);
+            if (!empty($postedlevels[$reported])) {
+                $next_level = 0;
+                for ($lvl = 1; $lvl <= 3; $lvl++) {
+                    if (empty($postedlevels[$lvl])) {
+                        $next_level = $lvl;
+                        break;
+                    }
+                }
+                if ($next_level > $reported) {
+                    writeMessageLine(
+                        $bgcolor,
+                        'infdetail',
+                        "Payer reported claim status $csc but level $reported already " .
+                        "has postings for this encounter; posting as Ins$next_level"
+                    );
+                    $inslabel = 'Ins' . $next_level;
+                }
             }
         }
         $primary = ($inslabel == 'Ins1');
