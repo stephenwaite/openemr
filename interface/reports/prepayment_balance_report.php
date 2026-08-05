@@ -53,9 +53,33 @@ $form_parked_only = !empty($_POST['form_parked_only']);
     <?php Header::setupHeader(["datetime-picker", "report-helper"]); ?>
 
     <script>
+        // Re-run the report when the edit_payment dialog closes so applied
+        // sessions drop off the list immediately (mirrors refreshSearch in
+        // search_payments.php).
+        function refreshReport() {
+            $("#form_refresh").attr("value", "true");
+            $("#theform").submit();
+        }
+
         $(function () {
             var win = top.printLogSetup ? top : opener.top;
             win.printLogSetup(document.getElementById('printbutton'));
+
+            // Open sessions in a dialog instead of navigating this tab.
+            // Same pattern as search_payments.php's medium_modal handler.
+            $(document).on('click', '.medium_modal', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dlgopen('', '', 'modal-full', 800, '', '', {
+                    buttons: [
+                        {text: <?php echo xlj('Close'); ?>, close: true, style: 'default btn-sm'}
+                    ],
+                    sizeHeight: '',
+                    onClosed: 'refreshReport',
+                    type: 'iframe',
+                    url: $(this).attr('href')
+                });
+            });
 
             $('.datepicker').datetimepicker({
                 <?php $datetimepicker_timepicker = false; ?>
@@ -237,7 +261,7 @@ if (!empty($_POST['form_refresh'])) {
             <td class="detail">&nbsp;<?php echo text($patname); ?></td>
             <td class="detail">&nbsp;<?php echo text($row['patient_id']); ?></td>
             <td class="detail">&nbsp;
-                <a href='../billing/edit_payment.php?payment_id=<?php echo attr_url($row['session_id']); ?>' onclick='top.restoreSession()'>
+                <a class="medium_modal" href='../billing/edit_payment.php?payment_id=<?php echo attr_url($row['session_id']); ?>'>
                     <?php echo text($row['session_id']); ?>
                 </a>
             </td>
