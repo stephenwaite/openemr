@@ -559,7 +559,7 @@ class C_Prescription extends Controller
             $sigfile = str_replace('{userid}', (int)$p->provider->id, $this->pconfig['signature']);
             if (file_exists($sigfile)) {
                 $pdf->ezText(xl('Signature') . ": ", 12);
-                $pdf->ezImage($sigfile, 0, 0, "none", "center");
+                $pdf->ezImage($sigfile, 0, 0, "none", "left");
                 $pdf->ezText(xl('Date') . ": " . date('Y-m-d'), 12);
                 if ($this->is_print_to_fax) {
                     $pdf->ezText(xl('Please do not accept this prescription unless it was received via facsimile.'));
