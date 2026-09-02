@@ -546,19 +546,20 @@ class C_Prescription extends Controller
         echo ("<body>\n");
     }
 
-    function multiprintfax_footer(&$pdf)
+    function multiprintfax_footer(&$pdf, $p = null)
     {
-        return $this->multiprint_footer($pdf);
+        return $this->multiprint_footer($pdf, $p);
     }
 
-    function multiprint_footer(&$pdf)
+    function multiprint_footer(&$pdf, $p)
     {
-        if ($this->pconfig['use_signature'] && ( $this->is_faxing || $this->is_print_to_fax )) {
-            $sigfile = str_replace('{userid}', $_SESSION["authUser"], $this->pconfig['signature']);
+        // Signature on printed Rx enabled for this site (non-controlled prescribing only).
+        // Upstream restricts images to fax; keys to the prescriber's users.id per sig_pic.
+        if ($this->pconfig['use_signature'] && !empty($p->provider->id)) {
+            $sigfile = str_replace('{userid}', (int)$p->provider->id, $this->pconfig['signature']);
             if (file_exists($sigfile)) {
                 $pdf->ezText(xl('Signature') . ": ", 12);
-                // $pdf->ezImage($sigfile, "", "", "none", "left");
-                $pdf->ezImage($sigfile, "", "", "none", "center");
+                $pdf->ezImage($sigfile, 0, 0, "none", "center");
                 $pdf->ezText(xl('Date') . ": " . date('Y-m-d'), 12);
                 if ($this->is_print_to_fax) {
                     $pdf->ezText(xl('Please do not accept this prescription unless it was received via facsimile.'));
@@ -642,7 +643,7 @@ class C_Prescription extends Controller
         if ($pdf->ezText($d, 10, array(), 1)) {
             $pdf->ez['leftMargin'] -= $pdf->ez['leftMargin'];
             $pdf->ez['rightMargin'] -= $pdf->ez['rightMargin'];
-            $this->multiprint_footer($pdf);
+            $this->multiprint_footer($pdf, $p);
             $pdf->ezNewPage();
             $this->multiprint_header($pdf, $p);
             $pdf->ez['leftMargin'] += $pdf->ez['leftMargin'];
@@ -706,7 +707,7 @@ class C_Prescription extends Controller
             }
 
             if (++$on_this_page > 3 || $p->provider->id != $this->providerid) {
-                $this->multiprint_footer($pdf);
+                $this->multiprint_footer($pdf, $p);
                 $pdf->ezNewPage();
                 $this->multiprint_header($pdf, $p);
                 // $print_header = false;
@@ -716,7 +717,7 @@ class C_Prescription extends Controller
             $this->multiprint_body($pdf, $p);
         }
 
-        $this->multiprint_footer($pdf);
+        $this->multiprint_footer($pdf, $p);
 
         $pFirstName = $p->patient->fname; //modified by epsdky for prescription filename change to include patient name and ID
         $pFName = convert_safe_file_dir_name($pFirstName);
@@ -841,7 +842,7 @@ class C_Prescription extends Controller
 
         $this->multiprint_header($pdf, $p);
         $this->multiprint_body($pdf, $p);
-        $this->multiprint_footer($pdf);
+        $this->multiprint_footer($pdf, $p);
 
         if (!empty($toFile)) {
             $toFile = $pdf->ezOutput();
