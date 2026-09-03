@@ -179,7 +179,7 @@ class EDI270
         } elseif ($nm1Cast == '1P') {
             $NM1[1] = "1P";                     // Entity ID Code - Provider
             $NM1[2] = "2";                      // Entity Type - Non-Person
-            $NM1[3] = $row['facility_name'];   // Organizational Name
+            $NM1[3] = "SUNFLOWER PEDIATRIC EYECARE";   // Organizational Name
             $NM1[4] = "";   // Data Element not required.
             $NM1[5] = "";                       // Data Element not required.
             $NM1[6] = "";                       // Data Element not required.
@@ -1129,8 +1129,6 @@ HTML;
                 $log .= self::makeEligibilityReport($subscribers);
             }
         }
-
-
         return $log;
     }
 
