@@ -795,9 +795,9 @@ if (($_REQUEST["mode"]  ?? '') == "new") {
                             $_REQUEST['form_referredby'],
                             $session->get('authUser'),
                             $session->get('authProvider'),
-                            empty($_REQUEST['form_outcome']) ? null : $_REQUEST['form_outcome'],
-                            $_REQUEST['form_destination'],
-                            $_REQUEST['form_reaction'],
+                            $_REQUEST['form_outcome'] ?? 0,
+                            $_REQUEST['form_destination'] ?? null,
+                            $_REQUEST['form_reaction'] ?? '',
                             $subtype,
                         ]
                     );
