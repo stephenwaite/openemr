@@ -2566,7 +2566,15 @@ function display_draw_image($zone, $encounter, $pid): void
             $fileTemp = $tempDocC->retrieve_action($pid, $doc['id'], false, true, true);
             // tmp file in ../documents/temp since need to be available via webroot
             $tmp_base = tempnam(OEGlobalsBag::getInstance()->get('OE_SITE_DIR') . '/documents/temp', "oer");
-            $from_file_tmp_web_name = $tmp_base . $extension;
+            $sniffed = '.jpg';
+            if (!empty($fileTemp)) {
+                if (str_starts_with($fileTemp, "\x89PNG")) {
+                    $sniffed = '.png';
+                } elseif (str_starts_with($fileTemp, "GIF8")) {
+                    $sniffed = '.gif';
+                }
+            }
+            $from_file_tmp_web_name = $tmp_base . $sniffed;
             rename($tmp_base, $from_file_tmp_web_name);
             file_put_contents($from_file_tmp_web_name, $fileTemp);
             echo "<img src='" . $from_file_tmp_web_name . "' style='width:220px;height:120px;'>";
