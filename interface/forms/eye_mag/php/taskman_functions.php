@@ -388,6 +388,13 @@ function make_document($task)
                 width:375px;
                 padding:10px;
             }
+            .borderShadow {
+                background: #fff;
+                border: 1px solid #343a40;
+                border-radius: 6px;
+                margin: 1px auto;
+                padding: 6px 10px;
+            }
         </style>
         <link rel="stylesheet" href="<?php echo OEGlobalsBag::getInstance()->getProjectDir(); ?>/public/themes/style_pdf.css" type="text/css">
     </head>
