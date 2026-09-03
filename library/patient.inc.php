@@ -1055,8 +1055,8 @@ function newPatientData(
             die($errmsg);
         }
 
-        $fitness = $rez['fitness'];
-        $referral_source = $rez['referral_source'];
+        $fitness = $rez['fitness'] ?? 0;
+        $referral_source = $rez['referral_source'] ?? '';
     }
 
     // Get the default price level.
