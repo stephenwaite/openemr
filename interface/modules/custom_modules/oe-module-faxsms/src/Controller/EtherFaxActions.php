@@ -156,7 +156,7 @@ class EtherFaxActions extends AppDispatch implements FaxChannelInterface, FaxDoc
 
         // Validate file path if not content
         $allowedTempDir = realpath($this->baseDir . '/send/');
-        if (empty($isContent)) {
+        if (empty($isContent) && !$isDocuments) {
             if (str_starts_with((string)$file, 'file://')) {
                 $file = substr((string)$file, 7);
             }
