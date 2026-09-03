@@ -389,7 +389,7 @@ function make_document($task)
                 padding:10px;
             }
         </style>
-        <link rel="stylesheet" href="<?php echo OEGlobalsBag::getInstance()->getProjectDir(); ?>/interface/themes/style_pdf.css" type="text/css">
+        <link rel="stylesheet" href="<?php echo OEGlobalsBag::getInstance()->getProjectDir(); ?>/public/themes/style_pdf.css" type="text/css">
     </head>
     <body>
     <?php
