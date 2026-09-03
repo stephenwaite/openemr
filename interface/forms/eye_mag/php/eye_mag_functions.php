@@ -4215,10 +4215,10 @@ function menu_overhaul_left($pid, $encounter): void
         <div id="left_menu3" name="left_menu3" class="col-sm-3" style="font-size:1.0em;">
             <?php             //if the patient has a photograph, use it else use generic avitar thing.
 
-            if (!empty($documents['docs_in_name']['Patient Photo'][0])) {
+            if (!empty($documents['docs_in_name']['Patient Photograph'][0])) {
                 ?>
                 <img
-                    src="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/controller.php?document&retrieve&patient_id=<?php echo attr($pid); ?>&document_id=<?php echo attr($documents['docs_in_name']['Patient Photo'][0]['id']); ?>&as_file=false"
+                    src="<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/controller.php?document&retrieve&patient_id=<?php echo attr($pid); ?>&document_id=<?php echo attr($documents['docs_in_name']['Patient Photograph'][0]['id']); ?>&as_file=false"
                     height="100" style="max-width:150px;" alt="Patient Photograph" />
                 <?php
             } else {
