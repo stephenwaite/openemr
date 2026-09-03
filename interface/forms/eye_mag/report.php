@@ -2565,7 +2565,9 @@ function display_draw_image($zone, $encounter, $pid): void
             $tempDocC->onReturnRetrieveKey();
             $fileTemp = $tempDocC->retrieve_action($pid, $doc['id'], false, true, true);
             // tmp file in ../documents/temp since need to be available via webroot
-            $from_file_tmp_web_name = tempnam(OEGlobalsBag::getInstance()->get('OE_SITE_DIR') . '/documents/temp', "oer");
+            $tmp_base = tempnam(OEGlobalsBag::getInstance()->get('OE_SITE_DIR') . '/documents/temp', "oer");
+            $from_file_tmp_web_name = $tmp_base . $extension;
+            rename($tmp_base, $from_file_tmp_web_name);
             file_put_contents($from_file_tmp_web_name, $fileTemp);
             echo "<img src='" . $from_file_tmp_web_name . "' style='width:220px;height:120px;'>";
             $tmp_files_remove[] = $from_file_tmp_web_name;
