@@ -791,7 +791,7 @@ if (($_REQUEST["mode"]  ?? '') == "new") {
                             empty($form_return) ? null : $form_return,
                             $_REQUEST['form_diagnosis'],
                             $_REQUEST['form_occur'],
-                            $_REQUEST['form_clasification'],
+                            $_REQUEST['form_classification'],
                             $_REQUEST['form_referredby'],
                             $session->get('authUser'),
                             $session->get('authProvider'),
