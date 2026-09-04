@@ -366,36 +366,55 @@ if (!empty($_POST['form_save']) || !empty($_POST['form_cancel']) || !empty($_POS
                 $paytotal += $thispay;
             }
 
-// Be sure to record adjustment reasons, even for zero adjustments if
-// they happen to be comments.
+            // Be sure to record adjustment reasons, even for zero adjustments if
+            // they happen to be comments.
+            // LOCAL: resolve the option_id to its human-readable title for the
+            // stored memo, without disturbing the $reason-based branching below.
+            $reason_title_row = sqlQuery(
+                "SELECT title FROM list_options WHERE list_id = 'adjreason' AND activity = 1 AND option_id = ?",
+                [$reason]
+            );
+            $reason_readable = !empty($reason_title_row['title']) ? $reason_title_row['title'] : $reason;
+
             if (
                 (0.0 + $thisadj) ||
                 ($reason && $reason_type == 5) ||
                 ($reason && ($reason_type > 1 && $reason_type < 6))
             ) {
-// "To copay" and "To ded'ble" need to become a comment in a zero
-// adjustment, formatted just like sl_eob_process.php.
+                // "To copay" and "To ded'ble" need to become a comment in a zero
+                // adjustment, formatted just like sl_eob_process.php.
                 if ($reason_type == '2') {
-                    $reason = $_POST['form_insurance'] . " coins: $thisadj";
+                    $reason_for_save = $_POST['form_insurance'] . " coins: $thisadj";
                     $thisadj = 0;
                 } elseif ($reason_type == '3') {
-                    $reason = $_POST['form_insurance'] . " dedbl: $thisadj";
+                    $reason_for_save = $_POST['form_insurance'] . " dedbl: $thisadj";
                     $thisadj = 0;
                 } elseif ($reason_type == '4') {
-                    $reason = $_POST['form_insurance'] . " ptresp: $thisadj $reason";
+                    $reason_for_save = $_POST['form_insurance'] . " ptresp: $thisadj $reason_readable";
                     $thisadj = 0;
                 } elseif ($reason_type == '5') {
-                    $reason = $_POST['form_insurance'] . " note: $thisadj $reason";
+                    $reason_for_save = $_POST['form_insurance'] . " note: $thisadj $reason_readable";
                     $thisadj = 0;
                 } else {
-// An adjustment reason including "Ins" is assumed to be assigned by
-// insurance, and in that case we identify which one by appending
-// Ins1, Ins2 or Ins3.
+                    // An adjustment reason including "Ins" is assumed to be assigned by
+                    // insurance, and in that case we identify which one by appending
+                    // Ins1, Ins2 or Ins3. The check stays on the original option_id so
+                    // prior behavior is preserved regardless of the title text.
+                    $reason_for_save = $reason_readable;
                     if (str_contains(strtolower((string) $reason), 'ins')) {
-                        $reason .= ' ' . $_POST['form_insurance'];
+                        $reason_for_save .= ' ' . $_POST['form_insurance'];
                     }
                 }
-                SLEOB::arPostAdjustment($patient_id, $encounter_id, $session_id, $thisadj, $code, $payer_type, $reason, $thiscodetype);
+                SLEOB::arPostAdjustment(
+                    $patient_id,
+                    $encounter_id,
+                    $session_id,
+                    $thisadj,
+                    $code,
+                    $payer_type,
+                    $reason_for_save,
+                    $thiscodetype
+                );
             }
         }
 
