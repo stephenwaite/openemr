@@ -206,7 +206,15 @@ function emailLogin(int $patient_id, string $message): void
     }
 
     $patientData = QueryUtils::querySingleRow("SELECT * FROM `patient_data` WHERE `pid`=?", [$patient_id]);
-    if ($patientData['hipaa_allowemail'] != "YES" || ($patientData['email'] ?? '') === '' || (OEGlobalsBag::getInstance()->getString('patient_reminder_sender_email') ?? '') === '') {
+    // LOCAL: also require portal access and an acknowledged HIPAA notice before
+    //        emailing a statement.
+    if (
+        $patientData['hipaa_allowemail'] != "YES"
+        || $patientData['allow_patient_portal'] != "YES"
+        || $patientData['hipaa_notice'] != "YES"
+        || ($patientData['email'] ?? '') === ''
+        || (OEGlobalsBag::getInstance()->getString('patient_reminder_sender_email') ?? '') === ''
+    ) {
         throw new RuntimeException(xl('Email is not allowed or not configured for this patient'));
     }
 
@@ -280,6 +288,11 @@ function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID =
         global $STMT_TEMP_FILE_PDF;
     }
 
+    // LOCAL: render_cms_statement_pdf() in statement.inc.php reads $page_count so the
+    //        multi-page CMS layout does not emit a leading blank page.
+    global $page_count;
+    $page_count = -1;
+
     if (OEGlobalsBag::getInstance()->get('statement_appearance') == '1') {
         $config_mpdf = Config_Mpdf::getConfigMpdf();
         $pdf2 = new mPDF($config_mpdf);
@@ -294,6 +307,14 @@ function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID =
         $pdf2->WriteHTML($content);
         $temp_filename = $STMT_TEMP_FILE_PDF;
         $pdf2->Output($temp_filename, 'F');
+    } elseif (OEGlobalsBag::getInstance()->get('statement_appearance') == '2') {
+        // LOCAL: CMS fixed-width multi-page layout, rendered by
+        //        render_cms_statement_pdf() in statement.inc.php.
+        $fh = @fopen($STMT_TEMP_FILE_PDF, 'w');
+        if ($fh) {
+            fwrite($fh, render_cms_statement_pdf((string) file_get_contents($file_to_send)));
+            fclose($fh);
+        }
     } else {
         $pdf = new Cezpdf('LETTER');//pdf creation starts
         $pdf->ezSetMargins(45, 9, 36, 10);
@@ -390,7 +411,8 @@ if (
 
     $res = sqlStatement("SELECT " .
         "f.id, f.date, f.pid, f.encounter, f.stmt_count, f.last_stmt_date, f.last_level_closed, f.last_level_billed, f.billing_note as enc_billing_note, " .
-        "p.fname, p.mname, p.lname, p.street, p.city, p.state, p.postal_code, p.billing_note as pat_billing_note, f.provider_id " .
+        // LOCAL: street_line_2 added so second address lines are not lost.
+        "p.fname, p.mname, p.lname, p.street, p.street_line_2, p.city, p.state, p.postal_code, p.billing_note as pat_billing_note, f.provider_id " .
         "FROM form_encounter AS f, patient_data AS p " .
         "WHERE $where " .
         "p.pid = f.pid " .
@@ -483,11 +505,16 @@ if (
             #If you use the field in demographics layout called
             #guardiansname this will allow you to send statements to the parent
             #of a child or a guardian etc
-            $stmt['to'] = empty($row['guardiansname']) ? [$row['fname'] . ' ' . $row['lname']] : [$row['guardiansname']];
-
-            if ($row['street']) {
-                $stmt['to'][] = $row['street'];
+            if (empty($row['guardiansname'])) {
+                $stmt['to'] = [trim((string) $row['fname']) . ' ' . $row['lname']];
+            } else {
+                $stmt['to'] = [$row['guardiansname']];
             }
+
+            // LOCAL: both street lines are emitted, blank or not, so the address
+            //        block keeps a fixed line count for the CMS layout.
+            $stmt['to'][] = $row['street'] ?? '';
+            $stmt['to'][] = $row['street_line_2'] ?? '';
 
             $stmt['to'][] = $row['city'] . ", " . $row['state'] . " " . $row['postal_code'];
             $stmt['lines'] = [];
@@ -511,6 +538,17 @@ if (
         foreach ($invlines as $key => $value) {
             $line = [];
             $line['dos'] = $svcdate;
+            // LOCAL: carry the code type through to the statement line.
+            $codeTypeId = '';
+            if (!empty($value['code_type'])) {
+                $codeTypeRow = QueryUtils::querySingleRow(
+                    "SELECT `ct_id` FROM `code_types` WHERE `ct_key` = ?",
+                    [$value['code_type']]
+                );
+                $codeTypeId = $codeTypeRow['ct_id'] ?? '';
+            }
+
+            $line['code_type'] = $codeTypeId;
             if (OEGlobalsBag::getInstance()->getBoolean('use_custom_statement')) {
                 $line['desc'] = ($key == 'CO-PAY') ? "Patient Payment" : $value['code_text'];
             } else {
@@ -562,12 +600,35 @@ if (
                     // a single encounter may have a balance
                     unset($stmt);
                 } else {
-                    $tmp = make_statement($stmt);
+                    // LOCAL: email bodies are always HTML, whatever statement_appearance
+                    //        is set to, since the print layouts are fixed-width text.
+                    if (!empty($_REQUEST['form_email'])) {
+                        $tmp = create_HTML_statement($stmt);
+                    } else {
+                        $tmp = make_statement($stmt);
+                    }
+
+                    // LOCAL: dispatch per invoice rather than once per run, gate on the
+                    //        same consents emailLogin() checks so a rejected patient does
+                    //        not abort the batch, and accumulate failures per patient.
                     if (!empty($_REQUEST['form_email']) && $tmp !== '') {
-                        try {
-                            emailLogin($inv_pid[$inv_count], $tmp);
-                        } catch (RuntimeException $e) {
-                            $alertmsg = $e->getMessage();
+                        $patientEmailData = QueryUtils::querySingleRow(
+                            "SELECT hipaa_allowemail, hipaa_notice, allow_patient_portal, email "
+                            . "FROM patient_data WHERE pid = ?",
+                            [$inv_pid[$inv_count]]
+                        );
+                        if (
+                            ($patientEmailData['hipaa_allowemail'] ?? '') == 'YES'
+                            && ($patientEmailData['hipaa_notice'] ?? '') == 'YES'
+                            && ($patientEmailData['allow_patient_portal'] ?? '') == 'YES'
+                            && ValidationUtils::isValidEmail($patientEmailData['email'] ?? '')
+                        ) {
+                            try {
+                                emailLogin((int) $inv_pid[$inv_count], $tmp);
+                                usleep(100000); // 0.1s between sends, to stay under SMTP rate limits
+                            } catch (RuntimeException | InvalidArgumentException $e) {
+                                $alertmsg .= ($alertmsg ? '; ' : '') . text($stmt['patient']) . ': ' . $e->getMessage();
+                            }
                         }
                     }
                     if (empty($tmp)) {
@@ -619,11 +680,18 @@ if (
     // Download or print the file, as selected
     if (!empty($_REQUEST['form_download'])) {
         upload_file_to_client($STMT_TEMP_FILE);
-    } elseif ($_REQUEST['form_pdf']) {
+    } elseif (!empty($_REQUEST['form_pdf'])) {
         upload_file_to_client_pdf($STMT_TEMP_FILE, $aPatientFirstName, $aPatientID, $usePatientNamePdf);
-    } elseif ($_REQUEST['form_portalnotify']) {
+    } elseif (!empty($_REQUEST['form_portalnotify'])) {
         if ($alertmsg == "") {
             $alertmsg = xl('Sending Invoice to Patient Portal Completed');
+        }
+    } elseif (!empty($_REQUEST['form_email'])) {
+        // LOCAL: the statements were emailed per invoice in the loop above. Without
+        //        this branch an email run falls through to the print branch below and
+        //        physically prints everything it just emailed.
+        if ($alertmsg == "") {
+            $alertmsg = xl('Emailed') . ' ' . $stmt_count . ' ' . xl('statements and updating invoices.');
         }
     } else { // Must be print!
         if ($DEBUG) {
@@ -696,6 +764,42 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                 onClosed: ''
             });
             <?php } ?>
+        }
+
+        // LOCAL: check only the rows that are NOT email-eligible, so a print batch can
+        //        follow an email batch over the remaining patients.
+        function checkAllNotEmail() {
+            const f = document.forms[0];
+            for (let i = 0; i < f.elements.length; ++i) {
+                if (f.elements[i].name.indexOf('form_cb[') === 0) {
+                    const row = f.elements[i].closest('tr');
+                    const td = row ? row.querySelector('td[data-email-eligible]') : null;
+                    f.elements[i].checked = !!td && td.dataset.emailEligible === '0';
+                }
+            }
+        }
+
+        // LOCAL: flip the current selection, for running print after email.
+        function invertStatementSelection() {
+            document.querySelectorAll("input[type='checkbox'][name^='form_cb']")
+                .forEach(box => {
+                    box.checked = !box.checked;
+                });
+        }
+
+        // LOCAL: emailing is not undoable, so confirm the count first.
+        function confirmEmail(form) {
+            let count = 0;
+            for (let i = 0; i < form.elements.length; ++i) {
+                if (form.elements[i].name.indexOf('form_cb[') === 0 && form.elements[i].checked) {
+                    count++;
+                }
+            }
+            if (count === 0) {
+                alert(<?php echo js_escape(xl('No statements selected.')); ?>);
+                return false;
+            }
+            return confirm(<?php echo js_escape(xl('Email')); ?> + ' ' + count + ' ' + <?php echo js_escape(xl('statement(s)?')); ?>);
         }
 
         function checkAll(checked) {
@@ -1124,6 +1228,36 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                             <?php
                             $orow = -1;
 
+                            // LOCAL: count email statements that went out at least 21 days ago
+                            //        with no payment posted on that encounter since. Two or more
+                            //        means email is not reaching this patient, so the Due Pt box
+                            //        starts unchecked and the row is badged for print instead.
+                            //        Requires the patient_statements table from
+                            //        sql/sunfower_migrations/001_patient_statements.sql.
+                            $unsuccessful_emails_by_pid = [];
+                            if ($_REQUEST['form_category'] == 'Due Pt') {
+                                $eqres = sqlStatement(
+                                    "SELECT ps.pid, COUNT(*) AS unpaid_count " .
+                                    "FROM patient_statements ps " .
+                                    "LEFT JOIN (" .
+                                    "    SELECT ps2.id AS statement_id, SUM(ar.pay_amount) AS paid_amt " .
+                                    "    FROM patient_statements ps2 " .
+                                    "    JOIN ar_activity ar ON ar.pid = ps2.pid AND ar.encounter = ps2.encounter " .
+                                    "        AND ar.deleted IS NULL AND ar.pay_amount > 0 " .
+                                    "    JOIN ar_session ars ON ars.session_id = ar.session_id " .
+                                    "        AND ars.check_date >= ps2.statement_date " .
+                                    "    GROUP BY ps2.id" .
+                                    ") paid ON paid.statement_id = ps.id " .
+                                    "WHERE ps.method = 'email' " .
+                                    "AND ps.statement_date <= CURDATE() - INTERVAL 21 DAY " .
+                                    "AND (paid.paid_amt IS NULL OR paid.paid_amt = 0) " .
+                                    "GROUP BY ps.pid"
+                                );
+                                while ($erow = sqlFetchArray($eqres)) {
+                                    $unsuccessful_emails_by_pid[$erow['pid']] = (int) $erow['unpaid_count'];
+                                }
+                            }
+
                             while ($row = sqlFetchArray($t_res)) {
                                 $balance = sprintf("%.2f", $row['charges'] + $row['copays'] - $row['payments'] - $row['adjustments']);
                                 //new filter only patients with debt.
@@ -1151,12 +1285,18 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                 // negative count of the number of insurance plans for which we have not
                                 // yet closed out insurance.
                                 //
-                                if (!$duncount) {
-                                    $i = 1;
-                                    while ($i <= 3 && SLEOB::arGetPayerID($row['pid'], $row['date'], $i)) {
-                                        ++$i;
-                                    }
-                                    $duncount = $row['last_level_closed'] + 1 - $i;
+                                // LOCAL: evaluate open insurance levels on every invoice, not
+                                //        only when no statement has gone out yet. Short-circuiting
+                                //        on $duncount lets an encounter that was billed once and
+                                //        then resubmitted to insurance (after a denial, say) stay
+                                //        out of the Due Pt filter permanently.
+                                $i = 1;
+                                while ($i <= 3 && SLEOB::arGetPayerID($row['pid'], $row['date'], $i)) {
+                                    ++$i;
+                                }
+                                $open_levels = ($i - 1) - (int) $row['last_level_closed'];
+                                if ($open_levels > 0) {
+                                    $duncount = -$open_levels;
                                 }
 
                                 $isdueany = ($balance > 0);
@@ -1164,7 +1304,11 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                 // An invoice is now due from the patient if money is owed and we are
                                 // not waiting for insurance to pay.
                                 //
-                                $isduept = ($duncount >= 0 && $isdueany && !$in_collections) ? " checked" : "";
+                                // LOCAL: leave the box clear when email has repeatedly failed, so the
+                                //        biller emails the checked set then inverts for the print run.
+                                $unpaid_emails = $unsuccessful_emails_by_pid[$row['pid']] ?? 0;
+                                $should_print_not_email = ($unpaid_emails >= 2);
+                                $isduept = ($duncount >= 0 && $isdueany && !$in_collections && !$should_print_not_email) ? " checked" : "";
 
                                 // Skip invoices not in the desired "Due..." category.
                                 //
@@ -1223,13 +1367,24 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                             } ?>
                                         </td>
                                     <?php } ?>
-                                    <td class="detail text-left">
+                                    <?php
+                                    // LOCAL: the data attribute lets checkAllNotEmail() select the
+                                    //        rows that cannot be emailed.
+                                    $patientData = QueryUtils::querySingleRow("SELECT * FROM `patient_data` WHERE `pid`=?", [$row['pid']]);
+                                    $emailEligible = (
+                                        $patientData['hipaa_allowemail'] == "YES"
+                                        && $patientData['allow_patient_portal'] == "YES"
+                                        && $patientData['hipaa_notice'] == "YES"
+                                        && ValidationUtils::isValidEmail($patientData['email'])
+                                    );
+                                    ?>
+                                    <td class="detail text-left" data-email-eligible="<?php echo $emailEligible ? '1' : '0'; ?>">
                                         <?php
-                                        $patientData = QueryUtils::querySingleRow("SELECT * FROM `patient_data` WHERE `pid`=?", [$row['pid']]);
-                                        if ($patientData['hipaa_allowemail'] == "YES" && $patientData['allow_patient_portal'] == "YES" && $patientData['hipaa_notice'] == "YES" && ValidationUtils::isValidEmail($patientData['email'])) {
-                                            echo xlt("YES");
-                                        } else {
-                                            echo xlt("NO");
+                                        echo $emailEligible ? xlt("YES") : xlt("NO");
+                                        if ($should_print_not_email) {
+                                            echo " <span class='badge badge-warning' title='"
+                                                . attr($unpaid_emails) . " " . xla('unpaid email statements - print instead') . "'>"
+                                                . xlt('PRINT') . "</span>";
                                         }
                                         ?>
                                     </td>
@@ -1258,7 +1413,19 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                     <button type="submit" class="btn btn-secondary btn-download" name='form_download' value="<?php echo xla('Download Selected Statements'); ?>"><?php echo xlt('Download Selected'); ?></button>
                                 <?php } ?>
                                 <button type="submit" class="btn btn-secondary btn-download" name='form_pdf' value="<?php echo xla('PDF Download Selected Statements'); ?>"><?php echo xlt('PDF Download Selected'); ?></button>
-                                <button type="submit" class="btn btn-secondary btn-mail" name='form_email' value="<?php echo xla('Email Selected Statements'); ?>"><?php echo xlt('Email Selected'); ?></button>
+                                <a href='#' class='btn btn-secondary btn-sm' onclick='checkAllNotEmail(); return false;'>
+                                    <?php echo xlt('Select All Not Email'); ?>
+                                </a>
+                                <button type="submit" class="btn btn-secondary btn-mail" name='form_email'
+                                    value="<?php echo xla('Email Selected Statements'); ?>"
+                                    onclick="return confirmEmail(this.form);">
+                                    <?php echo xlt('Email Selected'); ?>
+                                </button>
+                                <button type='button' class='btn btn-secondary btn-sm'
+                                    onclick='invertStatementSelection()'
+                                    title='<?php echo xla('Toggle all statement checkboxes - useful after an email batch to select the print batch'); ?>'>
+                                    <?php echo xlt('Invert Selection'); ?>
+                                </button>
                                 <?php
                                 if (!empty($is_portal)) { ?>
                                     <button type="submit" class="btn btn-secondary btn-save" name='form_portalnotify' value="<?php echo xla('Notify via Patient Portal'); ?>"><?php echo xlt('Notify Patients Portal'); ?></button>
