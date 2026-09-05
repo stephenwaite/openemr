@@ -358,6 +358,15 @@ function eob_process_era_callback(array &$out): void
         };
 
         $primary = ($inslabel === 'Ins1');
+        // LOCAL: KanCare and March Vision as secondary are Medicaid payers of
+        //        last resort. Per 42 CFR 447.15 their adjustments are real
+        //        write-offs, not duplicative notes. The default secondary
+        //        handling records them as zero adjustments carrying only a
+        //        comment, which leaves a phantom patient balance behind.
+        //        Flag them here so the adjustment loop below credits the claim.
+        $medicaidSecondaryPayerIds = ['96385', '52461'];
+        $isMedicaidSecondary = !$primary
+            && in_array((string) ($out['payer_id'] ?? ''), $medicaidSecondaryPayerIds, true);
         echo getMessageLine(
             $bgcolor,
             'infdetail',
@@ -604,7 +613,15 @@ function eob_process_era_callback(array &$out): void
                     BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[$adj['reason_code'] ?? ''];
                 $isContractualWriteoff = $adj['group_code'] === 'CO'
                     && in_array($adj['reason_code'], ['45', '59'], true);
-                if ($adj['group_code'] === 'PR' || !$primary) {
+                // LOCAL: CO-97 on 92015 is bundled refraction, which for this
+                //        practice is a contractual write-off rather than an error.
+                $isContractualWriteoff = $isContractualWriteoff
+                    || ($adj['group_code'] === 'CO'
+                        && $adj['reason_code'] === '97'
+                        && $svc['code'] === '92015');
+                // LOCAL: Added the !$isMedicaidSecondary guard so Medicaid-secondary
+                //        adjustments fall through to the write-off branch below.
+                if (($adj['group_code'] === 'PR' || !$primary) && !$isMedicaidSecondary) {
                     // Group code PR is Patient Responsibility.  Enter these as zero
                     // adjustments to retain the note without crediting the claim.
                     if ($primary) {
@@ -642,10 +659,16 @@ function eob_process_era_callback(array &$out): void
                 } elseif (
                     $svc['paid'] === 0.0
                     && !$isContractualWriteoff
+                    && !$isMedicaidSecondary // LOCAL: zero pay is expected here
                 ) {
                     $class = 'errdetail';
                     $error = true;
                 } elseif (!$error && !$debug) {
+                    // LOCAL: Tag Medicaid-absorbed write-offs distinctly for A/R audit
+                    //        clarity. Reasons should be 25 chars or less.
+                    $adjReason = $isMedicaidSecondary
+                        ? 'Medicaid w/o ' . $adj['group_code'] . '-' . $adj['reason_code']
+                        : 'Adjust code ' . $adj['reason_code'];
                     SLEOB::arPostAdjustment(
                         patient_id: $pid,
                         encounter_id: $encounter,
@@ -653,7 +676,7 @@ function eob_process_era_callback(array &$out): void
                         amount: $adj['amount'],
                         code: $codekey,
                         payer_type: substr($inslabel, 3),
-                        reason: "Adjust code " . $adj['reason_code'],
+                        reason: $adjReason,
                         codetype: $codetype,
                     );
                     $invoice_total -= $adj['amount'];
