@@ -1175,6 +1175,11 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                             $query = "SELECT f.id, f.pid, f.encounter, f.date, " .
                             "f.last_level_billed, f.last_level_closed, f.last_stmt_date, f.stmt_count, f.in_collection, " .
                             "p.fname, p.mname, p.lname, p.pubpid, p.billing_note, " .
+                            // LOCAL: email eligibility comes from the main query. A per-row
+                            //        SELECT here is audited by EventAuditLogger, which reopens
+                            //        the read-and-close session and fatals once output has
+                            //        started, so nothing may query inside the render loop.
+                            "p.hipaa_allowemail, p.hipaa_notice, p.allow_patient_portal, p.email, " .
                             "( SELECT SUM(b.fee) FROM billing AS b WHERE " .
                             "b.pid = f.pid AND b.encounter = f.encounter AND " .
                             "b.activity = 1 AND b.code_type != 'COPAY' ) AS charges, " .
@@ -1198,35 +1203,6 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                             // removed if condition on alert message so biller can see what's in the era
                             $t_res = sqlStatement($query);
                             $num_invoices = sqlNumRows($t_res);
-
-                            if ($eracount && $num_invoices != $eracount) {
-                                $alertmsg .= "Of $eracount remittances, there are $num_invoices " .
-                                    "matching encounters in OpenEMR. ";
-                            }
-                            ?>
-                        <table class="table table-striped table-sm">
-                            <thead>
-                            <tr>
-                                <th class="id dehead"><?php echo xlt('Billing Note'); ?></th>
-                                <th class="dehead">&nbsp;<?php echo xlt('Patient'); ?></th>
-                                <th class="dehead">&nbsp;<?php echo xlt('Invoice'); ?></th>
-                                <th class="dehead">&nbsp;<?php echo xlt('Svc Date'); ?></th>
-                                <th class="dehead">&nbsp;<?php echo xlt('Last Stmt'); ?></th>
-                                <th class="dehead text-right"><?php echo xlt('Charge'); ?>&nbsp;</th>
-                                <th class="dehead text-right"><?php echo xlt('Adjust'); ?>&nbsp;</th>
-                                <th class="dehead text-right"><?php echo xlt('Paid'); ?>&nbsp;</th>
-                                <th class="dehead text-right"><?php echo xlt('Balance'); ?>&nbsp;</th>
-                                <th class="dehead text-center"><?php echo xlt('Prv'); ?></th>
-                                <?php
-                                if (!$eracount) { ?>
-                                    <th class="dehead text-left"><?php echo xlt('Sel'); ?></th>
-                                    <th class="dehead text-center"><?php echo xlt('Email'); ?></th>
-                                    <?php
-                                } ?>
-                            </tr>
-                            </thead>
-                            <?php
-                            $orow = -1;
 
                             // LOCAL: count email statements that went out at least 21 days ago
                             //        with no payment posted on that encounter since. Two or more
@@ -1257,6 +1233,35 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                     $unsuccessful_emails_by_pid[$erow['pid']] = (int) $erow['unpaid_count'];
                                 }
                             }
+
+                            if ($eracount && $num_invoices != $eracount) {
+                                $alertmsg .= "Of $eracount remittances, there are $num_invoices " .
+                                    "matching encounters in OpenEMR. ";
+                            }
+                            ?>
+                        <table class="table table-striped table-sm">
+                            <thead>
+                            <tr>
+                                <th class="id dehead"><?php echo xlt('Billing Note'); ?></th>
+                                <th class="dehead">&nbsp;<?php echo xlt('Patient'); ?></th>
+                                <th class="dehead">&nbsp;<?php echo xlt('Invoice'); ?></th>
+                                <th class="dehead">&nbsp;<?php echo xlt('Svc Date'); ?></th>
+                                <th class="dehead">&nbsp;<?php echo xlt('Last Stmt'); ?></th>
+                                <th class="dehead text-right"><?php echo xlt('Charge'); ?>&nbsp;</th>
+                                <th class="dehead text-right"><?php echo xlt('Adjust'); ?>&nbsp;</th>
+                                <th class="dehead text-right"><?php echo xlt('Paid'); ?>&nbsp;</th>
+                                <th class="dehead text-right"><?php echo xlt('Balance'); ?>&nbsp;</th>
+                                <th class="dehead text-center"><?php echo xlt('Prv'); ?></th>
+                                <?php
+                                if (!$eracount) { ?>
+                                    <th class="dehead text-left"><?php echo xlt('Sel'); ?></th>
+                                    <th class="dehead text-center"><?php echo xlt('Email'); ?></th>
+                                    <?php
+                                } ?>
+                            </tr>
+                            </thead>
+                            <?php
+                            $orow = -1;
 
                             while ($row = sqlFetchArray($t_res)) {
                                 $balance = sprintf("%.2f", $row['charges'] + $row['copays'] - $row['payments'] - $row['adjustments']);
@@ -1369,13 +1374,13 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                     <?php } ?>
                                     <?php
                                     // LOCAL: the data attribute lets checkAllNotEmail() select the
-                                    //        rows that cannot be emailed.
-                                    $patientData = QueryUtils::querySingleRow("SELECT * FROM `patient_data` WHERE `pid`=?", [$row['pid']]);
+                                    //        rows that cannot be emailed. Fields come from the main
+                                    //        query; see the note there about querying in this loop.
                                     $emailEligible = (
-                                        $patientData['hipaa_allowemail'] == "YES"
-                                        && $patientData['allow_patient_portal'] == "YES"
-                                        && $patientData['hipaa_notice'] == "YES"
-                                        && ValidationUtils::isValidEmail($patientData['email'])
+                                        $row['hipaa_allowemail'] == "YES"
+                                        && $row['allow_patient_portal'] == "YES"
+                                        && $row['hipaa_notice'] == "YES"
+                                        && ValidationUtils::isValidEmail($row['email'] ?? '')
                                     );
                                     ?>
                                     <td class="detail text-left" data-email-eligible="<?php echo $emailEligible ? '1' : '0'; ?>">
