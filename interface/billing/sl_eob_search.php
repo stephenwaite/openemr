@@ -48,6 +48,24 @@ use Symfony\Component\Process\Process;
 
 require_once("../globals.php");
 
+// LOCAL: xl() reads language_choice from the session on every call, and
+//        OpenEMR's read-and-close session cannot be reopened once output has
+//        started, so a translation call partway down this page kills the
+//        request mid-table. temp_skip_translations makes xl() return early
+//        without touching the session. This site is English-only, so the
+//        lookups were no-ops anyway.
+OEGlobalsBag::getInstance()->set('temp_skip_translations', true);
+
+// LOCAL: hold the whole page in one unlimited output buffer. OpenEMR runs
+//        read-and-close sessions, and ReadAndCloseNativeSessionStorage::start()
+//        throws once headers_sent() is true. Every query goes through
+//        EventAuditLogger, which reads the session, so any query that runs
+//        after PHP's default 4K buffer flushes kills the request mid-page --
+//        including stock calls such as SLEOB::arGetPayerID() in the invoice
+//        loop. Buffering the page keeps headers unsent until the script ends,
+//        so those session reads can still open a session.
+ob_start();
+
 $srcDir = OEGlobalsBag::getInstance()->getSrcDir();
 require_once($srcDir . '/patient.inc.php');
 require_once($srcDir . '/appointments.inc.php');
@@ -1290,18 +1308,20 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                 // negative count of the number of insurance plans for which we have not
                                 // yet closed out insurance.
                                 //
-                                // LOCAL: evaluate open insurance levels on every invoice, not
-                                //        only when no statement has gone out yet. Short-circuiting
-                                //        on $duncount lets an encounter that was billed once and
-                                //        then resubmitted to insurance (after a denial, say) stay
-                                //        out of the Due Pt filter permanently.
-                                $i = 1;
-                                while ($i <= 3 && SLEOB::arGetPayerID($row['pid'], $row['date'], $i)) {
-                                    ++$i;
-                                }
-                                $open_levels = ($i - 1) - (int) $row['last_level_closed'];
-                                if ($open_levels > 0) {
-                                    $duncount = -$open_levels;
+                                // LOCAL: the $duncount guard is upstream's and has to stay.
+                                //        arGetPayerID() runs a query, queries go through
+                                //        EventAuditLogger, and the audit logger reads the
+                                //        read-and-close session, which cannot be reopened once
+                                //        output has started. Calling this on every row instead of
+                                //        only unstatemented ones kills the page mid-table. The
+                                //        open-levels refinement needs the payer lookups hoisted
+                                //        above the output block before it can be reinstated.
+                                if (!$duncount) {
+                                    $i = 1;
+                                    while ($i <= 3 && SLEOB::arGetPayerID($row['pid'], $row['date'], $i)) {
+                                        ++$i;
+                                    }
+                                    $duncount = $row['last_level_closed'] + 1 - $i;
                                 }
 
                                 $isdueany = ($balance > 0);
