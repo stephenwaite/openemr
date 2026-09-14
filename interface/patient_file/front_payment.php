@@ -417,6 +417,13 @@ if (!empty($_POST['form_save']) || !empty($_REQUEST['receipt'])) {
         $timestamp = decorateString('....-..-.. ..:..:..', $_GET['time']);
     }
 
+    $patName = trim(
+        (is_string($patdata['fname'] ?? null) ? $patdata['fname'] : '') . ' ' .
+        (is_string($patdata['mname'] ?? null) ? $patdata['mname'] : '') . ' ' .
+        (is_string($patdata['lname'] ?? null) ? $patdata['lname'] : '')
+    );
+    $patPubPid = is_string($patdata['pubpid'] ?? null) ? $patdata['pubpid'] : '';
+
     // Get details for what we guess is the primary facility.
     $frow = $facilityService->getPrimaryBusinessEntity(array("useLegacyImplementation" => true));
 
@@ -598,6 +605,13 @@ function toencounter(enc, datestr, topframe) {
                             <?php echo text("[Phone]" . $frow['phone']) ?><br />
                             <?php echo text("[Email] " . $frow['email']) ?><br />
 
+                            <br />
+                            <?php echo xlt('Patient'); ?>:
+                            <?php echo text($patName); ?>
+
+                            <br />
+                            <?php echo xlt('Patient ID'); ?>:
+                            <?php echo text($patPubPid); ?>
 
                             <br />
                             <?php echo xlt('How Paid'); ?>:
