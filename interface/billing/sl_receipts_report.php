@@ -666,7 +666,7 @@ $form_facility   = $_POST['form_facility'] ?? null;
                 </td>
                                 <?php if ($form_procedures) { ?>
                 <td class="detail">
-                                    <?php echo empty($row['irnumber']) ? text($row['invnumber']) : text($row['irnumber']); ?>
+                                    <?php echo text($row['invnumber']); ?>
                 </td>
                     <?php } ?>
                                 <?php
