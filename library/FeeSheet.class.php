@@ -438,6 +438,15 @@ class FeeSheet
         $modifier    = isset($args['modifier']) ? $args['modifier'] : '';
         $code_text   = isset($args['code_text']) ? $args['code_text'] : '';
         $units       = intval(isset($args['units']) ? $args['units'] : 0);
+        $units = match ($code) {
+             'C9257' => 5, // Avastin intravitreal 1.25 mg @ 0.25 mg/unit (Tufts/Cigna)
+             'Q5124' => 5,
+             'J0178' => 2,
+             'J0177' => 8,
+             'J2777' => 60,
+             default => intval($args['units'] ?? 0),
+        };
+
         $billed      = !empty($args['billed']);
         $auth        = !empty($args['auth']);
         $id          = isset($args['id']) ? intval($args['id']) : 0;
