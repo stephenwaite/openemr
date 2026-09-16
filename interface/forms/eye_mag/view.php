@@ -94,6 +94,7 @@ $query10 = "select  *,form_encounter.date as encounter_date
                     forms.form_id =? ";
 
 $encounter_data = sqlQuery($query10, array($id));
+error_log("EYE id=" . var_export($id, true) . " rows=" . var_export($encounter_data !== false, true));
 @extract($encounter_data);
 $id = $form_id;
 
@@ -143,7 +144,7 @@ $fs = new FeeSheetHtml();
 $warning = 'nodisplay';
 $uniqueID = mt_rand();
 $warning_text = 'READ-ONLY mode.';
-
+error_log("EYE LOCKED=" . var_export($LOCKED ?? null, true) . " LOCKEDBY=" . var_export($LOCKEDBY ?? null, true));
 if (!$LOCKED || !$LOCKEDBY) { //no one else has write privs.
     $LOCKEDBY = $uniqueID;
     $LOCKED = '1';
