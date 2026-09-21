@@ -25,13 +25,13 @@ use OpenEMR\Billing\PrepaymentBalanceService;
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
-use OpenEMR\Common\Http\CurrentRequest;
+use Symfony\Component\HttpFoundation\Request;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Services\Utils\DateFormatterUtils;
 
-$request = CurrentRequest::get();
+$request = Request::createFromGlobals();
 $session = SessionWrapperFactory::getInstance()->getActiveSession();
 
 if ($request->isMethod('POST')) {
