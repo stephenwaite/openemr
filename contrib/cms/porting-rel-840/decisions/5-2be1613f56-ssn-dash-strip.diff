@@ -1,0 +1,83 @@
+commit 2be1613f56c215d46faf1930ddcf8bd099007af2
+Author: stephen waite
+Date:   2023-05-09
+
+    fix med rec and remove dashes from ss when dbl click
+
+
+diff --git a/interface/patient_file/summary/demographics.php b/interface/patient_file/summary/demographics.php
+index 062432d116..342dcf06e1 100644
+--- a/interface/patient_file/summary/demographics.php
++++ b/interface/patient_file/summary/demographics.php
+@@ -722,39 +722,40 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
+                 });
+             });
+ 
+-            $(".iframe1").on('click', function(e) {
+-                e.preventDefault();
+-                e.stopPropagation();
+-                dlgopen('', '', 350, 300, '', '', {
+-                    buttons: [{
+-                        text: <?php echo xlj('Close'); ?>,
+-                        close: true,
+-                        style: 'secondary btn-sm'
+-                    }],
+-                    allowResize: true,
+-                    allowDrag: true,
+-                    dialogId: '',
+-                    type: 'iframe',
+-                    url: $(this).attr('href')
+-                });
++        $(".iframe1").on('click', function (e) {
++            e.preventDefault();
++            e.stopPropagation();
++            dlgopen('', '', 350, 300, '', '', {
++                buttons: [
++                    {text: <?php echo xlj('Close'); ?>, close: true, style: 'secondary btn-sm'}
++                ],
++                allowResize: true,
++                allowDrag: true,
++                dialogId: '',
++                type: 'iframe',
++                url: $(this).attr('href')
+             });
+-            // for patient portal
+-            $(".small_modal").on('click', function(e) {
+-                e.preventDefault();
+-                e.stopPropagation();
+-                dlgopen('', '', 550, 550, '', '', {
+-                    buttons: [{
+-                        text: <?php echo xlj('Close'); ?>,
+-                        close: true,
+-                        style: 'secondary btn-sm'
+-                    }],
+-                    allowResize: true,
+-                    allowDrag: true,
+-                    dialogId: '',
+-                    type: 'iframe',
+-                    url: $(this).attr('href')
+-                });
++        });
++// for patient portal
++        $(".small_modal").on('click', function (e) {
++            e.preventDefault();
++            e.stopPropagation();
++            dlgopen('', '', 380, 200, '', '', {
++                buttons: [
++                    {text: <?php echo xlj('Close'); ?>, close: true, style: 'secondary btn-sm'}
++                ],
++                allowResize: true,
++                allowDrag: true,
++                dialogId: '',
++                type: 'iframe',
++                url: $(this).attr('href')
+             });
++        });
++
++        $("#text_ss").on('dblclick', function (e) {
++            let ssn_without_dashes = $(this).html().replace(/-/g, '');
++            $(this).html(ssn_without_dashes);
++        });
+ 
+             function openReminderPopup() {
+                 top.restoreSession()
