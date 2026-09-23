@@ -1,0 +1,29 @@
+commit 250f586c09af4f79379cd5cdd2e9388bf774e0c3
+Author: stephen waite
+Date:   2024-10-18
+
+    isa02 04 length for oa elig
+
+
+diff --git a/templates/x12_partners/general_edit.html b/templates/x12_partners/general_edit.html
+index 9539569b6f..6f69581fac 100644
+--- a/templates/x12_partners/general_edit.html
++++ b/templates/x12_partners/general_edit.html
+@@ -38,7 +38,7 @@
+     <div class="form-row my-sm-2">
+         <label for="x12_isa02" class="col-form-label col-sm-2">{xlt t='User Logon (If 03 above, else leave spaces) (ISA02)'}</label>
+         <div class="col-sm-8">
+-            <input type="text" id="x12_isa02" name="x12_isa02" class="form-control" value="{$partner->get_x12_isa02()|attr}" onKeyDown="PreventIt(event)" maxlength="10">
++            <input type="text" id="x12_isa02" name="x12_isa02" class="form-control" value="{$partner->get_x12_isa02()|attr}" onKeyDown="PreventIt(event)" maxlength="20">
+         </div>
+     </div>
+     <div class="form-row my-sm-2">
+@@ -50,7 +50,7 @@
+     <div class="form-row my-sm-2">
+         <label for="x12_isa04" class="col-form-label col-sm-2">{xlt t='User Password (ISA04~ if 01 above, else leave spaces)'}</label>
+         <div class="col-sm-8">
+-            <input type="text" id="x12_isa04" name="x12_isa04" class="form-control" value="{$partner->get_x12_isa04()|attr}" onKeyDown="PreventIt(event)" maxlength="10">
++            <input type="text" id="x12_isa04" name="x12_isa04" class="form-control" value="{$partner->get_x12_isa04()|attr}" onKeyDown="PreventIt(event)" maxlength="20">
+         </div>
+     </div>
+     <div class="form-row my-sm-2">
