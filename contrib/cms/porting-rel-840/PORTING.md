@@ -575,8 +575,25 @@ maple_lane_facesheets.php, match-appts-garno.php, newporthc.php. Extracted
 unchanged from `origin/cms-rel-701` into `../cms-porting/site-tools/`, not
 committed.
 
-Checks (php -l, phpcs, phpstan on the changed files): **pending**. They need
-the cms-rel-840 container, which hasn't been started (decision 10).
+Checks, run in the cms-rel-840 container with Stephen's OK to start it:
+- `php -l`: clean on all 4 PHP files.
+- `phpcs` (repo ruleset): clean.
+- `phpstan` (repo config, **full codebase** as the repo requires): `[OK] No
+  errors`, nothing reported for the changed files, `.phpstan/` baseline
+  unchanged.
+
+Environment incident, 2026-09-23. The first PHPStan run was incomplete: the
+Docker data disk (`/var/lib/docker`, 9.8 GB) was 100% full. With Stephen's
+OK, I removed the orphaned `fix-dated-reminders-log-bootstrap` stack (its
+worktree was already gone; 3 containers, 12 volumes, network), which freed
+3.1 GB. The cms-rel-840 openemr container had crashed with ENOSPC during
+first boot and was left in an inconsistent state. To recreate it I ran
+`openemr-cmd worktree down`. **I had told Stephen that keeps volumes; it
+doesn't: it removed all cms-rel-840 volumes.** Only regenerable data was
+lost (a ~15-minute-old fresh-install DB, vendor, node_modules, assets). The
+worktree and commits were unaffected. The stack was rebuilt with
+`worktree up`. The disk is at 87% afterwards, so watch it before starting
+more stacks.
 
 Porting notes are committed at `contrib/cms/porting-rel-840/`, produced by
 `../cms-porting/sync-to-repo.sh`. It redacts the records-review username,
