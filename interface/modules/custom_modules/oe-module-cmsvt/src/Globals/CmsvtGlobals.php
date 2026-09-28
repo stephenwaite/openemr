@@ -26,6 +26,8 @@ final class CmsvtGlobals
 
     public const ELIG_PROVIDER_ID = 'cmsvt_elig_provider_id';
     public const ELIG_RECEIVER_NAME = 'cmsvt_elig_receiver_name';
+    public const BILLING_MANAGER_DOS_MONTHS = 'cmsvt_billing_manager_dos_months';
+    public const COLLECTIONS_HIDE_AGENCY_EXPORT = 'cmsvt_collections_hide_agency_export';
 
     public function register(GlobalsInitializedEvent $event): void
     {
@@ -44,6 +46,18 @@ final class CmsvtGlobals
             GlobalSetting::DATA_TYPE_TEXT,
             '',
             xl('Organization name sent in the eligibility request instead of the facility name. Blank keeps the facility name.')
+        ));
+        $service->appendToSection($section, self::BILLING_MANAGER_DOS_MONTHS, new GlobalSetting(
+            xl('Billing Manager Default Date-of-Service Months'),
+            GlobalSetting::DATA_TYPE_NUMBER,
+            '0',
+            xl('Default Billing Manager search: 0 lists all unbilled encounters, N limits it to the last N months, -1 keeps the stock default (today only).')
+        ));
+        $service->appendToSection($section, self::COLLECTIONS_HIDE_AGENCY_EXPORT, new GlobalSetting(
+            xl('Hide Export to Collections'),
+            GlobalSetting::DATA_TYPE_BOOL,
+            '0',
+            xl('Hide the "Export Selected to Collections" button on the collections report, for sites that do not use a collection agency.')
         ));
     }
 }
