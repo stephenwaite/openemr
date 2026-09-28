@@ -831,6 +831,37 @@ phpstan 0 errors.
 - demographics_full.php blank line.
 - The immunizations change: see the table above (8.5.0).
 
+### Cluster 6 — C10 Encounter form & calendar gaps (2026-09-28)
+
+Sources: 0e3c453afa, 907594e8a0 ("Date Last Seen" label); 295b750c5a
+(calendar day view); 2be1613f56 (SSN dash-strip and portal dialog: dropped).
+
+**Ported:**
+- **"Date Last Seen" onset label → per-site global + event** (Stephen:
+  "use dls with an event/global", instead of production's check of the
+  primary business entity's taxonomy `213E00000X`). No new core event: the
+  encounter form already dispatches `TemplatePageEvent` (page
+  `newpatient/common.php`) on the kernel dispatcher. Core change: the
+  `_date-of-onset.html.twig` partial reads an optional `onsetDateLastSeen`
+  flag (default false = stock "Onset/hosp. date:") and picks between two
+  literal translatable strings. Module: `EncounterFormLabels` sets the flag
+  when `cmsvt_encounter_date_last_seen` is on. **Deployment:** turn it on for
+  the podiatry site(s) (those whose primary business entity taxonomy is
+  213E00000X).
+- Calendar day view: patient-name links (`.link_title`) in black. The class
+  still exists in rel-840 (`CalendarViewModel`); the rule is added to the
+  Twig day template, as production had it in the Smarty one. The
+  `calendar-day-screen-empty` render fixture was regenerated (`openemr-cmd
+  utf`); only the 3-line style block was added.
+
+**Dropped (Stephen):** the SSN dash-strip on double-click and the smaller
+patient-portal dialog (item 5, both from 2be1613f56).
+
+Checks: `php -l` and phpcs clean; Twig compile+render tests 327/327; full-codebase phpstan 0 errors (no baseline changes).
+Runtime: the listener sets the flag only for `newpatient/common.php` with the
+global on; the partial renders "Onset/hosp. date:" / "Date Last Seen:"
+accordingly.
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
@@ -840,3 +871,4 @@ phpstan 0 errors.
 | `site_id != '1400'`: show Export to Collections | collections_report.php | `cmsvt_collections_hide_agency_export` (1400 → on) | 4 |
 | `site_id != 'default'`: show visit details in the encounter report | newpatient/report.php | `cmsvt_encounter_report_hide_visit_details` (default → on) | 5 |
 | `authUser == '<records-review-user>'` (records-review user): 4 checks | demographics.php, stats.php, edit_globals.php | **not a global:** the reviewer's ACL group (see cluster 5) | 5 |
+| primary business entity taxonomy `213E00000X`: "Date Last Seen" label | newpatient encounter form | `cmsvt_encounter_date_last_seen` (podiatry sites → on) | 6 |
