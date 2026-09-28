@@ -102,6 +102,8 @@ $info_msg = "";
         function validate(f) {
             let delcount = 0;
             let allempty = true;
+            // An invoice with no line items (e.g. saving only the billing level) is not "nothing to post".
+            let hasLineItems = false;
 
             for (let i = 0; i < f.elements.length; ++i) {
                 let ename = f.elements[i].name;
@@ -116,6 +118,7 @@ $info_msg = "";
                 if (pfxlen < 0) {
                     continue
                 };
+                hasLineItems = true;
                 let pfx = ename.substring(0, pfxlen);
                 let code = pfx.substring(pfx.indexOf('[') + 1, pfxlen - 1);
                 let cPay = parseFloat(f[pfx + '[pay]'].value);
@@ -154,6 +157,9 @@ $info_msg = "";
                     return false;
                 }
             // TBD: validate the date format
+            }
+            if (!hasLineItems) {
+                allempty = false;
             }
             // Check if save is clicked with nothing to post.
             if (allempty && delcount === 0) {
@@ -568,14 +574,18 @@ $bnrow = sqlQuery("select billing_note from form_encounter where pid = ? AND enc
                                 <input <?php echo $last_level_closed === 0 ? attr('checked') : ''; ?> name='form_insurance' onclick='setins("Ins1")' type='radio'
                                     value='Ins1' /><?php echo xlt('Ins1') ?>
                             </label>
+                            <?php if (SLEOB::arGetPayerID($patient_id, $svcdate, 2)) { // only offer levels the patient has ?>
                             <label class="radio-inline">
                                 <input <?php echo $last_level_closed === 1 ? attr('checked') : ''; ?> name='form_insurance' onclick='setins("Ins2")' type='radio'
                                     value='Ins2' /><?php echo xlt('Ins2') ?>
                             </label>
+                            <?php } ?>
+                            <?php if (SLEOB::arGetPayerID($patient_id, $svcdate, 3)) { ?>
                             <label class="radio-inline">
                                 <input <?php echo $last_level_closed === 2 ? attr('checked') : ''; ?> name='form_insurance' onclick='setins("Ins3")' type='radio'
                                     value='Ins3' /><?php echo xlt('Ins3') ?>
                             </label>
+                            <?php } ?>
                             <label class="radio-inline">
                                 <input <?php echo $last_level_closed === 3 ? attr('checked') : ''; ?> name='form_insurance' onclick='setins("Pt")' type='radio'
                                     value='Pt' /><?php echo xlt('Patient') ?>
@@ -777,9 +787,8 @@ $bnrow = sqlQuery("select billing_note from form_encounter where pid = ? AND enc
             <div class="form-group col-lg clearfix">
                 <div class="col-sm-12 text-left position-override" id="search-btn">
                     <div class="btn-group" role="group">
-                        <!-- @todo leave as I may still use sjp 08/2020 -->
-                        <!--<button type='submit' class="btn btn-primary btn-save" name='form_save' id="btn-save-stay"
-                            onclick="this.value='1';"><?php /*echo xlt("Save Current"); */?></button>-->
+                        <button type='submit' class="btn btn-primary btn-save" name='form_save' id="btn-save-stay"
+                            onclick="this.value='1';"><?php echo xlt("Save Current"); ?></button>
                         <button type='submit' class="btn btn-primary btn-save" name='form_save' id="btn-save"
                             onclick="this.value='2';"><?php echo xlt("Save"); ?></button>
                         <button type='button' class="btn btn-secondary btn-cancel" name='form_cancel'
