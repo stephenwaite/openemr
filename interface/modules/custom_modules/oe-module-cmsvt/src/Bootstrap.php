@@ -18,12 +18,14 @@ use Cmsvt\OpenEMR\Modules\Customizations\Billing\BillingManagerDefaults;
 use Cmsvt\OpenEMR\Modules\Customizations\Billing\CollectionsReportOptions;
 use Cmsvt\OpenEMR\Modules\Customizations\Command\UpdateX12SftpPasswordCommand;
 use Cmsvt\OpenEMR\Modules\Customizations\Eligibility\EligibilityProviderOverride;
+use Cmsvt\OpenEMR\Modules\Customizations\Encounter\EncounterReportOptions;
 use Cmsvt\OpenEMR\Modules\Customizations\Globals\CmsvtGlobals;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\Billing\BillingManagerDefaultsFilterEvent;
 use OpenEMR\Events\Billing\CollectionsReportFilterEvent;
 use OpenEMR\Events\Billing\EligibilityRequestFilterEvent;
 use OpenEMR\Events\Command\CommandRunnerFilterEvent;
+use OpenEMR\Events\Encounter\EncounterReportFilterEvent;
 use OpenEMR\Events\Globals\GlobalsInitializedEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
@@ -55,6 +57,10 @@ final readonly class Bootstrap
         $this->eventDispatcher->addListener(
             CollectionsReportFilterEvent::EVENT_NAME,
             (new CollectionsReportOptions($globals))->apply(...)
+        );
+        $this->eventDispatcher->addListener(
+            EncounterReportFilterEvent::EVENT_NAME,
+            (new EncounterReportOptions($globals))->apply(...)
         );
     }
 

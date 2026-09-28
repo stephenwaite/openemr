@@ -28,6 +28,7 @@ final class CmsvtGlobals
     public const ELIG_RECEIVER_NAME = 'cmsvt_elig_receiver_name';
     public const BILLING_MANAGER_DOS_MONTHS = 'cmsvt_billing_manager_dos_months';
     public const COLLECTIONS_HIDE_AGENCY_EXPORT = 'cmsvt_collections_hide_agency_export';
+    public const ENCOUNTER_REPORT_HIDE_VISIT_DETAILS = 'cmsvt_encounter_report_hide_visit_details';
 
     public function register(GlobalsInitializedEvent $event): void
     {
@@ -58,6 +59,12 @@ final class CmsvtGlobals
             GlobalSetting::DATA_TYPE_BOOL,
             '0',
             xl('Hide the "Export Selected to Collections" button on the collections report, for sites that do not use a collection agency.')
+        ));
+        $service->appendToSection($section, self::ENCOUNTER_REPORT_HIDE_VISIT_DETAILS, new GlobalSetting(
+            xl('Hide Visit Details in Encounter Reports'),
+            GlobalSetting::DATA_TYPE_BOOL,
+            '0',
+            xl('Show only the facility for each encounter in patient reports, without category, reason, provider, referring provider or POS code.')
         ));
     }
 }

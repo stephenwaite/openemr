@@ -477,7 +477,8 @@ function getRecInsuranceData($pid, $ins_type)
     //column name->dates->values
     //$return["lname"][0..n]["date"]
     //$return["lname"][0..n]["value"]
-    $res = sqlStatement("select *, ic.name as provider_name from insurance_data left join insurance_companies as ic on ic.id = provider where pid=? and type=? order by date", [$pid,$ins_type]);
+    // Only policies that have not ended.
+    $res = sqlStatement("select *, ic.name as provider_name from insurance_data left join insurance_companies as ic on ic.id = provider where pid=? and type=? and (date_end >= NOW() or date_end is null) order by date", [$pid,$ins_type]);
 
     $retar = [];
     $arcount = [];
