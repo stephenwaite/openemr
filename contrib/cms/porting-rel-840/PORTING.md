@@ -1417,6 +1417,58 @@ by diff).
 - site 1300: `cmsvt_claim_closed_facility_npis` = the closed facility's NPI;
 - the podiatry site: `cmsvt_claim_routine_foot_care_npis` = 1134268188.
 
+### Cluster 11b — FHIR lab Observation search by external ID (2026-09-28)
+
+Sources: cms-rel-701 FhirObservationService.php,
+FhirObservationLaboratoryService.php, MappedServiceCodeTrait.php,
+ProcedureService.php and swagger/openemr-api.yaml (the `external_id` parts).
+
+**Decision (Stephen, 2026-09-28):** this partly reverses the 2026-09-23
+"drop all FHIR" decision. Custom API callers search lab Observations by
+the order's external ID and need the order date. **Port the `external_id`
+search, and set `effectiveDateTime` from the order's transmit date (option
+1: production behavior).** Still dropped: removing the SocialHistory and
+Vitals Observation services.
+
+**Ported (core; no module hook exists for FHIR search parameters):**
+- `ProcedureService` selects `procedure_order.external_id` and
+  `date_transmitted` (as `order_external_id` / `order_date_transmitted`) and
+  returns them on each procedure as `external_id` / `date_transmitted`.
+- `FhirObservationLaboratoryService` has a new `external_id` token search
+  parameter mapped to `order_external_id`.
+- **Lab Observation `effectiveDateTime` is the order's transmit date**
+  (production behavior), falling back to the report date when the order has
+  none. Production used the transmit date unconditionally, so an order
+  without one would have produced an invalid date.
+- `FhirObservationService` accepts `external_id` and narrows the search to
+  the laboratory service. That replaces production's
+  `getServiceForExternalId()` trait method and `supportsExternalId()`.
+- The OpenAPI attribute on `FhirObservationRestController` is updated and
+  `swagger/openemr-api.yaml` regenerated (`openemr-cmd build-api-docs`); only
+  the new parameter changed. The CapabilityStatement picks it up from the
+  search parameter definitions.
+- The value comes from cluster 11: results-only orders store the lab's visit
+  number (PID-18) as `external_id`.
+
+**Effect on other API clients:** the new parameter is opt-in. Lab
+Observation `effectiveDateTime` changes from the report date to the order's
+transmit date for **all** clients, as production has it.
+
+Baseline: **reductions only**. FhirObservationLaboratoryService.php: 7
+entries removed and 4 lowered, after narrowing the per-result record to an
+array.
+
+Checks: `php -l` and phpcs clean; full-codebase phpstan 0 errors. Runtime,
+through `FhirObservationService::getAll()` with three test lab orders:
+- `external_id=V12345` → 1 Observation (value 7.5), effective 2026-06-01T09:00
+  (transmit date, not the 06-03 report date);
+- `external_id=NOPE` → 0;
+- patient + category=laboratory → all 3; the order without a transmit date
+  falls back to its report date.
+
+Test rows removed. Not exercised over HTTP with an OAuth token; the REST
+controller passes query parameters straight to this service.
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
