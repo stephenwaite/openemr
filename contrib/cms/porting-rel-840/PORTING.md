@@ -913,6 +913,80 @@ Checks: `php -l` and phpcs clean; full-codebase phpstan 0 errors, no baseline
 changes. (One redundant `is_array()` in the new command was fixed after the
 baseline script refused it.)
 
+### Cluster 8 — C7 Custom reports & menu (2026-09-28)
+
+Sources: 3a7952ffb7 edb92d6d0c a7fd7aecb1 3611fc453e ef1132d37f
+(appointments_report.php); 76ac48c916 (SpreadSheetService.php); 76100b2afc
+a96f4aec83 (press_ganey_export.php, menu); bc3b45eb35 bb48ec494a 80b73aa6cc
+de87a3eac8 62d5ba1f86 (menu targets); 5bd7f597c9 (insurance allocation:
+dropped).
+
+**Decisions (Stephen, 2026-09-28):** Payer Mix dropped; Press Ganey goes in
+the module; **menu changes via the module's `MenuEvent`**, not Custom.json.
+rel-840's Custom.json is a full 2,311-line copy of the standard menu, only
+used by users with the Custom menu role, and would drift. This supersedes
+decision 8's Custom.json part. Insurance-allocation pid listing dropped.
+
+**Ported:**
+- **appointments_report.php** (all sites, as in production): Provider
+  column removed; Home/Cell replaced by **DOB**, **Phone** (cell, else home,
+  12 chars) and **Pt Due** (patient balance); the second row shows **Primary
+  Ins** (or "Unassigned"). CSV export is the reminder-call format: Contact
+  (first name + last initial), Phone (home), Start Time (mm/dd/yyyy + time).
+  **Differs from production:**
+  - DOB comes from the appointment row (`p.DOB` is already selected) rather
+    than a `getPatientData()` call per row;
+  - DOB is a plain header, because production's DOB sort link was a no-op
+    (`sortAppointments` has no DOB order);
+  - the insurer name is escaped (production echoed it raw);
+  - the balance and insurer lookups are skipped for open slots;
+  - the CSV format lives in the report, where rel-840 already builds its CSV
+    rows. Production hardcoded it inside the shared `SpreadSheetService`,
+    which is left untouched here.
+  - The per-site printed fee sheet / intake links are gone with those forms;
+    upstream's Superbills link stays.
+- **Press Ganey export → oe-module-cmsvt** (`public/press_ganey_export.php` +
+  `templates/press_ganey_export.html.twig`), rewritten type-clean:
+  `PressGaneyExportFilter` (parsed from the Request), `PressGaneyRepository`
+  (QueryUtils), `PressGaneyRecordFormatter` (pure; same 31-field layout,
+  lengths, gender codes, phone/date formats, `$` end marker). ACL
+  `encounters/coding_a` and CSRF as before. **Settings:** `pg_client_id` and
+  `pg_survey_designator` are declared in the module's Globals section **under
+  their 7.0.1 key names**. Production never declared them; they were raw
+  `globals` rows, so existing values carry over. **Fix:** Address 2 was always
+  empty (production read an unselected `street2`); it's now
+  `patient_data.street_line_2`. Isolated test
+  `tests/Tests/Isolated/Modules/Cmsvt/PressGaneyRecordFormatterTest.php` (7
+  tests).
+- **Menu (`CmsvtMenu`, `MenuEvent::MENU_UPDATE`):** Fees → Payment opens in
+  tab `pay`, Posting Payments `edi`, EDI History `edih`, Procedures →
+  Electronic Reports `lab`, each matched on URL + stock target (the popup
+  Payment entry is untouched). Adds **Reports → Visits → Press Ganey Export**
+  after Encounters (`encounters/coding_a`).
+
+**Dropped:**
+- Payer Mix: all_payer.php, payer_mix_help.php and its menu item (Stephen).
+- rwt_2024_report.php: superseded upstream.
+- insurance_allocation_report.php pid listing (Stephen): raw pids with
+  hardcoded plan names.
+- The SpreadSheetService change, which moved into the report.
+
+The page renders through `ServiceContainer::getTwig()` with the module's
+templates added as the `@cmsvt` namespace (PHPStan forbids `new
+TwigContainer`). OpenEMR runs Twig with autoescape off, so every value in the
+template is escaped explicitly (`|text` / `|attr`).
+
+Baseline: **reductions only**. appointments_report.php: 3 blocks removed and
+5 counts lowered; a follow-up check confirmed 0 entries added and 0 raised.
+Nine new-code findings (redundant `array_values`/`is_array`/`is_numeric`, a
+`(string)` cast of the phone, the TwigContainer instantiation) were fixed in
+code after the baseline script refused them.
+
+Checks: `php -l` and phpcs clean; formatter tests 7/7; full-codebase phpstan
+0 errors. Runtime: the menu listener on the real standard.json retargets the
+4 items and inserts Press Ganey after Encounters; the template renders through
+`@cmsvt` and escapes; the repository queries execute.
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
