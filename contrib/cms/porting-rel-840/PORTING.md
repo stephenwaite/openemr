@@ -1197,6 +1197,90 @@ restored to stock):
 - **Email run** (no SMTP configured): one alert listing each patient, no
   `email` rows, no print.
 
+### Cluster 11 — C8 Labs / HL7 (FHIR dropped) (2026-09-28)
+
+Sources: cms-rel-701 / rebase-cms-rel-703 receive_hl7_results.inc.php
+(90a0e34214 5fb849e0f5 e76dbdcf45 644076aed4 82d202a86c, and the site-2400
+match), list_reports.php and single_order_results.php (stayHere, site 4800
+per-lab maximum, site 2400 review filter, `LIMIT 500`, latest-encounter link).
+f7f691ac06 (`nlist` guard) is already fixed upstream; dropped.
+single_order_results.inc.php: already fixed upstream; dropped. All FHIR,
+ProcedureService and swagger changes: dropped (decision 2026-09-23).
+
+**Rebase-branch defect found:** rebase-cms-rel-703's order INSERT lost its
+`external_id = ?` line (8 placeholders, 9 binds), so the visit number was
+never stored. cms-rel-701, the production code, stores it. The port follows
+701.
+
+**Ported (two small core events plus module listeners):**
+- `OpenEMR\Events\Orders\Hl7ResultsImportFilterEvent`, dispatched from
+  receive_hl7_results.inc.php. Without a listener, import is exactly
+  upstream. Module `Labs\LabOptions::applyToImport()`:
+  - **Match on MRN only** (PID-3 = `patient_data.pubpid`) when
+    `cmsvt_hl7_match_patient_by_mrn` is on (was `site_id == 2400`). No
+    name/DOB/SSN ambiguity search: one pid matches, several ask the user,
+    none returns 0 (as production).
+  - **All CMS sites**, as production: results-only orders store the **visit
+    number (PID-18)** as `external_id` instead of OBR-3; **no auto-created
+    encounter**; **no provider notice** (labNotice). Differs from
+    production: when PID-18 is empty, OBR-3 is kept rather than storing an
+    empty value.
+- `OpenEMR\Events\Orders\LabResultsListFilterEvent`, dispatched from
+  list_reports.php. Module `applyToList()`:
+  - `cmsvt_lab_results_per_lab`: default "Results Per Lab" (was site 4800 =
+    50);
+  - `cmsvt_lab_list_default_reviewed`: default filter = Reviewed (was site
+    2400).
+  - **Differs from production:** these are now *defaults*. Production forced
+    them and ignored what the user picked.
+- **Core, all sites, as production:**
+  - **After signing in the results window**, the opener list refreshes and
+    shows the list instead of dropping back to the start form, and the window
+    closes. Upstream's refresh never ran the list query. The fix is keyed on
+    the existing `form_external_refresh` field rather than production's new
+    `stayHere` field.
+  - The patient name opens the patient **in their latest encounter**, with
+    one `LIMIT 1` query per patient. Production loaded every encounter per
+    patient and used the old `top.RTop` frame.
+  - The list query is capped at **500 rows**.
+- **Upstream bug fixed:** the two poll-log lines had an operator-precedence
+  bug (`"text" . $x ? a : b`), which dropped the "Lab matched account…" text
+  and always printed the messages. Production's attempt kept the same
+  precedence bug.
+
+**Not ported:** `pd.dob` in the list query (unused); `poll_hl7_results(&$info
+= [])` (no caller without arguments).
+
+**Deployment:**
+- site 2400: `cmsvt_hl7_match_patient_by_mrn` on and
+  `cmsvt_lab_list_default_reviewed` on;
+- site 4800: `cmsvt_lab_results_per_lab` = 50.
+
+Baseline: **reductions only**. receive_hl7_results.inc.php: "ternary always
+true" removed, `non-falsy-string . mixed` 28→26. single_order_results.php:
+`js_escape` int removed. Four new-code findings (`$_POST`, `empty()`,
+`attr_js` int, `pubpid` on mixed) were fixed in code.
+
+Tooling: `/var/lib/docker` hit 99%, and PHPStan failed with "No space left".
+PHPStan's own caches in the `openemr-cms-rel-840_phpstan` volume (1.4 GB:
+result cache, nette container cache) were cleared; they regenerate. Free
+space is back to ~1 GB. Unused images (~2.2 GB reclaimable) were left alone.
+
+Checks: `php -l` and phpcs clean; full-codebase phpstan 0 errors. Runtime:
+- **HL7:** one results-only ORU for a test patient, imported twice.
+  - *Without the module:* matched by name/DOB, `external_id` = OBR-3
+    (`ACC777`), 1 encounter created, 1 notice.
+  - *With the module bootstrap* and MRN matching on (the message carries a
+    different name): matched the existing patient by MRN, with no new
+    patient; `external_id` = `V12345` (PID-18); `encounter_id` 0; no
+    encounter; no notice.
+- **Electronic Reports over HTTP** (module registered, test data):
+  - results per lab defaults to 50;
+  - a results-window refresh ran the list query and showed the test order,
+    with the filter defaulting to Reviewed;
+  - the patient link carries the latest encounter (990302 of 2).
+- All test rows removed.
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
@@ -1207,3 +1291,6 @@ restored to stock):
 | `site_id != 'default'`: show visit details in the encounter report | newpatient/report.php | `cmsvt_encounter_report_hide_visit_details` (default → on) | 5 |
 | `authUser == '<records-review-user>'` (records-review user): 4 checks | demographics.php, stats.php, edit_globals.php | **not a global:** the reviewer's ACL group (see cluster 5) | 5 |
 | primary business entity taxonomy `213E00000X`: "Date Last Seen" label | newpatient encounter form | `cmsvt_encounter_date_last_seen` (podiatry sites → on) | 6 |
+| `site_id == '2400'`: match lab results by MRN only | receive_hl7_results.inc.php | `cmsvt_hl7_match_patient_by_mrn` (2400 → on) | 11 |
+| `site_id == '2400'`: Electronic Reports filter forced to Reviewed | list_reports.php | `cmsvt_lab_list_default_reviewed` (2400 → on; now a default) | 11 |
+| `site_id == '4800'`: 50 results per lab | list_reports.php | `cmsvt_lab_results_per_lab` (4800 → 50; now a default) | 11 |
