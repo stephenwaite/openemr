@@ -51,6 +51,11 @@ Setup done:
 - **`origin/rel-840` fast-forwarded** `7eb4f1dc81..57e627290e` (plain push, no
   force).
 
+**Commit message convention (2026-09-28):** a prek `commit-msg` hook now
+enforces Conventional Commits, so `cms:` is rejected. From cluster 2 on:
+**`feat(cms): …`** for cluster commits and `docs(cms): …` for notes commits
+(Stephen's choice). The three cluster-1 commits already pushed keep `cms:`.
+
 ## Pending per-item decisions (the 7 unexplained + dier gating)
 
 Full diffs are in `decisions/`.
@@ -598,3 +603,40 @@ more stacks.
 Porting notes are committed at `contrib/cms/porting-rel-840/`, produced by
 `../cms-porting/sync-to-repo.sh`. It redacts the records-review username,
 patient IDs and personal names, and fails if anything remains.
+
+### Cluster 2 — C11 Small UI / misc (2026-09-28)
+
+Sources: 5bfe62a97a, 2e7037df28 (messages.php); 14bbe6fa18 (pnotes_full.php);
+fd16864294 (appointments card); 2e7037df28, 16daa94f60 (eye_base.php).
+
+**Ported:**
+- `interface/main/messages/messages.php`: the message-body box drops
+  `text-light bg-dark`.
+- `interface/patient_file/summary/pnotes_full.php`: `?? ''` on the updater's
+  `fname`/`lname` (PHP 8 warning; not fixed upstream). Also guards with
+  `is_array()` instead of upstream's `!is_null()`: `getUser()` returns
+  `array|false`, so `false` used to get through. This fixes 3 baselined PHPStan
+  errors (4 after the `is_array()` guard), so their **baseline entries are removed**: argument.type 1 block,
+  offsetAccess.nonOffsetAccessible 2 blocks, function.impossibleType 1 block. Nothing added.
+- `templates/patient/card/appointments.html.twig`: the appointment reason
+  (`pc_hometext`) is the comment icon's tooltip. **Differs from production:**
+  escaped with `|attr`; production printed the free-text reason raw inside an
+  HTML attribute. Covered by a new render case,
+  `appointments-with-reason-tooltip`, with quotes, `<b>` and `&` in the reason.
+- `interface/forms/eye_mag/js/eye_base.php`:
+  - `parseDate()` keeps hh:mm:ss, so the form-lock comparison uses the time
+    (16daa94f60, the net effect of the three debug commits);
+  - **no auto-fill of modifier 59** when a test checkbox is ticked
+    (2e7037df28). The inventory missed this one; it's in the rebase's net
+    diff and in production. Billing-relevant.
+
+**Dropped:**
+- C_Prescription.class.php (bc0382d84e, 596ea45d58): decision 6.
+- MedEx API.php / MedEx.php (0219cd4943): decision 7.
+- patient_tracker.php (ce0f1972a6, a9a7f908e6): both fix the same
+  `date('w')` line, and rel-840 already has it (line 73).
+- eye_mag/view.php (6e92bdbc80, 53c9d1cb65): the debug changes net to zero.
+
+Checks: `php -l` clean; phpcs clean; `TwigTemplateRenderTest` 30/30; full-codebase phpstan `[OK] No errors`. The new
+fixture was generated with `openemr-cmd utf`, and no existing fixture
+changed.
