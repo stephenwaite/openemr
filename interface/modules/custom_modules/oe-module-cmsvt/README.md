@@ -26,3 +26,15 @@ it doesn't end up in the process list or shell history. The command fails if
 exactly one partner. The value is stored with `encryptForDatabase()`, the
 counterpart of the `decryptFromDatabase()` that X12RemoteTracker and EDI270
 use to read it.
+
+### `cmsvt:fees-increase`
+
+Raises every code price (all price levels) by a percentage, rounded to whole
+dollars. It replaces `contrib/util/billing/update_fee_schedule_by_percentage.php`
+from the 7.0.1 branch. `codes.fee` follows the standard price level. The update
+runs in one transaction, so it either completes or changes nothing.
+
+```sh
+php bin/console cmsvt:fees-increase --site=default --percent=5 --dry-run
+php bin/console cmsvt:fees-increase --site=default --percent=5
+```

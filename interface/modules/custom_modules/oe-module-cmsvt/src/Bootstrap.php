@@ -16,6 +16,7 @@ namespace Cmsvt\OpenEMR\Modules\Customizations;
 
 use Cmsvt\OpenEMR\Modules\Customizations\Billing\BillingManagerDefaults;
 use Cmsvt\OpenEMR\Modules\Customizations\Billing\CollectionsReportOptions;
+use Cmsvt\OpenEMR\Modules\Customizations\Command\IncreaseFeesCommand;
 use Cmsvt\OpenEMR\Modules\Customizations\Command\UpdateX12SftpPasswordCommand;
 use Cmsvt\OpenEMR\Modules\Customizations\Eligibility\EligibilityProviderOverride;
 use Cmsvt\OpenEMR\Modules\Customizations\Encounter\EncounterFormLabels;
@@ -73,5 +74,6 @@ final readonly class Bootstrap
     public function registerCommands(CommandRunnerFilterEvent $event): void
     {
         $event->setCommand(UpdateX12SftpPasswordCommand::class, new UpdateX12SftpPasswordCommand());
+        $event->setCommand(IncreaseFeesCommand::class, new IncreaseFeesCommand());
     }
 }
