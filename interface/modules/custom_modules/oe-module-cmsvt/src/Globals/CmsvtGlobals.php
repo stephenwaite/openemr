@@ -29,6 +29,7 @@ final class CmsvtGlobals
     public const BILLING_MANAGER_DOS_MONTHS = 'cmsvt_billing_manager_dos_months';
     public const COLLECTIONS_HIDE_AGENCY_EXPORT = 'cmsvt_collections_hide_agency_export';
     public const ENCOUNTER_REPORT_HIDE_VISIT_DETAILS = 'cmsvt_encounter_report_hide_visit_details';
+    public const ENCOUNTER_DATE_LAST_SEEN = 'cmsvt_encounter_date_last_seen';
 
     public function register(GlobalsInitializedEvent $event): void
     {
@@ -65,6 +66,12 @@ final class CmsvtGlobals
             GlobalSetting::DATA_TYPE_BOOL,
             '0',
             xl('Show only the facility for each encounter in patient reports, without category, reason, provider, referring provider or POS code.')
+        ));
+        $service->appendToSection($section, self::ENCOUNTER_DATE_LAST_SEEN, new GlobalSetting(
+            xl('Label Onset Date as Date Last Seen'),
+            GlobalSetting::DATA_TYPE_BOOL,
+            '0',
+            xl('On the encounter form, label the onset/hospitalization date "Date Last Seen" (e.g. podiatry routine foot care).')
         ));
     }
 }
