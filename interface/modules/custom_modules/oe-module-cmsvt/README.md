@@ -55,3 +55,18 @@ layout is pinned by `tests/Tests/Isolated/Modules/Cmsvt/PressGaneyRecordFormatte
 The module adjusts the standard menu through `MenuEvent`: Payment, Posting
 Payments, EDI History and Electronic Reports open in their own tabs (`pay`,
 `edi`, `edih`, `lab`), and it adds the Press Ganey export.
+
+## Patient statements
+
+`table.sql` creates `patient_statements`, a log of statements sent (one row
+per statement, with the delivery method and the saved document). Module
+Manager runs it on install; it is a no-op where the table already exists.
+
+- `PatientStatementSavedEvent` (dispatched by the statements screen after a
+  statement is saved to the patient's documents) adds a row: `mail` for
+  print, download and PDF runs, `email` only when the email went out.
+- `StatementPrintSuggestionFilterEvent` (dispatched when listing "Due Pt")
+  flags patients with two or more emailed statements that are 21+ days old
+  with no payment posted on the encounter since. Their Due Pt box starts
+  unchecked and the row shows a PRINT badge, so a biller can email the
+  checked set, then use Invert Selection to print the rest.

@@ -23,10 +23,13 @@ use Cmsvt\OpenEMR\Modules\Customizations\Encounter\EncounterFormLabels;
 use Cmsvt\OpenEMR\Modules\Customizations\Encounter\EncounterReportOptions;
 use Cmsvt\OpenEMR\Modules\Customizations\Globals\CmsvtGlobals;
 use Cmsvt\OpenEMR\Modules\Customizations\Menu\CmsvtMenu;
+use Cmsvt\OpenEMR\Modules\Customizations\Statements\PatientStatementLog;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\Billing\BillingManagerDefaultsFilterEvent;
 use OpenEMR\Events\Billing\CollectionsReportFilterEvent;
 use OpenEMR\Events\Billing\EligibilityRequestFilterEvent;
+use OpenEMR\Events\Billing\PatientStatementSavedEvent;
+use OpenEMR\Events\Billing\StatementPrintSuggestionFilterEvent;
 use OpenEMR\Events\Command\CommandRunnerFilterEvent;
 use OpenEMR\Events\Core\TemplatePageEvent;
 use OpenEMR\Events\Encounter\EncounterReportFilterEvent;
@@ -74,6 +77,15 @@ final readonly class Bootstrap
         $this->eventDispatcher->addListener(
             MenuEvent::MENU_UPDATE,
             (new CmsvtMenu())->apply(...)
+        );
+        $statementLog = new PatientStatementLog();
+        $this->eventDispatcher->addListener(
+            PatientStatementSavedEvent::EVENT_NAME,
+            $statementLog->record(...)
+        );
+        $this->eventDispatcher->addListener(
+            StatementPrintSuggestionFilterEvent::EVENT_NAME,
+            $statementLog->suggestPrint(...)
         );
     }
 
