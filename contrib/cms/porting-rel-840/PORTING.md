@@ -640,3 +640,61 @@ fd16864294 (appointments card); 2e7037df28, 16daa94f60 (eye_base.php).
 Checks: `php -l` clean; phpcs clean; `TwigTemplateRenderTest` 30/30; full-codebase phpstan `[OK] No errors`. The new
 fixture was generated with `openemr-cmd utf`, and no existing fixture
 changed.
+
+### Cluster 3 — C4 EDI history / X12 partners / eligibility (2026-09-28)
+
+Sources: e93f13e540, 14bbe6fa18 (edih_csv_parse.php); 1e7747358f
+(edi_history_v2.scss); f5de47125c (EDI270.php site-200 override).
+
+**Ported:**
+- `library/edihistory/edih_csv_parse.php`: with `gen_x12_based_on_ins_co`
+  on, the 837 CSV index walks each ST–SE once (not once per account, which
+  repeated claims) and starts a claim row at every HL level-22 loop instead of
+  at BHT. Checked `X12File::edih_x12_transaction()`: for an 837 it returns the
+  slice from BHT to the next BHT/SE, which is the whole transaction set in
+  that mode, so every claim is indexed. Reads the global via `OEGlobalsBag`.
+  The production `?? ''` guards aren't needed: rel-840 initializes `$hl`/`$cdx`.
+  The new HL-22 branch works on narrowed copies (`is_string()` → `$segStr`,
+  `$sep`) instead of repeating the file's `(string) $seg` / `'HL' . $de`
+  idioms. Those idioms are baselined by occurrence count, so repeating them
+  fails PHPStan with `ignore.count` (it did on the first commit attempt),
+  and we don't raise baseline counts. **Pattern for later legacy-file
+  clusters:** new code in baselined files must be type-clean on its own.
+- `interface/themes/misc/edi_history_v2.scss`: DataTables length-select
+  width 50px.
+- **Site-200 eligibility provider override → per-site globals** (decision 3),
+  the first CMS globals:
+  - Core: new generic `OpenEMR\Events\Billing\EligibilityRequestFilterEvent`,
+    dispatched by `EDI270::requestRealTimeEligible()` for each request row
+    before validation. Core names nothing from the module, and with no
+    listener the row is unchanged (upstream behavior).
+  - Module: `CmsvtGlobals` adds an Administration → Globals section "CMS
+    Vermont" (via `GlobalsInitializedEvent`) with
+    `cmsvt_elig_provider_id` (users.id; 0 = off) and
+    `cmsvt_elig_receiver_name` (blank = keep facility name).
+    `EligibilityProviderOverride` sets that user's `providerID` and NPI, plus
+    the receiver name, so EDI270's normal validation passes.
+  - **Differs from production:** production hardcoded an NPI, a provider
+    name in `facility_name`, and a `provider_ID` key that nothing reads, and
+    it skipped validation entirely. Here the NPI comes from the configured
+    user's record. **Deployment, site 200:** set the provider ID and receiver
+    name to the values hardcoded in production commit f5de47125c
+    (`src/Billing/EDI270.php`), after confirming that user's NPI matches.
+  - Verified at runtime on the test DB: no listener → unchanged; global 0 →
+    unchanged; provider set → providerID/NPI/receiver name applied.
+
+**Dropped:**
+- `library/edihistory/edih_835_html.php` int→float (f30779a52a): already
+  upstream (#13125).
+- `library/edihistory/edih_io.php` (1e7747358f, 5c3445f685): whitespace and
+  comments only.
+- ISA02/ISA04 `maxlength="20"` (250f586c09): item 4, dropped. Upstream and
+  production schema are both `VARCHAR(10)`; the 20 was left over from a
+  reverted Office Ally eligibility experiment (fd409ea71b).
+- `library/classes/X12Partner.class.php`: nothing to port (upstreamed).
+
+## Site-ID and user-name checks → per-site globals (running list)
+
+| Production check | Where | Replacement | Cluster |
+|---|---|---|---|
+| `site_id == '200'`: fixed eligibility provider | EDI270.php | `cmsvt_elig_provider_id`, `cmsvt_elig_receiver_name` | 3 |
