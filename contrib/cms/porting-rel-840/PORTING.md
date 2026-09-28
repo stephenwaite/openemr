@@ -693,8 +693,69 @@ Sources: e93f13e540, 14bbe6fa18 (edih_csv_parse.php); 1e7747358f
   reverted Office Ally eligibility experiment (fd409ea71b).
 - `library/classes/X12Partner.class.php`: nothing to port (upstreamed).
 
+### Cluster 4 — C5 Billing manager & payments (2026-09-28)
+
+Sources: 306882ba47 98eae0fbc9 dae9bd9adc 81a590151e (billing_report.php);
+dfebace7c1 (front_payment.php, edit_billnote.php); 2f968af572
+(receipts_by_method_report.php, InsuranceService.php); 64b621d9a0 c8b41a47ba
+a65ad6037c cebfcf1be4 (collections_report.php); 984ce86650 (sl_receipts_report.php).
+
+**Site-gate mechanism (Stephen, 2026-09-28): one small typed filter event
+per hook in core**, the same shape as cluster 3. Core dispatches the event,
+the oe-module-cmsvt listener applies its per-site global, and with no
+listener core behaves as upstream. Applies to all later site gates.
+
+**Ported:**
+- billing_report.php: **Reopen** is also enabled when claims can be marked
+  (not only when they can be billed); the **MBO** button no longer requires
+  the misc-billing-options form to be authorized.
+- **Billing Manager default search → per-site global.** Core: new
+  `BillingManagerDefaultsFilterEvent` (`dosMonths`: null = stock "today",
+  0 = no date filter, N = last N months). The default criteria are built in
+  local arrays and assigned to `$_REQUEST` once, which lowers the baselined
+  `$_REQUEST` write count instead of raising it. Module:
+  `cmsvt_billing_manager_dos_months` (default 0 = all unbilled, which is what
+  every CMS site except 200 had; site 200 = 2; -1 = stock).
+- front_payment.php: the check-number field is also enabled for credit card.
+- edit_billnote.php: billing-note textarea 12 rows (rel-840 has 4).
+- receipts_by_method_report.php + InsuranceService: when a payment has no
+  payer_id, name the insurer that covered the patient **on the payment date**,
+  not whichever row happens to come first. `getOneByPid()` gets an
+  **optional** `$date` (production made it required); its only caller is
+  this report. Also resets `$rowreference` per row (rel-840 could carry a
+  stale reference into the next row).
+- collections_report.php: "Due Ins" is the default category; exporting to
+  collections always sends each encounter as its own invoice (read via
+  `CurrentRequest`, not a new `$_POST` access).
+- **Collections "Export Selected to Collections" → per-site global.** Core:
+  new `CollectionsReportFilterEvent` (`showExportToCollections`). Module:
+  `cmsvt_collections_hide_agency_export` (site 1400 = on).
+- sl_receipts_report.php: the invoice column always shows pid.encounter
+  (`invnumber`), not the invoice reference number.
+
+**Dropped:**
+- The billing-manager "patient" button behavior (bf2848ba3e): item 6,
+  Stephen.
+- The pid-keyed `error_log` debug in receipts_by_method_report.php and the
+  commented `error_log` in billing_report.php.
+- deleter.php: already fixed upstream.
+- `InsuranceCompanyService::getAllByName()`: dropped in cluster 1.
+
+Baseline: **reductions only.** Counts lowered: sl_receipts_report
+`empty()` 18→17 and `text()` 8→7; receipts_by_method `$memo` 2→1;
+billing_report `$_REQUEST` access 10→8. Two billing_report "offset 0/1 on
+mixed" blocks were removed, because building the default criteria in local
+arrays fixed them. One redundant `$rowreference ?? ''` was removed at the
+source. Nothing added.
+
+Checks: `php -l` and phpcs clean on all 13 files. Runtime-checked on the
+test DB: both events unchanged with no listener; the listeners honor the
+globals (-1/0/2; hide 0/1); the dated insurance query executes.
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
 |---|---|---|---|
 | `site_id == '200'`: fixed eligibility provider | EDI270.php | `cmsvt_elig_provider_id`, `cmsvt_elig_receiver_name` | 3 |
+| `site_id == '200'`: Billing Manager default = last 2 months (others: all unbilled) | billing_report.php | `cmsvt_billing_manager_dos_months` (200 → 2, others → 0) | 4 |
+| `site_id != '1400'`: show Export to Collections | collections_report.php | `cmsvt_collections_hide_agency_export` (1400 → on) | 4 |
