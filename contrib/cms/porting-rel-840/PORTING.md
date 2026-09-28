@@ -1049,6 +1049,153 @@ an encounter dated 2025-03-01, with an old policy ending 2025-06-30 and a
 new one starting 2025-07-01, shows the **old** payer in the adjustment
 reason (test rows removed afterwards).
 
+### Cluster 10 — Statements (from rel-830-sunflower) (2026-09-28)
+
+Sources: origin/rel-830-sunflower 36c0016ea6 (statement.inc.php), 3d20327ee4
+(global), 61b414b422 1d4ac7fcf3 8ca3ecf8e7 (sl_eob_search.php); the
+`patient_statements` writer and table from origin/rel-800-sunflower
+28104198ad and 1baf63348c (it never made it into rel-830-sunflower).
+
+**Decisions (Stephen, 2026-09-28):**
+- The Modern/images layout (appearance 1) stays as upstream ships it.
+  Sunflower's changes to it are **not** ported: logo, "Account Number",
+  one line per adjustment, the hardcoded payments.sunflowerpediatriceyecare.com
+  Pay Online button, and the QR code.
+- `patient_statements` comes into the port. Stephen supplied the production
+  schema; the writer was in rel-800-sunflower.
+
+**Ported:**
+- **"PDF Custom" appearance (statement_appearance = 2):** the option is added
+  in `library/globals.inc.php` (core, upstream candidate). `make_statement()`
+  in `sites/default/statement.inc.php` routes to it with the same
+  print-exclusion rule production used ("All" prints everything). The layout
+  is rewritten as two typed core classes instead of new global functions
+  (PHPStan forbids new global-namespace functions):
+  - `OpenEMR\Billing\Statement\CustomPdfStatementText`: the fixed-width
+    text (address block, detail lines, 34-line page split, aging line);
+  - `OpenEMR\Billing\Statement\CustomPdfStatementPdf`: lays that text over a
+    full-page letterhead PNG with Cezpdf.
+
+  **Checked against production:** on the same statement (5 detail kinds plus
+  45 extra payments, so it splits), the new text output is **byte-for-byte
+  identical** to rel-830-sunflower's `create_cms_statement()`. The PDF has the
+  same text; it has **one page fewer**, because production emitted a blank
+  first page when the first statement was a long one (its `$page_count`
+  global; the `$page_count = -1` reset in sl_eob_search.php never took
+  effect). Isolated test `tests/Tests/Isolated/Billing/CustomPdfStatementTextTest.php`
+  (5 tests).
+
+  **Differs from production:**
+  - Descriptions come from the billed line's `code_text` (InvoiceSummary),
+    not a `codes` lookup per line.
+  - The address block takes the street lines present, then city/state/zip
+    last. Production forced four `to[]` entries, which would have dropped
+    city/state/zip from the upstream layouts.
+  - The letterhead is only drawn when Statement Logo names a PNG (Cezpdf can't
+    place a GIF, and the global defaults to practice_logo.gif).
+  - Dead code dropped: the unused facility, contact, dunning and label
+    lookups; `if ($continued = true)`; and a `to[4]` branch that could never
+    run.
+- **sl_eob_search.php:**
+  - `street_line_2` is selected and added to the address.
+  - Email bodies are always HTML (`create_HTML_statement`), whatever the
+    print layout is.
+  - Emailing needs portal access and an acknowledged HIPAA notice as well as
+    email consent, the same consents the list's Email column already shows.
+  - A failed email no longer overwrites the alert: every failed patient is
+    listed. Sends are 0.1 s apart (SMTP rate limit).
+  - An email run no longer falls through and prints everything it just
+    emailed.
+  - Email eligibility comes from the main list query, not one
+    `SELECT * FROM patient_data` per row. The cell carries
+    `data-email-eligible`.
+  - New buttons: **Select All Not Email**, **Invert Selection**, and a
+    confirm dialog with the count before **Email Selected**.
+  - The typed `$postedForm` request bag replaces the new `$_REQUEST` reads;
+    `form_pdf`/`form_portalnotify` no longer warn when unset.
+- **Upstream bug fixed: the statement list dies partway through the first
+  row on stock rel-840.** Reproduced on an untouched copy of rel-840's
+  sl_eob_search.php (80 test patients, Due Pt): the output stops at the first
+  Email cell with "An error has occurred". The cause: sessions are
+  read-and-close, so each read reopens the session, and that throws once
+  headers are sent. `xl()` and the query audit log both read the session,
+  and PHP's 4 KB buffer flushes early in the table. **Fix:** one `ob_start()`
+  at the top of the page (sunflower's fix). Sunflower's other workaround,
+  `temp_skip_translations`, is **not** ported: it turns translation off for
+  the page. This is worth an upstream issue; the real fix belongs in the
+  session layer.
+- **patient_statements, via two small core events and the module:**
+  - `table.sql` in oe-module-cmsvt creates the table. The definition matches
+    rel-800-sunflower's `sql/sunfower_migrations/001_patient_statements.sql`
+    (indexes `idx_pid_date`, `idx_pid_encounter`), so installing the module
+    on the production site is a no-op.
+  - `PatientStatementSavedEvent` (core, dispatched after the statement is
+    saved to documents) → module `PatientStatementLog::record()` inserts the
+    row. Method is `mail` for print/download/PDF runs and `email` **only when
+    the email was sent**. Production logged `email` for every statement in an
+    email run, even undeliverable ones, which fed false "unpaid emails" into
+    the badge. Nothing is recorded when "without updating invoices" is
+    checked.
+  - `StatementPrintSuggestionFilterEvent` (core, dispatched when listing
+    Due Pt) → module `suggestPrint()`: 2+ emailed statements 21+ days old
+    with no payment since → the box starts unchecked and a PRINT badge shows.
+    Without the module, core never touches the table.
+  - New enum `OpenEMR\Billing\StatementDeliveryMethod` (mail, email,
+    portal, other), matching the column's enum.
+
+**Not ported:**
+- Sunflower's Modern layout changes (decision above) and its per-page
+  `temp_skip_translations`.
+- rel-800-sunflower's `set_time_limit(300)` and "save text to documents on
+  PDF download": rel-840 already saves text for this layout.
+- rel-830-sunflower's `sl_eob_process.php` (ea2c9ceffa: KanCare/March Vision
+  Medicaid-secondary write-offs, CO-97 on 92015) and `sl_eob_invoice.php`
+  (d96e076974: readable adjustment memo). These are Sunflower (Kansas)
+  posting rules, not statements, and are outside this cluster. ⚠ Tell me if
+  CMS wants either.
+- rel-800-sunflower 75fa2a171c ("remove require portal email statements"):
+  both sunflower branches still require portal access for email, so the
+  port follows them.
+
+**Deployment:**
+- **Each site's own `sites/<site>/statement.inc.php` needs this cluster's
+  change.** The file in git only seeds new sites; the dev container's volume
+  still had the stock copy. For sites that will use PDF Custom: copy the
+  `make_statement()` branch (or the whole file if the site's copy is stock),
+  set Statement Appearance = PDF Custom, and set Statement Logo to the
+  letterhead **PNG** (612×792).
+- Install/enable oe-module-cmsvt so `table.sql` runs. The production
+  sunflower site already has the table.
+
+Baseline: **reductions only**. sl_eob_search.php: `empty()` 36→35,
+`$_REQUEST` 57→54, and `hipaa_allowemail` on `array|false` 2→1. The first
+pass surfaced about 40 new-code findings in the legacy page (mixed row data,
+`$_REQUEST`, `empty()`, `ez` offsets); all were fixed with typed locals and
+narrowing, not baseline entries.
+
+**Tooling gotcha:** `sites/` in the dev container is a Docker volume, not the
+worktree, so the PHPStan run via `worktree exec` analyzed the volume's stock
+statement.inc.php and reported 0 errors. The commit hook analyzes the staged
+file and caught 8 findings in the new make_statement() branch; they were
+fixed in code (typed narrowing, `CurrentRequest` for form_category). None of
+clusters 1–9 touched `sites/`.
+
+Checks: `php -l` and phpcs clean; isolated tests 5/5; full-codebase phpstan
+0 errors (the commit hook's run, which sees the real file); make_statement()
+exercised directly for no exclusion, below and above the minimum, and no pid.
+Runtime on the cms-rel-840 stack (module registered, table created,
+80 test patients, all removed afterwards; the volume's statement.inc.php
+restored to stock):
+- **Due Pt list:** all 80 rows render to `</html>`; 27 marked
+  email-eligible, as seeded; exactly 1 PRINT badge, on the patient with 2
+  unpaid emails, and that box is unchecked; the patient with 1 unpaid email
+  is not flagged.
+- **Download (appearance 2):** the custom text layout.
+- **PDF download:** a valid PDF.
+- Both runs saved documents and wrote `mail` rows with their document ids.
+- **Email run** (no SMTP configured): one alert listing each patient, no
+  `email` rows, no print.
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
