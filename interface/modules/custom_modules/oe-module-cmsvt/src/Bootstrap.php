@@ -22,6 +22,7 @@ use Cmsvt\OpenEMR\Modules\Customizations\Eligibility\EligibilityProviderOverride
 use Cmsvt\OpenEMR\Modules\Customizations\Encounter\EncounterFormLabels;
 use Cmsvt\OpenEMR\Modules\Customizations\Encounter\EncounterReportOptions;
 use Cmsvt\OpenEMR\Modules\Customizations\Globals\CmsvtGlobals;
+use Cmsvt\OpenEMR\Modules\Customizations\Labs\LabOptions;
 use Cmsvt\OpenEMR\Modules\Customizations\Menu\CmsvtMenu;
 use Cmsvt\OpenEMR\Modules\Customizations\Statements\PatientStatementLog;
 use OpenEMR\Core\OEGlobalsBag;
@@ -34,6 +35,8 @@ use OpenEMR\Events\Command\CommandRunnerFilterEvent;
 use OpenEMR\Events\Core\TemplatePageEvent;
 use OpenEMR\Events\Encounter\EncounterReportFilterEvent;
 use OpenEMR\Events\Globals\GlobalsInitializedEvent;
+use OpenEMR\Events\Orders\Hl7ResultsImportFilterEvent;
+use OpenEMR\Events\Orders\LabResultsListFilterEvent;
 use OpenEMR\Menu\MenuEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
@@ -77,6 +80,15 @@ final readonly class Bootstrap
         $this->eventDispatcher->addListener(
             MenuEvent::MENU_UPDATE,
             (new CmsvtMenu())->apply(...)
+        );
+        $labOptions = new LabOptions($globals);
+        $this->eventDispatcher->addListener(
+            Hl7ResultsImportFilterEvent::EVENT_NAME,
+            $labOptions->applyToImport(...)
+        );
+        $this->eventDispatcher->addListener(
+            LabResultsListFilterEvent::EVENT_NAME,
+            $labOptions->applyToList(...)
         );
         $statementLog = new PatientStatementLog();
         $this->eventDispatcher->addListener(

@@ -70,3 +70,16 @@ Manager runs it on install; it is a no-op where the table already exists.
   with no payment posted on the encounter since. Their Due Pt box starts
   unchecked and the row shows a PRINT badge, so a biller can email the
   checked set, then use Invert Selection to print the rest.
+
+## Lab results
+
+`Labs/LabOptions` listens to `Hl7ResultsImportFilterEvent` and
+`LabResultsListFilterEvent`:
+
+- results that arrive without an order are filed under the lab's visit
+  number (PID-18), without creating an encounter or notifying the provider
+  (all sites);
+- `cmsvt_hl7_match_patient_by_mrn` matches results on the MRN the lab echoes
+  back (PID-3) alone;
+- `cmsvt_lab_results_per_lab` and `cmsvt_lab_list_default_reviewed` set the
+  Electronic Reports defaults.

@@ -30,6 +30,9 @@ final class CmsvtGlobals
     public const COLLECTIONS_HIDE_AGENCY_EXPORT = 'cmsvt_collections_hide_agency_export';
     public const ENCOUNTER_REPORT_HIDE_VISIT_DETAILS = 'cmsvt_encounter_report_hide_visit_details';
     public const ENCOUNTER_DATE_LAST_SEEN = 'cmsvt_encounter_date_last_seen';
+    public const HL7_MATCH_PATIENT_BY_MRN = 'cmsvt_hl7_match_patient_by_mrn';
+    public const LAB_RESULTS_PER_LAB = 'cmsvt_lab_results_per_lab';
+    public const LAB_LIST_DEFAULT_REVIEWED = 'cmsvt_lab_list_default_reviewed';
     // Press Ganey keys keep their 7.0.1 names so existing site values carry over.
     public const PG_CLIENT_ID = 'pg_client_id';
     public const PG_SURVEY_DESIGNATOR = 'pg_survey_designator';
@@ -75,6 +78,24 @@ final class CmsvtGlobals
             GlobalSetting::DATA_TYPE_BOOL,
             '0',
             xl('On the encounter form, label the onset/hospitalization date "Date Last Seen" (e.g. podiatry routine foot care).')
+        ));
+        $service->appendToSection($section, self::HL7_MATCH_PATIENT_BY_MRN, new GlobalSetting(
+            xl('Match Lab Results by MRN Only'),
+            GlobalSetting::DATA_TYPE_BOOL,
+            '0',
+            xl('Match incoming lab results to patients on the MRN the lab sends (PID-3 = External ID) alone, instead of name, DOB and SSN.')
+        ));
+        $service->appendToSection($section, self::LAB_RESULTS_PER_LAB, new GlobalSetting(
+            xl('Default Lab Results Processed Per Lab'),
+            GlobalSetting::DATA_TYPE_NUMBER,
+            '0',
+            xl('Default for "Results Per Lab" on Electronic Reports (1-50). 0 keeps the stock default of 10.')
+        ));
+        $service->appendToSection($section, self::LAB_LIST_DEFAULT_REVIEWED, new GlobalSetting(
+            xl('Electronic Reports Default to Reviewed'),
+            GlobalSetting::DATA_TYPE_BOOL,
+            '0',
+            xl('Open Electronic Reports filtered to reviewed results instead of received, unreviewed ones.')
         ));
         $service->appendToSection($section, self::PG_CLIENT_ID, new GlobalSetting(
             xl('Press Ganey Client ID'),
