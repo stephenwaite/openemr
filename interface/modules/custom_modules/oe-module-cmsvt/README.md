@@ -83,3 +83,15 @@ Manager runs it on install; it is a no-op where the table already exists.
   back (PID-3) alone;
 - `cmsvt_lab_results_per_lab` and `cmsvt_lab_list_default_reviewed` set the
   Electronic Reports defaults.
+
+## Claims (837P)
+
+`Billing/ClaimOptions` supplies `Billing/CmsvtClaimRules` through
+`Claim837PRulesEvent`: Vermont Medicaid carrier codes for other payers,
+other-payer skips (two Medicare policies, VA Community Care), Medicare copay
+as coinsurance for Medicaid, tertiary OA-23, CLIA for waived tests, EPSDT as
+a note, and podiatry routine foot care rules. Per-site settings:
+`cmsvt_claim_routine_foot_care_npis`, `cmsvt_claim_ndc_skip_payer_ids`,
+`cmsvt_claim_closed_facility_npis` and `cmsvt_claim_rendering_provider_id`
+(through `ClaimProviderFilterEvent`). Uploads to BCBS Vermont's MOVEit server
+are renamed `007111NN.x12` through `X12RemoteFilenameFilterEvent`.

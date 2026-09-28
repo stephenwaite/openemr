@@ -33,6 +33,10 @@ final class CmsvtGlobals
     public const HL7_MATCH_PATIENT_BY_MRN = 'cmsvt_hl7_match_patient_by_mrn';
     public const LAB_RESULTS_PER_LAB = 'cmsvt_lab_results_per_lab';
     public const LAB_LIST_DEFAULT_REVIEWED = 'cmsvt_lab_list_default_reviewed';
+    public const CLAIM_ROUTINE_FOOT_CARE_NPIS = 'cmsvt_claim_routine_foot_care_npis';
+    public const CLAIM_NDC_SKIP_PAYER_IDS = 'cmsvt_claim_ndc_skip_payer_ids';
+    public const CLAIM_CLOSED_FACILITY_NPIS = 'cmsvt_claim_closed_facility_npis';
+    public const CLAIM_RENDERING_PROVIDER_ID = 'cmsvt_claim_rendering_provider_id';
     // Press Ganey keys keep their 7.0.1 names so existing site values carry over.
     public const PG_CLIENT_ID = 'pg_client_id';
     public const PG_SURVEY_DESIGNATOR = 'pg_survey_designator';
@@ -96,6 +100,30 @@ final class CmsvtGlobals
             GlobalSetting::DATA_TYPE_BOOL,
             '0',
             xl('Open Electronic Reports filtered to reviewed results instead of received, unreviewed ones.')
+        ));
+        $service->appendToSection($section, self::CLAIM_ROUTINE_FOOT_CARE_NPIS, new GlobalSetting(
+            xl('Claims: Routine Foot Care Billing NPIs'),
+            GlobalSetting::DATA_TYPE_TEXT,
+            '',
+            xl('Billing facility NPIs (comma-separated) whose claims follow the podiatry rules: date last seen (DTP*304), referring/supervising provider, x-ray referrer and Q7-Q9 modifier checks.')
+        ));
+        $service->appendToSection($section, self::CLAIM_NDC_SKIP_PAYER_IDS, new GlobalSetting(
+            xl('Claims: Payers Without NDCs'),
+            GlobalSetting::DATA_TYPE_TEXT,
+            '',
+            xl('Payer IDs (comma-separated) that must not receive NDC drug identification (loop 2410) on claims.')
+        ));
+        $service->appendToSection($section, self::CLAIM_CLOSED_FACILITY_NPIS, new GlobalSetting(
+            xl('Claims: Closed Service Facility NPIs'),
+            GlobalSetting::DATA_TYPE_TEXT,
+            '',
+            xl('Service facility NPIs (comma-separated) that are closed; claims using one get a warning in the claim log.')
+        ));
+        $service->appendToSection($section, self::CLAIM_RENDERING_PROVIDER_ID, new GlobalSetting(
+            xl('Claims: Bill Under Provider'),
+            GlobalSetting::DATA_TYPE_NUMBER,
+            '0',
+            xl('User ID of the provider every claim is billed under ("incident to" billing). 0 bills under each encounter\'s provider.')
         ));
         $service->appendToSection($section, self::PG_CLIENT_ID, new GlobalSetting(
             xl('Press Ganey Client ID'),

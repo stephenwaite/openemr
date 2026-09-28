@@ -12327,11 +12327,6 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../src/Billing/Claim.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Binary operation "\\-" between \\(array\\|float\\|int\\<0, max\\>\\) and mixed results in an error\\.$#',
-    'count' => 2,
-    'path' => __DIR__ . '/../../src/Billing/Claim.php',
-];
-$ignoreErrors[] = [
     'message' => '#^Binary operation "\\." between "\\\\nError\\:" and mixed results in an error\\.$#',
     'count' => 2,
     'path' => __DIR__ . '/../../src/Billing/EDI270.php',
@@ -12783,12 +12778,12 @@ $ignoreErrors[] = [
 ];
 $ignoreErrors[] = [
     'message' => '#^Binary operation "\\." between mixed and \'\\*\' results in an error\\.$#',
-    'count' => 2,
+    'count' => 1,
     'path' => __DIR__ . '/../../src/Billing/X125010837P.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Binary operation "\\." between non\\-falsy\\-string and mixed results in an error\\.$#',
-    'count' => 22,
+    'count' => 20,
     'path' => __DIR__ . '/../../src/Billing/X125010837P.php',
 ];
 $ignoreErrors[] = [

@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Cmsvt\OpenEMR\Modules\Customizations;
 
 use Cmsvt\OpenEMR\Modules\Customizations\Billing\BillingManagerDefaults;
+use Cmsvt\OpenEMR\Modules\Customizations\Billing\ClaimOptions;
 use Cmsvt\OpenEMR\Modules\Customizations\Billing\CollectionsReportOptions;
 use Cmsvt\OpenEMR\Modules\Customizations\Command\IncreaseFeesCommand;
 use Cmsvt\OpenEMR\Modules\Customizations\Command\UpdateX12SftpPasswordCommand;
@@ -27,10 +28,13 @@ use Cmsvt\OpenEMR\Modules\Customizations\Menu\CmsvtMenu;
 use Cmsvt\OpenEMR\Modules\Customizations\Statements\PatientStatementLog;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\Billing\BillingManagerDefaultsFilterEvent;
+use OpenEMR\Events\Billing\Claim837PRulesEvent;
+use OpenEMR\Events\Billing\ClaimProviderFilterEvent;
 use OpenEMR\Events\Billing\CollectionsReportFilterEvent;
 use OpenEMR\Events\Billing\EligibilityRequestFilterEvent;
 use OpenEMR\Events\Billing\PatientStatementSavedEvent;
 use OpenEMR\Events\Billing\StatementPrintSuggestionFilterEvent;
+use OpenEMR\Events\Billing\X12RemoteFilenameFilterEvent;
 use OpenEMR\Events\Command\CommandRunnerFilterEvent;
 use OpenEMR\Events\Core\TemplatePageEvent;
 use OpenEMR\Events\Encounter\EncounterReportFilterEvent;
@@ -80,6 +84,19 @@ final readonly class Bootstrap
         $this->eventDispatcher->addListener(
             MenuEvent::MENU_UPDATE,
             (new CmsvtMenu())->apply(...)
+        );
+        $claimOptions = new ClaimOptions($globals);
+        $this->eventDispatcher->addListener(
+            Claim837PRulesEvent::EVENT_NAME,
+            $claimOptions->applyRules(...)
+        );
+        $this->eventDispatcher->addListener(
+            ClaimProviderFilterEvent::EVENT_NAME,
+            $claimOptions->applyProvider(...)
+        );
+        $this->eventDispatcher->addListener(
+            X12RemoteFilenameFilterEvent::EVENT_NAME,
+            $claimOptions->applyRemoteFilename(...)
         );
         $labOptions = new LabOptions($globals);
         $this->eventDispatcher->addListener(

@@ -219,7 +219,8 @@ class GeneratorX12Direct extends AbstractGenerator implements GeneratorInterface
         // Tell our batch that we've processed this claim
         $batch->addClaim($claim);
 
-        $log = 'X12Direct ' . $claim->action . ' ';
+        $claimId = $claim->getId();
+        $log = 'X12Direct ' . $claim->action . ' ' . (is_scalar($claimId) ? $claimId : '') . ' ';
         $is_last_claim = $claim->getIsLast();
         $HLCount = count($batch->getClaims());
         if ($HLCount > 1) {

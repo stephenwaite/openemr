@@ -26407,11 +26407,6 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../src/Billing/BillingProcessor/X12RemoteTracker.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Parameter \\#1 \\$remote_file of method phpseclib3\\\\Net\\\\SFTP\\:\\:put\\(\\) expects string, mixed given\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../src/Billing/BillingProcessor/X12RemoteTracker.php',
-];
-$ignoreErrors[] = [
     'message' => '#^Parameter \\#1 \\.\\.\\.\\$arrays of function array_merge expects array, mixed given\\.$#',
     'count' => 4,
     'path' => __DIR__ . '/../../src/Billing/BillingProcessor/X12RemoteTracker.php',
@@ -26513,7 +26508,7 @@ $ignoreErrors[] = [
 ];
 $ignoreErrors[] = [
     'message' => '#^Parameter \\#1 \\$userId of method OpenEMR\\\\Services\\\\UserService\\:\\:getUser\\(\\) expects int\\|string, mixed given\\.$#',
-    'count' => 4,
+    'count' => 3,
     'path' => __DIR__ . '/../../src/Billing/Claim.php',
 ];
 $ignoreErrors[] = [
