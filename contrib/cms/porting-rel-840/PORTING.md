@@ -987,6 +987,68 @@ Checks: `php -l` and phpcs clean; formatter tests 7/7; full-codebase phpstan
 4 items and inserts Press Ganey after Encounters; the template renders through
 `@cmsvt` and escapes; the repository queries execute.
 
+### Cluster 9 — C2 ERA/EOB posting (2026-09-28)
+
+Sources: 3139ecf53f 8ff52e17b0 1d49b426be d5d0e13370 e7ddfe4a33 dfebace7c1
+db1b8f67be 7298f967d5 ead236a826 bb48ec494a 64e57f0e59 (ParseERA.php);
+06d16568f8 5885a91892 cce7d64502 (sl_eob_process.php, delta after the
+rebase); 09533320e5 9ef4b7795b ca5740e029 (sl_eob_invoice.php); 0ac52119cb
+(InvoiceSummary.php).
+
+**Ported:**
+- **ParseERA.php:**
+  - The MOA (claim-level outpatient adjudication) warning is removed; MOA is
+    now ignored silently, as in production.
+  - **SVC06 restatements:** an N4 (NDC) restatement warns and keeps the
+    procedure code from SVC01. A modifier `51` the payer added to SVC01 is
+    removed, so the line matches our billed code. Otherwise upstream's "Payer
+    is restating…" warning stays. **Fix vs production:** production dropped
+    the *last* SVC01 element whenever `51` appeared anywhere, and it ran
+    that branch for every non-empty SVC01, so the restating warning never
+    fired. Now only a `51` in a modifier position (index ≥ 2) is removed.
+  - **Any SVC qualifier is accepted** (HC, N4 and others). This keeps
+    production's behavior: its check `!($q != 'HC' || $q != 'N4')` was
+    always false. Upstream rejects everything but HC with "SVC segment has
+    unexpected qualifier". ⚠ **Flagged for Stephen:** if only HC and N4
+    should pass, it's a one-line check.
+  - **Negative CO adjustments are posted as reported**, not inverted with
+    a warning (production commented the inversion out).
+- **sl_eob_process.php, reimplemented from 06d16568f8/5885a91892:** CLP02
+  (claim status) is unreliable for COB. If the reported level already has
+  postings for the encounter in `ar_activity`, the ERA is posted to the next
+  level that has none (only moving up), with an info line saying so.
+  cce7d64502's `$mods[$v] ?? []` guard is already in rel-840, so it is not
+  ported.
+- **sl_eob_invoice.php:**
+  - Ins2/Ins3 radios are shown only when the patient has that payer on the
+    service date (`SLEOB::arGetPayerID`).
+  - An invoice with no line items no longer trips "Nothing to Post" (this is
+    production's `pfxFlag`, renamed `hasLineItems`).
+  - The **Save Current** button is restored. The server already handles
+    `form_save == 1`.
+- **InvoiceSummary.php:** payer names in adjustment reasons ("Ins1" →
+  insurer) use the policy in effect on the **encounter date**, not the
+  latest row (joins `form_encounter`, filters `date`/`date_end`).
+
+**Claim balancing: no code change, deployment step instead.** Production
+still computed the balancing totals but commented out everything that acted
+on them (the artificial 'Claim' line and the CR/Balancing adjustment), and
+restricted the counted adjustments to CO-45/253/59, OA-253 and
+PI-253/59/B10. Net effect: no balancing at all. rel-840 gates balancing on
+`force_claim_balancing`. **Deployment, every CMS site: set Administration →
+Globals → Billing → "Force claim balancing" OFF** (the upstream default is
+ON). The adjustment-code list only fed the dead totals, so it is dropped.
+
+Baseline: **reductions only.** ParseERA.php loses 3 entries (the MOA and
+Negative-CO warnings, and `0 - mixed`). Two new-code findings (the
+`intval(...)` callback and a `.=` on mixed warnings) were fixed in code after
+the baseline script refused them.
+
+Checks: `php -l` and phpcs clean; full-codebase phpstan 0 errors. Runtime:
+an encounter dated 2025-03-01, with an old policy ending 2025-06-30 and a
+new one starting 2025-07-01, shows the **old** payer in the adjustment
+reason (test rows removed afterwards).
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
