@@ -104,6 +104,8 @@ class ProcedureService extends BaseService
         ,porder.order_intent
         ,porder.location_id
         ,porder.specimen_fasting
+        ,porder.order_external_id
+        ,porder.order_date_transmitted
 
         ,preport.report_date
         ,preport.procedure_report_id
@@ -185,6 +187,8 @@ class ProcedureService extends BaseService
             ,order_intent
             ,location_id
             ,specimen_fasting
+            ,external_id AS order_external_id
+            ,date_transmitted AS order_date_transmitted
         FROM procedure_order
         WHERE activity = 1
     ) porder
@@ -368,6 +372,8 @@ class ProcedureService extends BaseService
                     ,'performer_type' => $record['performer_type'] ?? null
                     ,'order_intent' => $record['order_intent'] ?? null
                     ,'specimen_fasting' => $record['specimen_fasting'] ?? null
+                    ,'external_id' => $record['order_external_id'] ?? null
+                    ,'date_transmitted' => $record['order_date_transmitted'] ?? null
                     ,'reports' => []
                 ];
 
