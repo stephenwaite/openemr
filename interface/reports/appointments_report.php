@@ -426,10 +426,6 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
 <table class='table'>
 
     <thead class='thead-light'>
-        <th><a href="nojs.php" onclick="return dosort('doctor')"
-        <?php echo ($form_orderby == "doctor") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('Provider'); ?>
-        </a></th>
-
         <th <?php echo $chk_day_of_week ? '' : 'style="display:none;"' ?>>
             <?php
                 echo xlt('DOW');
@@ -457,9 +453,11 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
         <?php echo ($form_orderby == "pubpid") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('ID'); ?></a>
         </th>
 
-            <th><?php echo xlt('Home'); //Sorting by phone# not really useful ?></th>
+        <th><?php echo xlt('DOB'); ?></th>
 
-                <th><?php echo xlt('Cell'); //Sorting by phone# not really useful ?></th>
+        <th><?php echo xlt('Phone'); //Sorting by phone# not really useful ?></th>
+
+        <th><?php echo xlt('Pt Due'); ?></th>
 
         <th><a href="nojs.php" onclick="return dosort('type')"
         <?php echo ($form_orderby == "type") ? " style=\"color: var(--success)\"" : ""; ?>><?php echo xlt('Type'); ?></a>
@@ -472,7 +470,6 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
     <tbody>
         <!-- added for better print-ability -->
     <?php } // end not csv export
-    $lastdocname = "";
     //Appointment Status Checking
     $form_apptstatus = $_POST['form_apptstatus'];
     $form_apptcat = null;
@@ -506,24 +503,20 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
     if (!empty($_POST['form_csvexport'])) {
         // include provider as well
         // RM generate csv file with same column headers row as used in the report itself
-        $fields = ['Provider','Date', 'Time', 'Patient', 'Address','DOB', 'Type', 'Status'];
+        // Reminder-call list: first name and last initial, home phone, date and start time
+        $fields = ['Contact', 'Phone', 'Start Time'];
         $csvfields = [];
-        $iMax = count($appointments);
-        for ($i = 0; $i < $iMax; ++$i) {
-              $appointments[$i]["Provider"] = $appointments[$i]["ulname"] . ',' . $appointments[$i]["ufname"] . ' ' .  $appointments[$i]["umname"] ;
-              $csvfields[$i]["Provider"] = $appointments[$i]["Provider"] ;
-              $csvfields[$i]["Date"] = $appointments[$i]["pc_eventDate"] ;
-              $csvfields[$i]["Time"] = $appointments[$i]["pc_startTime"] ;
-              $csvfields[$i]["Patient"] = $appointments[$i]["fname"] . " " .  $appointments[$i]["lname"] ;
-            if ($chk_show_address) {
-                  $csvfields[$i]["Address"] = $appointments[$i]["address1"];
-                if ($appointments[$i]["address2"]) {
-                    $csvfields[$i]["Address"]  .=  ", "  .  $appointments[$i]["address2"]  ;
-                }
-            }
-            $csvfields[$i]["DOB"] = $appointments[$i]["DOB"] ;
-            $csvfields[$i]["Type"] = xl_appt_category($appointments[$i]['pc_catname']);
-            $csvfields[$i]["Status"] = getListItemTitle('apptstat', $appointments[$i]['pc_apptstatus']);
+        foreach ($appointments as $appointment) {
+            $firstName = is_string($appointment['fname'] ?? null) ? $appointment['fname'] : '';
+            $lastName = is_string($appointment['lname'] ?? null) ? $appointment['lname'] : '';
+            $eventDate = is_string($appointment['pc_eventDate'] ?? null) ? $appointment['pc_eventDate'] : '';
+            $startTime = is_string($appointment['pc_startTime'] ?? null) ? $appointment['pc_startTime'] : '';
+            $eventTimestamp = strtotime($eventDate);
+            $csvfields[] = [
+                'Contact' => trim($firstName . ' ' . substr($lastName, 0, 1)),
+                'Phone' => is_string($appointment['phone_home'] ?? null) ? $appointment['phone_home'] : '',
+                'Start Time' => ($eventTimestamp === false ? $eventDate : date('m/d/Y', $eventTimestamp)) . ' ' . $startTime,
+            ];
         }
         try {
             $spreadsheet = new SpreadSheetService($csvfields, $fields, 'appts');
@@ -558,16 +551,25 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
             $pid_list[] = $appointment['pid'];
             $apptdate_list[] = $appointment['pc_eventDate'];
             $patient_id = $appointment['pid'];
-            $docname  = $appointment['ulname'] . ', ' . $appointment['ufname'] . ' ' . $appointment['umname'];
+            $cellPhone = is_string($appointment['phone_cell'] ?? null) ? $appointment['phone_cell'] : '';
+            $homePhone = is_string($appointment['phone_home'] ?? null) ? $appointment['phone_home'] : '';
+            $apptPhone = substr($cellPhone !== '' ? $cellPhone : $homePhone, 0, 12);
+            // Patient balance and primary insurer for this row (open slots have no patient).
+            $patientDue = '';
+            $primaryInsurer = '';
+            if (is_numeric($patient_id) && (int) $patient_id > 0) {
+                // "+ 0.0" turns a -0.0 balance into 0.00 rather than -0.00
+                $patientDue = '$' . number_format((float) get_patient_balance((int) $patient_id, false) + 0.0, 2);
+                $primaryInsurance = getInsuranceData((int) $patient_id, "primary");
+                $insurer = is_array($primaryInsurance) ? getInsuranceProvider($primaryInsurance['provider'] ?? '') : '';
+                $primaryInsurer = is_string($insurer) ? $insurer : '';
+            }
 
             $errmsg  = "";
             $pc_apptstatus = $appointment['pc_apptstatus'];
             ?>
 
             <tr valign='top' id='p1.<?php echo attr($patient_id) ?>' bgcolor='<?php echo attr($bgcolor ?? ''); ?>'>
-            <td class="detail">&nbsp;<?php echo ($docname == $lastdocname) ? "" : text($docname) ?>
-            </td>
-
             <td class="detail" <?php echo $chk_day_of_week ? '' : 'style="display:none;"' ?>>
                 <?php
                     echo text(date('D', strtotime((string) $appointment['pc_eventDate'])));
@@ -597,9 +599,11 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
 
             <td class="detail">&nbsp;<?php echo text($appointment['pubpid']) ?></td>
 
-            <td class="detail">&nbsp;<?php echo text($appointment['phone_home']) ?></td>
+            <td class="detail">&nbsp;<?php echo text(oeFormatShortDate($appointment['DOB'])) ?></td>
 
-            <td class="detail">&nbsp;<?php echo text($appointment['phone_cell']) ?></td>
+            <td class="detail">&nbsp;<?php echo text($apptPhone) ?></td>
+
+            <td class="detail">&nbsp;<?php echo text($patientDue) ?></td>
 
             <td class="detail">&nbsp;<?php echo text(xl_appt_category($appointment['pc_catname'])) ?></td>
 
@@ -621,11 +625,12 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
                 }
                 ?>
                 <?php
-                if ($patient_id && (!empty($rems) || !empty($appointment['pc_hometext']))) { // Not display of available slot or not showing reminders and comments empty ?>
+                if ($patient_id && (!empty($rems) || !empty($appointment['pc_hometext']) || $primaryInsurer !== '')) { // Not display of available slot or not showing reminders and comments empty ?>
         <tr valign='top' id='p2.<?php echo attr($patient_id) ?>' >
             <td colspan='<?php echo $showDate ? '"3"' : '"2"' ?>' class="detail"></td>
         <td colspan='<?php echo ($incl_reminders ? "3" : "6") ?>' class="detail" align='left'>
                     <?php
+                    echo '<strong>' . xlt('Primary Ins') . '</strong>: ' . ($primaryInsurer !== '' ? text($primaryInsurer) : xlt('Unassigned')) . '&nbsp; ';
                     if (trim((string) $appointment['pc_hometext'])) {
                         echo '<strong>' . xlt('Comments') . '</strong>: ' . text($appointment['pc_hometext']);
                     }
@@ -646,7 +651,6 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_orderby'])) {
                     <?php
                 } // End of row 2 display
 
-                $lastdocname = $docname;
         }
     // assign the session key with the $pid_list array - note array might be empty -- handle on the printed_fee_sheet.php page.
         $session->set('pidList', $pid_list);

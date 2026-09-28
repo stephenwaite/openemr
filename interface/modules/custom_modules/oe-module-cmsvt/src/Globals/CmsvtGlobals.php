@@ -30,6 +30,9 @@ final class CmsvtGlobals
     public const COLLECTIONS_HIDE_AGENCY_EXPORT = 'cmsvt_collections_hide_agency_export';
     public const ENCOUNTER_REPORT_HIDE_VISIT_DETAILS = 'cmsvt_encounter_report_hide_visit_details';
     public const ENCOUNTER_DATE_LAST_SEEN = 'cmsvt_encounter_date_last_seen';
+    // Press Ganey keys keep their 7.0.1 names so existing site values carry over.
+    public const PG_CLIENT_ID = 'pg_client_id';
+    public const PG_SURVEY_DESIGNATOR = 'pg_survey_designator';
 
     public function register(GlobalsInitializedEvent $event): void
     {
@@ -72,6 +75,18 @@ final class CmsvtGlobals
             GlobalSetting::DATA_TYPE_BOOL,
             '0',
             xl('On the encounter form, label the onset/hospitalization date "Date Last Seen" (e.g. podiatry routine foot care).')
+        ));
+        $service->appendToSection($section, self::PG_CLIENT_ID, new GlobalSetting(
+            xl('Press Ganey Client ID'),
+            GlobalSetting::DATA_TYPE_TEXT,
+            '',
+            xl('Client ID written to every row of the Press Ganey survey export.')
+        ));
+        $service->appendToSection($section, self::PG_SURVEY_DESIGNATOR, new GlobalSetting(
+            xl('Press Ganey Survey Designator'),
+            GlobalSetting::DATA_TYPE_TEXT,
+            '',
+            xl('Survey designator written to every row of the Press Ganey survey export.')
         ));
     }
 }

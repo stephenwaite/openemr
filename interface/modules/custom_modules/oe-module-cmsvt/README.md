@@ -38,3 +38,20 @@ runs in one transaction, so it either completes or changes nothing.
 php bin/console cmsvt:fees-increase --site=default --percent=5 --dry-run
 php bin/console cmsvt:fees-increase --site=default --percent=5
 ```
+
+## Reports
+
+### Press Ganey survey export
+
+`public/press_ganey_export.php` (Reports → Visits → Press Ganey Export,
+`encounters/coding_a` ACL) writes encounters in Press Ganey's upload CSV
+layout. The Client ID and Survey Designator are the `pg_client_id` and
+`pg_survey_designator` settings in Administration → Globals → CMS Vermont;
+the keys keep their 7.0.1 names so existing values carry over. The field
+layout is pinned by `tests/Tests/Isolated/Modules/Cmsvt/PressGaneyRecordFormatterTest.php`.
+
+## Menu
+
+The module adjusts the standard menu through `MenuEvent`: Payment, Posting
+Payments, EDI History and Electronic Reports open in their own tabs (`pay`,
+`edi`, `edih`, `lab`), and it adds the Press Ganey export.

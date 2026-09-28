@@ -22,6 +22,7 @@ use Cmsvt\OpenEMR\Modules\Customizations\Eligibility\EligibilityProviderOverride
 use Cmsvt\OpenEMR\Modules\Customizations\Encounter\EncounterFormLabels;
 use Cmsvt\OpenEMR\Modules\Customizations\Encounter\EncounterReportOptions;
 use Cmsvt\OpenEMR\Modules\Customizations\Globals\CmsvtGlobals;
+use Cmsvt\OpenEMR\Modules\Customizations\Menu\CmsvtMenu;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\Billing\BillingManagerDefaultsFilterEvent;
 use OpenEMR\Events\Billing\CollectionsReportFilterEvent;
@@ -30,6 +31,7 @@ use OpenEMR\Events\Command\CommandRunnerFilterEvent;
 use OpenEMR\Events\Core\TemplatePageEvent;
 use OpenEMR\Events\Encounter\EncounterReportFilterEvent;
 use OpenEMR\Events\Globals\GlobalsInitializedEvent;
+use OpenEMR\Menu\MenuEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final readonly class Bootstrap
@@ -68,6 +70,10 @@ final readonly class Bootstrap
         $this->eventDispatcher->addListener(
             TemplatePageEvent::RENDER_EVENT,
             (new EncounterFormLabels($globals))->apply(...)
+        );
+        $this->eventDispatcher->addListener(
+            MenuEvent::MENU_UPDATE,
+            (new CmsvtMenu())->apply(...)
         );
     }
 
