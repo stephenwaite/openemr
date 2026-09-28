@@ -862,6 +862,57 @@ Runtime: the listener sets the flag only for `newpatient/common.php` with the
 global on; the partial renders "Onset/hosp. date:" / "Date Last Seen:"
 accordingly.
 
+### Cluster 7 — C6 Fee sheet & fee schedule (2026-09-28)
+
+Sources: 96518400f3, b551ae2b82 (fee_sheet_queries.php); 46d46dca3c (FeeSheet
+drug units); c510e6a841 (load_fee_schedule.php); 28fffc3e45
+(update_fee_schedule_by_percentage.php); 37eb408468, ca5740e029, 3a7952ffb7
+(printed forms: dropped).
+
+**Ported:**
+- **Fee-sheet review prices at today's fee** (fee_sheet_queries.php
+  `fee_sheet_items()`): each procedure's fee is the current price at the
+  patient's price level × units, falling back to the stored billing fee.
+  The code is matched on its first modifier. **Differs from production:**
+  the price comes from a correlated subquery that picks the code like
+  `FeeSheet` does (active first, then lowest id; `pr_selector = ''`).
+  Production's LEFT JOINs still repeated the billing line when a code had
+  more than one codes/prices row. Runtime-tested: an active code plus an
+  inactive duplicate gives one line at 100 × 2 = 200.
+- **Drug-code default units → data, no code** (Stephen: data). rel-840's
+  `FeeSheet::addServiceLineItem()` already defaults a newly added service's
+  units from `codes.units`, and the fee sheet adds picked codes without
+  units. Production's hardcoded `match` also forced those units over
+  whatever was entered; with `codes.units` it is a default the user can
+  change. **Deployment:** in Administration → Codes on each site, set Units:
+  C9257 = 5, Q5124 = 5, J0178 = 2, J0177 = 8, J2777 = 60.
+- **load_fee_schedule.php** (upstream contrib script): production's
+  comma delimiter and live price updates become **opt-in env vars**, and
+  upstream defaults are unchanged: `OPENEMR_LOAD_FEE_SCHEDULE_DELIMITER=comma`,
+  `OPENEMR_LOAD_FEE_SCHEDULE_UPDATE_PRICES=1`. The update uses
+  `QueryUtils::sqlStatementThrowException`. **As in production it sets
+  every price level of the code** (`WHERE pr_id = ?`); flagging it in case
+  that isn't intended.
+- **update_fee_schedule_by_percentage.php → console command
+  `cmsvt:fees-increase`** in oe-module-cmsvt (`--percent`, `--dry-run`).
+  **Fixes versus production:**
+  - each price level is updated on its own row (production's
+    `WHERE pr_id = ?` set every level to whichever row was processed last);
+  - `codes.fee` follows the standard level only;
+  - the whole update runs in one transaction (production caught exceptions
+    and continued, which could leave prices half raised).
+  Runtime-tested on temporary rows: a dry run changes nothing; the real run
+  gives 80→88, 100→110, 999→1099; codes.fee = 110.
+
+**Dropped (Stephen):** the four custom printed fee sheet and intake forms
+(printed_fee_sheet_{7400,default}.php, printed_intake_{7400,default}.php).
+The appointments report's site-specific links to them are dropped in
+cluster 8.
+
+Checks: `php -l` and phpcs clean; full-codebase phpstan 0 errors, no baseline
+changes. (One redundant `is_array()` in the new command was fixed after the
+baseline script refused it.)
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
