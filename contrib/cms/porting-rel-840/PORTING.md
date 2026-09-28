@@ -752,6 +752,85 @@ Checks: `php -l` and phpcs clean on all 13 files. Runtime-checked on the
 test DB: both events unchanged with no listener; the listeners honor the
 globals (-1/0/2; hide 0/1); the dated insurance query executes.
 
+### Cluster 5 — C9 Chart review / records-review user / reports (2026-09-28)
+
+Sources: e18d197757 f424bbf754 3b46580887 e46331b860 (demographics.php, stats.php);
+373fd020fe (edit_globals.php, PatientFilter); 4694550afd (chart_review.json);
+c5e2d397c3 116e470946 333d69ba7d caecf138cd 7925b417b5 8513e439ee (custom/patient
+report, dictation); 1b1fc1aff6 (report.inc.php); 773e6dbb82 (encounter report
+gating); bcfa780603 86f2daa393 (patient_data_template.php).
+
+**Records-review user → ACL permissions, not username checks** (Stephen,
+2026-09-28). No CMS code and no username global. rel-840 already covers
+3 of production's 4 username checks through permissions:
+
+| Production username check | rel-840 permission that covers it |
+|---|---|
+| no Edit on the Demographics card (3b46580887, item 3) | `DemographicsViewCard` shows Edit only with `patients/demo` write |
+| no Edit on the Insurance card (item 3) | `InsuranceViewCard`: `patients/demo` write |
+| hide the Appointments card and appointment data | card and data render only with `patients/appt` |
+| no Edit on the Immunizations card | **not covered in rel-840.** The card hardcodes `'auth' => true`. Upstream master gates the page (78bd686104, #14231); it arrives with the 8.5.0 upgrade (Stephen: don't port). Until then the reviewer sees the Edit button. |
+| reviewer must be admin/super to open their own user settings | dropped: user settings can't grant access |
+
+**Deployment:** put the records-review user in an ACL group **without
+`patients/appt`** and with **`patients/demo` view only** (no write).
+Assign it the `chart_review` menu.
+
+**Ported:**
+- **PatientFilter allow-list** (Stephen: `whitelist`): production silently
+  inverted the `blacklist` key (the user saw only the listed pids). Now a
+  config entry with **`whitelist`** allows only those pids, and `blacklist`
+  keeps upstream's meaning. The full pid list is loaded at most once per
+  request (production re-queried it on every filter call). Entries are
+  narrowed with `is_array()`. **Deployment:** move the reviewer's pids from
+  `blacklist` to `whitelist` in `PatientFilter/config/blacklist.php`
+  (e.g. the output of `contrib/util/chart_review_pids.php`).
+- `sites/default/documents/custom_menus/chart_review.json`: copied from
+  production (Finder and patient report only). Reformatted to the repo's
+  4-space JSON style with a final newline (the pretty-format-json and
+  end-of-file hooks require it); content identical.
+- **Encounter report "dier" gating → per-site global** (item 7). Core: new
+  `OpenEMR\Events\Encounter\EncounterReportFilterEvent`
+  (`showVisitDetails`), dispatched once in `newpatient_report()`. When it's
+  off, category, reason, provider, referring provider and POS are blanked
+  (reusing upstream's no-access path) and the facility stays, as in
+  production. Module: `cmsvt_encounter_report_hide_visit_details`
+  (site `default` → on).
+- custom_report.php, **reimplemented rather than copied**. Encounter and
+  dictation forms have no headings; the encounter shows "Date of Service (…)
+  Provider: …"; other forms keep their heading but no date; no procedure
+  lines; no signature line; `.text` 1rem; 3em padding; DOB in the title
+  (`oeFormatShortDate`; production used a date-time formatter on a date).
+  **Production had an accidental bug:** a dropped closing brace (patched
+  with an extra `}` at end of file) nested all rendering inside
+  `if (!empty($dateres['date']))`, so any form whose encounter had no date
+  didn't render at all. Not ported.
+- patient_report.php: Demographics and Billing unchecked by default; the
+  encounter form list is in reverse registry priority.
+- report.inc.php `getRecInsuranceData()`: only policies that haven't ended.
+- dictation report: h4 headings; `patient_data_template.php`: `fas fa-plus`;
+  demographics: the new-appointment dialog is 875px tall (was 500).
+
+Baseline: **reductions only**, 9 in all. 4 PatientFilter/Module.php
+blocks removed (narrowing the config entries fixed them); custom_report.php
+counts lowered (sqlStatement 5→4, sqlFetchArray 5→4, `text()` 27→24,
+`xlt()` 3→2, `form_name` offset 2→1) because the procedure block, signature
+and heading were removed. Two new errors from my own code (array_diff over
+`list<mixed>`; an untyped DOB join) were fixed in the code. Applied with
+`../cms-porting/baseline-reduce.py`, which reads a
+`phpstan --error-format=json` run, removes unmatched blocks, lowers
+decreased counts, and **refuses** any increase or real error. A final run
+reports 0 errors.
+
+Checks: `php -l` and phpcs clean on all touched files; full-codebase
+phpstan 0 errors.
+
+**Dropped:**
+- library/globals.inc.php audit/print-log default changes: decision 5,
+  set per site in Globals.
+- demographics_full.php blank line.
+- The immunizations change: see the table above (8.5.0).
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
@@ -759,3 +838,5 @@ globals (-1/0/2; hide 0/1); the dated insurance query executes.
 | `site_id == '200'`: fixed eligibility provider | EDI270.php | `cmsvt_elig_provider_id`, `cmsvt_elig_receiver_name` | 3 |
 | `site_id == '200'`: Billing Manager default = last 2 months (others: all unbilled) | billing_report.php | `cmsvt_billing_manager_dos_months` (200 → 2, others → 0) | 4 |
 | `site_id != '1400'`: show Export to Collections | collections_report.php | `cmsvt_collections_hide_agency_export` (1400 → on) | 4 |
+| `site_id != 'default'`: show visit details in the encounter report | newpatient/report.php | `cmsvt_encounter_report_hide_visit_details` (default → on) | 5 |
+| `authUser == '<records-review-user>'` (records-review user): 4 checks | demographics.php, stats.php, edit_globals.php | **not a global:** the reviewer's ACL group (see cluster 5) | 5 |
