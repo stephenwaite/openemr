@@ -25,6 +25,8 @@
  * @package ediHistory
  */
 
+use OpenEMR\Core\OEGlobalsBag;
+
 /* ========= notes
  * EDI files may contain multiple ISA envelopes.  Each ISA envelope is treated as a "file" here.
  * The same file name may have one or more ISA control numbers
@@ -296,7 +298,11 @@ function edih_837_csv_data($obj837)
             //
             $stsegs = array_slice($seg_ar, $st['start'], $st['count']);
             $stacct = array_values(array_unique($st['acct']));
-            $clmct = count($stacct);
+            // With one 837 per insurance company, every claim sits in the same ST--SE
+            // as its own HL 22 loop, so walk the transaction set once instead of once
+            // per account (which would repeat each claim).
+            $genX12ByInsCo = OEGlobalsBag::getInstance()->getBoolean('gen_x12_based_on_ins_co');
+            $clmct = $genX12ByInsCo ? 1 : count($stacct);
             // $st['icn'] is the ISA control number for the ISA envelope containing the ST--SE
             $date = $env_ar['ISA'][$st['icn']]['date'];
             $stn = $st['stn'];
@@ -316,7 +322,16 @@ function edih_837_csv_data($obj837)
                     $cdx = 0;
                     $hl = '';
                     foreach ($trans as $seg) {
-                        if (strncmp((string) $seg, 'BHT' . $de, 4) === 0) {
+                        if ($genX12ByInsCo) {
+                            $segStr = is_string($seg) ? $seg : '';
+                            $sep = is_string($de) ? $de : '';
+                            $startsClaim = $sep !== ''
+                                && str_starts_with($segStr, 'HL' . $sep)
+                                && (explode($sep, $segStr)[3] ?? '') === '22';
+                        } else {
+                            $startsClaim = strncmp((string) $seg, 'BHT' . $de, 4) === 0;
+                        }
+                        if ($startsClaim) {
                             $cdx = count($ret_ar[$icn]['claim']);
                             $sar = explode($de, (string) $seg);
                             $bht03 = $sar[3];

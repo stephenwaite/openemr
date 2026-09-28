@@ -15,7 +15,12 @@ declare(strict_types=1);
 namespace Cmsvt\OpenEMR\Modules\Customizations;
 
 use Cmsvt\OpenEMR\Modules\Customizations\Command\UpdateX12SftpPasswordCommand;
+use Cmsvt\OpenEMR\Modules\Customizations\Eligibility\EligibilityProviderOverride;
+use Cmsvt\OpenEMR\Modules\Customizations\Globals\CmsvtGlobals;
+use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Billing\EligibilityRequestFilterEvent;
 use OpenEMR\Events\Command\CommandRunnerFilterEvent;
+use OpenEMR\Events\Globals\GlobalsInitializedEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final readonly class Bootstrap
@@ -29,6 +34,14 @@ final readonly class Bootstrap
         $this->eventDispatcher->addListener(
             CommandRunnerFilterEvent::EVENT_NAME,
             $this->registerCommands(...)
+        );
+        $this->eventDispatcher->addListener(
+            GlobalsInitializedEvent::EVENT_HANDLE,
+            (new CmsvtGlobals())->register(...)
+        );
+        $this->eventDispatcher->addListener(
+            EligibilityRequestFilterEvent::EVENT_NAME,
+            (new EligibilityProviderOverride(OEGlobalsBag::getInstance()))->apply(...)
         );
     }
 
