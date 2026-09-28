@@ -1281,6 +1281,142 @@ Checks: `php -l` and phpcs clean; full-codebase phpstan 0 errors. Runtime:
   - the patient link carries the latest encounter (990302 of 2).
 - All test rows removed.
 
+### Cluster 12 — C1 837P claim generation (2026-09-28)
+
+Sources: rebase-cms-rel-703 X125010837P.php / Claim.php /
+GeneratorX12Direct.php, cross-checked against cms-rel-701; cms-rel-701
+deltas 03839dd47a (Medicare ID), 6d65ca3bcb (53275 dropped from 2310C),
+bb3852f040 (MOVEit rename, pay-to null guard, NDC list without 25169).
+Dropped: 40d6f4fd9c and b3dc3cb5b1 (REF*F8 is already upstream), and the
+rebase regressions ed739f3265 / 94bc254805 (the 2310C and 2330A N4 zips stay
+as upstream sends them).
+
+**Decisions (Stephen, 2026-09-28):**
+- CMS payer rules live in the module behind a rules interface. General fixes
+  go into core.
+- Item 1 (bb3852f040): port all three parts.
+
+**Design.** New core interface `OpenEMR\Billing\X12\Claim837PRules`. It
+has 13 decision points: submitter ID, last seen date, referring provider,
+CLIA, EPSDT form, 2310C, other payer included, other payer ID, 2420A, NDC,
+CAS reason, extra CAS, warnings. `DefaultClaim837PRules` reproduces stock
+rel-840. `Claim837PRulesEvent` is dispatched once per claim and
+oe-module-cmsvt answers it with `Billing\CmsvtClaimRules`. Without the
+module, the generator's output is stock plus the general fixes below (checked
+by diff).
+
+**General fixes (core, every site):**
+- **Pay-to address (2010AB)** from the billing facility's mailing address,
+  when one is set: `NM1*87*2`, then N3 and N4. The stock loop was never
+  emitted. **Differs from production:** street 2 goes in N302 rather than
+  being appended to N301 with a space.
+- **Medicare IDs** have dashes and spaces stripped (03839dd47a), with a log
+  line.
+- **Inpatient (POS 21):** the onset date is no longer sent twice (as DTP*431
+  and DTP*435).
+- **Missing EPSDT code** is logged.
+- **Secondary claim adjustments (Claim::payerAdjustments):**
+  - only adjustments posted at the prior payer's level are reported;
+  - an 835 `copay:` is reported as **PR-3**, not mislabeled as PR-2
+    coinsurance;
+  - patient responsibility the payer didn't break down goes out as PR-3,
+    instead of being guessed into deductible or coinsurance.
+- **X12 amounts** in SVD02 and CAS are sent without leading zeros, as
+  production does.
+- An upstream precedence bug (`chg + adj ?? ''`) raised "Undefined array key
+  adj" on every secondary claim; fixed.
+- The GeneratorX12Direct log line includes the claim id.
+- New events `ClaimProviderFilterEvent` (in the Claim constructor) and
+  `X12RemoteFilenameFilterEvent` (before the SFTP upload).
+
+**CMS rules (module `CmsvtClaimRules`):**
+- **Vermont Medicaid carrier codes** for the other payer, in 2330B NM109 and
+  SVD01: MB → MDB; BCBS VT → H6 / MDB / BV / EE by payer name or policy
+  prefix; 12 mapped payer IDs; 60054 → group or 92; otherwise the first
+  three characters of the group number, else a warning.
+- **Other payers left out** when both policies are Medicare, or when billing
+  VA Community Care.
+- **Medicare copay sent as coinsurance** to Vermont Medicaid (CAS PR-3 →
+  PR-2).
+- **Tertiary claims:** the primary's paid + adjusted amount is reported as
+  CAS OA-23 on the secondary's lines.
+- **CLIA** sent for Medicare and for the waived tests 81002, 81025, 87804,
+  87880 and 87428.
+- **EPSDT** sent as NTE*ADD instead of CRC.
+- **2310C** sent whenever the service facility NPI differs from the billing
+  NPI (no POS 12 exception).
+- **2420A** always sent for payer 14165.
+- **1000A NM109** = the X12 partner's sender ID (third-party submitter).
+- **Routine foot care** for billing NPIs in `cmsvt_claim_routine_foot_care_npis`
+  (was hardcoded 1134268188):
+  - the onset date goes out as DTP*304;
+  - the referring provider is sent as supervisor when none is chosen;
+  - Medicare requires the 2310A referrer for foot care and foot x-rays;
+  - lines without Q7/Q8/Q9 get a warning.
+- **Warnings:** POS 01, payer ID 99999, VA CCN without prior auth, and a
+  closed service facility (`cmsvt_claim_closed_facility_npis`, was site 1300
+  with an NPI).
+- **Per-site settings:**
+  - `cmsvt_claim_ndc_skip_payer_ids` (was site 1500: 87726, 39026, TREST,
+    PAMCD; **25169 is removed**, per bb3852f040);
+  - `cmsvt_claim_rendering_provider_id` (was site 1500 = user 6, "incident
+    to").
+- **MOVEit:** uploads to moveit.bcbsvt.com are named `007111NN.x12`.
+  **Differs from production:** only the remote name changes. Production
+  renamed the local file too.
+
+**Differs from production (bugs not carried over):**
+- ⚠ **Secondary-claim adjustments: production sends no CO/OA adjustments.**
+  Production's filter was `$value['plv'] === $ins`, and in 7.0.1 `plv` comes
+  back from the database as a string, so the strict comparison never matches.
+  Production's secondary claims therefore carry only PR lines, plus the
+  tertiary OA-23. The port keeps what the filter was meant to do
+  (adjustments posted at that payer level), so claims now include CO-45 and
+  similar lines. **Stephen to confirm** (see the Phase 3 837P diff).
+- **Skipping an NDC no longer skips the rest of the line.** Production's
+  site-1500 NDC skip used `continue`, which also dropped 2420A and 2430 for
+  that line.
+- **A payer left out of 2330 is also left out of 2430 (SVD).** Production
+  still sent SVD for it.
+- **The 14165 rule tests the payer being billed.** Production tested
+  `payerID($ins - 1)`, a leftover loop index.
+- **A parsed `copay:` amount is kept.** Production then overwrote it with
+  the total patient responsibility.
+- **EPSDT as NTE*ADD can duplicate a box 19 NTE*ADD.** Production had the
+  same behavior.
+
+**Checks:**
+- `php -l` and phpcs clean; full-codebase phpstan 0 errors.
+- New isolated test `CmsvtClaimRulesTest`: 18 tests covering carrier codes,
+  skips, PR-3→PR-2, OA-23, foot care, CLIA, NDC, 2310C, submitter and
+  warnings.
+- **837P runtime diff** on a test encounter (podiatry, Medicare primary,
+  Vermont Medicaid secondary), generated three ways: stock rel-840 (a copy
+  of its generator and Claim), the port without the module, and the port
+  with the module.
+  - **Primary claim:**
+    - *port vs stock:* only 2010AB and the stripped Medicare ID;
+    - *module:* DTP*304 instead of 431, NM1*DQ (the referrer), and the
+      closed-facility and Q-modifier warnings.
+  - **Secondary claim:**
+    - *port vs stock:* only 2010AB;
+    - *module:* 2330B and SVD `MDB` instead of 14512, REF*X4 for 81002, and
+      DTP*304 with NM1*DQ; CO-45 and PR lines appear in all three.
+  - **Copay variant:** stock sends PR-2 (mislabeled), the port PR-3, the
+    module PR-2 (Vermont Medicaid).
+  - **Bill-under-provider:** 2310B is the chosen provider, and the lines
+    keep 2420A.
+  - **MOVEit:** a random `007111NN.x12` name for that host; other hosts
+    unchanged.
+- The harness lives outside the repo in `../cms-porting/c12-harness/`, as a
+  starting point for Phase 3. All test rows are removed.
+
+**Deployment:**
+- site 1500: `cmsvt_claim_ndc_skip_payer_ids` = 87726, 39026, TREST, PAMCD,
+  and `cmsvt_claim_rendering_provider_id` = 6;
+- site 1300: `cmsvt_claim_closed_facility_npis` = the closed facility's NPI;
+- the podiatry site: `cmsvt_claim_routine_foot_care_npis` = 1134268188.
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
@@ -1294,3 +1430,7 @@ Checks: `php -l` and phpcs clean; full-codebase phpstan 0 errors. Runtime:
 | `site_id == '2400'`: match lab results by MRN only | receive_hl7_results.inc.php | `cmsvt_hl7_match_patient_by_mrn` (2400 → on) | 11 |
 | `site_id == '2400'`: Electronic Reports filter forced to Reviewed | list_reports.php | `cmsvt_lab_list_default_reviewed` (2400 → on; now a default) | 11 |
 | `site_id == '4800'`: 50 results per lab | list_reports.php | `cmsvt_lab_results_per_lab` (4800 → 50; now a default) | 11 |
+| `site_id == '1500'`: payers without NDCs | X125010837P.php | `cmsvt_claim_ndc_skip_payer_ids` (1500 → 87726, 39026, TREST, PAMCD) | 12 |
+| `site_id == '1500'`: bill under user 6 | Claim.php | `cmsvt_claim_rendering_provider_id` (1500 → 6) | 12 |
+| `site_id == '1300'` + facility NPI: closed facility warning | X125010837P.php | `cmsvt_claim_closed_facility_npis` (1300 → that NPI) | 12 |
+| billing NPI `1134268188`: podiatry claim rules | X125010837P.php | `cmsvt_claim_routine_foot_care_npis` (podiatry site → 1134268188) | 12 |
