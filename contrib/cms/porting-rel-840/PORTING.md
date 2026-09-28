@@ -1151,11 +1151,12 @@ Sources: origin/rel-830-sunflower 36c0016ea6 (statement.inc.php), 3d20327ee4
 - rel-830-sunflower's `sl_eob_process.php` (ea2c9ceffa: KanCare/March Vision
   Medicaid-secondary write-offs, CO-97 on 92015) and `sl_eob_invoice.php`
   (d96e076974: readable adjustment memo). These are Sunflower (Kansas)
-  posting rules, not statements, and are outside this cluster. ⚠ Tell me if
-  CMS wants either.
+  posting rules, not statements. **Stephen, 2026-09-28: not wanted for
+  CMS.**
 - rel-800-sunflower 75fa2a171c ("remove require portal email statements"):
   both sunflower branches still require portal access for email, so the
-  port follows them.
+  port follows them. **Stephen, 2026-09-28: confirmed, keep the portal
+  requirement.**
 
 **Deployment:**
 - **Each site's own `sites/<site>/statement.inc.php` needs this cluster's
