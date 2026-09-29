@@ -407,6 +407,8 @@ if (
     if (!CsrfUtils::verifyCsrfToken($_REQUEST["csrf_token_form"], session: $session)) {
         CsrfUtils::csrfNotVerified();
     }
+    // Building and rendering a large batch of statements can take minutes.
+    set_time_limit(300);
 
     $fhprint = fopen($STMT_TEMP_FILE, 'w');
 
@@ -772,6 +774,26 @@ $language_direction = $session->get('language_direction'); // fetch before the <
             });
             <?php } ?>
         }
+
+        // A statement run can take minutes, and a second click would start a
+        // second run (double counts, duplicate documents, duplicate emails).
+        document.addEventListener('DOMContentLoaded', function () {
+            const statementRuns = ['form_print', 'form_download', 'form_pdf', 'form_email', 'form_portalnotify'];
+            let statementRunStartedAt = 0;
+            document.getElementById('formSearch').addEventListener('submit', function (event) {
+                const button = event.submitter ? event.submitter.name : '';
+                if (!statementRuns.includes(button)) {
+                    return;
+                }
+                // Downloads don't reload the page, so the guard expires after 5 minutes.
+                if (Date.now() - statementRunStartedAt < 5 * 60 * 1000
+                    && !confirm(<?php echo xlj('A statement run is already in progress. Start another?'); ?>)) {
+                    event.preventDefault();
+                    return;
+                }
+                statementRunStartedAt = Date.now();
+            });
+        });
 
         // Check only the rows that can't be emailed, to print them after an email run.
         function checkAllNotEmail() {
