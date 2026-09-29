@@ -1146,8 +1146,9 @@ Sources: origin/rel-830-sunflower 36c0016ea6 (statement.inc.php), 3d20327ee4
 **Not ported:**
 - Sunflower's Modern layout changes (decision above) and its per-page
   `temp_skip_translations`.
-- rel-800-sunflower's `set_time_limit(300)` and "save text to documents on
-  PDF download": rel-840 already saves text for this layout.
+- rel-800-sunflower's "save text to documents on PDF download": rel-840
+  already saves text for this layout. (`set_time_limit(300)` was added back
+  on 2026-09-29; see the rel-830-sunflower patches.)
 - rel-830-sunflower's `sl_eob_process.php` (ea2c9ceffa: KanCare/March Vision
   Medicaid-secondary write-offs, CO-97 on 92015) and `sl_eob_invoice.php`
   (d96e076974: readable adjustment memo). These are Sunflower (Kansas)
@@ -1247,7 +1248,24 @@ and checked with `git apply --check` in order:
    the rendered page with node: checked → the alert and no submit;
    unchecked → the count confirm; none selected → "No statements selected."
 
-All three lint clean. Not run on a rel-830 stack.
+4. `rel-830-sunflower-time-limit-double-click.patch` (on top of 1–3):
+   - `set_time_limit(300)` at the start of every statement run.
+     rel-800-sunflower's 5-minute limit (`83cc92e97e`) had been lost, and a
+     large PDF run crashed production.
+   - Guard against a second click while a run is under way: it asks first.
+     A double submit double-counts, duplicates documents and
+     `patient_statements` rows, and sends emails twice. The guard expires
+     after 5 minutes, since downloads don't reload the page.
+   - The same change is on cms-rel-840 (`8a8f8446dd`); cluster 10 had noted
+     the time limit as "not ported". The guard's JavaScript was tested from
+     the rendered page with node: first click submits; a second within 5
+     minutes asks (Cancel blocks, OK submits); Search isn't guarded; after 5
+     minutes it submits.
+
+(Stephen found the layout change he saw was a globals setting, not code:
+Statement Appearance wasn't set to PDF Custom.)
+
+All four lint clean. Not run on a rel-830 stack.
 
 ### Cluster 11 — C8 Labs / HL7 (FHIR dropped) (2026-09-28)
 
