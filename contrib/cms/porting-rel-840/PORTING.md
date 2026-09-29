@@ -1238,7 +1238,16 @@ and checked with `git apply --check` in order:
 2. `rel-830-sunflower-patient-statements-writer.patch`: after each document
    save, insert the row, with `email` only when the send succeeded.
 
-Both lint clean. Not run on a rel-830 stack.
+3. `rel-830-sunflower-email-confirm-without-update.patch` (added the same
+   day, on top of 1 and 2, which Stephen had put in production): Email
+   Selected no longer asks "Email N statement(s)?" when Without Update is
+   checked. It says to uncheck it and doesn't submit. Both messages name
+   the checkbox by its label, because `xl()` turns quotes into backticks.
+   The same change is on cms-rel-840. There, the JavaScript was tested from
+   the rendered page with node: checked → the alert and no submit;
+   unchecked → the count confirm; none selected → "No statements selected."
+
+All three lint clean. Not run on a rel-830 stack.
 
 ### Cluster 11 — C8 Labs / HL7 (FHIR dropped) (2026-09-28)
 
