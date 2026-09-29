@@ -696,7 +696,7 @@ if (
     } elseif ($isEmailRun) {
         // The statements were emailed one by one above; don't also print them.
         if ($withoutUpdate) {
-            $alertmsg = xl("Nothing was emailed because 'without updating invoices' is checked.");
+            $alertmsg = xl('Nothing was emailed because Without Update is checked.');
         } elseif ($alertmsg == "") {
             $alertmsg = xl('Emailed') . ' ' . $stmt_count . ' ' . xl('statements and updating invoices.');
         }
@@ -789,6 +789,12 @@ $language_direction = $session->get('language_direction'); // fetch before the <
 
         // Emailing can't be undone, so confirm the count first.
         function confirmEmail(form) {
+            // Without Update sends no email, so don't ask to send any.
+            const without = form.elements['form_without'];
+            if (without && without.checked) {
+                alert(<?php echo xlj('Uncheck Without Update to email statements.'); ?>);
+                return false;
+            }
             const count = form.querySelectorAll("input[type='checkbox'][name^='form_cb']:checked").length;
             if (count === 0) {
                 alert(<?php echo xlj('No statements selected.'); ?>);
