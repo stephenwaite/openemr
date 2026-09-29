@@ -1455,6 +1455,7 @@ by diff).
   tertiary OA-23. The port keeps what the filter was meant to do
   (adjustments posted at that payer level), so claims now include CO-45 and
   similar lines. **Stephen to confirm** (see the Phase 3 837P diff).
+  **Decided 2026-09-29: match production** (see the follow-up below).
 - **Skipping an NDC no longer skips the rest of the line.** Production's
   site-1500 NDC skip used `continue`, which also dropped 2420A and 2430 for
   that line.
@@ -1552,6 +1553,38 @@ through `FhirObservationService::getAll()` with three test lab orders:
 
 Test rows removed. Not exercised over HTTP with an OAuth token; the REST
 controller passes query parameters straight to this service.
+
+### Cluster 12 follow-up — secondary claim adjustments match production (2026-09-29)
+
+**Decision (Stephen):** match production on secondary claims.
+
+**What production sends.** Its `plv === $ins` filter never matches (string
+vs int), so on secondary claims:
+- no posted CO/OA adjustments go out;
+- no itemized PR (deductible/coinsurance/copay parsed from the 835);
+- each line's whole remaining patient responsibility goes out as PR-3 (PR-2
+  when Vermont Medicaid is billed after Medicare);
+- the prior payer's adjustment total is 0, which also makes the tertiary
+  OA-23 the primary's paid amount only.
+
+**Ported as:**
+- a new `Claim837PRules::reportsPriorPayerAdjustments()`, default true;
+- `Claim::setReportsPriorPayerAdjustments()`, set by the generator, which
+  skips posted adjustments in `payerAdjustments()` (the per-line date is
+  still taken);
+- `CmsvtClaimRules` returns false.
+
+The stock path is unchanged: it still reports posted adjustments, filtered
+to the prior payer's level.
+
+Checks: phpcs clean; phpstan 0 errors (no baseline change);
+`CmsvtClaimRulesTest` 18/18 (new assertion). **837P runtime** (cluster 12
+harness, secondary and copay variants):
+- *without the module:* CAS CO*45*15.00 plus PR*2 / PR*3 (the posted
+  adjustments);
+- *with the module:* only CAS PR*2*9.00 and PR*2*7.00 per line (remaining
+  patient responsibility, PR-3 sent as PR-2 for Medicaid after Medicare);
+  no CO-45; AMT*D unchanged.
 
 ## Site-ID and user-name checks → per-site globals (running list)
 
