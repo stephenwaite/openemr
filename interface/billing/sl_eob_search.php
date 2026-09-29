@@ -631,6 +631,7 @@ if (
                     //        not abort the batch, and accumulate failures per patient.
                     // "Without updating invoices" produces only the print/download file:
                     // no emails and no copies in patient documents.
+                    $emailSent = false;
                     if (!empty($_REQUEST['form_email']) && empty($_REQUEST['form_without']) && $tmp !== '') {
                         $patientEmailData = QueryUtils::querySingleRow(
                             "SELECT hipaa_allowemail, hipaa_notice, allow_patient_portal, email "
@@ -645,6 +646,7 @@ if (
                         ) {
                             try {
                                 emailLogin((int) $inv_pid[$inv_count], $tmp);
+                                $emailSent = true;
                                 usleep(100000); // 0.1s between sends, to stay under SMTP rate limits
                             } catch (RuntimeException | InvalidArgumentException $e) {
                                 $alertmsg .= ($alertmsg ? '; ' : '') . text($stmt['patient']) . ': ' . $e->getMessage();
@@ -687,6 +689,28 @@ if (
                             $mimetype,
                             $tmp
                         );
+                        // LOCAL: log the statement in patient_statements, which the Due Pt
+                        //        "print instead" badge reads. createDocument() returns an error
+                        //        message or '', so the document id is the success signal. An
+                        //        email run records only statements whose email actually went out,
+                        //        so failed sends don't count as unpaid emails.
+                        $documentId = (int) $d->get_id();
+                        if ($documentId && (empty($_REQUEST['form_email']) || $emailSent)) {
+                            QueryUtils::sqlInsert(
+                                "INSERT INTO patient_statements " .
+                                "(pid, encounter, statement_date, method, amount, document_id, created_by) " .
+                                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                [
+                                    (int) $doc_pid,
+                                    (int) $stmt['encounter'],
+                                    $today,
+                                    empty($_REQUEST['form_email']) ? 'mail' : 'email',
+                                    (float) $stmt['amount'],
+                                    $documentId,
+                                    (int) SessionWrapperFactory::getInstance()->getActiveSession()->get('authUserID'),
+                                ]
+                            );
+                        }
                     }
                 }
             }
