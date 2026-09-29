@@ -103,6 +103,13 @@ final class CmsvtClaimRules extends DefaultClaim837PRules
                 && array_intersect(self::cptCodes($claim), self::FOOT_XRAY_CPTS) !== []);
     }
 
+    public function reportsPriorPayerAdjustments(Claim $claim): bool
+    {
+        // As production has always sent them: secondary claims carry only the
+        // remaining patient responsibility (PR-3), no CO/OA or itemized PR.
+        return false;
+    }
+
     public function sendsClia(Claim $claim): bool
     {
         return parent::sendsClia($claim) || array_intersect(self::cptCodes($claim), self::CLIA_WAIVED_CPTS) !== [];

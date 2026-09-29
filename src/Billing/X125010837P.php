@@ -56,6 +56,7 @@ class X125010837P
         OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()
             ->dispatch($rulesEvent, Claim837PRulesEvent::EVENT_NAME);
         $rules = $rulesEvent->getRules();
+        $claim->setReportsPriorPayerAdjustments($rules->reportsPriorPayerAdjustments($claim));
 
         $log .= $claim->patientFirstName() . ' ' .
         $claim->patientMiddleName() . ' ' .

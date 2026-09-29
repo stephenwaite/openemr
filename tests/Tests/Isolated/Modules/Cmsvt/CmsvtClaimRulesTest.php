@@ -207,6 +207,8 @@ namespace OpenEMR\Tests\Isolated\Modules\Cmsvt {
             $this->assertFalse($rules->sendsServiceFacility($this->claim(['billingNpi' => '1', 'facilityNpi' => '1']), true));
             $this->assertTrue($rules->sendsServiceFacility($this->claim(['billingNpi' => '1', 'facilityNpi' => '2']), false));
             $this->assertSame('CMSTEST', $rules->submitterIdentifier($this->claim([])));
+            // Production has always sent secondary claims without posted CO/OA adjustments.
+            $this->assertFalse($rules->reportsPriorPayerAdjustments($this->claim([])));
         }
 
         #[Test]

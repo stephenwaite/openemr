@@ -33,6 +33,11 @@ class DefaultClaim837PRules implements Claim837PRules
         return false;
     }
 
+    public function reportsPriorPayerAdjustments(Claim $claim): bool
+    {
+        return true;
+    }
+
     public function sendsClia(Claim $claim): bool
     {
         // Required by Medicare when in-house labs are done.

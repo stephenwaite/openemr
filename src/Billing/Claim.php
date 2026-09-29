@@ -52,7 +52,9 @@ class Claim
     public $pay_to_provider;   // to be implemented in facility ui
     private $encounterService;
     public $billing_prov_id;
-    public $line_item_adjs;    // adjustment array with key of [group code][reason code] needed for secondary claims
+    public $line_item_adjs;
+    /** Report prior payers' posted adjustments; false reports only the remaining patient responsibility (PR-3). */
+    private bool $reportsPriorPayerAdjustments = true;    // adjustment array with key of [group code][reason code] needed for secondary claims
     public $using_modifiers;
 
 
@@ -420,7 +422,8 @@ class Claim
 
                 // not original charge, not a payment, and posted at this payer's level
                 if (
-                    $tmp
+                    $this->reportsPriorPayerAdjustments
+                    && $tmp
                     && (($value['pmt'] ?? null) == 0)
                     && is_numeric($value['plv'] ?? null)
                     && (int) $value['plv'] === (int) $insnumber
@@ -774,6 +777,11 @@ class Claim
     public function billingFacilityZip()
     {
         return $this->x12Zip($this->billing_facility['postal_code']);
+    }
+
+    public function setReportsPriorPayerAdjustments(bool $reports): void
+    {
+        $this->reportsPriorPayerAdjustments = $reports;
     }
 
     /**

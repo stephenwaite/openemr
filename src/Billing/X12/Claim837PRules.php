@@ -39,6 +39,13 @@ interface Claim837PRules
     /** Send loop 2310A from the referring provider fields even without a referral on the encounter. */
     public function requiresReferringProvider(Claim $claim): bool;
 
+    /**
+     * Report prior payers' posted adjustments (CO/OA and itemized PR) on
+     * secondary claims. False reports only each line's remaining patient
+     * responsibility, as PR-3.
+     */
+    public function reportsPriorPayerAdjustments(Claim $claim): bool;
+
     /** Send REF*X4 (CLIA number) when the claim has one. */
     public function sendsClia(Claim $claim): bool;
 
