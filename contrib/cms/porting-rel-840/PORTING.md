@@ -1228,6 +1228,18 @@ patients, all removed afterwards; statement counts are the sum of
 - email **with** the box checked → nothing sent, the new message, all zero;
 - download **without** the box → documents 3, rows 3, counts 3.
 
+**rel-830-sunflower patches (2026-09-29, for Stephen to apply there):**
+rel-830-sunflower also never writes `patient_statements`. It has only the
+badge query; the insert stayed on rel-800-sunflower. Two `git am` patches
+are in `../cms-porting/patches/`, built on rel-830-sunflower `a95025b472`
+and checked with `git apply --check` in order:
+1. `rel-830-sunflower-without-update.patch`: "without updating invoices"
+   skips email and documents;
+2. `rel-830-sunflower-patient-statements-writer.patch`: after each document
+   save, insert the row, with `email` only when the send succeeded.
+
+Both lint clean. Not run on a rel-830 stack.
+
 ### Cluster 11 — C8 Labs / HL7 (FHIR dropped) (2026-09-28)
 
 Sources: cms-rel-701 / rebase-cms-rel-703 receive_hl7_results.inc.php
