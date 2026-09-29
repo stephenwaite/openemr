@@ -187,7 +187,8 @@ class FhirObservationLaboratoryService extends FhirServiceBase implements IPatie
                         }
                         $result['patient'] = $patient;
                         $result['report_date'] = $report['date'];
-                        $result['order_date_transmitted'] = is_array($record) ? ($record['date_transmitted'] ?? null) : null;
+                        // Specimen collection time (OBR-7 for imported results).
+                        $result['specimen_collected_date'] = is_array($report) ? ($report['date_collected'] ?? null) : null;
 
                         // IMPORTANT: Specimen data comes from report as an ARRAY
                         // Each result gets a reference to ALL specimens for that test line
@@ -237,11 +238,11 @@ class FhirObservationLaboratoryService extends FhirServiceBase implements IPatie
         $id->setValue($dataRecord['uuid']);
         $observation->setId($id);
 
-        // The effective date is the order's transmit date (the date of service the
-        // results belong to), falling back to the report date.
-        $orderDateTransmitted = $dataRecord['order_date_transmitted'] ?? null;
-        if (is_string($orderDateTransmitted) && $orderDateTransmitted !== '') {
-            $observation->setEffectiveDateTime(new FHIRDateTime(UtilsService::getLocalDateAsUTC($orderDateTransmitted)));
+        // The effective date is when the specimen was collected (the lab's date of
+        // service, OBR-7 for imported results), falling back to the report date.
+        $specimenCollected = $dataRecord['specimen_collected_date'] ?? null;
+        if (is_string($specimenCollected) && $specimenCollected !== '') {
+            $observation->setEffectiveDateTime(new FHIRDateTime(UtilsService::getLocalDateAsUTC($specimenCollected)));
         } elseif (!empty($dataRecord['report_date'])) {
             $observation->setEffectiveDateTime(UtilsService::getLocalDateAsUTC($dataRecord['report_date']));
         } else {
