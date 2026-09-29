@@ -1197,6 +1197,37 @@ restored to stock):
 - **Email run** (no SMTP configured): one alert listing each patient, no
   `email` rows, no print.
 
+### Cluster 10 follow-up — "without updating invoices" (2026-09-29)
+
+Stephen asked whether rel-830-sunflower's "without updating invoices"
+checkbox stops statements from being saved to documents. **It doesn't.** In
+rel-830-sunflower the checkbox guards only the `form_encounter` statement
+count (line 588); the email send and `createDocument()` run regardless.
+Upstream rel-840 behaves the same. **rel-800-sunflower** wraps both the email
+send and the document save in `if (empty($_REQUEST['form_without']))`;
+rel-830-sunflower lost that guard. The cms-rel-840 port had followed
+rel-830 (only the `patient_statements` row was skipped).
+
+**Fixed (Stephen: yes), in sl_eob_search.php:** a typed `$withoutUpdate`
+flag. With the box checked, a run produces only the print/download file:
+- no emails;
+- no Invoice documents;
+- no `patient_statements` rows;
+- no statement counts.
+
+An email run with the box checked says "Nothing was emailed because
+'without updating invoices' is checked" instead of falling through. The two
+existing `$_REQUEST['form_without']` reads use the flag too.
+
+Checks: phpcs clean; phpstan 0 errors, with reductions only (`empty()`
+35→34, `$_REQUEST` 54→52). Runtime over HTTP (module registered, 3 test
+patients, all removed afterwards; statement counts are the sum of
+`form_encounter.stmt_count`):
+- download **with** the box checked → documents 0, statement rows 0,
+  counts 0;
+- email **with** the box checked → nothing sent, the new message, all zero;
+- download **without** the box → documents 3, rows 3, counts 3.
+
 ### Cluster 11 — C8 Labs / HL7 (FHIR dropped) (2026-09-28)
 
 Sources: cms-rel-701 / rebase-cms-rel-703 receive_hl7_results.inc.php
@@ -1280,6 +1311,45 @@ Checks: `php -l` and phpcs clean; full-codebase phpstan 0 errors. Runtime:
     with the filter defaulting to Reviewed;
   - the patient link carries the latest encounter (990302 of 2).
 - All test rows removed.
+
+### Cluster 11b follow-up — lab effective date = specimen collection (2026-09-29)
+
+Stephen asked whether the charge date could be exposed some other way than
+overriding `effectiveDateTime` with the order's transmit date. Tracing the
+HL7 import with a real radiology OBR showed where the date comes from:
+- OBR-7 (observation/collection time) is stored in **both**
+  `procedure_order.date_transmitted` (results-only orders) and
+  `procedure_report.date_collected` (every imported report);
+- OBR-22 is the report time.
+
+For lab billing, the collection date is the date of service.
+
+**Decision (Stephen: option 1):** lab Observation `effectiveDateTime` =
+the report's **specimen collection time** (`procedure_report.date_collected`),
+falling back to the report date. This conforms to US Core (the
+clinically relevant time), and callers get the same value they get from
+production's transmit date for imported results. For orders placed in
+OpenEMR it is the real collection time, not the send time.
+- `ProcedureService` returns the report's `date_collected`. The
+  order-level `date_transmitted` plumbing from cluster 11b is removed; the
+  `external_id` search stays.
+- Not done: the separate transmit-date extension and `Observation.issued`
+  (options 2 and 3).
+- `effectiveDateTime` carries the server's local time with its offset (e.g.
+  `2026-09-29T01:46:00-04:00`); `getLocalDateAsUTC()` does not convert. A
+  caller that converts to UTC would move late-evening exams to the next day.
+  Production behaves the same.
+
+Checks: phpcs clean; phpstan 0 errors (no baseline changes). Runtime:
+- a results-only ORU with Stephen's OBR timing (OBR-7 01:46, OBR-22
+  05:17:56; fake patient and providers) imported through
+  `receive_hl7_results()` with the module;
+  - stored: `external_id` = V55501 (PID-18), `date_transmitted` and report
+    `date_collected` = 01:46, `date_report` = 05:17:56;
+  - `Observation?external_id=V55501` → 1 result, effective 01:46;
+- a report with no collection date falls back to its report date.
+
+Test rows removed.
 
 ### Cluster 12 — C1 837P claim generation (2026-09-28)
 
@@ -1439,7 +1509,9 @@ Vitals Observation services.
 - **Lab Observation `effectiveDateTime` is the order's transmit date**
   (production behavior), falling back to the report date when the order has
   none. Production used the transmit date unconditionally, so an order
-  without one would have produced an invalid date.
+  without one would have produced an invalid date. **Superseded
+  2026-09-29:** the specimen collection time is used instead (see the
+  follow-up below).
 - `FhirObservationService` accepts `external_id` and narrows the search to
   the laboratory service. That replaces production's
   `getServiceForExternalId()` trait method and `supportsExternalId()`.
