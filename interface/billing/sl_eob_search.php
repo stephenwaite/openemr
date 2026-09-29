@@ -737,7 +737,7 @@ if (
         //        this branch an email run falls through to the print branch below and
         //        physically prints everything it just emailed.
         if (!empty($_REQUEST['form_without'])) {
-            $alertmsg = xl("Nothing was emailed because 'without updating invoices' is checked.");
+            $alertmsg = xl('Nothing was emailed because Without Update is checked.');
         } elseif ($alertmsg == "") {
             $alertmsg = xl('Emailed') . ' ' . $stmt_count . ' ' . xl('statements and updating invoices.');
         }
@@ -837,6 +837,12 @@ $language_direction = $session->get('language_direction'); // fetch before the <
 
         // LOCAL: emailing is not undoable, so confirm the count first.
         function confirmEmail(form) {
+            // Without Update sends no email, so don't ask to send any.
+            const without = form.elements['form_without'];
+            if (without && without.checked) {
+                alert(<?php echo js_escape(xl('Uncheck Without Update to email statements.')); ?>);
+                return false;
+            }
             let count = 0;
             for (let i = 0; i < form.elements.length; ++i) {
                 if (form.elements[i].name.indexOf('form_cb[') === 0 && form.elements[i].checked) {
