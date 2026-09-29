@@ -63,6 +63,9 @@ ob_start();
 // The statement-run options this page reads as typed values; the form posts them.
 $postedForm = CurrentRequest::get()->request;
 $isEmailRun = $postedForm->getString('form_email') !== '';
+// "Without updating invoices" produces only the print/download file: no emails,
+// no copies in patient documents, no statement counts.
+$withoutUpdate = $postedForm->getString('form_without') !== '';
 
 $srcDir = OEGlobalsBag::getInstance()->getSrcDir();
 require_once($srcDir . '/appointments.inc.php');
@@ -567,7 +570,7 @@ if (
         }
 
         // Record that this statement was run.
-        if (!$DEBUG && empty($_REQUEST['form_without'])) {
+        if (!$DEBUG && !$withoutUpdate) {
             sqlStatement("UPDATE form_encounter SET " .
                 "last_stmt_date = ?, stmt_count = stmt_count + 1 " .
                 "WHERE id = ?", [$today, $row['id']]);
@@ -604,7 +607,7 @@ if (
                     $tmp = $isEmailRun ? create_HTML_statement($stmt) : make_statement($stmt);
                     $statementRow = is_array($stmt) ? $stmt : [];
                     $emailSent = false;
-                    if ($isEmailRun && $tmp !== '') {
+                    if ($isEmailRun && !$withoutUpdate && $tmp !== '') {
                         try {
                             emailLogin($inv_pid[$inv_count], $tmp);
                             $emailSent = true;
@@ -620,53 +623,55 @@ if (
                         $tmp .= "<br />\n\014<br /><br />";
                     }
                     fwrite($fhprint, (string) $tmp);
-                    // now save it to pt documents
-                    $d = new Document();
-                    $doc_pid = $inv_pid[$inv_count];
-                    $invoice_category_id = 0;
-                    $catrow = QueryUtils::querySingleRow("SELECT id FROM categories WHERE name = ?", ['Invoices']);
-                    if (!empty($catrow['id'])) {
-                        $invoice_category_id = $catrow['id'];
-                    }
-                    // even if click download pdf the file content in $tmp is text
-                    // set mimetype and fileext based on statement appearance
-                    $isPdf = (OEGlobalsBag::getInstance()->get('statement_appearance') == 1);
-                    $fileext = $isPdf ? '.pdf' : '.txt';
-                    $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . $fileext;
-                    $mimetype = $isPdf ? 'pdf' : 'text/plain';
-                    if ($isPdf) {
-                        $pdf2 = new mPDF(Config_Mpdf::getConfigMpdf());
-                        $session = SessionWrapperFactory::getInstance()->getActiveSession();
-                        if ($session->get('language_direction') === 'rtl') {
-                            $pdf2->SetDirectionality('rtl');
+                    if (!$withoutUpdate) {
+                        // now save it to pt documents
+                        $d = new Document();
+                        $doc_pid = $inv_pid[$inv_count];
+                        $invoice_category_id = 0;
+                        $catrow = QueryUtils::querySingleRow("SELECT id FROM categories WHERE name = ?", ['Invoices']);
+                        if (!empty($catrow['id'])) {
+                            $invoice_category_id = $catrow['id'];
                         }
-                        $pdf2->WriteHTML($tmp);
-                        $tmp = $pdf2->Output('', 'S');
-                    }
-                    $invoice = $d->createDocument(
-                        $doc_pid,
-                        $invoice_category_id, // TBD: Make sure not 0
-                        $inv_filename,
-                        $mimetype,
-                        $tmp
-                    );
-                    // createDocument() returns '' on success and an error message otherwise; the id is the real signal.
-                    $documentId = $d->get_id();
-                    $userId = $session->get('authUserID');
-                    // Record the statement as sent, unless this was an email run and the email didn't go out.
-                    if (is_numeric($documentId) && $postedForm->getString('form_without') === '' && (!$isEmailRun || $emailSent)) {
-                        OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()->dispatch(
-                            new PatientStatementSavedEvent(
-                                pid: is_numeric($doc_pid) ? (int) $doc_pid : 0,
-                                encounter: is_numeric($statementRow['encounter'] ?? null) ? (int) $statementRow['encounter'] : 0,
-                                statementDate: new DateTimeImmutable($today),
-                                method: $isEmailRun ? StatementDeliveryMethod::Email : StatementDeliveryMethod::Mail,
-                                amount: is_numeric($statementRow['amount'] ?? null) ? (float) $statementRow['amount'] : 0.0,
-                                documentId: (int) $documentId,
-                                userId: is_numeric($userId) ? (int) $userId : 0,
-                            ),
-                            PatientStatementSavedEvent::EVENT_NAME
+                        // even if click download pdf the file content in $tmp is text
+                        // set mimetype and fileext based on statement appearance
+                        $isPdf = (OEGlobalsBag::getInstance()->get('statement_appearance') == 1);
+                        $fileext = $isPdf ? '.pdf' : '.txt';
+                        $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . $fileext;
+                        $mimetype = $isPdf ? 'pdf' : 'text/plain';
+                        if ($isPdf) {
+                            $pdf2 = new mPDF(Config_Mpdf::getConfigMpdf());
+                            $session = SessionWrapperFactory::getInstance()->getActiveSession();
+                            if ($session->get('language_direction') === 'rtl') {
+                                $pdf2->SetDirectionality('rtl');
+                            }
+                            $pdf2->WriteHTML($tmp);
+                            $tmp = $pdf2->Output('', 'S');
+                        }
+                        $invoice = $d->createDocument(
+                            $doc_pid,
+                            $invoice_category_id, // TBD: Make sure not 0
+                            $inv_filename,
+                            $mimetype,
+                            $tmp
                         );
+                        // createDocument() returns '' on success and an error message otherwise; the id is the real signal.
+                        $documentId = $d->get_id();
+                        $userId = $session->get('authUserID');
+                        // Record the statement as sent, unless this was an email run and the email didn't go out.
+                        if (is_numeric($documentId) && (!$isEmailRun || $emailSent)) {
+                            OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()->dispatch(
+                                new PatientStatementSavedEvent(
+                                    pid: is_numeric($doc_pid) ? (int) $doc_pid : 0,
+                                    encounter: is_numeric($statementRow['encounter'] ?? null) ? (int) $statementRow['encounter'] : 0,
+                                    statementDate: new DateTimeImmutable($today),
+                                    method: $isEmailRun ? StatementDeliveryMethod::Email : StatementDeliveryMethod::Mail,
+                                    amount: is_numeric($statementRow['amount'] ?? null) ? (float) $statementRow['amount'] : 0.0,
+                                    documentId: (int) $documentId,
+                                    userId: is_numeric($userId) ? (int) $userId : 0,
+                                ),
+                                PatientStatementSavedEvent::EVENT_NAME
+                            );
+                        }
                     }
                 }
             }
@@ -690,7 +695,9 @@ if (
         }
     } elseif ($isEmailRun) {
         // The statements were emailed one by one above; don't also print them.
-        if ($alertmsg == "") {
+        if ($withoutUpdate) {
+            $alertmsg = xl("Nothing was emailed because 'without updating invoices' is checked.");
+        } elseif ($alertmsg == "") {
             $alertmsg = xl('Emailed') . ' ' . $stmt_count . ' ' . xl('statements and updating invoices.');
         }
     } else { // Must be print!
@@ -698,7 +705,7 @@ if (
             $alertmsg = xl("Printing skipped; see test output in") . ' ' . $STMT_TEMP_FILE;
         } else {
             (new Process([OPENEMR_PRINT_COMMAND, (string) $STMT_TEMP_FILE]))->run();
-            if ($_REQUEST['form_without']) {
+            if ($withoutUpdate) {
                 $alertmsg = xl('Now printing') . ' ' . $stmt_count . ' ' . xl('statements; invoices will not be updated.');
             } else {
                 $alertmsg = xl('Now printing') . ' ' . $stmt_count . ' ' . xl('statements and updating invoices.');
