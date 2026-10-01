@@ -5,6 +5,23 @@ moves to cms-rel-840. The details and reasons for each item are in
 PORTING.md, by cluster. Work through this on a **staging copy of a
 production database first**, then repeat it for each production site.
 
+## 0. Docker
+
+cms-rel-840 runs in OpenEMR's release image built from the fork (PHP 8.3+
+and MariaDB 10.11+ are required, so the existing server can't run it as
+is). Everything for that is in `contrib/cms/docker/`; its README has the
+image build, moving the 7.0.1 install in (database, site directories, the
+`docker-version` marker of `5`), and the vendor hooks.
+
+The hooks automate most of sections 2–6 below:
+- **prelaunch** copies the site files (sections 4–5) on every start;
+- **postupgrade** applies `config/sql/all-sites.sql` (module, claim
+  balancing, drug units) and each `config/sql/<site>.sql` (section 3) once
+  per site.
+
+Fill in `config/` from the sections below, then use them as the checklist
+to verify each site.
+
 ## 1. Before upgrading the database
 
 - [ ] **`x12_partners.x12_submitter_id` type.** Production may have it as

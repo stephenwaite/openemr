@@ -1633,6 +1633,44 @@ harness, secondary and copay variants):
   upstream #13953, docs on master), which will carry the per-site
   configuration.
 
+## Docker deployment kit (2026-10-01)
+
+`contrib/cms/docker/` (README, compose file, hooks, sample config):
+- **How the release image upgrades.** `docker/release/openemr.sh` runs
+  `fsupgrade-N.sh` scripts while `sites/default/docker-version` is behind
+  the image's marker (15 for rel-840). Each one runs `sql_upgrade.php` for
+  every site from one release: 6 is from 7.0.1, through 15, which is from
+  8.4.0. A migrated 7.0.1 install therefore gets marker `5`. The
+  `postupgrade` hook fires only at the end of that path, not on a
+  schema-only migration (`check_schema_upgrade`) or a restart.
+- **`prelaunch/10-cms-site-files`:** copies `config/sites/<site>/…`
+  (existing sites only, owned by apache), `config/code/…` and
+  `config/php/*.ini` on every start.
+- **`postupgrade/10-cms-site-settings`:** applies the module's `table.sql`,
+  `config/sql/all-sites.sql` and `config/sql/<site>.sql` to each configured
+  site, once each. A checksum in `sites/<site>/cms-applied/` records it, so
+  later upgrades don't overwrite settings changed in OpenEMR. It can be run
+  by hand with `docker compose exec`. `cms-apply-sql.php` connects with the
+  site's `sqlconf.php` (no TLS).
+- **Sample SQL:** per-site files from DEPLOYMENT.md section 3.
+  `all-sites.sql` registers the module, turns claim balancing off and sets
+  the drug units.
+- **Tested in the cms-rel-840 dev container** (bash, run-parts, PHP 8.5):
+  - run-parts picks up both scripts and skips the helper;
+  - prelaunch copied a site file, a code file and a PHP override, and
+    skipped a missing site;
+  - postupgrade applied all three files, skipped them on a second run, and
+    re-applied only the edited file: `force_claim_balancing` 0, site
+    setting 1, module registered and enabled, J2777 units 60.
+  - **Bug found and fixed:** the `modules` insert failed in strict mode
+    (`sql_version`/`acl_version` have no default). The hook stopped and
+    reported it, as intended.
+  - Everything restored afterwards.
+- shellcheck (enable=all), phpcs and phpstan clean. The helper reads its
+  paths from the environment, since `$_SERVER` is forbidden.
+- **Not tested:** a full image build and a real migration; both need the
+  server.
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
