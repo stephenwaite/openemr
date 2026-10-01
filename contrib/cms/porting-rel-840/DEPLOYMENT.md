@@ -101,22 +101,49 @@ what the site used in production.
 - [ ] Known gap until 8.5.0: the Immunizations card still shows Edit to that
       user (upstream fix 78bd686104 arrives with 8.5.0).
 
-## 6. Drug codes: default units
+## 6. Drug codes: units, NDC and prices
 
-Administration → Codes can't set Units yet (upstream PR pending; see
-`prompts/codes-default-units-pr.md`). Until it lands, set them with SQL on
-each site that uses these codes:
+cms-rel-840 includes upstream #14330 (cherry-picked):
+- **Inventory → Drugs** has Billing Units, NDC Unit and NDC Quantity. When a
+  HCPCS code is picked on the fee sheet, units and NDC come from the active
+  drug related to it (a drug with stock first), else from `codes.units`
+  and the last billed NDC.
+- **A price is now per unit:** a newly picked code's fee is price × units.
+  Production treated the price as the whole line (fee ÷ units was shown as
+  the unit price).
 
-```sql
-UPDATE codes SET units = 5  WHERE code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS') AND code IN ('C9257', 'Q5124');
-UPDATE codes SET units = 2  WHERE code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS') AND code = 'J0178';
-UPDATE codes SET units = 8  WHERE code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS') AND code = 'J0177';
-UPDATE codes SET units = 60 WHERE code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS') AND code = 'J2777';
-```
-
-These are defaults the biller can change on the line (production forced
-them). Optional, for Depo-Medrol: deactivate J1020/J1030/J1040, price J1010
-at $1.00 per unit, and leave its units for the biller (1 unit = 1 mg).
+- [ ] **Convert prices for codes billed with more than one unit, before
+      go-live.** Otherwise a newly picked J2777 (60 units) charges 60 × the
+      old price. First list them; check each price is a whole-dose amount:
+      ```sql
+      SELECT c.code, c.modifier, c.units, p.pr_level, p.pr_price,
+             ROUND(p.pr_price / c.units, 2) AS per_unit
+      FROM codes c
+      JOIN prices p ON p.pr_id = c.id AND p.pr_selector = ''
+      WHERE c.code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS')
+        AND c.units > 1
+      ORDER BY c.code, p.pr_level;
+      ```
+      Then convert once (only the codes that are whole-dose prices):
+      ```sql
+      UPDATE prices p JOIN codes c ON c.id = p.pr_id
+      SET p.pr_price = ROUND(p.pr_price / c.units, 2)
+      WHERE p.pr_selector = ''
+        AND c.code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS')
+        AND c.code IN ('C9257', 'Q5124', 'J0178', 'J0177', 'J2777');
+      ```
+      Running it twice divides twice; back up `prices` first. Drugs whose
+      units come from Inventory (Billing Units) need the same per-unit price.
+- [ ] **Default units:** `config/sql/all-sites.sql` sets `codes.units` for
+      C9257 = 5, Q5124 = 5, J0178 = 2, J0177 = 8, J2777 = 60 (production
+      forced these). Administration → Codes still can't edit Units; for
+      drugs, prefer Inventory's Billing Units, which wins over `codes.units`.
+- [ ] **Depo-Medrol (optional):**
+      - deactivate J1020/J1030/J1040;
+      - price J1010 at $1.00 per unit;
+      - add an Inventory drug related to `HCPCS:J1010`, with its NDC, Billing
+        Units (e.g. 40 for 40 mg) and NDC Unit/Quantity (e.g. ML 1 for the
+        40 mg/mL vial).
 
 ## 7. API callers
 

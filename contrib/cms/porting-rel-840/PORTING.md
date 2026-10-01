@@ -884,8 +884,10 @@ drug units); c510e6a841 (load_fee_schedule.php); 28fffc3e45
   units from `codes.units`, and the fee sheet adds picked codes without
   units. Production's hardcoded `match` also forced those units over
   whatever was entered; with `codes.units` it is a default the user can
-  change. **Deployment:** in Administration → Codes on each site, set Units:
-  C9257 = 5, Q5124 = 5, J0178 = 2, J0177 = 8, J2777 = 60.
+  change. **Deployment (corrected 2026-10-01):** Administration → Codes has
+  no Units field, so this can't be done there; see "Upstream #14330
+  cherry-picked" and DEPLOYMENT.md section 6 (SQL or Inventory, plus the
+  per-unit price conversion).
 - **load_fee_schedule.php** (upstream contrib script): production's
   comma delimiter and live price updates become **opt-in env vars**, and
   upstream defaults are unchanged: `OPENEMR_LOAD_FEE_SCHEDULE_DELIMITER=comma`,
@@ -1670,6 +1672,29 @@ harness, secondary and copay variants):
   paths from the environment, since `$_SERVER` is forbidden.
 - **Not tested:** a full image build and a real migration; both need the
   server.
+
+## Upstream #14330 cherry-picked (2026-10-01)
+
+Stephen's upstream PR #14330 (merged to master as bc733b3dbf, "default units
+and NDC for injection codes from inventory") is cherry-picked as
+`8f4e2cf0fc`. It replaces the "expose Units on Administration → Codes" idea:
+units and NDC now come from Inventory.
+- **Schema:** three `drugs` columns (`billing_units`, `ndc_uom`,
+  `ndc_quantity`). On cms-rel-840 they're added by
+  `8_4_0-to-8_4_1_upgrade.sql` (master: `8_4_1-to-8_5_0`), and
+  `v_database` stays 543 so a future 8.4.x bump can't be mistaken for
+  applied. Master's identical `#IfMissingColumn` blocks skip at 8.5.0.
+  Verified: OpenEMR's upgrade parser added the three columns on the dev DB.
+- **Pricing change:** a newly picked code's fee is now price × units.
+  Production used the price as the whole line. Codes with forced units
+  (C9257, Q5124, J0178, J0177, J2777) need per-unit prices before go-live:
+  DEPLOYMENT.md section 6 has the review query and the conversion.
+- **Checks:** phpcs and full phpstan clean; `HcpcsDrugDefaultsTest` 8/8;
+  `FeeSheetUnitPriceTest` + `HcpcsDrugDefaultsServiceTest` 10/10;
+  `FeeSheetClassesTest` 13/13.
+- **Cluster 7's deployment step** ("set Units in Administration → Codes")
+  was wrong; that screen has no Units field. It's superseded by
+  DEPLOYMENT.md section 6.
 
 ## Site-ID and user-name checks → per-site globals (running list)
 
