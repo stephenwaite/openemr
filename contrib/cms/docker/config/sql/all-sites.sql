@@ -16,7 +16,8 @@ WHERE NOT EXISTS (SELECT 1 FROM modules WHERE mod_directory = 'oe-module-cmsvt')
 REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('force_claim_balancing', 0, '0');
 
 -- Default units for drug codes (cluster 7). Defaults the biller can change on
--- the line; only codes that exist are touched.
+-- the line; only codes that exist are touched. Prices are per unit since
+-- #14330: convert these codes' prices first (DEPLOYMENT.md section 6).
 UPDATE codes SET units = 5  WHERE code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS') AND code IN ('C9257', 'Q5124');
 UPDATE codes SET units = 2  WHERE code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS') AND code = 'J0178';
 UPDATE codes SET units = 8  WHERE code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS') AND code = 'J0177';
