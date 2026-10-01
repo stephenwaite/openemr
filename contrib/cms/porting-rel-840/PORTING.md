@@ -1613,6 +1613,26 @@ harness, secondary and copay variants):
   patient responsibility, PR-3 sent as PR-2 for Medicaid after Medicare);
   no CO-45; AMT*D unchanged.
 
+## Pre-deployment checks (2026-10-01)
+
+- **Full isolated suite:** 5,422 tests, 0 failures (2 warnings and 1 notice
+  from untouched upstream code: the immunization validator and a test key's
+  file permissions). The first run had 1 failure from the port:
+  TwigTemplateCompilationTest didn't list oe-module-cmsvt's templates
+  folder, so the cluster 8 Press Ganey template failed to compile. Fixed by
+  adding the folder. Cluster 8 had only run the formatter test.
+- **Deployment checklist:** `DEPLOYMENT.md`, synced alongside this file.
+- **Server:** rel-840 needs PHP 8.3+ and MariaDB 10.11+ (or MySQL 8.4+).
+  Stephen chose Docker.
+- **Merged upstream rel-840** (#14283, #14299: acceptance-test syncs).
+- **Release image from the fork:** `docker/release/Dockerfile` gets an
+  `OPENEMR_REPO` build argument (default unchanged; an upstream PR
+  candidate), so the stock release image builds from
+  `stephenwaite/openemr` `cms-rel-840`. Its startup script already runs
+  vendor hooks (`postconfig`, `postupgrade`, `prelaunch`, `tooearly`; see
+  upstream #13953, docs on master), which will carry the per-site
+  configuration.
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
