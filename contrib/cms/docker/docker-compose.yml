@@ -1,0 +1,77 @@
+# CMS Vermont production stack for cms-rel-840.
+# Based on docker/production/docker-compose.yml; see contrib/cms/docker/README.md.
+#
+# Build the image first (from the repository root):
+#   docker build \
+#     --build-arg OPENEMR_REPO=https://github.com/stephenwaite/openemr.git \
+#     --build-arg OPENEMR_VERSION=cms-rel-840 \
+#     -t cmsvt/openemr:cms-rel-840 docker/release
+#
+# MYSQL_* and OE_* below are only used to configure a brand-new install;
+# migrated sites keep their own sites/<site>/sqlconf.php.
+services:
+  mysql:
+    restart: always
+    image: mariadb:12.3.3@sha256:dd9b303aed4f4890ed09f766d8ca9ddfd176c0c6f6267feff53b3192ec65a979
+    command: ['mariadbd', '--character-set-server=utf8mb4']
+    volumes:
+    - databasevolume:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: change-me
+      # Runs mariadb-upgrade when started on an older MariaDB data directory.
+      MARIADB_AUTO_UPGRADE: '1'
+    healthcheck:
+      test:
+      - CMD
+      - /usr/local/bin/healthcheck.sh
+      - --su-mysql
+      - --connect
+      - --innodb_initialized
+      start_period: 1m
+      start_interval: 10s
+      interval: 1m
+      timeout: 5s
+      retries: 3
+  openemr:
+    restart: always
+    image: cmsvt/openemr:cms-rel-840
+    ports:
+    - 80:80
+    - 443:443
+    volumes:
+    - logvolume01:/var/log
+    - sitevolume:/var/www/localhost/htdocs/openemr/sites
+    # Vendor hooks (docker/HOOKS.md): scripts must stay executable.
+    - ./hooks/prelaunch:/root/hooks/prelaunch:ro
+    - ./hooks/postupgrade:/root/hooks/postupgrade:ro
+    # CMS config read by the hooks (site files, per-site SQL, PHP overrides).
+    - ./config:/cms-config:ro
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_ROOT_PASS: change-me
+      MYSQL_USER: openemr
+      MYSQL_PASS: change-me
+      OE_USER: admin
+      OE_PASS: change-me
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD
+      - /usr/bin/curl
+      - --fail
+      - --insecure
+      - --location
+      - --show-error
+      - --silent
+      - https://localhost/meta/health/readyz
+      start_period: 3m
+      start_interval: 10s
+      interval: 1m
+      timeout: 5s
+      retries: 3
+volumes:
+  logvolume01: {}
+  sitevolume: {}
+  databasevolume: {}

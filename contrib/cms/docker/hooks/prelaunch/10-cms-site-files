@@ -1,0 +1,63 @@
+#!/bin/bash
+# Prelaunch hook (runs on every container start, before Apache).
+#
+# Copies CMS files from the mounted config folder into place, so a rebuilt
+# image or a reset volume can't silently fall back to stock files:
+#   ${CMS_CONFIG_ROOT}/sites/<site>/...  -> sites/<site>/...  (existing sites only)
+#   ${CMS_CONFIG_ROOT}/code/...          -> the OpenEMR code tree
+#   ${CMS_CONFIG_ROOT}/php/*.ini         -> PHP's conf.d
+#
+# Files are copied over whatever is there; nothing is deleted.
+set -euo pipefail
+
+config_root="${CMS_CONFIG_ROOT:-/cms-config}"
+oe_root="${OE_ROOT:-/var/www/localhost/htdocs/openemr}"
+
+if [[ ! -d "${config_root}" ]]; then
+    echo "cms prelaunch: ${config_root} not mounted, nothing to copy"
+    exit 0
+fi
+
+# Copy every file under $1 to the same relative path under $2.
+# With $3 = apache, the copies (and any folders created) belong to apache.
+copy_tree() {
+    local src="$1" dest="$2" owner="${3:-}" path rel
+    while IFS= read -r -d '' path; do
+        rel="${path#"${src}"/}"
+        mkdir -p "${dest}/$(dirname "${rel}")"
+        cp "${src}/${rel}" "${dest}/${rel}"
+        if [[ "${owner}" = "apache" ]]; then
+            chown apache:apache "${dest}/$(dirname "${rel}")" "${dest}/${rel}"
+        fi
+        echo "cms prelaunch: ${dest}/${rel}"
+    done < <(find "${src}" -type f -print0 || true)
+}
+
+if [[ -d "${config_root}/sites" ]]; then
+    for site_dir in "${config_root}"/sites/*/; do
+        [[ -d "${site_dir}" ]] || continue
+        site="$(basename "${site_dir}")"
+        if [[ ! -d "${oe_root}/sites/${site}" ]]; then
+            echo "cms prelaunch: site ${site} doesn't exist here, skipped"
+            continue
+        fi
+        copy_tree "${site_dir%/}" "${oe_root}/sites/${site}" apache
+    done
+fi
+
+if [[ -d "${config_root}/code" ]]; then
+    copy_tree "${config_root}/code" "${oe_root}"
+fi
+
+if [[ -d "${config_root}/php" ]]; then
+    for conf_d in /etc/php*/conf.d; do
+        [[ -d "${conf_d}" ]] || continue
+        for ini in "${config_root}"/php/*.ini; do
+            [[ -f "${ini}" ]] || continue
+            cp "${ini}" "${conf_d}/"
+            echo "cms prelaunch: ${conf_d}/$(basename "${ini}")"
+        done
+    done
+fi
+
+echo "cms prelaunch: done"

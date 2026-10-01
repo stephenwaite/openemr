@@ -1,0 +1,53 @@
+#!/bin/bash
+# Postupgrade hook (runs after the image upgrades the databases, leader only).
+#
+# Applies the CMS database settings to every configured site:
+#   1. oe-module-cmsvt's table.sql (CREATE TABLE IF NOT EXISTS)
+#   2. ${CMS_CONFIG_ROOT}/sql/all-sites.sql
+#   3. ${CMS_CONFIG_ROOT}/sql/<site>.sql
+# Each file is applied to a site once; a checksum in sites/<site>/cms-applied/
+# records it, so later upgrades don't overwrite changes made in OpenEMR. Edit
+# a file and it is applied again at the next run.
+#
+# It can also be run by hand at any time:
+#   docker compose exec openemr /root/hooks/postupgrade/10-cms-site-settings
+set -euo pipefail
+
+config_root="${CMS_CONFIG_ROOT:-/cms-config}"
+oe_root="${OE_ROOT:-/var/www/localhost/htdocs/openemr}"
+helper="$(dirname "$0")/cms-apply-sql.php"
+module_sql="${oe_root}/interface/modules/custom_modules/oe-module-cmsvt/table.sql"
+
+apply_once() {
+    local site="$1" site_dir="$2" sql_file="$3" name="$4" marker sum applied=""
+    [[ -f "${sql_file}" ]] || return 0
+    marker="${site_dir}/cms-applied/${name}.sha256"
+    sum="$(sha256sum "${sql_file}")"
+    sum="${sum%% *}"
+    if [[ -f "${marker}" ]]; then
+        read -r applied < "${marker}" || true
+    fi
+    if [[ "${applied}" = "${sum}" ]]; then
+        echo "cms postupgrade: ${site}: ${name} already applied"
+        return 0
+    fi
+    if ! CMS_SQLCONF="${site_dir}/sqlconf.php" CMS_SQL_FILE="${sql_file}" php -f "${helper}"; then
+        echo "cms postupgrade: ${site}: ${name} FAILED" >&2
+        return 1
+    fi
+    mkdir -p "${site_dir}/cms-applied"
+    echo "${sum}" > "${marker}"
+    chown -R apache:apache "${site_dir}/cms-applied"
+    echo "cms postupgrade: ${site}: ${name} applied"
+}
+
+for site_dir in "${oe_root}"/sites/*/; do
+    site_dir="${site_dir%/}"
+    site="$(basename "${site_dir}")"
+    [[ -f "${site_dir}/sqlconf.php" ]] || continue
+    apply_once "${site}" "${site_dir}" "${module_sql}" module-table
+    apply_once "${site}" "${site_dir}" "${config_root}/sql/all-sites.sql" all-sites
+    apply_once "${site}" "${site_dir}" "${config_root}/sql/${site}.sql" "site-${site}"
+done
+
+echo "cms postupgrade: done"

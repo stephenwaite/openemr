@@ -1,0 +1,5 @@
+-- For each podiatry site (primary business entity taxonomy 213E00000X):
+-- copy to <site>.sql (the site's directory name under sites/).
+REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_encounter_date_last_seen', 0, '1');
+-- Only on the site that bills as this NPI:
+REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_claim_routine_foot_care_npis', 0, '1134268188');
