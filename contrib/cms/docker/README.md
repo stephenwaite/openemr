@@ -27,7 +27,7 @@ From a checkout of the repository:
 
 ```sh
 docker build \
-  --build-arg OPENEMR_REPO=https://github.com/stephenwaite/openemr.git \
+  --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
   --build-arg OPENEMR_VERSION=cms-rel-840 \
   -t cmsvt/openemr:cms-rel-840 docker/release
 ```
