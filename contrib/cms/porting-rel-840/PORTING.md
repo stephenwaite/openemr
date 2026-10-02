@@ -1628,9 +1628,14 @@ harness, secondary and copay variants):
   Stephen chose Docker.
 - **Merged upstream rel-840** (#14283, #14299: acceptance-test syncs).
 - **Release image from the fork:** `docker/release/Dockerfile` gets an
-  `OPENEMR_REPO` build argument (default unchanged; an upstream PR
-  candidate), so the stock release image builds from
-  `stephenwaite/openemr` `cms-rel-840`. Its startup script already runs
+  `OPENEMR_GIT` build argument (default unchanged), so the stock release
+  image builds from `stephenwaite/openemr` `cms-rel-840`. It matches
+  upstream #13709 (open, by luissantosHCIT): first named `OPENEMR_REPO`
+  here, then renamed and moved inside the `openemr-source` stage to match
+  it. On 2026-10-01 #13709 was brought up to date with master, with its
+  binary-README docs replaced by Dockerfile comments, on the fork branch
+  `pr-13709-openemr-git` (`cbbf483898`), for Stephen to push to the PR as a
+  maintainer edit. Its startup script already runs
   vendor hooks (`postconfig`, `postupgrade`, `prelaunch`, `tooearly`; see
   upstream #13953, docs on master), which will carry the per-site
   configuration.
