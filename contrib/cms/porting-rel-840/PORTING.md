@@ -1635,7 +1635,11 @@ harness, secondary and copay variants):
   it. On 2026-10-01 #13709 was brought up to date with master, with its
   binary-README docs replaced by Dockerfile comments, on the fork branch
   `pr-13709-openemr-git` (`cbbf483898`), for Stephen to push to the PR as a
-  maintainer edit. Its startup script already runs
+  maintainer edit. Its isolated tests then failed on a master breakage
+  (#14240 left the `variable.undefined` baseline cap one too high), fixed by
+  #14339; the branch was brought up to date again (`6d90e9a574`).
+  **#13709 merged 2026-10-02.** cms-rel-840's Dockerfile already matches it
+  (only the default branch differs). Its startup script already runs
   vendor hooks (`postconfig`, `postupgrade`, `prelaunch`, `tooearly`; see
   upstream #13953, docs on master), which will carry the per-site
   configuration.
