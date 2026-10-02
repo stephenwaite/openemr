@@ -47,7 +47,8 @@ docker build \
 
 ```sh
 cd ~/cms-dryrun
-rsync -aHAX --numeric-ids --delete backup/sites/1100/ sites/1100/
+# sudo: the backup keeps production's owners, so your account can't read all of it
+sudo rsync -aHAX --numeric-ids --delete backup/sites/1100/ sites/1100/
 
 # Stock default site from the image: configured on first start as a new, empty site
 docker run --rm --entrypoint tar cmsvt/openemr:cms-rel-840 \
@@ -57,7 +58,7 @@ docker run --rm --entrypoint tar cmsvt/openemr:cms-rel-840 \
 sudo setfacl -R -m u:1000:rwX -m d:u:1000:rwX sites
 ```
 
-Edit `sites/1100/sqlconf.php`:
+Edit `sites/1100/sqlconf.php` (with `sudo`, e.g. `sudo nano`):
 - set `$host = 'mysql';`;
 - note `$dbase`, `$login` and `$pass` for step 5.
 
@@ -149,7 +150,7 @@ cd ~/cms-dryrun/kit
 docker compose down -v                                  # removes the database volume too
 cd ~/cms-dryrun
 sudo rm -rf sites/default
-rsync -aHAX --numeric-ids --delete backup/sites/1100/ sites/1100/
+sudo rsync -aHAX --numeric-ids --delete backup/sites/1100/ sites/1100/
 ```
 
 Then redo the `sqlconf.php` edit and continue from step 3's stock
