@@ -91,7 +91,7 @@ never used), and `1100/images/` with its letterhead PNG. Set
 
 ```sh
 cd ~/cms-dryrun/kit
-docker compose up -d mysql
+docker compose up -d --wait mysql   # returns once the database accepts connections
 docker compose exec mysql mariadb -uroot -p -e "
   CREATE DATABASE \`<dbase>\` CHARACTER SET utf8mb4;
   CREATE USER '<login>'@'%' IDENTIFIED BY '<pass>';

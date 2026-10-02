@@ -63,7 +63,8 @@ configured `sqlconf.php`, it reads that database's `version` row and runs
 upgraded on its own, straight from 7.0.1; no version marker is needed.
 
 1. **Database.**
-   - Start only the database: `docker compose up -d mysql`.
+   - Start only the database: `docker compose up -d --wait mysql` (`--wait`
+     returns once it accepts connections; the first start takes a while).
    - Load each site's database from a dump of production
      (`mariadb-dump --single-transaction` → `mariadb`).
    - Create each site's database user with the password in its
