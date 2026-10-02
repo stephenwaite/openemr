@@ -1,4 +1,4 @@
--- Applied once to every site by the postupgrade hook (see ../README.md).
+-- Applied once to every site by the prelaunch settings hook (see ../README.md).
 -- Statements run in order and aren't wrapped in a transaction; each one is
 -- safe to repeat, so a file that fails partway can simply be applied again.
 

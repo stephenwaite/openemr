@@ -7,9 +7,9 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
     contrib/cms/docker/
       docker-compose.yml                 the stack (MariaDB + the cms-rel-840 image)
       hooks/prelaunch/10-cms-site-files  every start: copies config files into place
-      hooks/postupgrade/10-cms-site-settings
-                                         after an upgrade: applies per-site SQL once
-      hooks/postupgrade/cms-apply-sql.php  helper for the above
+      hooks/prelaunch/20-cms-site-settings
+                                         every start: applies per-site SQL, once per file
+      hooks/prelaunch/cms-apply-sql.php  helper for the above
       config/                            sample CMS config, mounted at /cms-config
         sql/all-sites.sql                applied to every site
         sql/<site>.sql                   applied to that site (the directory name under sites/)
@@ -54,51 +54,70 @@ every change to cms-rel-840.
 
 ## 3. Move an existing 7.0.1 install in
 
+How the image upgrades: at every start, for each site folder with a
+configured `sqlconf.php`, it reads that database's `version` row and runs
+`sql_upgrade.php --from=<that release>` if the code is newer
+(`check_schema_upgrade` in `docker/release/openemr.sh`). Each site is
+upgraded on its own, straight from 7.0.1; no version marker is needed.
+
 1. **Database.**
    - Start only the database: `docker compose up -d mysql`.
    - Load each site's database from a dump of production
-     (`mariadb-dump` → `mariadb`).
-   - Recreate the OpenEMR database users with the passwords in each
-     `sqlconf.php`, or change the passwords there.
-   - Alternatively, mount the old data directory and let
-     `MARIADB_AUTO_UPGRADE` upgrade it.
-2. **Before the upgrade:** check and fix `x12_partners.x12_submitter_id` on
-   every site's database (DEPLOYMENT.md section 1). The upgrade scripts won't
+     (`mariadb-dump --single-transaction` → `mariadb`).
+   - Create each site's database user with the password in its
+     `sqlconf.php`.
+2. **Before the first start:** check and fix `x12_partners.x12_submitter_id`
+   on every site's database (DEPLOYMENT.md section 1). The upgrade won't
    change an existing column.
-3. **Site directories.** Copy each `sites/<site>/` from the old server into
-   the `sitevolume` volume, owned by `apache` (uid 1000 in the image). In each
-   `sqlconf.php`, set `$host = 'mysql';`.
-4. **Upgrade marker.** Write `5` to `sites/default/docker-version`. The image
-   tracks upgrades with this number: `fsupgrade-6.sh` upgrades every site's
-   database from 7.0.1, and so on through `fsupgrade-15.sh` (from 8.4.0).
-   Without the marker it would start from 5.0.1.
+3. **Site directories.** Bind-mount the site folders, or copy them into the
+   `sitevolume` volume. They must be readable and writable by uid 1000, the
+   image's `apache`; use `setfacl` if the host owner must stay. In each
+   migrated `sqlconf.php`, set `$host = 'mysql';`.
+4. **`sites/default`.** The image decides whether OpenEMR is installed by
+   reading `sites/default/sqlconf.php`, and only restores a missing
+   `default` in swarm mode.
+   - **If `default` is one of your real sites,** migrate it like the others.
+   - **If it isn't** (as on the server with site 1100), give the container
+     a stock `default` from the image. On first start it configures it as a
+     new, empty site:
+     ```sh
+     docker run --rm --entrypoint tar cmsvt/openemr:cms-rel-840 \
+       -C /var/www/localhost/htdocs/openemr/sites -c default | tar -C <sites folder> -x
+     ```
+     `MYSQL_DATABASE` and `MYSQL_USER` in the compose file are used for that
+     new site; keep them different from every migrated site's database and
+     user.
 5. **Start it:** `docker compose up -d`, then follow
    `docker compose logs -f openemr`. In order:
-   - the leader container runs `fsupgrade-6` … `fsupgrade-15` for every site;
-   - then the **postupgrade** hook applies `table.sql`, `all-sites.sql` and
-     each `<site>.sql`;
-   - on every start, the **prelaunch** hook copies the config files;
-   - Apache starts.
+   - `Schema upgrade detected for <site> … (7.0.1)` and `Completed: schema
+     upgrade` for each migrated site;
+   - `Running quick setup!` if a stock `default` is being configured;
+   - the prelaunch hooks: `cms prelaunch:` (files) and `cms settings:`
+     (SQL);
+   - `Starting Apache!`.
 
-   A failing hook stops the start; the log shows which file and why.
+   A failing hook stops the start; the log shows which file and why. The
+   upgrade time is your downtime estimate for the cutover.
 6. Log in to each site and work through DEPLOYMENT.md's smoke tests.
 
 ## How the hooks behave
 
-- **prelaunch** runs on every start. It overwrites, never deletes, and skips
-  `sites/<site>` folders that don't exist. It's safe to run any number of
-  times.
-- **postupgrade** runs when the image upgrades the install, that is when
-  the image's `docker-version` is newer than `sites/default/docker-version`.
-  It does **not** run on a plain restart or on a schema-only migration.
-  - Each SQL file is applied to a site **once**; its checksum is kept in
-    `sites/<site>/cms-applied/`. Later upgrades don't overwrite settings
-    changed in OpenEMR.
-  - Edit a file and it applies again next time.
-  - To apply new settings without waiting for an upgrade:
-    ```sh
-    docker compose exec openemr /root/hooks/postupgrade/10-cms-site-settings
-    ```
+Both run on every start, after the database upgrade and before Apache:
+
+- **`10-cms-site-files`** overwrites, never deletes, and skips `sites/<site>`
+  folders that don't exist. It's safe to run any number of times.
+- **`20-cms-site-settings`** applies `table.sql`, `all-sites.sql` and each
+  `<site>.sql` to a site **once per file**; its checksum is kept in
+  `sites/<site>/cms-applied/`. Later starts don't overwrite settings changed
+  in OpenEMR. Edit a file and it applies again at the next start, or right
+  away with:
+  ```sh
+  docker compose exec openemr /root/hooks/prelaunch/20-cms-site-settings
+  ```
+- Why not `postupgrade`: that hook only fires on the image's
+  `docker-version` path, which needs a code marker that a new image doesn't
+  have. In practice, schema upgrades go through `check_schema_upgrade`, which
+  runs no hook.
 - The SQL helper connects with each site's `sqlconf.php` and doesn't handle
   database TLS certificates. If the database requires TLS, apply the SQL by
   hand instead.

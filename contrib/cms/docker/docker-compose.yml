@@ -7,8 +7,10 @@
 #     --build-arg OPENEMR_VERSION=cms-rel-840 \
 #     -t cmsvt/openemr:cms-rel-840 docker/release
 #
-# MYSQL_* and OE_* below are only used to configure a brand-new install;
-# migrated sites keep their own sites/<site>/sqlconf.php.
+# MYSQL_* and OE_* below are only used to configure a brand-new install,
+# including a stock sites/default on a server where default isn't a real
+# site; migrated sites keep their own sites/<site>/sqlconf.php. Keep
+# MYSQL_DATABASE and MYSQL_USER different from every migrated site's.
 services:
   mysql:
     restart: always
@@ -43,13 +45,13 @@ services:
     - sitevolume:/var/www/localhost/htdocs/openemr/sites
     # Vendor hooks (docker/HOOKS.md): scripts must stay executable.
     - ./hooks/prelaunch:/root/hooks/prelaunch:ro
-    - ./hooks/postupgrade:/root/hooks/postupgrade:ro
     # CMS config read by the hooks (site files, per-site SQL, PHP overrides).
     - ./config:/cms-config:ro
     environment:
       MYSQL_HOST: mysql
       MYSQL_ROOT_PASS: change-me
-      MYSQL_USER: openemr
+      MYSQL_DATABASE: openemr_default
+      MYSQL_USER: openemr_default
       MYSQL_PASS: change-me
       OE_USER: admin
       OE_PASS: change-me

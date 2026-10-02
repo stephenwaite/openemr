@@ -1,4 +1,4 @@
--- Applied once to site 200 by the postupgrade hook (see ../README.md).
+-- Applied once to site 200 by the prelaunch settings hook (see ../README.md).
 -- Billing Manager: default to the last 2 months of service dates.
 REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_billing_manager_dos_months', 0, '2');
 

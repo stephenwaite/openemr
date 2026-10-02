@@ -2,7 +2,7 @@
 
 /**
  * Applies a SQL file to one OpenEMR site's database (helper for the
- * 10-cms-site-settings postupgrade hook; not run by run-parts itself).
+ * 20-cms-site-settings prelaunch hook; not run by run-parts itself).
  *
  * Usage: CMS_SQLCONF=<sites/<site>/sqlconf.php> CMS_SQL_FILE=<file.sql> php cms-apply-sql.php
  *
