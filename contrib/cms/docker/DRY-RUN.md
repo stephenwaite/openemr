@@ -79,9 +79,13 @@ In `kit/docker-compose.yml`:
   (`sbx ports <sandbox> --publish 8443:8443`).
 
 In `kit/config/sql/`, keep `all-sites.sql`, delete the other sites' files,
-and add a `1100.sql` only if site 1100 had CMS settings in production.
-In `kit/config/sites/`, add `1100/statement.inc.php` and its letterhead
-PNG if site 1100 prints CMS statements (see `config/sites/README.md`).
+and add a `1100.sql` for its `statement_logo` (below) and any CMS settings
+1100 had in production.
+In `kit/config/sites/`, add `1100/statement.inc.php`, copied from
+`src/sites/default/statement.inc.php` (not 1100's own copy, which production
+never used), and `1100/images/` with its letterhead PNG. Set
+`statement_logo` to that PNG's file name in `1100.sql` (see
+`config/sites/README.md`).
 
 ## 5. Load the database
 
@@ -137,7 +141,8 @@ that apply to this site. At least:
 - **Claims:** generate a few 837P claims and compare them with what
   production (cms-rel-701) produces for the same encounters.
 - **Statements:** a PDF download with Without Update checked writes only
-  the file. Check the layout if 1100 uses CMS statements.
+  the file. Compare its text with a production statement for the same
+  patient: wording and columns should be identical.
 - **Reports, ERA posting and labs**, as far as test data allows.
 
 Don't send anything real from the dry run: no claims to clearinghouses, no

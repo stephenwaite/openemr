@@ -43,10 +43,10 @@ every change to cms-rel-840.
 - `sql/<site>.sql`: one file per site, from DEPLOYMENT.md section 3. Fill in
   or remove the placeholders (site 200's eligibility override, site 1300's
   NPI). Add a file for each podiatry site from `podiatry-site.sql.example`.
-- `sql/all-sites.sql`: uncomment the statement settings if every site uses the
-  CMS layout; otherwise put them in the sites' own files.
-- `sites/<site>/`: `statement.inc.php` and the letterhead PNG for statement
-  sites, and `chart_review.json` for the records-review site (see
+- `sql/all-sites.sql`: sets Statement Appearance to PDF Custom on every site
+  (production's layout). Set each site's `statement_logo` in its own file.
+- `sites/<site>/`: for every site, cms-rel-840's `statement.inc.php` and the
+  letterhead PNG; `chart_review.json` for the records-review site (see
   `sites/README.md`).
 - Records-review user: put production's PatientFilter config, with the pids
   under `whitelist`, at

@@ -44,8 +44,8 @@ class CustomPdfStatementTextTest extends TestCase
         $this->assertSame('', $lines[4]);
         $this->assertSame('', $lines[5]);
         $this->assertSame(sprintf('%-8s %-44s   %-8s          %-8s ', '06 01 26', 'Office visit', ' 100.00', '  60.00'), $lines[6]);
-        $this->assertSame(sprintf('%-8s %-44s           %8s', '06 20 26', 'Paid Ins1 Check', '40.00'), $lines[7]);
-        $this->assertSame(sprintf('%-8s %-44s           %8s', '06 20 26', 'Adj Contractual', '-5.00'), $lines[8]);
+        $this->assertSame(sprintf('%-8s %-44s           %8s', '06 20 26', 'Ins1 Check', '40.00'), $lines[7]);
+        $this->assertSame(sprintf('%-8s %-54s %8s', '06 20 26', 'Adj Contractual', '-5.00'), $lines[8]);
         $this->assertStringEndsWith("\014", $text);
         $this->assertStringNotContainsString('CONTINUED', $text);
     }
@@ -89,9 +89,62 @@ class CustomPdfStatementTextTest extends TestCase
 
         $this->assertCount(3, $pages); // two parts and the empty string after the final form feed
         $this->assertStringContainsString('CONTINUED PAGE 1', $pages[0]);
-        $this->assertSame(34, substr_count($pages[0], 'Paid Ins1 Check'));
-        $this->assertSame(6, substr_count($pages[1], 'Paid Ins1 Check'));
+        $this->assertSame(34, substr_count($pages[0], 'Ins1 Check'));
+        $this->assertSame(6, substr_count($pages[1], 'Ins1 Check'));
         $this->assertSame('', $pages[2]);
+    }
+
+    public function testNameIsTrimmed(): void
+    {
+        $lines = explode("\r\n", $this->render(self::statement(['  Jane Doe ', '1 Main St', 'Burlington, VT 05401'])));
+
+        $this->assertSame(sprintf('%-9s %-55s %6s ', '', 'JANE DOE', '42'), $lines[0]);
+    }
+
+    public function testAdjustmentCodeShowsReasonDescription(): void
+    {
+        $lines = $this->detailLines([
+            '20260620  2001' => ['chg' => 5, 'rsn' => 'Adjust code 45', 'pmt_method' => 'ERA'],
+        ]);
+
+        $this->assertSame(
+            sprintf('%-8s %-54s %8s', '06 20 26', 'Adj Charge exceeds fee schedule/maximum allow ERA', '-5.00'),
+            $lines[7]
+        );
+    }
+
+    public function testUnknownAdjustmentCodeIsShownAsEntered(): void
+    {
+        $lines = $this->detailLines(['20260620  2001' => ['chg' => 5, 'rsn' => 'Adjust code ZZ9']]);
+
+        $this->assertSame(sprintf('%-8s %-54s %8s', '06 20 26', 'Adj Adjust code ZZ9', '-5.00'), $lines[7]);
+    }
+
+    public function testZeroAmountReasonIsANote(): void
+    {
+        $lines = $this->detailLines(['20260620  2001' => ['chg' => 0, 'rsn' => 'Sent to secondary']]);
+
+        $this->assertSame(sprintf('%-8s %-54s %8s', '06 20 26', 'Note Sent to secondary', ''), $lines[7]);
+    }
+
+    public function testLongPayerKeepsProductionSpacing(): void
+    {
+        $lines = $this->detailLines([
+            '20260620  2000' => ['pmt' => 40, 'src' => 'Blue Cross Blue Shield of Vermont Claims Dept', 'pmt_method' => 'EFT'],
+        ]);
+
+        // Source cut at 40 characters, then the method and a trailing space, past the 44-character column.
+        $this->assertSame('06 20 26 Blue Cross Blue Shield of Vermont Claims EFT               40.00', $lines[7]);
+    }
+
+    /**
+     * @param array<string, array<string, int|string>> $extra detail entries after the charge
+     * @return list<string>
+     */
+    private function detailLines(array $extra): array
+    {
+        $detail = ['          1000' => ['chg' => '100.00']] + $extra;
+        return explode("\r\n", $this->render(self::statement(['Jane Doe', '1 Main St', 'Burlington, VT 05401'], detail: $detail)));
     }
 
     /**

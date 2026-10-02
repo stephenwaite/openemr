@@ -1732,6 +1732,37 @@ sqlconf.php" for `default` on the site-1100 server:
   an upgrade process completes", but a schema upgrade on a new image never
   triggers it.
 
+## Statements match production's library layout (2026-10-02)
+
+Correction from Stephen: production didn't print from the sites'
+`statement.inc.php`. cms-rel-701's `sl_eob_search.php` requires
+`library/statement.inc.php`, whose `create_statement()` is the CMS layout
+for every site (any `statement_appearance` other than 1). Cluster 10 had
+ported the rel-830-sunflower wording, which differed in four places.
+`CustomPdfStatementText` now matches `create_statement()`:
+- insurance payment: `<source, 40 chars> <method>`, with no "Paid" prefix;
+- adjustment: `Adj <reason> <method>`, where "Adjust code NN" (ERA posting)
+  becomes the first 41 characters of the CARC description
+  (`BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES`). An unknown code keeps
+  the raw text; production would have printed an empty reason;
+- zero-amount reason: `Note <reason, 40 chars> <method>`;
+- adjustment and note lines are `%-54s %8s`, and descriptions keep
+  production's trailing space (visible only when the text overflows);
+- the name is trimmed before it's upper-cased.
+
+Checked byte for byte against cms-rel-701's `create_statement()` with
+`scripts/statement-compare-701.php` (it needs `git show
+origin/cms-rel-701:library/statement.inc.php > tmp/stmt701.php` next to
+it; run it in the container). Six cases (payment, CARC adjustment, note,
+patient payments, long payer name, 40 lines split across pages), each at
+dun count 0 and 1: all 12 identical. 10 isolated tests.
+
+Deployment: `all-sites.sql` now sets `statement_appearance = 2` on every
+site. Every site needs cms-rel-840's `sites/default/statement.inc.php`,
+because rel-840 loads the site copy and the old copies lack the PDF Custom
+branch. Each site's `statement_logo` goes in its `<site>.sql`. Kit READMEs,
+DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |

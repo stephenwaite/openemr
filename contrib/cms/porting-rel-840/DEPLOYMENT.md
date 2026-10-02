@@ -78,16 +78,19 @@ what the site used in production.
 | 1300 | Claims: Closed Service Facility NPIs (`cmsvt_claim_closed_facility_npis`) | the closed facility's NPI |
 | Press Ganey sites | Press Ganey Client ID / Survey Designator (`pg_client_id`, `pg_survey_designator`) | carried over: same keys as 7.0.1; check they show their old values |
 
-## 4. Statements (sites using the CMS statement layout)
+## 4. Statements (every site)
 
-- [ ] **Update the site's own `sites/<site>/statement.inc.php`.** Upgrades
-      don't replace it. If the site's copy is stock, replace it with the one
-      from cms-rel-840 (`sites/default/statement.inc.php`); if it has its own
-      changes, copy in the `statement_appearance == "2"` branch of
-      `make_statement()`.
+Production printed every site's statements from `library/statement.inc.php`
+(a cms-rel-701 change); the site copies were never loaded. cms-rel-840's PDF
+Custom layout reproduces that output byte for byte (cluster 10).
+
+- [ ] **Replace `sites/<site>/statement.inc.php`** with cms-rel-840's
+      `sites/default/statement.inc.php`. rel-840 loads the site copy, and
+      upgrades don't replace it; the old copy has no PDF Custom branch.
 - [ ] **Statement Appearance = PDF Custom** (Administration → Globals →
-      Billing, `statement_appearance` = 2). A wrong value here gives the stock
-      plain-text layout.
+      Billing, `statement_appearance` = 2; set by `all-sites.sql`).
+      Production's value was probably 0 (any value but 1 printed the CMS
+      layout there); here 0 gives the stock plain-text layout.
 - [ ] **Statement Logo** = the letterhead **PNG** (612×792 pt) in
       `sites/<site>/images/`. The default `practice_logo.gif` can't be drawn.
 

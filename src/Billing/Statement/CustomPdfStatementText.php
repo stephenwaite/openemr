@@ -1,7 +1,8 @@
 <?php
 
 /**
- * Fixed-width text for the "PDF Custom" statement appearance.
+ * Fixed-width text for the "PDF Custom" statement appearance, matching the
+ * CMS layout production printed from library/statement.inc.php (cms-rel-701).
  *
  * Lines are positioned to print over a full-page letterhead image (see
  * CustomPdfStatementPdf). Each statement starts with a 5-line address block,
@@ -21,6 +22,7 @@ declare(strict_types=1);
 namespace OpenEMR\Billing\Statement;
 
 use DateTimeImmutable;
+use OpenEMR\Billing\BillingUtilities;
 
 final readonly class CustomPdfStatementText
 {
@@ -85,19 +87,19 @@ final readonly class CustomPdfStatementText
                     if ($source === 'Pt Paid' || self::str($ddata['plv'] ?? '') === '0') {
                         $out .= sprintf('%-8s %-44s           %8s  ', $this->formatDate($dos), xl('Pt paid'), $paid) . self::EOL;
                     } else {
-                        $desc = self::join([xl('Paid'), $source, $method]);
+                        $desc = self::description(substr($source, 0, 40), $method);
                         $out .= sprintf('%-8s %-44s           %8s', $this->formatDate($dos), $desc, $paid) . self::EOL;
                     }
                 } elseif ($reason !== '') {
                     $dos = $ddate;
                     if ($charge != 0) {
-                        $desc = self::join([xl('Adj'), $reason, $method]);
+                        $desc = self::description(xl('Adj') . ' ' . self::adjustmentReason($reason), $method);
                         $adjusted = sprintf('%.2f', -$charge);
                     } else {
-                        $desc = self::join([substr($reason, 0, 40), $method]);
+                        $desc = self::description(xl('Note') . ' ' . substr($reason, 0, 40), $method);
                         $adjusted = '';
                     }
-                    $out .= sprintf('%-8s %-44s           %8s', $this->formatDate($dos), $desc, $adjusted) . self::EOL;
+                    $out .= sprintf('%-8s %-54s %8s', $this->formatDate($dos), $desc, $adjusted) . self::EOL;
                 } elseif ($charge < 0) {
                     $out .= sprintf('%-8s %-44s           %8s', $this->formatDate($dos), xl('Patient Payment'), sprintf('%.2f', $charge)) . self::EOL;
                 } else {
@@ -163,11 +165,25 @@ final readonly class CustomPdfStatementText
         }
         $date = $this->today->format('m d y');
 
-        $out = sprintf('%-9s %-55s %6s ', '', strtoupper($name), self::str($stmt['pid'] ?? '')) . self::EOL;
+        $out = sprintf('%-9s %-55s %6s ', '', strtoupper(trim($name)), self::str($stmt['pid'] ?? '')) . self::EOL;
         $out .= sprintf('%-9s %-43s %-8s ', '', $street1, $date) . self::EOL;
         $out .= ($street2 !== '' ? sprintf('%-9s %-43s ', '', $street2) : '') . self::EOL;
         $out .= sprintf('%-9s %-43s %-8s %9s', '', strtoupper($cityStateZip), $date, $amount) . self::EOL;
         return $out . self::EOL . self::EOL;
+    }
+
+    /**
+     * "Adjust code 45" (from ERA posting) becomes the start of the CARC's
+     * description; any other reason is shown as entered.
+     */
+    private static function adjustmentReason(string $reason): string
+    {
+        if (stripos($reason, 'djust code') === false) {
+            return $reason;
+        }
+        $code = trim(substr($reason, -3));
+        $description = BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[$code] ?? null;
+        return is_string($description) ? substr($description, 0, 41) : $reason;
     }
 
     private function formatDate(string $date): string
@@ -182,11 +198,12 @@ final readonly class CustomPdfStatementText
     }
 
     /**
-     * @param list<string> $parts
+     * Joined as production did, always ending in a space; it only shows when
+     * the text overflows its column.
      */
-    private static function join(array $parts): string
+    private static function description(string $text, string $method): string
     {
-        return implode(' ', array_filter($parts, static fn(string $part): bool => $part !== ''));
+        return $text . ' ' . $method . ' ';
     }
 
     private static function str(mixed $value): string

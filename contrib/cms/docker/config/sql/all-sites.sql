@@ -23,8 +23,10 @@ UPDATE codes SET units = 2  WHERE code_type = (SELECT ct_id FROM code_types WHER
 UPDATE codes SET units = 8  WHERE code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS') AND code = 'J0177';
 UPDATE codes SET units = 60 WHERE code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS') AND code = 'J2777';
 
--- Statements: sites that use the CMS layout (cluster 10). Uncomment here, or
--- move to the <site>.sql of the sites that use it. The letterhead file goes in
--- config/sites/<site>/images/ (see config/sites/README.md).
--- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('statement_appearance', 0, '2');
+-- Statements (cluster 10): every site printed the CMS layout in production
+-- (library/statement.inc.php in cms-rel-701), which is PDF Custom here. Each
+-- site also needs cms-rel-840's statement.inc.php and its letterhead PNG in
+-- config/sites/<site>/ (see config/sites/README.md). The logo differs per
+-- site; set it in that site's <site>.sql.
+REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('statement_appearance', 0, '2');
 -- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('statement_logo', 0, '<letterhead>.png');
