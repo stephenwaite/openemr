@@ -17,6 +17,8 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
         code/...                         copied into the code tree on every start
         php/*.ini                        copied into PHP's conf.d on every start
 
+For a practice run on a copy of one site first, see `DRY-RUN.md`.
+
 Copy this folder to the server and keep the real `config/` there. Don't
 commit it back: it holds site files and, for the records-review user, a pid
 list.
