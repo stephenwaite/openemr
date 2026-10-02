@@ -10,14 +10,17 @@ production database first**, then repeat it for each production site.
 cms-rel-840 runs in OpenEMR's release image built from the fork (PHP 8.3+
 and MariaDB 10.11+ are required, so the existing server can't run it as
 is). Everything for that is in `contrib/cms/docker/`; its README has the
-image build, moving the 7.0.1 install in (database, site directories, the
-`docker-version` marker of `5`), and the vendor hooks.
+image build, moving the 7.0.1 install in (database, site directories, a
+stock `sites/default` where `default` isn't a real site), and the vendor
+hooks. The image upgrades each site's database straight from 7.0.1 on
+first start.
 
-The hooks automate most of sections 2–6 below:
-- **prelaunch** copies the site files (sections 4–5) on every start;
-- **postupgrade** applies `config/sql/all-sites.sql` (module, claim
-  balancing, drug units) and each `config/sql/<site>.sql` (section 3) once
-  per site.
+Two prelaunch hooks, run on every start, automate most of sections 2–6
+below:
+- `10-cms-site-files` copies the site files (sections 4–5);
+- `20-cms-site-settings` applies `config/sql/all-sites.sql` (module,
+  claim balancing, drug units) and each `config/sql/<site>.sql` (section 3),
+  once per file per site.
 
 Fill in `config/` from the sections below, then use them as the checklist
 to verify each site.

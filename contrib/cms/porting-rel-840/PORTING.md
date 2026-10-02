@@ -1705,6 +1705,33 @@ units and NDC now come from Inventory.
   was wrong; that screen has no Units field. It's superseded by
   DEPLOYMENT.md section 6.
 
+## Docker kit correction (2026-10-02)
+
+Reading `openemr.sh`'s main flow more closely, while Stephen hit "no
+sqlconf.php" for `default` on the site-1100 server:
+- **The marker-`5` step was wrong.** `run_upgrade` (the `fsupgrade-N` path)
+  needs `${OE_ROOT}/docker-version`, a code marker that lives in the
+  container's code tree, isn't in the image, and is written only after
+  first-time setup. A fresh container never takes that path. Database
+  upgrades go through `check_schema_upgrade` instead: per site, from that
+  database's own `version` row (`sql_upgrade.php --from=7.0.1`), skipping
+  unconfigured sites.
+- **So `postupgrade` effectively never fires on a new image.** The
+  settings script moved to `prelaunch/20-cms-site-settings`; its per-file
+  checksums make running it on every start safe. Re-tested via run-parts
+  in the dev container: first start applied, second skipped.
+- **A missing `sites/default` is only restored in swarm mode**, and
+  `sites/default/sqlconf.php` is how the image decides OpenEMR is
+  installed. On a server where `default` isn't a real site (site 1100's
+  server), the container gets a stock `default` copied from the image. It's
+  configured as a new empty site, using `MYSQL_DATABASE`/`MYSQL_USER`,
+  which the compose file now sets to `openemr_default` so they can't
+  collide with a migrated site's database or user.
+- README, compose file, SQL headers and DEPLOYMENT.md section 0 updated.
+- Worth raising upstream: docker/HOOKS.md says `postupgrade` "is run after
+  an upgrade process completes", but a schema upgrade on a new image never
+  triggers it.
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
