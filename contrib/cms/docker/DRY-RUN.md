@@ -109,6 +109,26 @@ docker compose exec mysql mariadb -uroot -p <dbase> \
   -e "ALTER TABLE x12_partners MODIFY x12_submitter_id smallint(6) DEFAULT NULL"
 ```
 
+Then switch off everything that sends messages or files. OpenEMR runs its
+background services from the browser of whoever is logged in, so without
+this, logging in would send MedEx reminders, queued emails (including
+statements) and SFTP claim uploads. Run it again every time you reload the
+dump:
+
+```sh
+docker compose exec -T mysql mariadb -uroot -p<root password> <dbase> <<'SQL'
+UPDATE background_services SET active = 0, running = 0 WHERE name <> 'UUID_Service';
+UPDATE globals SET gl_value = '0'
+ WHERE gl_name IN ('medex_enable', 'phimail_enable', 'oefax_enable_sms', 'oefax_enable_fax',
+                   'oe_enable_email', 'oe_enable_voice');
+UPDATE globals SET gl_value = 'smtp.invalid' WHERE gl_name = 'SMTP_HOST';
+SELECT name, active FROM background_services;
+SQL
+```
+
+Every service except `UUID_Service` should show `active` 0. `smtp.invalid`
+can't resolve, so anything that tries to send email fails instead.
+
 ## 6. Start and watch
 
 ```sh
@@ -146,7 +166,9 @@ that apply to this site. At least:
 - **Reports, ERA posting and labs**, as far as test data allows.
 
 Don't send anything real from the dry run: no claims to clearinghouses, no
-statements by email, no portal notices.
+statements by email, no portal notices. Step 5's switch-off covers the
+automatic senders; the manual ones (Email Selected, claim uploads from the
+Billing Manager) are still up to you.
 
 ## 8. Reset and repeat
 
