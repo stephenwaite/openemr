@@ -87,9 +87,8 @@ Create `kit/.env` from `kit/.env.example`. Keep a copy outside `kit/`
 
 In `kit/config/sql/`, keep `all-sites.sql`, delete the other sites' files,
 and add a `1100.sql` only for CMS settings 1100 had in production.
-In `kit/config/sites/`, add `1100/statement.inc.php`, copied from
-`src/sites/default/statement.inc.php` (not 1100's own copy, which production
-never used). The letterhead is normally already in place: production read
+Every site gets the image's `statement.inc.php` automatically at start (the
+`10-cms-site-files` hook). The letterhead is normally already in place: production read
 the same Statement Logo global and `sites/1100/images/` file. Check after
 step 5 that `statement_logo` names a PNG in `sites/1100/images/`; only if
 not, add the PNG under `kit/config/sites/1100/images/` and set
@@ -292,8 +291,6 @@ each take the full size of the site folder (1400: about 7 GB).
 - **Step 4:**
   - in `kit/config/sql/`, keep `all-sites.sql` and `1400.sql` (Hide Export
     to Collections) and delete the rest;
-  - in `kit/config/sites/1400/`, add `statement.inc.php` from
-    `src/sites/default/statement.inc.php`;
   - copy your `.env` back in (`cp ../dryrun.env kit/.env`). Check that
     `openemr_default` differs from 1400's `$dbase` and `$login`.
 - **Step 5:**

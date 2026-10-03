@@ -7,7 +7,8 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
     contrib/cms/docker/
       docker-compose.yml                 the stack (MariaDB + the cms-rel-840 image)
       .env.example                       per-server settings; copy to .env
-      hooks/prelaunch/10-cms-site-files  every start: copies config files into place
+      hooks/prelaunch/10-cms-site-files  every start: the image's statement.inc.php to
+                                         every site, then config files into place
       hooks/prelaunch/20-cms-site-settings
                                          every start: applies per-site SQL, once per file
       hooks/prelaunch/cms-apply-sql.php  helper for the above
@@ -56,9 +57,9 @@ database root password, the stock `default` site's passwords and the ports.
   NPI). Add a file for each podiatry site from `podiatry-site.sql.example`.
 - `sql/all-sites.sql`: sets Statement Appearance to PDF Custom on every site
   (production's layout). Sites keep their production Statement Logo.
-- `sites/<site>/`: for every site, cms-rel-840's `statement.inc.php` (the
-  letterhead PNG only if a site lacks it); `chart_review.json` for the
-  records-review site (see `sites/README.md`).
+- `sites/<site>/`: `chart_review.json` for the records-review site, and a
+  letterhead PNG only for a site that lacks it (see `sites/README.md`).
+  `statement.inc.php` comes from the image automatically.
 - Records-review user: put production's PatientFilter config, with the pids
   under `whitelist`, at
   `code/interface/modules/zend_modules/module/PatientFilter/config/blacklist.php`.
@@ -123,8 +124,12 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
 
 Both run on every start, after the database upgrade and before Apache:
 
-- **`10-cms-site-files`** overwrites, never deletes, and skips `sites/<site>`
-  folders that don't exist. It's safe to run any number of times.
+- **`10-cms-site-files`** first gives every site with a `sqlconf.php` the
+  image's `statement.inc.php` (from `/swarm-pieces/sites/default/`, the
+  image's own copy of `sites/`), unless `config/sites/<site>/` has one. A
+  rebuilt image updates every site. Then it copies `config/` files; it
+  overwrites, never deletes, and skips `sites/<site>` folders that don't
+  exist. It's safe to run any number of times.
 - **`20-cms-site-settings`** applies `table.sql`, `all-sites.sql` and each
   `<site>.sql` to a site **once per file**; its checksum is kept in
   `sites/<site>/cms-applied/`. Later starts don't overwrite settings changed

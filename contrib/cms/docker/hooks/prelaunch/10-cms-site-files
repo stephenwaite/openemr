@@ -1,9 +1,12 @@
 #!/bin/bash
 # Prelaunch hook (runs on every container start, before Apache).
 #
-# Copies CMS files from the mounted config folder into place, so a rebuilt
+# Gives every configured site this image's statement.inc.php (the PDF
+# Custom statements need it, and upgrades never replace a site's copy), then
+# copies CMS files from the mounted config folder into place, so a rebuilt
 # image or a reset volume can't silently fall back to stock files:
-#   ${CMS_CONFIG_ROOT}/sites/<site>/...  -> sites/<site>/...  (existing sites only)
+#   ${CMS_CONFIG_ROOT}/sites/<site>/...  -> sites/<site>/...  (existing sites only;
+#                                           a statement.inc.php here wins)
 #   ${CMS_CONFIG_ROOT}/code/...          -> the OpenEMR code tree
 #   ${CMS_CONFIG_ROOT}/php/*.ini         -> PHP's conf.d
 #
@@ -12,9 +15,27 @@ set -euo pipefail
 
 config_root="${CMS_CONFIG_ROOT:-/cms-config}"
 oe_root="${OE_ROOT:-/var/www/localhost/htdocs/openemr}"
+# The image's own sites/ folder, saved at build time (the mounted sites/
+# hides the original).
+statement_src="${CMS_STATEMENT_SRC:-/swarm-pieces/sites/default/statement.inc.php}"
+
+if [[ -f "${statement_src}" ]]; then
+    for site_dir in "${oe_root}"/sites/*/; do
+        [[ -f "${site_dir}sqlconf.php" ]] || continue
+        # A site's own copy in the config folder is applied below instead.
+        [[ -f "${config_root}/sites/$(basename "${site_dir}")/statement.inc.php" ]] && continue
+        dest="${site_dir}statement.inc.php"
+        cmp -s "${statement_src}" "${dest}" && continue
+        cp "${statement_src}" "${dest}"
+        chown apache:apache "${dest}"
+        echo "cms prelaunch: ${dest} (from the image)"
+    done
+else
+    echo "cms prelaunch: ${statement_src} not found; sites keep their statement.inc.php" >&2
+fi
 
 if [[ ! -d "${config_root}" ]]; then
-    echo "cms prelaunch: ${config_root} not mounted, nothing to copy"
+    echo "cms prelaunch: ${config_root} not mounted, no config files to copy"
     exit 0
 fi
 

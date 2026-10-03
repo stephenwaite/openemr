@@ -1795,6 +1795,11 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   and fixed the syntax itself, but kept tinyint. Not an upstream bug in any
   release. `all-sites.sql` now widens it on every site. 1400: tinyint, all
   values 11 or NULL.
+- 1400 started without `config/sites/1400/statement.inc.php`, so it kept
+  its 7.0.1 copy. Every site should have the same file (Stephen), so the
+  site-files hook now copies the image's (`/swarm-pieces/sites/default/`)
+  into every configured site at each start; a `config/sites/<site>/` copy
+  still wins.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,

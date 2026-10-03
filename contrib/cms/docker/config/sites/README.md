@@ -2,18 +2,18 @@
 
 Put files here under the site's directory name, at the path they belong in
 `sites/<site>/`. The prelaunch hook copies them into place on every start
-(existing sites only). For every site (all printed the CMS statement layout):
+(existing sites only).
 
-    sites/<site>/statement.inc.php        cms-rel-840's sites/default/statement.inc.php
-    sites/<site>/images/<letterhead>.png  only if the site doesn't already have it: the
-                                          letterhead named in Statement Logo (612x792 pt)
+`statement.inc.php` isn't needed here: the hook gives every configured site
+the image's copy at each start. Production printed from
+`library/statement.inc.php` and never loaded the sites' 7.0.1 copies, which
+lack the PDF Custom branch; rel-840 loads the site copy. Put one here only
+for a site that must differ; it then replaces the image's.
 
-Production read the same Statement Logo global and `sites/<site>/images/`
-file, so a migrated site normally keeps both.
+For a site without its letterhead (production's sites normally keep it,
+since Statement Logo and `sites/<site>/images/` work the same way):
 
-Don't reuse a site's own 7.0.1 `statement.inc.php`: production printed from
-`library/statement.inc.php` and never loaded the site copies, which lack the
-PDF Custom branch. rel-840 loads the site copy, so it must be replaced.
+    sites/<site>/images/<letterhead>.png  the letterhead named in Statement Logo (612x792 pt)
 
 The records-review site also needs:
 

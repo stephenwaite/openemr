@@ -88,9 +88,11 @@ Production printed every site's statements from `library/statement.inc.php`
 (a cms-rel-701 change); the site copies were never loaded. cms-rel-840's PDF
 Custom layout reproduces that output byte for byte (cluster 10).
 
-- [ ] **Replace `sites/<site>/statement.inc.php`** with cms-rel-840's
-      `sites/default/statement.inc.php`. rel-840 loads the site copy, and
-      upgrades don't replace it; the old copy has no PDF Custom branch.
+- [ ] **`sites/<site>/statement.inc.php` = cms-rel-840's**
+      `sites/default/statement.inc.php`, the same on every site. rel-840
+      loads the site copy, and upgrades don't replace it; the old copy has
+      no PDF Custom branch. The Docker kit's `10-cms-site-files` hook copies
+      the image's file into every site at each start.
 - [ ] **Statement Appearance = PDF Custom** (Administration → Globals →
       Billing, `statement_appearance` = 2; set by `all-sites.sql`).
       Production's value was probably 0 (any value but 1 printed the CMS
