@@ -1773,6 +1773,12 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
 - A comment-only `config/sql/1100.sql` stopped the start ("Query was
   empty"). Fixed in the helper (bd7c7e8f77): files with nothing to apply
   are skipped.
+- Patient page: "SQL Statement failed on preparation" on the
+  `contact_relation` query. Cause: the database was created without a
+  collation, so MariaDB 12 gave the upgrade's new tables
+  `utf8mb4_uca1400_ai_ci` against the dump's `utf8mb4_general_ci`. Fix:
+  convert those tables. Step 5 now creates the database with
+  `COLLATE utf8mb4_general_ci` (DEPLOYMENT.md section 1).
 - DRY-RUN.md gained the database `--wait`, the switch-off SQL (Stephen's
   usual list, keeping oe-module-cmsvt active), and the note that sites keep
   their production letterhead.

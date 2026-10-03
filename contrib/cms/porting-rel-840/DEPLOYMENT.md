@@ -36,6 +36,11 @@ to verify each site.
       -- if tinyint(1):
       ALTER TABLE x12_partners MODIFY x12_submitter_id smallint(6) DEFAULT NULL;
       ```
+- [ ] **Database collation.** Create the new database with
+      `CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci` before loading the
+      dump. MariaDB 11.5+ otherwise defaults to `utf8mb4_uca1400_ai_ci`,
+      the upgrade's new tables get it, and joins with the old tables fail
+      (seen in the 1100 dry run on `contact_relation`).
 - [ ] Back up the database and the site directory (`sites/<site>/`).
 - [ ] Run the normal OpenEMR upgrade (7.0.1 → 8.4), then log in as an admin.
 

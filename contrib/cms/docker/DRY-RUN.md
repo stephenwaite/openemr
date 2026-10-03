@@ -94,11 +94,17 @@ not, add the PNG under `kit/config/sites/1100/images/` and set
 cd ~/cms-dryrun/kit
 docker compose up -d --wait mysql   # returns once the database accepts connections
 docker compose exec mysql mariadb -uroot -p -e "
-  CREATE DATABASE \`<dbase>\` CHARACTER SET utf8mb4;
+  CREATE DATABASE \`<dbase>\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
   CREATE USER '<login>'@'%' IDENTIFIED BY '<pass>';
   GRANT ALL PRIVILEGES ON \`<dbase>\`.* TO '<login>'@'%';"
 zcat ../backup/1100.sql.gz | docker compose exec -T mysql mariadb -uroot -p<root password> <dbase>
 ```
+
+State the collation: the upgrade creates new tables in the database's
+default, and MariaDB 11.5+ otherwise defaults to `utf8mb4_uca1400_ai_ci`.
+Joins between those and the dump's `utf8mb4_general_ci` tables then fail
+("SQL Statement failed on preparation", e.g. on the patient's contacts).
+If the dump's tables are `utf8mb3`, ask before going on.
 
 Before the first start, check `x12_submitter_id` (DEPLOYMENT.md section 1):
 

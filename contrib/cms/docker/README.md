@@ -67,6 +67,10 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
      returns once it accepts connections; the first start takes a while).
    - Load each site's database from a dump of production
      (`mariadb-dump --single-transaction` → `mariadb`).
+   - Create each site's database with
+     `CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci`, before loading it.
+     Without the collation, MariaDB 11.5+ uses `utf8mb4_uca1400_ai_ci` for
+     the tables the upgrade creates, and joins with the dump's tables fail.
    - Create each site's database user with the password in its
      `sqlconf.php`.
 2. **Before the first start:** check and fix `x12_partners.x12_submitter_id`
