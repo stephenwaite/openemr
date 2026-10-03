@@ -188,16 +188,67 @@ statements by email, no portal notices. Step 5's switch-off covers the
 automatic senders; the manual ones (Email Selected, claim uploads from the
 Billing Manager) are still up to you.
 
-## 8. Reset and repeat
+## 8. Next site (e.g. 1400)
+
+Each run starts clean: the previous site's stack, database and working
+copies are removed, the image and kit come from the current cms-rel-840, and
+steps 3–7 are repeated for the new site. The example moves from 1100 to
+1400.
+
+**Tear down the previous run:**
 
 ```sh
 cd ~/cms-dryrun/kit
-docker compose down -v                                  # removes the database volume too
+docker compose down -v                    # removes the database volume too
 cd ~/cms-dryrun
-sudo rm -rf sites/default
-sudo rsync -aHAX --numeric-ids --delete backup/sites/1100/ sites/1100/
+sudo rm -rf sites kit
+mkdir sites
 ```
 
-Then redo the `sqlconf.php` edit and continue from step 3's stock
-`default`. When finished, delete `~/cms-dryrun/backup`, `sites` and the
-database volume.
+Delete the previous site's backup from `backup/` once you no longer need it.
+
+**Update the code and image:**
+
+```sh
+cd ~/cms-dryrun/src
+git pull
+docker build \
+  --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
+  --build-arg OPENEMR_VERSION=cms-rel-840 \
+  -t cmsvt/openemr:cms-rel-840 docker/release
+cd ~/cms-dryrun
+cp -r src/contrib/cms/docker kit
+```
+
+**Back up the new site** as in "What you need": `sites/1400/` and its
+database dump from the same moment, checked complete, in
+`backup/sites/1400/` and `backup/1400.sql.gz`.
+
+**Then repeat steps 3–7 with the new site's name:**
+- **Step 3:** rsync `backup/sites/1400/` to `sites/1400/`.
+  - If `default` is a real site on 1400's server, rsync it from its backup
+    too and skip the stock `default`.
+  - Otherwise copy the stock one, as before.
+  - Edit `sites/1400/sqlconf.php` (`$host = 'mysql';`).
+- **Step 4:**
+  - in `kit/config/sql/`, keep `all-sites.sql` and `1400.sql` (Hide Export
+    to Collections) and delete the rest;
+  - in `kit/config/sites/1400/`, add `statement.inc.php` from
+    `src/sites/default/statement.inc.php`;
+  - make the same compose edits as before. `MYSQL_DATABASE` and
+    `MYSQL_USER` must differ from 1400's `$dbase` and `$login`.
+- **Step 5:**
+  - create 1400's database with `COLLATE utf8mb4_general_ci` and load
+    `backup/1400.sql.gz`;
+  - check `x12_submitter_id` and its values;
+  - run the switch-off SQL.
+- **Step 6:** note the schema upgrade time for 1400.
+- **Step 7:** log in at `?site=1400`. In addition to the checks there:
+  - Reports → Collections doesn't offer Export to Collections (agency);
+  - compare 837P claims with production using `kit/tools/x12-diff.py`.
+
+To redo the same site from scratch instead, tear down as above, but keep
+`kit/` (or copy it fresh if cms-rel-840 changed), and start again from
+step 3.
+
+When the dry runs are finished, delete `~/cms-dryrun/backup` and `sites`.
