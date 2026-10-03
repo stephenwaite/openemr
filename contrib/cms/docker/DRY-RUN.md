@@ -58,9 +58,14 @@ docker run --rm --entrypoint tar cmsvt/openemr:cms-rel-840 \
 sudo setfacl -R -m u:1000:rwX -m d:u:1000:rwX sites
 ```
 
-Edit `sites/1100/sqlconf.php` (with `sudo`, e.g. `sudo nano`):
-- set `$host = 'mysql';`;
-- note `$dbase`, `$login` and `$pass` for step 5.
+Point the site at the database container. In `sqlconf.php`, `$host` must be
+`mysql`: `localhost` inside the container is the container itself, and the
+start fails with "could not read the version table for <site>":
+
+```sh
+sudo sed -i -E "s/^(\\\$host[[:space:]]*=[[:space:]]*)['\"][^'\"]*['\"];/\\1'mysql';/" sites/1100/sqlconf.php
+sudo grep -n '^\$host' sites/1100/sqlconf.php      # $host = 'mysql';
+```
 
 ## 4. Configure the stack (`kit/`)
 
@@ -283,7 +288,7 @@ each take the full size of the site folder (1400: about 7 GB).
   - Copy the stock `default` from the new image, as before. 1400 is on the
     same multisite server as 1100, which has no real `default`. (For a site
     on a server where `default` is real, migrate that one instead.)
-  - Edit `sites/1400/sqlconf.php` (`$host = 'mysql';`).
+  - Set `$host` to `mysql` in `sites/1400/sqlconf.php` (the `sed` in step 3).
 - **Step 4:**
   - in `kit/config/sql/`, keep `all-sites.sql` and `1400.sql` (Hide Export
     to Collections) and delete the rest;
