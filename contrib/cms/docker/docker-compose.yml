@@ -2,7 +2,7 @@
 # Based on docker/production/docker-compose.yml; see contrib/cms/docker/README.md.
 #
 # Build the image first (from the repository root):
-#   docker build \
+#   docker build --no-cache-filter openemr-source \
 #     --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
 #     --build-arg OPENEMR_VERSION=cms-rel-840 \
 #     -t cmsvt/openemr:cms-rel-840 docker/release

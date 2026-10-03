@@ -30,15 +30,20 @@ list.
 From a checkout of the repository:
 
 ```sh
-docker build \
+docker build --no-cache-filter openemr-source \
   --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
   --build-arg OPENEMR_VERSION=cms-rel-840 \
   -t cmsvt/openemr:cms-rel-840 docker/release
 ```
 
-The build clones the branch from GitHub, runs `composer install --no-dev` and
-the npm build, and needs network access and several GB of disk. Rebuild after
-every change to cms-rel-840.
+The build clones the branch from GitHub (not your local checkout), runs
+`composer install --no-dev` and the npm build, and needs network access and
+several GB of disk. Rebuild after every change to cms-rel-840.
+`--no-cache-filter openemr-source` makes it clone again; without it, Docker
+reuses the cached clone and the image keeps the old code. The image has no
+`.git`, so to check what's in it, look for something recent, e.g.
+`docker run --rm --entrypoint grep cmsvt/openemr:cms-rel-840 -c adjustmentReason
+/var/www/localhost/htdocs/openemr/src/Billing/Statement/CustomPdfStatementText.php`.
 
 ## 2. Fill in .env and config/
 

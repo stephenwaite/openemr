@@ -37,7 +37,7 @@ the stack works on copies, so you can reset from it.
 
 ```sh
 cd ~/cms-dryrun/src
-docker build \
+docker build --no-cache-filter openemr-source \
   --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
   --build-arg OPENEMR_VERSION=cms-rel-840 \
   -t cmsvt/openemr:cms-rel-840 docker/release
@@ -228,8 +228,8 @@ Delete the previous site's backup from `backup/` once you no longer need it.
 
 ```sh
 cd ~/cms-dryrun/src
-git pull
-docker build \
+git pull                                  # for the kit; the build clones from GitHub
+docker build --no-cache-filter openemr-source \
   --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
   --build-arg OPENEMR_VERSION=cms-rel-840 \
   -t cmsvt/openemr:cms-rel-840 docker/release
