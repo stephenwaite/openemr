@@ -28,6 +28,12 @@ if ($sql === false) {
     exit(1);
 }
 
+// A file of only comments (e.g. a site file with its settings commented out) has nothing to apply.
+$statements = preg_replace(['#/\*.*?\*/#s', '/^\s*(--|\#).*$/m', '/[\s;]+/'], '', $sql);
+if ($statements === '') {
+    exit(0);
+}
+
 // sqlconf.php sets $host, $port, $login, $pass, $dbase and $config.
 $site = (static function (string $file): array {
     require $file;
