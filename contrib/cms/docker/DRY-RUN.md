@@ -242,9 +242,9 @@ each take the full size of the site folder (1400: about 7 GB).
 
 **Then repeat steps 3–7 with the new site's name:**
 - **Step 3:** rsync `backup/sites/1400/` to `sites/1400/`.
-  - If `default` is a real site on 1400's server, rsync it from its backup
-    too and skip the stock `default`.
-  - Otherwise copy the stock one, as before.
+  - Copy the stock `default` from the new image, as before. 1400 is on the
+    same multisite server as 1100, which has no real `default`. (For a site
+    on a server where `default` is real, migrate that one instead.)
   - Edit `sites/1400/sqlconf.php` (`$host = 'mysql';`).
 - **Step 4:**
   - in `kit/config/sql/`, keep `all-sites.sql` and `1400.sql` (Hide Export
