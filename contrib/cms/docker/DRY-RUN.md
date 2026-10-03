@@ -92,14 +92,34 @@ not, add the PNG under `kit/config/sites/1100/images/` and set
 
 ## 5. Load the database
 
+Set these once per terminal; the rest of this step uses them. They read the
+site's database name, user and password from its `sqlconf.php` and the root
+password from `kit/.env`, so nothing is retyped:
+
 ```sh
 cd ~/cms-dryrun/kit
-docker compose up -d --wait mysql   # returns once the database accepts connections
-docker compose exec mysql mariadb -uroot -p -e "
-  CREATE DATABASE \`<dbase>\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-  CREATE USER '<login>'@'%' IDENTIFIED BY '<pass>';
-  GRANT ALL PRIVILEGES ON \`<dbase>\`.* TO '<login>'@'%';"
-zcat ../backup/1100.sql.gz | docker compose exec -T mysql mariadb -uroot -p<root password> <dbase>
+SITE=1100                                    # the site being migrated
+DUMP=~/cms-dryrun/backup/$SITE.sql.gz        # its database dump
+CONF=~/cms-dryrun/sites/$SITE/sqlconf.php
+conf() { sudo sed -nE "s/^\\\$$1[[:space:]]*=[[:space:]]*['\"](.*)['\"];.*/\1/p" "$CONF"; }
+DB=$(conf dbase); DBUSER=$(conf login); DBPASS=$(conf pass)
+RP=$(grep '^CMS_DB_ROOT_PASS=' .env | cut -d= -f2-)
+echo "db=$DB user=$DBUSER pass set: ${DBPASS:+yes}"
+```
+
+A password containing a single quote breaks the `CREATE USER` line below;
+create that user by hand.
+
+Check the dump, then create the database and user and load it:
+
+```sh
+gzip -t "$DUMP" && zcat "$DUMP" | tail -1   # -- Dump completed on …
+docker compose up -d --wait mysql           # returns once the database accepts connections
+docker compose exec -T mysql mariadb -uroot -p"$RP" -e "
+  CREATE DATABASE \`$DB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+  CREATE USER '$DBUSER'@'%' IDENTIFIED BY '$DBPASS';
+  GRANT ALL PRIVILEGES ON \`$DB\`.* TO '$DBUSER'@'%';"
+zcat "$DUMP" | docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB"
 ```
 
 State the collation: the upgrade creates new tables in the database's
@@ -109,13 +129,17 @@ Joins between those and the dump's `utf8mb4_general_ci` tables then fail
 The dump's own mix (1100: `utf8mb3_general_ci`, `utf8mb4_general_ci` and a
 few `latin1`) is fine and stays as it is.
 
-Before the first start, check `x12_submitter_id` (DEPLOYMENT.md section 1):
+Before the first start, check `x12_submitter_id` (DEPLOYMENT.md section 1).
+It holds the user ID of the claims' submitter contact; a `tinyint(1)` caps
+it at 127:
 
 ```sh
-docker compose exec mysql mariadb -uroot -p <dbase> \
-  -e "SHOW COLUMNS FROM x12_partners LIKE 'x12_submitter_id'"
+docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" -e "
+  SHOW COLUMNS FROM x12_partners LIKE 'x12_submitter_id';
+  SELECT p.id, p.name, p.x12_submitter_id, u.fname, u.lname
+    FROM x12_partners p LEFT JOIN users u ON u.id = p.x12_submitter_id"
 # if it's tinyint(1):
-docker compose exec mysql mariadb -uroot -p <dbase> \
+docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" \
   -e "ALTER TABLE x12_partners MODIFY x12_submitter_id smallint(6) DEFAULT NULL"
 ```
 
@@ -126,7 +150,7 @@ statements), lab orders and SFTP claim uploads. Run it again every time you
 reload the dump:
 
 ```sh
-docker compose exec -T mysql mariadb -uroot -p<root password> <dbase> <<'SQL'
+docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" <<'SQL'
 UPDATE background_services SET active = 0;
 UPDATE procedure_providers SET active = 0;
 -- every module but CMS Vermont, which is what's being tested
@@ -142,6 +166,16 @@ SQL
 
 To log in as yourself, set a known password hash on your own account in
 `users_secure` the same way.
+
+Last, check the collation: the database should be `utf8mb4_general_ci` and
+no table `uca1400`:
+
+```sh
+docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" -e "
+  SELECT @@collation_database;
+  SELECT table_collation, COUNT(*) FROM information_schema.tables
+   WHERE table_schema = DATABASE() GROUP BY 1"
+```
 
 ## 6. Start and watch
 
@@ -257,8 +291,8 @@ each take the full size of the site folder (1400: about 7 GB).
   - copy your `.env` back in (`cp ../dryrun.env kit/.env`). Check that
     `openemr_default` differs from 1400's `$dbase` and `$login`.
 - **Step 5:**
-  - create 1400's database with `COLLATE utf8mb4_general_ci` and load
-    `backup/1400.sql.gz`;
+  - set `SITE=1400` (and `DUMP`, if the dump is elsewhere), then run it
+    as written;
   - check `x12_submitter_id` and its values;
   - run the switch-off SQL.
 - **Step 6:** note the schema upgrade time for 1400.
