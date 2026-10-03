@@ -7,6 +7,9 @@
 #     --build-arg OPENEMR_VERSION=cms-rel-840 \
 #     -t cmsvt/openemr:cms-rel-840 docker/release
 #
+# Settings that differ per server (passwords, the sites folder, ports) come
+# from .env next to this file; copy .env.example and fill it in.
+#
 # MYSQL_* and OE_* below are only used to configure a brand-new install,
 # including a stock sites/default on a server where default isn't a real
 # site; migrated sites keep their own sites/<site>/sqlconf.php. Keep
@@ -19,7 +22,7 @@ services:
     volumes:
     - databasevolume:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: change-me
+      MYSQL_ROOT_PASSWORD: ${CMS_DB_ROOT_PASS:?set CMS_DB_ROOT_PASS in .env}
       # Runs mariadb-upgrade when started on an older MariaDB data directory.
       MARIADB_AUTO_UPGRADE: '1'
     healthcheck:
@@ -38,23 +41,24 @@ services:
     restart: always
     image: cmsvt/openemr:cms-rel-840
     ports:
-    - 80:80
-    - 443:443
+    - ${CMS_HTTP_PORT:-80}:80
+    - ${CMS_HTTPS_PORT:-443}:443
     volumes:
     - logvolume01:/var/log
-    - sitevolume:/var/www/localhost/htdocs/openemr/sites
+    # The existing sites folder, migrated in place (readable and writable by uid 1000).
+    - ${CMS_SITES_DIR:?set CMS_SITES_DIR in .env}:/var/www/localhost/htdocs/openemr/sites
     # Vendor hooks (docker/HOOKS.md): scripts must stay executable.
     - ./hooks/prelaunch:/root/hooks/prelaunch:ro
     # CMS config read by the hooks (site files, per-site SQL, PHP overrides).
     - ./config:/cms-config:ro
     environment:
       MYSQL_HOST: mysql
-      MYSQL_ROOT_PASS: change-me
+      MYSQL_ROOT_PASS: ${CMS_DB_ROOT_PASS:?set CMS_DB_ROOT_PASS in .env}
       MYSQL_DATABASE: openemr_default
       MYSQL_USER: openemr_default
-      MYSQL_PASS: change-me
+      MYSQL_PASS: ${CMS_DEFAULT_DB_PASS:?set CMS_DEFAULT_DB_PASS in .env}
       OE_USER: admin
-      OE_PASS: change-me
+      OE_PASS: ${CMS_DEFAULT_ADMIN_PASS:?set CMS_DEFAULT_ADMIN_PASS in .env}
     depends_on:
       mysql:
         condition: service_healthy
@@ -75,5 +79,4 @@ services:
       retries: 3
 volumes:
   logvolume01: {}
-  sitevolume: {}
   databasevolume: {}

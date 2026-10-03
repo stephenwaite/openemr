@@ -64,19 +64,21 @@ Edit `sites/1100/sqlconf.php` (with `sudo`, e.g. `sudo nano`):
 
 ## 4. Configure the stack (`kit/`)
 
-In `kit/docker-compose.yml`:
-- **Sites folder:** replace the `sitevolume` line under `openemr:` with a
-  bind mount, and remove `sitevolume: {}` at the bottom:
-  ```yaml
-      - ../sites:/var/www/localhost/htdocs/openemr/sites
-  ```
-- **Passwords:** replace every `change-me`. `MYSQL_ROOT_PASSWORD` (mysql)
-  and `MYSQL_ROOT_PASS` (openemr) must match.
-- **New default site:** `MYSQL_DATABASE` and `MYSQL_USER` must differ from
-  site 1100's `$dbase` and `$login`. They're `openemr_default` by default.
-- **Ports:** if 80/443 are taken, change them, e.g. `8080:80` and
-  `8443:443`. In a Docker Sandbox, also publish the port on the host
+Create `kit/.env` from `kit/.env.example`. Keep a copy outside `kit/`
+(e.g. `~/cms-dryrun/dryrun.env`) so a fresh kit only needs it copied back:
+- `CMS_SITES_DIR=../sites` (the default) bind-mounts `~/cms-dryrun/sites`.
+- `CMS_DB_ROOT_PASS`: MariaDB's root password, used by both containers.
+  It's only read when the database volume is created; to change it
+  later, `docker compose down -v` first.
+- `CMS_DEFAULT_DB_PASS` and `CMS_DEFAULT_ADMIN_PASS`: for the stock
+  `default` site.
+- `CMS_HTTP_PORT`/`CMS_HTTPS_PORT`: if 80/443 are taken, e.g. 8080 and
+  8443. In a Docker Sandbox, also publish the port on the host
   (`sbx ports <sandbox> --publish 8443:8443`).
+
+`MYSQL_DATABASE` and `MYSQL_USER` in `kit/docker-compose.yml` (for the new
+`default`) must differ from site 1100's `$dbase` and `$login`. They're
+`openemr_default`.
 
 In `kit/config/sql/`, keep `all-sites.sql`, delete the other sites' files,
 and add a `1100.sql` only for CMS settings 1100 had in production.
@@ -215,6 +217,7 @@ steps 3–7 are repeated for the new site. The example moves from 1100 to
 cd ~/cms-dryrun/kit
 docker compose down -v                    # removes the database volume too
 cd ~/cms-dryrun
+cp kit/.env dryrun.env                    # if you haven't kept a copy yet
 sudo rm -rf sites kit
 mkdir sites
 ```
@@ -251,8 +254,8 @@ each take the full size of the site folder (1400: about 7 GB).
     to Collections) and delete the rest;
   - in `kit/config/sites/1400/`, add `statement.inc.php` from
     `src/sites/default/statement.inc.php`;
-  - make the same compose edits as before. `MYSQL_DATABASE` and
-    `MYSQL_USER` must differ from 1400's `$dbase` and `$login`.
+  - copy your `.env` back in (`cp ../dryrun.env kit/.env`). Check that
+    `openemr_default` differs from 1400's `$dbase` and `$login`.
 - **Step 5:**
   - create 1400's database with `COLLATE utf8mb4_general_ci` and load
     `backup/1400.sql.gz`;

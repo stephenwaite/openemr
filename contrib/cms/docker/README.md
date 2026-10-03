@@ -6,6 +6,7 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
 
     contrib/cms/docker/
       docker-compose.yml                 the stack (MariaDB + the cms-rel-840 image)
+      .env.example                       per-server settings; copy to .env
       hooks/prelaunch/10-cms-site-files  every start: copies config files into place
       hooks/prelaunch/20-cms-site-settings
                                          every start: applies per-site SQL, once per file
@@ -39,7 +40,11 @@ The build clones the branch from GitHub, runs `composer install --no-dev` and
 the npm build, and needs network access and several GB of disk. Rebuild after
 every change to cms-rel-840.
 
-## 2. Fill in config/
+## 2. Fill in .env and config/
+
+Copy `.env.example` to `.env` and fill it in: the sites folder, the
+database root password, the stock `default` site's passwords and the ports.
+`.env` holds passwords; keep it only on the server.
 
 - `sql/<site>.sql`: one file per site, from DEPLOYMENT.md section 3. Fill in
   or remove the placeholders (site 200's eligibility override, site 1300's
@@ -77,10 +82,11 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
 2. **Before the first start:** check and fix `x12_partners.x12_submitter_id`
    on every site's database (DEPLOYMENT.md section 1). The upgrade won't
    change an existing column.
-3. **Site directories.** Bind-mount the site folders, or copy them into the
-   `sitevolume` volume. They must be readable and writable by uid 1000, the
-   image's `apache`; use `setfacl` if the host owner must stay. In each
-   migrated `sqlconf.php`, set `$host = 'mysql';`.
+3. **Site directories.** The compose file bind-mounts the folder named by
+   `CMS_SITES_DIR` in `.env` as the image's `sites/`: a copy of the 7.0.1
+   `sites/` folder, not the live one. It must be readable and writable by
+   uid 1000, the image's `apache`; use `setfacl` if the host owner must
+   stay. In each migrated `sqlconf.php`, set `$host = 'mysql';`.
 4. **`sites/default`.** The image decides whether OpenEMR is installed by
    reading `sites/default/sqlconf.php`, and only restores a missing
    `default` in swarm mode.
