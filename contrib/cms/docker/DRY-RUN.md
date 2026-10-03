@@ -104,7 +104,8 @@ State the collation: the upgrade creates new tables in the database's
 default, and MariaDB 11.5+ otherwise defaults to `utf8mb4_uca1400_ai_ci`.
 Joins between those and the dump's `utf8mb4_general_ci` tables then fail
 ("SQL Statement failed on preparation", e.g. on the patient's contacts).
-If the dump's tables are `utf8mb3`, ask before going on.
+The dump's own mix (1100: `utf8mb3_general_ci`, `utf8mb4_general_ci` and a
+few `latin1`) is fine and stays as it is.
 
 Before the first start, check `x12_submitter_id` (DEPLOYMENT.md section 1):
 

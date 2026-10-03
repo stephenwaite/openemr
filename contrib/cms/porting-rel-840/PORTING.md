@@ -1776,8 +1776,11 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
 - Patient page: "SQL Statement failed on preparation" on the
   `contact_relation` query. Cause: the database was created without a
   collation, so MariaDB 12 gave the upgrade's new tables
-  `utf8mb4_uca1400_ai_ci` against the dump's `utf8mb4_general_ci`. Fix:
-  convert those tables. Step 5 now creates the database with
+  `utf8mb4_uca1400_ai_ci` against the dump's `utf8mb4_general_ci`. 1100
+  had 28 such tables, next to production's 216 `utf8mb3_general_ci`, 27
+  `utf8mb4_general_ci` and 16 `latin1_swedish_ci` (those compare fine across
+  character sets and were left alone). Fix: convert the 28 to
+  `utf8mb4_general_ci`. Step 5 now creates the database with
   `COLLATE utf8mb4_general_ci` (DEPLOYMENT.md section 1).
 - DRY-RUN.md gained the database `--wait`, the switch-off SQL (Stephen's
   usual list, keeping oe-module-cmsvt active), and the note that sites keep
