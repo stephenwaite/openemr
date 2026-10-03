@@ -79,13 +79,14 @@ In `kit/docker-compose.yml`:
   (`sbx ports <sandbox> --publish 8443:8443`).
 
 In `kit/config/sql/`, keep `all-sites.sql`, delete the other sites' files,
-and add a `1100.sql` for its `statement_logo` (below) and any CMS settings
-1100 had in production.
+and add a `1100.sql` only for CMS settings 1100 had in production.
 In `kit/config/sites/`, add `1100/statement.inc.php`, copied from
 `src/sites/default/statement.inc.php` (not 1100's own copy, which production
-never used), and `1100/images/` with its letterhead PNG. Set
-`statement_logo` to that PNG's file name in `1100.sql` (see
-`config/sites/README.md`).
+never used). The letterhead is normally already in place: production read
+the same Statement Logo global and `sites/1100/images/` file. Check after
+step 5 that `statement_logo` names a PNG in `sites/1100/images/`; only if
+not, add the PNG under `kit/config/sites/1100/images/` and set
+`statement_logo` in `1100.sql`.
 
 ## 5. Load the database
 
