@@ -1764,6 +1764,19 @@ branch. Sites keep production's `statement_logo` and letterhead PNG
 (production drew it the same way, full page at 612×792). Kit READMEs,
 DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
 
+## Dry run, site 1100 (2026-10-03)
+
+- `x12_partners.x12_submitter_id` was `tinyint(1)` on 1100; altered to
+  `smallint(6)` before the first start (DEPLOYMENT.md section 1 confirmed).
+- Schema upgrade 7.0.1 → 8.4 (revision 487 → 543): about 61 s, with no
+  failed statements.
+- A comment-only `config/sql/1100.sql` stopped the start ("Query was
+  empty"). Fixed in the helper (bd7c7e8f77): files with nothing to apply
+  are skipped.
+- DRY-RUN.md gained the database `--wait`, the switch-off SQL (Stephen's
+  usual list, keeping oe-module-cmsvt active), and the note that sites keep
+  their production letterhead.
+
 ## Site-ID and user-name checks → per-site globals (running list)
 
 | Production check | Where | Replacement | Cluster |
