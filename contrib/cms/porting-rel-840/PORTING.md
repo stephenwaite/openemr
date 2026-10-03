@@ -1782,6 +1782,12 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   character sets and were left alone). Fix: convert the 28 to
   `utf8mb4_general_ci`. Step 5 now creates the database with
   `COLLATE utf8mb4_general_ci` (DEPLOYMENT.md section 1).
+- Statement Appearance came in as plain text: the kit copy predated
+  0ab443a0a2. Once it was set to PDF Custom, statements printed correctly on
+  the letterhead (image 2db651390f, so still the rel-830-sunflower wording).
+- Documents, fee sheet and claims checked by Stephen: good.
+- The top-bar patient search doesn't match the internal pid (it searches the
+  DEM layout fields only); upstream behavior, unchanged from 7.0.1.
 - DRY-RUN.md gained the database `--wait`, the switch-off SQL (Stephen's
   usual list, keeping oe-module-cmsvt active), and the note that sites keep
   their production letterhead.
