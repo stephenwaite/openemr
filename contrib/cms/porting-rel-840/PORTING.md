@@ -795,7 +795,8 @@ Assign it the `chart_review` menu.
   off, category, reason, provider, referring provider and POS are blanked
   (reusing upstream's no-access path) and the facility stays, as in
   production. Module: `cmsvt_encounter_report_hide_visit_details`
-  (site `default` → on).
+  (no site sets it: production's check was for site `default`, which isn't
+  a real site on any production server; see 2026-10-03).
 - custom_report.php, **reimplemented rather than copied**. Encounter and
   dictation forms have no headings; the encounter shows "Date of Service (…)
   Provider: …"; other forms keep their heading but no date; no procedure
@@ -1788,6 +1789,10 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
 - Documents, fee sheet and claims checked by Stephen: good.
 - The top-bar patient search doesn't match the internal pid (it searches the
   DEM layout fields only); upstream behavior, unchanged from 7.0.1.
+- No production server has a real `default` site (Stephen), so the
+  `site_id != 'default'` visit-details check never applied. Removed
+  `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,
+  off. Docker still needs a configured `sites/default` (the stock one).
 - DRY-RUN.md gained the database `--wait`, the switch-off SQL (Stephen's
   usual list, keeping oe-module-cmsvt active), and the note that sites keep
   their production letterhead.
@@ -1799,7 +1804,7 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
 | `site_id == '200'`: fixed eligibility provider | EDI270.php | `cmsvt_elig_provider_id`, `cmsvt_elig_receiver_name` | 3 |
 | `site_id == '200'`: Billing Manager default = last 2 months (others: all unbilled) | billing_report.php | `cmsvt_billing_manager_dos_months` (200 → 2, others → 0) | 4 |
 | `site_id != '1400'`: show Export to Collections | collections_report.php | `cmsvt_collections_hide_agency_export` (1400 → on) | 4 |
-| `site_id != 'default'`: show visit details in the encounter report | newpatient/report.php | `cmsvt_encounter_report_hide_visit_details` (default → on) | 5 |
+| `site_id != 'default'`: show visit details in the encounter report | newpatient/report.php | `cmsvt_encounter_report_hide_visit_details` (no site: `default` isn't real anywhere) | 5 |
 | `authUser == '<records-review-user>'` (records-review user): 4 checks | demographics.php, stats.php, edit_globals.php | **not a global:** the reviewer's ACL group (see cluster 5) | 5 |
 | primary business entity taxonomy `213E00000X`: "Date Last Seen" label | newpatient encounter form | `cmsvt_encounter_date_last_seen` (podiatry sites → on) | 6 |
 | `site_id == '2400'`: match lab results by MRN only | receive_hl7_results.inc.php | `cmsvt_hl7_match_patient_by_mrn` (2400 → on) | 11 |

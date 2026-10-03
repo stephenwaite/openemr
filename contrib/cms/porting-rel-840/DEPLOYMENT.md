@@ -72,7 +72,6 @@ what the site used in production.
 | 200 | Eligibility (270) Receiver Name Override (`cmsvt_elig_receiver_name`) | the receiver name from the same commit |
 | 200 | Billing Manager Default Date-of-Service Months (`cmsvt_billing_manager_dos_months`) | 2 |
 | 1400 | Hide Export to Collections (`cmsvt_collections_hide_agency_export`) | on |
-| default | Hide Visit Details in Encounter Reports (`cmsvt_encounter_report_hide_visit_details`) | on |
 | podiatry sites (primary business entity taxonomy 213E00000X) | Label Onset Date as Date Last Seen (`cmsvt_encounter_date_last_seen`) | on |
 | podiatry site billing as NPI 1134268188 | Claims: Routine Foot Care Billing NPIs (`cmsvt_claim_routine_foot_care_npis`) | 1134268188 |
 | 2400 | Match Lab Results by MRN Only (`cmsvt_hl7_match_patient_by_mrn`) | on |
@@ -179,8 +178,7 @@ Test data or a de-identified copy only.
       export (site 1400).
 - [ ] **Fee sheet:** review shows today's prices; a drug code arrives with its
       default units; fee = price × units.
-- [ ] **Encounter form / report:** "Date Last Seen" label on podiatry sites;
-      visit details hidden on `default`.
+- [ ] **Encounter form / report:** "Date Last Seen" label on podiatry sites.
 - [ ] **Reports:** Appointments report (DOB, phone, patient due, primary
       insurer, reminder CSV); Press Ganey export; records-review user sees
       only allowed patients.
