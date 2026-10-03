@@ -150,19 +150,22 @@ statements), lab orders and SFTP claim uploads. Run it again every time you
 reload the dump:
 
 ```sh
-docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" <<'SQL'
-UPDATE background_services SET active = 0;
-UPDATE procedure_providers SET active = 0;
--- every module but CMS Vermont, which is what's being tested
-UPDATE modules SET mod_active = 0 WHERE mod_directory <> 'oe-module-cmsvt';
-UPDATE globals SET gl_value = '0'
- WHERE gl_name IN ('medex_enable', 'auto_sftp_claims_to_x12_partner', 'phimail_enable');
--- can't resolve, so anything that tries to send email fails instead
-UPDATE globals SET gl_value = 'smtp.invalid' WHERE gl_name = 'SMTP_HOST';
--- optional: log in without the users' authenticator apps
-TRUNCATE login_mfa_registrations;
-SQL
+docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" -e "
+  UPDATE background_services SET active = 0;
+  UPDATE procedure_providers SET active = 0;
+  UPDATE modules SET mod_active = 0 WHERE mod_directory <> 'oe-module-cmsvt';
+  UPDATE globals SET gl_value = '0'
+   WHERE gl_name IN ('medex_enable', 'auto_sftp_claims_to_x12_partner', 'phimail_enable');
+  UPDATE globals SET gl_value = 'smtp.invalid' WHERE gl_name = 'SMTP_HOST';
+  TRUNCATE login_mfa_registrations;
+  SELECT name, active FROM background_services;"
 ```
+
+Every module but CMS Vermont (what's being tested) is switched off.
+`smtp.invalid` can't resolve, so anything that tries to send email fails
+instead. Truncating `login_mfa_registrations` is optional: it lets you log
+in without the users' authenticator apps. Every background service should
+show `active` 0.
 
 To log in as yourself, set a known password hash on your own account in
 `users_secure` the same way.
