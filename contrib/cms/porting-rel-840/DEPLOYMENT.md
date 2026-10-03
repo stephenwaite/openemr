@@ -27,15 +27,15 @@ to verify each site.
 
 ## 1. Before upgrading the database
 
-- [ ] **`x12_partners.x12_submitter_id` type.** Production may have it as
-      `tinyint(1)`; upstream uses `smallint(6)`, and the upgrade scripts
-      won't alter an existing column. Check, and if it's `tinyint(1)`,
-      alter it before upgrading:
+- [ ] **`x12_partners.x12_submitter_id` values.** cms-rel-701 has the
+      column as `tinyint(1)` (upstream #6456 without its fix #6459), which
+      caps the submitter's user ID at 127. `config/sql/all-sites.sql`
+      widens it to `smallint(6)` at first start. Check for clipped IDs:
       ```sql
-      SHOW COLUMNS FROM x12_partners LIKE 'x12_submitter_id';
-      -- if tinyint(1):
-      ALTER TABLE x12_partners MODIFY x12_submitter_id smallint(6) DEFAULT NULL;
+      SELECT p.id, p.name, p.x12_submitter_id, u.fname, u.lname
+        FROM x12_partners p LEFT JOIN users u ON u.id = p.x12_submitter_id;
       ```
+      A 127 may be clipped: pick the submitter again after the upgrade.
 - [ ] **Database collation.** Create the new database with
       `CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci` before loading the
       dump. MariaDB 11.5+ otherwise defaults to `utf8mb4_uca1400_ai_ci`,

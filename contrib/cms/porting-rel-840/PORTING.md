@@ -1789,6 +1789,12 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
 - Documents, fee sheet and claims checked by Stephen: good.
 - The top-bar patient search doesn't match the internal pid (it searches the
   DEM layout fields only); upstream behavior, unchanged from 7.0.1.
+- `x12_submitter_id` `tinyint(1)` traced: upstream #6456 (2023-05-13)
+  added it as tinyint with a syntax error; #6459 (2023-05-17) fixed both
+  and changed it to `smallint(6)` before any release. cms-rel-701 took #6456
+  and fixed the syntax itself, but kept tinyint. Not an upstream bug in any
+  release. `all-sites.sql` now widens it on every site. 1400: tinyint, all
+  values 11 or NULL.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,

@@ -84,9 +84,9 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
      the tables the upgrade creates, and joins with the dump's tables fail.
    - Create each site's database user with the password in its
      `sqlconf.php`.
-2. **Before the first start:** check and fix `x12_partners.x12_submitter_id`
-   on every site's database (DEPLOYMENT.md section 1). The upgrade won't
-   change an existing column.
+2. **Before the first start:** check the stored
+   `x12_partners.x12_submitter_id` values on every site's database
+   (DEPLOYMENT.md section 1). `all-sites.sql` widens the column itself.
 3. **Site directories.** The compose file bind-mounts the folder named by
    `CMS_SITES_DIR` in `.env` as the image's `sites/`: a copy of the 7.0.1
    `sites/` folder, not the live one. It must be readable and writable by

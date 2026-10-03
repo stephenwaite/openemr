@@ -129,18 +129,16 @@ Joins between those and the dump's `utf8mb4_general_ci` tables then fail
 The dump's own mix (1100: `utf8mb3_general_ci`, `utf8mb4_general_ci` and a
 few `latin1`) is fine and stays as it is.
 
-Before the first start, check `x12_submitter_id` (DEPLOYMENT.md section 1).
-It holds the user ID of the claims' submitter contact; a `tinyint(1)` caps
-it at 127:
+Check the stored `x12_submitter_id` values (DEPLOYMENT.md section 1). It
+holds the user ID of the claims' submitter contact, and production's
+`tinyint(1)` capped it at 127. `all-sites.sql` widens the column at first
+start; any 127 here may be a clipped ID, so pick the submitter again in
+Administration → Practice → X12 Partners after starting:
 
 ```sh
 docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" -e "
-  SHOW COLUMNS FROM x12_partners LIKE 'x12_submitter_id';
   SELECT p.id, p.name, p.x12_submitter_id, u.fname, u.lname
     FROM x12_partners p LEFT JOIN users u ON u.id = p.x12_submitter_id"
-# if it's tinyint(1):
-docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" \
-  -e "ALTER TABLE x12_partners MODIFY x12_submitter_id smallint(6) DEFAULT NULL"
 ```
 
 Then switch off everything that sends messages or files. OpenEMR runs its
@@ -296,7 +294,7 @@ each take the full size of the site folder (1400: about 7 GB).
 - **Step 5:**
   - set `SITE=1400` (and `DUMP`, if the dump is elsewhere), then run it
     as written;
-  - check `x12_submitter_id` and its values;
+  - check the `x12_submitter_id` values;
   - run the switch-off SQL.
 - **Step 6:** note the schema upgrade time for 1400.
 - **Step 7:** log in at `?site=1400`. In addition to the checks there:

@@ -12,6 +12,12 @@ SELECT 'CMS Vermont', 'oe-module-cmsvt', '', '', 1, 'CMS Vermont', '', 0, 0,
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM modules WHERE mod_directory = 'oe-module-cmsvt');
 
+-- cms-rel-701 added x12_submitter_id as tinyint(1) (upstream #6456) without
+-- upstream's fix to smallint(6) (#6459); the upgrade won't change an
+-- existing column. It holds a users.id, so tinyint caps it at 127. Widening
+-- keeps every value and is safe to repeat.
+ALTER TABLE x12_partners MODIFY x12_submitter_id smallint(6) DEFAULT NULL;
+
 -- Production never balanced claims (cluster 9); the upstream default is on.
 REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('force_claim_balancing', 0, '0');
 
