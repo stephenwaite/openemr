@@ -44,10 +44,10 @@ every change to cms-rel-840.
   or remove the placeholders (site 200's eligibility override, site 1300's
   NPI). Add a file for each podiatry site from `podiatry-site.sql.example`.
 - `sql/all-sites.sql`: sets Statement Appearance to PDF Custom on every site
-  (production's layout). Set each site's `statement_logo` in its own file.
-- `sites/<site>/`: for every site, cms-rel-840's `statement.inc.php` and the
-  letterhead PNG; `chart_review.json` for the records-review site (see
-  `sites/README.md`).
+  (production's layout). Sites keep their production Statement Logo.
+- `sites/<site>/`: for every site, cms-rel-840's `statement.inc.php` (the
+  letterhead PNG only if a site lacks it); `chart_review.json` for the
+  records-review site (see `sites/README.md`).
 - Records-review user: put production's PatientFilter config, with the pids
   under `whitelist`, at
   `code/interface/modules/zend_modules/module/PatientFilter/config/blacklist.php`.

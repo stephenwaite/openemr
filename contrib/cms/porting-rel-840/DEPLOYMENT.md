@@ -92,7 +92,9 @@ Custom layout reproduces that output byte for byte (cluster 10).
       Production's value was probably 0 (any value but 1 printed the CMS
       layout there); here 0 gives the stock plain-text layout.
 - [ ] **Statement Logo** = the letterhead **PNG** (612×792 pt) in
-      `sites/<site>/images/`. The default `practice_logo.gif` can't be drawn.
+      `sites/<site>/images/`. Production used the same global and file, so
+      a migrated site normally has it already; check it isn't blank or the
+      default `practice_logo.gif`, which can't be drawn.
 
 ## 5. Records-review user (sites that have one)
 

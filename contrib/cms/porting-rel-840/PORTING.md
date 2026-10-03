@@ -1760,7 +1760,8 @@ dun count 0 and 1: all 12 identical. 10 isolated tests.
 Deployment: `all-sites.sql` now sets `statement_appearance = 2` on every
 site. Every site needs cms-rel-840's `sites/default/statement.inc.php`,
 because rel-840 loads the site copy and the old copies lack the PDF Custom
-branch. Each site's `statement_logo` goes in its `<site>.sql`. Kit READMEs,
+branch. Sites keep production's `statement_logo` and letterhead PNG
+(production drew it the same way, full page at 612×792). Kit READMEs,
 DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
 
 ## Site-ID and user-name checks → per-site globals (running list)

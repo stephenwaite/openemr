@@ -25,8 +25,8 @@ UPDATE codes SET units = 60 WHERE code_type = (SELECT ct_id FROM code_types WHER
 
 -- Statements (cluster 10): every site printed the CMS layout in production
 -- (library/statement.inc.php in cms-rel-701), which is PDF Custom here. Each
--- site also needs cms-rel-840's statement.inc.php and its letterhead PNG in
--- config/sites/<site>/ (see config/sites/README.md). The logo differs per
--- site; set it in that site's <site>.sql.
+-- site also needs cms-rel-840's statement.inc.php in config/sites/<site>/
+-- (see config/sites/README.md). Sites keep their production statement_logo
+-- and letterhead; set the logo in <site>.sql only for a site without one.
 REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('statement_appearance', 0, '2');
 -- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('statement_logo', 0, '<letterhead>.png');
