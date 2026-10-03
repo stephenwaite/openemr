@@ -1,0 +1,20 @@
+commit 0e3c453afa9449f7aa9e1bef5a7c8f27292abce0
+Author: stephen waite
+Date:   2023-08-24
+
+    fix onsent/date last seen in encounter form
+
+
+diff --git a/interface/forms/newpatient/common.php b/interface/forms/newpatient/common.php
+index 3c0672c21f..873516a070 100644
+--- a/interface/forms/newpatient/common.php
++++ b/interface/forms/newpatient/common.php
+@@ -31,7 +31,7 @@ $facilityService = new FacilityService();
+ $date_label = "Onset/Hosp. Date";
+ $facility_pbe = $facilityService->getPrimaryBusinessEntity();
+ 
+-if ($facility_pbe['facility_taxonomy'] ?? null == "213E00000X") {
++if (($facility_pbe['facility_taxonomy'] ?? null) == "213E00000X") {
+     $date_label = "Date Last Seen";
+ }
+ 

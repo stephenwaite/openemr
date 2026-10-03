@@ -822,11 +822,6 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../interface/procedure_tools/labcorp/gen_hl7_order.inc.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Binary operation "\\.\\=" between mixed and non\\-falsy\\-string results in an error\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../interface/reports/appointments_report.php',
-];
-$ignoreErrors[] = [
     'message' => '#^Binary operation "\\+\\=" between \\(float\\|int\\) and mixed results in an error\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../interface/reports/appt_encounter_report.php',
@@ -1778,7 +1773,7 @@ $ignoreErrors[] = [
 ];
 $ignoreErrors[] = [
     'message' => '#^Binary operation "\\+\\=" between \\(float\\|int\\) and mixed results in an error\\.$#',
-    'count' => 5,
+    'count' => 4,
     'path' => __DIR__ . '/../../src/Billing/Claim.php',
 ];
 $ignoreErrors[] = [
@@ -1908,16 +1903,6 @@ $ignoreErrors[] = [
 ];
 $ignoreErrors[] = [
     'message' => '#^Binary operation "\\.\\=" between mixed and \'AMT segment at…\' results in an error\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../src/Billing/ParseERA.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Binary operation "\\.\\=" between mixed and \'MOA segment at…\' results in an error\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../src/Billing/ParseERA.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Binary operation "\\.\\=" between mixed and \'Negative…\' results in an error\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../src/Billing/ParseERA.php',
 ];

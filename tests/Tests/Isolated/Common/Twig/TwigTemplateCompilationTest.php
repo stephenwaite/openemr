@@ -49,6 +49,7 @@ class TwigTemplateCompilationTest extends TestCase
         'interface/forms/observation/templates',
         'interface/forms/soap/templates',
         'interface/forms/vitals/templates',
+        'interface/modules/custom_modules/oe-module-cmsvt/templates',
         'interface/modules/custom_modules/oe-module-comlink-telehealth/templates',
         'interface/modules/custom_modules/oe-module-ehi-exporter/templates',
         'interface/modules/custom_modules/oe-module-faxsms/templates',

@@ -1,0 +1,3 @@
+-- Applied once to site 1300 by the prelaunch settings hook (see ../README.md).
+-- Closed service facility: fill in its NPI, then uncomment.
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_claim_closed_facility_npis', 0, '<npi>');

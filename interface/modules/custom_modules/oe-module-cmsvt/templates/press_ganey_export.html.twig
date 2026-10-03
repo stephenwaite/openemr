@@ -1,0 +1,118 @@
+<html>
+<head>
+    <title>{{ 'Press Ganey Survey Export'|xlt }}</title>
+    {{ setupHeader(['datetime-picker', 'report-helper']) }}
+    <script>
+        $(function () {
+            {{ jqueryDateTimePicker('.datepicker', false, false, true) }};
+        });
+
+        function submitAs(field, message) {
+            if (!$('#form_from_date').val() || !$('#form_to_date').val()) {
+                alert({{ 'Please select both From and To dates.'|xlj }});
+                return false;
+            }
+            if (message && !confirm(message)) {
+                return false;
+            }
+            $('#form_export, #form_preview').val('');
+            $('#' + field).val('1');
+            $('#theform').submit();
+            return false;
+        }
+    </script>
+</head>
+<body class="body_top">
+<span class="title">{{ 'Report'|xlt }} - {{ 'Press Ganey Survey Export'|xlt }}</span>
+
+<form method="post" name="theform" id="theform" onsubmit="return top.restoreSession()">
+{{ csrfToken('default', 'csrf_token_form') }}
+<input type="hidden" name="form_export" id="form_export" value="" />
+<input type="hidden" name="form_preview" id="form_preview" value="" />
+
+<div id="report_parameters">
+    <div class="border rounded bg-light p-3 mb-3">
+        <h6>{{ 'Press Ganey Configuration'|xlt }}</h6>
+        <small class="text-muted">
+            <strong>{{ 'Client ID'|xlt }}:</strong> {{ clientId|text }}<br />
+            <strong>{{ 'Survey Designator'|xlt }}:</strong> {{ surveyDesignator|text }}
+        </small>
+    </div>
+    <table class="table table-borderless">
+        <tr>
+            <td>
+                <table class="text">
+                    <tr>
+                        <td class="col-form-label">{{ 'Facility'|xlt }}:</td>
+                        <td>
+                            <select name="form_facility" class="form-control">
+                                <option value="">-- {{ 'All'|xlt }} --</option>
+                                {% for facility in facilities %}
+                                    <option value="{{ facility.id|attr }}"{% if facility.id == filter.facilityId %} selected{% endif %}>{{ facility.name|text }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td class="col-form-label">{{ 'Provider'|xlt }}:</td>
+                        <td>
+                            <select name="form_provider" class="form-control">
+                                <option value="">-- {{ 'All'|xlt }} --</option>
+                                {% for provider in providers %}
+                                    <option value="{{ provider.id|attr }}"{% if provider.id == filter.providerId %} selected{% endif %}>{{ provider.lname|text }}, {{ provider.fname|text }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="col-form-label">{{ 'From'|xlt }}:</td>
+                        <td><input type="text" class="datepicker form-control" name="form_from_date" id="form_from_date" size="10" value="{{ filter.fromDate|shortDate|attr }}" /></td>
+                        <td class="col-form-label">{{ 'To{{Range}}'|xlt }}:</td>
+                        <td><input type="text" class="datepicker form-control" name="form_to_date" id="form_to_date" size="10" value="{{ filter.toDate|shortDate|attr }}" /></td>
+                    </tr>
+                    <tr>
+                        <td class="col-form-label">{{ 'Encounter Type'|xlt }}:</td>
+                        <td colspan="3">
+                            <select name="form_encounter_type" class="form-control">
+                                <option value="">-- {{ 'All'|xlt }} --</option>
+                                {% for category in categories %}
+                                    <option value="{{ category.pc_catid|attr }}"{% if category.pc_catid == filter.categoryId %} selected{% endif %}>{{ category.pc_catname|text }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td class="align-middle" style="border-left: 1px solid;">
+                <div class="btn-group-vertical" role="group">
+                    <a href="#" class="btn btn-primary btn-save mb-2" onclick="return submitAs('form_preview');">{{ 'Preview Records'|xlt }}</a>
+                    <a href="#" class="btn btn-success btn-transmit" onclick="return submitAs('form_export', {{ 'Export encounters to Press Ganey CSV format?'|xlj }});">{{ 'Export CSV'|xlt }}</a>
+                </div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+{% if previewCount is not null %}
+    <div class="alert alert-info mt-3">
+        <h5>{{ 'Export Preview'|xlt }}</h5>
+        <p><strong>{{ 'Total Encounters to Export'|xlt }}:</strong> {{ previewCount|text }}</p>
+        <p><strong>{{ 'Date Range'|xlt }}:</strong> {{ filter.fromDate|shortDate|text }} {{ 'to{{Range}}'|xlt }} {{ filter.toDate|shortDate|text }}</p>
+        {% if previewCount > 0 %}
+            <p class="mb-0"><em>{{ 'Click "Export CSV" to download the Press Ganey file.'|xlt }}</em></p>
+        {% else %}
+            <p class="mb-0 text-danger"><em>{{ 'No encounters found matching the selected criteria.'|xlt }}</em></p>
+        {% endif %}
+    </div>
+{% endif %}
+</form>
+
+<div class="mt-4">
+    <h6>{{ 'Instructions'|xlt }}</h6>
+    <ul>
+        <li>{{ 'Select date range and optional filters (Facility, Provider, Encounter Type)'|xlt }}</li>
+        <li>{{ 'Click "Preview Records" to see how many encounters will be exported'|xlt }}</li>
+        <li>{{ 'Click "Export CSV" to download the file in Press Ganey format'|xlt }}</li>
+        <li>{{ 'Upload the CSV file to Press Ganey according to their specifications'|xlt }}</li>
+    </ul>
+</div>
+</body>
+</html>

@@ -445,7 +445,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                 patientid: <?php echo js_escape($pid); ?>
             });
             const url = '../../main/calendar/add_edit_event.php?' + params.toString();
-            dlgopen(url, '_blank', 800, 500, '', title);
+            dlgopen(url, '_blank', 800, 875, '', title);
             return false;
         }
 

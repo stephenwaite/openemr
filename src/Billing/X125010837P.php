@@ -20,6 +20,7 @@ namespace OpenEMR\Billing;
 use OpenEMR\Billing\BillingProcessor\BillingClaimBatchControlNumber;
 use OpenEMR\Billing\Claim;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Billing\Claim837PRulesEvent;
 
 class X125010837P
 {
@@ -51,6 +52,11 @@ class X125010837P
         $today = time();
         $out = '';
         $claim = new Claim($pid, $encounter, $x12_partner);
+        $rulesEvent = new Claim837PRulesEvent($claim);
+        OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()
+            ->dispatch($rulesEvent, Claim837PRulesEvent::EVENT_NAME);
+        $rules = $rulesEvent->getRules();
+        $claim->setReportsPriorPayerAdjustments($rules->reportsPriorPayerAdjustments($claim));
 
         $log .= $claim->patientFirstName() . ' ' .
         $claim->patientMiddleName() . ' ' .
@@ -161,7 +167,7 @@ class X125010837P
                     "*" .
                     "*" .
                     "*" . "46" .
-                    "*" . $claim->billingIdCode();
+                    "*" . ($rules->submitterIdentifier($claim) ?? $claim->billingIdCode());
                 // else use provider's group name
                 } else {
                     $billingFacilityName = substr((string) $claim->billingFacilityName(), 0, 60);
@@ -318,55 +324,43 @@ class X125010837P
 
             // Situational PER*1C segment omitted.
 
-            // Pay-To Address defaults to billing provider and is no longer required in 5010 but may be useful
-            if ($claim->pay_to_provider != '') {
+            // Loop 2010AB Pay-To Address: sent when the billing facility has a mailing
+            // address, which is where payments go. 5010 uses only NM101-NM102 here.
+            if ($claim->payToFacilityStreet() !== '') {
                 ++$edicount;
-                $billingFacilityName = substr((string) $claim->billingFacilityName(), 0, 60);
-                $out .= "NM1" .       // Loop 2010AB Pay-To Provider
+                $out .= "NM1" .       // Loop 2010AB Pay-To Address
                 "*" . "87" .
                 "*" . "2" .
-                "*" . $billingFacilityName .
-                "*" .
-                "*" .
-                "*" .
-                "*";
-                if ($claim->billingFacilityNPI()) {
-                    $out .= "*XX*" . $claim->billingFacilityNPI();
-                } else {
-                    $log .= "*** Pay to provider has no NPI.\n";
-                }
-                $out .= "~\n";
+                "~\n";
 
                 ++$edicount;
                 $out .= "N3" .
-                "*";
-                if ($claim->billingFacilityStreet()) {
-                    $out .= $claim->billingFacilityStreet();
-                } else {
-                    $log .= "*** Pay to provider has no street.\n";
+                "*" . $claim->payToFacilityStreet();
+                if ($claim->payToFacilityStreet2() !== '') {
+                    $out .= "*" . $claim->payToFacilityStreet2();
                 }
                 $out .= "~\n";
 
                 ++$edicount;
                 $out .= "N4" .
                 "*";
-                if ($claim->billingFacilityCity()) {
-                    $out .= $claim->billingFacilityCity();
+                if ($claim->payToFacilityCity()) {
+                    $out .= $claim->payToFacilityCity();
                 } else {
-                    $log .= "*** Pay to provider has no city.\n";
+                    $log .= "*** Pay to address has no city.\n";
                 }
                 $out .= "*";
-                if ($claim->billingFacilityState()) {
-                    $out .= $claim->billingFacilityState();
+                if ($claim->payToFacilityState()) {
+                    $out .= $claim->payToFacilityState();
                 } else {
-                    $log .= "*** Pay to provider has no state.\n";
+                    $log .= "*** Pay to address has no state.\n";
                 }
                 $out .= "*";
                 // X12 requires a 9 digit zip but we output it anyways
-                if (strlen((string) $claim->billingFacilityZip()) != 9) {
-                    $log .= "*** Pay to provider zip is not 9 digits.\n";
+                if (strlen($claim->payToFacilityZip()) != 9) {
+                    $log .= "*** Pay to address zip is not 9 digits.\n";
                 }
-                $out .= $claim->billingFacilityZip();
+                $out .= $claim->payToFacilityZip();
                 $out .= "~\n";
             }
 
@@ -439,7 +433,16 @@ class X125010837P
             //        Here we presume that is not true yet.
             "*";
         if ($claim->policyNumber()) {
-            $out .= $claim->policyNumber();
+            $policyNumber = (string) $claim->policyNumber();
+            // Medicare Beneficiary Identifiers have no dashes or spaces.
+            if ($claim->claimType() === 'MB') {
+                $stripped = str_replace(['-', ' '], '', $policyNumber);
+                if ($stripped !== $policyNumber) {
+                    $log .= "*** Stripped dashes/spaces from Medicare ID '$policyNumber' -> '$stripped'.\n";
+                    $policyNumber = $stripped;
+                }
+            }
+            $out .= $policyNumber;
         } else {
             $log .= "*** Missing policy number.\n";
         }
@@ -694,10 +697,15 @@ class X125010837P
         // Segment DTP*431 (Onset of Current Symptoms or Illness)
         // Segment DTP*484 (Last Menstrual Period Date)
 
+        // Routine foot care reports the onset date field as the date last seen instead.
+        $lastSeenRequired = $rules->requiresLastSeenDate($claim);
         if (
             $claim->onsetDate()
             && $claim->onsetDate() !== $claim->serviceDate()
             && $claim->onsetDateValid()
+            && !$lastSeenRequired
+            // For inpatient (POS 21) the onset date is sent as DTP*435 below.
+            && strcmp((string) $claim->facilityPOS(), '21') != 0
         ) {
             ++$edicount;
             $out .= "DTP" .       // Date of Onset
@@ -717,6 +725,13 @@ class X125010837P
                 "*" . "D8" .
                 "*" . $claim->miscOnsetDate() .
                 "~\n";
+        } elseif ($lastSeenRequired && $claim->onsetDateValid()) {
+            ++$edicount;
+            $out .= "DTP" .       // Date Last Seen
+                "*" . "304" .
+                "*" . "D8" .
+                "*" . $claim->onsetDate() .
+                "~\n";
         }
 
         // Segment DTP*304 (Last Seen Date)
@@ -732,13 +747,17 @@ class X125010837P
 
         // Segment DTP*454 (Initial Treatment Date)
 
-        if ($claim->dateInitialTreatment() && ($claim->box15Qualifier()) && ($claim->dateInitialTreatmentValid())) {
+        $box15Valid = $claim->dateInitialTreatment() && $claim->box15Qualifier() && $claim->dateInitialTreatmentValid();
+        // With a last seen date required, box 15 is only sent when the onset date field is empty.
+        if ($box15Valid && (!$lastSeenRequired || $claim->onsetDate() == '')) {
             ++$edicount;
             $out .= "DTP" .       // Date Last Seen
                 "*" . $claim->box15Qualifier() .
                 "*" . "D8" .
                 "*" . $claim->dateInitialTreatment() .
                 "~\n";
+        } elseif ($lastSeenRequired && !$claim->onsetDateValid() && !$claim->dateInitialTreatmentValid()) {
+            $log .= "*** Invalid date last seen in encounter form or Misc Billing Options.\n";
         }
 
         if (strcmp((string) $claim->facilityPOS(), '21') == 0 && $claim->onsetDateValid()) {
@@ -824,8 +843,7 @@ class X125010837P
                 "~\n";
         }
 
-        if ($claim->cliaCode() && ($claim->claimType() === 'MB')) {
-            // Required by Medicare when in-house labs are done.
+        if ($claim->cliaCode() && $rules->sendsClia($claim)) {
             ++$edicount;
             $out .= "REF" .     // Clinical Laboratory Improvement Amendment Number
                 "*" . "X4" .
@@ -858,11 +876,21 @@ class X125010837P
         // Segment CRC (EPSDT Referral).
         if ($claim->epsdtFlag()) {
             ++$edicount;
-            $out .= "CRC" .
-                "*" . "ZZ" .
-                "*" . "Y" .
-                "*" . $claim->medicaidReferralCode() .
-                "~\n";
+            if ($rules->sendsEpsdtAsNote($claim)) {
+                $out .= "NTE" .
+                    "*" . "ADD" .
+                    "*" . $claim->medicaidReferralCode() .
+                    "~\n";
+            } else {
+                $out .= "CRC" .
+                    "*" . "ZZ" .
+                    "*" . "Y" .
+                    "*" . $claim->medicaidReferralCode() .
+                    "~\n";
+            }
+            if (empty($claim->medicaidReferralCode())) {
+                $log .= "*** Missing EPSDT code.\n";
+            }
         }
 
         // Diagnoses, up to $max_per_seg per HI segment.
@@ -890,7 +918,8 @@ class X125010837P
         // Segment HI*BP (Anesthesia Related Procedure) omitted.
         // Segment HI*BG (Condition Information) omitted.
         // Segment HCP (Claim Pricing/Repricing Information) omitted.
-        if ($claim->referrer ?? null) {
+        $referrerRequired = $rules->requiresReferringProvider($claim);
+        if (($claim->referrer ?? null) || ($referrerRequired && $claim->referrerLastName())) {
             // Medicare requires referring provider's name and NPI.
             ++$edicount;
             $out .= "NM1" .     // Loop 2310A Referring Provider
@@ -920,6 +949,8 @@ class X125010837P
                 $log .= "*** Referring provider has no NPI.\n";
             }
             $out .= "~\n";
+        } elseif ($referrerRequired) {
+            $log .= "*** Missing referring provider last name.\n";
         }
 
         // Per the implementation guide lines, only include this information if it is different
@@ -985,7 +1016,12 @@ class X125010837P
 
         // Loop 2310C is omitted in the case of home visits (POS=12)
         // and when the service facility is the billing facility
-        if ($claim->facilityPOS() != 12 && ($claim->billing_facility['id'] != $claim->facility['id'])) {
+        if (
+            $rules->sendsServiceFacility(
+                $claim,
+                $claim->facilityPOS() != 12 && ($claim->billing_facility['id'] != $claim->facility['id'])
+            )
+        ) {
             ++$edicount;
             $out .= "NM1" .       // Loop 2310C Service Location
                 "*" . "77" .
@@ -1049,27 +1085,33 @@ class X125010837P
         // Segment REF (Service Facility Location Secondary Identification) omitted.
         // Segment PER (Service Facility Contact Information) omitted.
 
-        // Loop 2310D, Supervising Provider
-        if (! empty($claim->supervisorLastName())) {
+        // Loop 2310D, Supervising Provider. When a last seen date is required and
+        // no supervisor is chosen, the referring provider is sent as supervisor.
+        $hasSupervisor = $claim->supervisorLastName() != '';
+        $supervisorFromReferrer = $lastSeenRequired && !$hasSupervisor;
+        if ($hasSupervisor || $lastSeenRequired) {
             ++$edicount;
             $out .= "NM1" .
                 "*" . "DQ" . // Supervising Physician
                 "*" . "1" .  // Person
-                "*" . $claim->supervisorLastName() .
-                "*" . $claim->supervisorFirstName() .
-                "*" . $claim->supervisorMiddleName() .
+                "*" . ($supervisorFromReferrer ? $claim->referrerLastName() : $claim->supervisorLastName()) .
+                "*" . ($supervisorFromReferrer ? $claim->referrerFirstName() : $claim->supervisorFirstName()) .
+                "*" . ($supervisorFromReferrer ? $claim->referrerMiddleName() : $claim->supervisorMiddleName()) .
                 "*" .   // NM106 not used
                 "*";    // Name Suffix not used
-            if ($claim->supervisorNPI()) {
+            $supervisorNpi = $supervisorFromReferrer ? $claim->referrerNPI() : $claim->supervisorNPI();
+            if ($supervisorNpi) {
                 $out .=
                     "*" . "XX" .
-                    "*" . $claim->supervisorNPI();
+                    "*" . $supervisorNpi;
+            } elseif ($supervisorFromReferrer) {
+                $log .= "*** Referring provider sent as supervising provider (date last seen) has no NPI.\n";
             } else {
                 $log .= "*** Supervising Provider has no NPI.\n";
             }
             $out .= "~\n";
 
-            if ($claim->supervisorNumber()) {
+            if (!$supervisorFromReferrer && $claim->supervisorNumber()) {
                 ++$edicount;
                 $out .= "REF" .
                     "*" . $claim->supervisorNumberType() .
@@ -1090,6 +1132,10 @@ class X125010837P
 
             // if the ins is unassigned don't include this SBR/OI loop
             if ($tmp1 === '09') {
+                continue;
+            }
+
+            if (!$rules->sendsOtherPayer($claim, $ins)) {
                 continue;
             }
 
@@ -1247,8 +1293,9 @@ class X125010837P
                 "*" .
                 "*" . "PI" .
                 "*";
-            if ($claim->payerID($ins)) {
-                $out .= $claim->payerID($ins);
+            $otherPayerId = $rules->otherPayerIdentifier($claim, $ins) ?? $claim->payerID($ins);
+            if ($otherPayerId) {
+                $out .= $otherPayerId;
             } else {
                 $log .= "*** Missing other insco payer id.\n";
             }
@@ -1435,7 +1482,7 @@ class X125010837P
             //
             $ndc = $claim->cptNDCID($prockey);
 
-            if ($ndc) {
+            if ($ndc && $rules->sendsNdc($claim, $prockey)) {
                 ++$edicount;
                 $out .= "LIN" . // Drug Identification. Page 500+ (Addendum pg 71).
                     "*" .         // Per addendum, LIN01 is not used.
@@ -1465,7 +1512,7 @@ class X125010837P
             // Used if the rendering provider for this service line is different
             // from that in loop 2310B.
 
-            if ($claim->providerNPI() != $claim->providerNPI($prockey)) {
+            if ($rules->sendsLineRenderingProvider($claim, $prockey, $claim->providerNPI() != $claim->providerNPI($prockey))) {
                 ++$edicount;
                 $out .= "NM1" .       // Loop 2420A Rendering Provider
                     "*" . "82" .
@@ -1543,6 +1590,10 @@ class X125010837P
                     continue; // payer is future, not previous
                 }
 
+                if (!$rules->sendsOtherPayer($claim, $ins)) {
+                    continue; // not reported in loop 2330
+                }
+
                 $payerpaid = $claim->payerTotals($ins, $claim->cptKey($prockey));
                 $aarr = $claim->payerAdjustments($ins, $claim->cptKey($prockey));
 
@@ -1553,9 +1604,10 @@ class X125010837P
                 }
 
                 ++$edicount;
+                // X12 amounts are sent without leading zeros.
                 $out .= "SVD" . // Service line adjudication. Page 554.
-                    "*" . $claim->payerID($ins) .
-                    "*" . $payerpaid[1] .
+                    "*" . ($rules->otherPayerIdentifier($claim, $ins) ?? $claim->payerID($ins)) .
+                    "*" . ltrim(is_string($payerpaid[1]) ? $payerpaid[1] : '', '0') .
                     "*" . "HC:" . $claim->cptKey($prockey) .
                     "*" .
                     "*" . $claim->cptUnits($prockey) .
@@ -1563,6 +1615,15 @@ class X125010837P
 
                 $tmpdate = $payerpaid[0];
                 $cas = $claim->getLineItemAdjustments($aarr);
+
+                foreach ($rules->extraLineAdjustments($claim, $ins, $prockey) as $extra) {
+                    ++$edicount;
+                    $out .= "CAS" .
+                        "*" . $extra['group'] .
+                        "*" . $extra['reason'] .
+                        "*" . ltrim(sprintf('%.2f', $extra['amount']), '0') .
+                        "~\n";
+                }
 
                 // $key is the group code or payer_paid_date
                 foreach ($cas as $key => $value) {
@@ -1582,9 +1643,14 @@ class X125010837P
                     // $v is the amount
                     foreach ($value as $k => $v) {
                         $cntr++;
-                        $out .= $k .
+                        $out .= $rules->lineAdjustmentReason(
+                            $claim,
+                            $ins,
+                            (string) $key,
+                            is_scalar($k) ? (string) $k : ''
+                        ) .
                             "*" .
-                            $v;
+                            ltrim(is_scalar($v) ? (string) $v : '', '0');
                         if ($cntr < $size) {
                             $out .= "*" .
                                 "*";
@@ -1608,6 +1674,10 @@ class X125010837P
                 // Segment FRM (Supporting Documentation) omitted.
             } // end loop 2430
         } // end this procedure
+
+        foreach ($rules->warnings($claim) as $warning) {
+            $log .= "*** " . $warning . "\n";
+        }
 
         if (
             $SEFLAG == true

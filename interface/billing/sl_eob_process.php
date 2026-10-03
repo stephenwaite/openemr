@@ -357,6 +357,38 @@ function eob_process_era_callback(array &$out): void
             default => 'Ins1'
         };
 
+        // Payers do not reliably report their COB position in CLP02: a tertiary Medicaid
+        // unaware of an intermediate Medigap plan reports itself as secondary. If the
+        // reported level already has postings on this encounter, post at the lowest level
+        // with none yet. A late remit for a still-unposted level (e.g. a primary posted
+        // after the secondary) stays at its reported level. Never demote.
+        if (!$inverror) {
+            $postedLevels = array_map(static fn(mixed $level): int => is_numeric($level) ? (int) $level : 0, QueryUtils::fetchTableColumn(
+                "SELECT DISTINCT payer_type FROM ar_activity WHERE pid = ? AND encounter = ? AND deleted IS NULL AND payer_type > 0",
+                'payer_type',
+                [$pid, $encounter]
+            ));
+            $reportedLevel = (int) substr($inslabel, 3);
+            if (in_array($reportedLevel, $postedLevels, true)) {
+                $nextLevel = 0;
+                for ($level = 1; $level <= 3; $level++) {
+                    if (!in_array($level, $postedLevels, true)) {
+                        $nextLevel = $level;
+                        break;
+                    }
+                }
+                if ($nextLevel > $reportedLevel) {
+                    echo getMessageLine(
+                        $bgcolor,
+                        'infdetail',
+                        "Payer reported claim status " . (is_scalar($csc) ? (string) $csc : '') . " but level $reportedLevel already "
+                        . "has postings for this encounter; posting as Ins$nextLevel"
+                    );
+                    $inslabel = 'Ins' . $nextLevel;
+                }
+            }
+        }
+
         $primary = ($inslabel === 'Ins1');
         echo getMessageLine(
             $bgcolor,

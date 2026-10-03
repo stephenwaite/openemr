@@ -16,6 +16,7 @@ use OpenEMR\Common\Utils\ValidationUtils;
 use OpenEMR\FHIR\R4\FHIRDomainResource\FHIRObservation;
 use OpenEMR\FHIR\R4\FHIRDomainResource\FHIRProvenance;
 use OpenEMR\FHIR\R4\FHIRElement\FHIRCodeableConcept;
+use OpenEMR\FHIR\R4\FHIRElement\FHIRDateTime;
 use OpenEMR\FHIR\R4\FHIRElement\FHIRId;
 use OpenEMR\FHIR\R4\FHIRElement\FHIRMeta;
 use OpenEMR\FHIR\R4\FHIRResource\FHIRObservation\FHIRObservationReferenceRange;
@@ -113,6 +114,8 @@ class FhirObservationLaboratoryService extends FhirServiceBase implements IPatie
             'category' => new FhirSearchParameterDefinition('category', SearchFieldType::TOKEN, ['category']),
             'date' => new FhirSearchParameterDefinition('date', SearchFieldType::DATETIME, ['report_date']),
             '_id' => new FhirSearchParameterDefinition('_id', SearchFieldType::TOKEN, [new ServiceField('result_uuid', ServiceField::TYPE_UUID)]),
+            // The order's external ID (for results-only orders, the lab's visit number).
+            'external_id' => new FhirSearchParameterDefinition('external_id', SearchFieldType::TOKEN, ['order_external_id']),
             '_lastUpdated' => $this->getLastModifiedSearchField()
         ];
     }
@@ -179,8 +182,13 @@ class FhirObservationLaboratoryService extends FhirServiceBase implements IPatie
             foreach ($record['reports'] as $report) {
                 if (!empty($report['results'])) {
                     foreach ($report['results'] as $result) {
+                        if (!is_array($result)) {
+                            continue;
+                        }
                         $result['patient'] = $patient;
                         $result['report_date'] = $report['date'];
+                        // Specimen collection time (OBR-7 for imported results).
+                        $result['specimen_collected_date'] = is_array($report) ? ($report['date_collected'] ?? null) : null;
 
                         // IMPORTANT: Specimen data comes from report as an ARRAY
                         // Each result gets a reference to ALL specimens for that test line
@@ -230,7 +238,12 @@ class FhirObservationLaboratoryService extends FhirServiceBase implements IPatie
         $id->setValue($dataRecord['uuid']);
         $observation->setId($id);
 
-        if (!empty($dataRecord['report_date'])) {
+        // The effective date is when the specimen was collected (the lab's date of
+        // service, OBR-7 for imported results), falling back to the report date.
+        $specimenCollected = $dataRecord['specimen_collected_date'] ?? null;
+        if (is_string($specimenCollected) && $specimenCollected !== '') {
+            $observation->setEffectiveDateTime(new FHIRDateTime(UtilsService::getLocalDateAsUTC($specimenCollected)));
+        } elseif (!empty($dataRecord['report_date'])) {
             $observation->setEffectiveDateTime(UtilsService::getLocalDateAsUTC($dataRecord['report_date']));
         } else {
             $observation->setEffectiveDateTime(UtilsService::createDataMissingExtension());
