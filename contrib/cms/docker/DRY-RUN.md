@@ -170,8 +170,14 @@ that apply to this site. At least:
 - **Fee sheet:** pick a drug code; check its units and price. Run the
   per-unit price review query from DEPLOYMENT.md section 6 against
   `<dbase>`.
-- **Claims:** generate a few 837P claims and compare them with what
-  production (cms-rel-701) produces for the same encounters.
+- **Claims:** generate a few 837P claims, primary and secondary, and
+  compare them with production's 837 for the same encounters:
+  ```sh
+  python3 kit/tools/x12-diff.py <production>.x12 <dry-run>.x12
+  ```
+  It matches claims by CLM01, ignores control numbers and creation dates,
+  and prints each claim's differing segments. Its output contains claim
+  data; keep it with the backups.
 - **Statements:** a PDF download with Without Update checked writes only
   the file. Compare its text with a production statement for the same
   patient: wording and columns should be identical.

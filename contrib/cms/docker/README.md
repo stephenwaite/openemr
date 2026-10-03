@@ -10,6 +10,7 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
       hooks/prelaunch/20-cms-site-settings
                                          every start: applies per-site SQL, once per file
       hooks/prelaunch/cms-apply-sql.php  helper for the above
+      tools/x12-diff.py                  compares two 837P files claim by claim
       config/                            sample CMS config, mounted at /cms-config
         sql/all-sites.sql                applied to every site
         sql/<site>.sql                   applied to that site (the directory name under sites/)
