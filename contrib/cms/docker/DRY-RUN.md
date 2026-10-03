@@ -166,7 +166,21 @@ Log in at `https://localhost:<port>/interface/login/login.php?site=1100`
 with a real 1100 account, and work through DEPLOYMENT.md's smoke tests
 that apply to this site. At least:
 - **Documents:** patients' documents open (old file paths are rebuilt
-  under the new site folder automatically).
+  under the new site folder automatically). Open a few across years and
+  types, then check that every active document's file exists. The path is
+  rebuilt the way `Document::get_filesystem_filepath()` does it, from the
+  file name plus `path_depth` folders. From `~/cms-dryrun`, with your site:
+  ```sh
+  docker compose -f kit/docker-compose.yml exec -T mysql mariadb -uroot -p<root password> <dbase> -N -e "
+    SELECT id, SUBSTRING_INDEX(url, '/', -(path_depth + 1)) FROM documents
+     WHERE deleted = 0 AND storagemethod = 0 AND url <> ''" > docs.tsv
+  sudo bash -c 'while IFS=$'"'"'\t'"'"' read -r id rel; do
+    [ -f "sites/<site>/documents/$rel" ] || printf "%s\t%s\n" "$id" "$rel"
+  done < docs.tsv' > missing.tsv
+  wc -l docs.tsv missing.tsv
+  ```
+  `missing.tsv` should be empty. Delete both files afterwards: they hold
+  document names.
 - **Fee sheet:** pick a drug code; check its units and price. Run the
   per-unit price review query from DEPLOYMENT.md section 6 against
   `<dbase>`.
@@ -222,7 +236,9 @@ cp -r src/contrib/cms/docker kit
 
 **Back up the new site** as in "What you need": `sites/1400/` and its
 database dump from the same moment, checked complete, in
-`backup/sites/1400/` and `backup/1400.sql.gz`.
+`backup/sites/1400/` and `backup/1400.sql.gz`. Check disk space first
+(`df -h ~/cms-dryrun /var/lib/docker`): the backup and the working copy
+each take the full size of the site folder (1400: about 7 GB).
 
 **Then repeat steps 3–7 with the new site's name:**
 - **Step 3:** rsync `backup/sites/1400/` to `sites/1400/`.
