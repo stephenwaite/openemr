@@ -1865,6 +1865,15 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
     deleting the input file. If either fails ("Cannot create file"), the file
     stays and the next run imports it again as a duplicate report. Possible
     upstream issue.
+- **TLS:** one hostname per server, so the kit uses the image's certbot
+  (`CMS_DOMAIN`, `CMS_LETSENCRYPT_EMAIL`, `letsencryptvolume`). Upstream
+  gap in `docker/release/ssl.sh`: the renewal cron job is added only in the
+  "obtain a new certificate" branch, and `/etc/crontabs` isn't persistent,
+  so with the certificate in a volume a recreated container never renews.
+  The kit's `05-cms-cert-renewal` hook re-adds it (tested in the dev
+  container). Worth an upstream fix: add the job whenever `DOMAIN` is set.
+  `/etc/ssl` is deliberately not a volume (it would pin the image's CA
+  bundle).
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,

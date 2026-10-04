@@ -25,6 +25,14 @@ below:
 Fill in `config/` from the sections below, then use them as the checklist
 to verify each site.
 
+- [ ] **TLS certificate.** One hostname per server: set `CMS_DOMAIN` and
+      `CMS_LETSENCRYPT_EMAIL` in `.env`; the container gets and renews the
+      certificate (kit README, "TLS certificate"). DNS must point at the
+      server and port 80 must be open. After cutover, disable the host
+      certbot's renewal. Until then, make sure it still renews: one
+      server's certificate had 22 days left on 2026-10-04 (certbot renews
+      at 30), so check `sudo certbot renew --dry-run`.
+
 ## 1. Before upgrading the database
 
 - [ ] **`x12_partners.x12_submitter_id` values.** cms-rel-701 has the

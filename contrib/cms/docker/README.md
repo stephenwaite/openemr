@@ -7,6 +7,8 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
     contrib/cms/docker/
       docker-compose.yml                 the stack (MariaDB + the cms-rel-840 image)
       .env.example                       per-server settings; copy to .env
+      hooks/prelaunch/05-cms-cert-renewal
+                                         every start: keeps the Let's Encrypt renewal job in cron
       hooks/prelaunch/10-cms-site-files  every start: the image's statement.inc.php to
                                          every site, then config files into place
       hooks/prelaunch/20-cms-site-settings
@@ -134,6 +136,23 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
    ```cron
    */15 * * * * cd /opt/cms/kit && docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=<site> >> /var/log/openemr-bg.log 2>&1
    ```
+
+## TLS certificate (Let's Encrypt)
+
+Each server is reached at one hostname, so the image's own certbot handles
+the certificate. In `.env`, set `CMS_DOMAIN` (the hostname) and
+`CMS_LETSENCRYPT_EMAIL`. On the first start with them, the container gets a
+certificate by HTTP validation on port 80, so the hostname's DNS must point
+at the server and port 80 must be reachable from the internet. The
+certificate is kept in the `letsencryptvolume` volume; `05-cms-cert-renewal`
+makes sure root's crontab in the container renews it daily (the image only
+adds that job when it first obtains a certificate, which a recreated
+container doesn't do). Leave both settings empty for a self-signed
+certificate, as in a dry run.
+
+At cutover, the host's own certbot no longer has an Apache to work with:
+disable its renewal (its systemd timer or cron entry) once the container
+serves the hostname.
 
 ## How the hooks behave
 
