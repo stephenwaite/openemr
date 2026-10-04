@@ -1823,7 +1823,7 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   container with a copied second site. Upstream PR: branch
   `fix/bg-services-multisite-site` (Assisted-by trailer; the earlier
   `fix/background-services-multisite` has the wrong trailer), body in
-  `~/git/pr-fix-background-services-multisite.md`.
+  `~/git/pr-fix-bg-services-multisite-site.md`.
 - **Multi-site isolation (security):** all sites share one PHP process,
   one `sites/` tree and one MariaDB. Two mitigations in the kit:
   - the openemr container no longer keeps MariaDB's root password: it's
