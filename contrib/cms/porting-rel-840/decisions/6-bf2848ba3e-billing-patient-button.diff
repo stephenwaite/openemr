@@ -20,7 +20,7 @@ index 851f7b18e6..7ab37d6149 100644
              parent.left_nav.loadFrame('enc2', 'enc', encurl);
 +            parent.left_nav.loadFrame('dem1', 'pat', paturl);
          }
- 
+
          // Process a click to go to an patient.
 @@ -357,7 +360,9 @@ $partners = $x->_utility_array($x->x12_partner_factory());
              top.restoreSession();
@@ -30,5 +30,5 @@ index 851f7b18e6..7ab37d6149 100644
              parent.left_nav.loadFrame('dem1', 'pat', paturl);
 +            parent.activateTabByName('pat', true);
          }
- 
+
          function popMBO(pid, enc, mboid) {

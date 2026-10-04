@@ -16,7 +16,7 @@ index 57cf246f4c..f1c3bf3d6e 100644
 -        if (empty($result['sensitivity']) || AclMain::aclCheckCore('sensitivities', $result['sensitivity'])) {
 +        if (
 +            (
-+                empty($result['sensitivity']) 
++                empty($result['sensitivity'])
 +                || AclMain::aclCheckCore('sensitivities', $result['sensitivity'])
 +            )
 +            && $_SESSION['site_id'] != 'default'

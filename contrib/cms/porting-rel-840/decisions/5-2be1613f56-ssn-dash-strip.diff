@@ -12,7 +12,7 @@ index 062432d116..342dcf06e1 100644
 @@ -722,39 +722,40 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
                  });
              });
- 
+
 -            $(".iframe1").on('click', function(e) {
 -                e.preventDefault();
 -                e.stopPropagation();
@@ -78,6 +78,6 @@ index 062432d116..342dcf06e1 100644
 +            let ssn_without_dashes = $(this).html().replace(/-/g, '');
 +            $(this).html(ssn_without_dashes);
 +        });
- 
+
              function openReminderPopup() {
                  top.restoreSession()

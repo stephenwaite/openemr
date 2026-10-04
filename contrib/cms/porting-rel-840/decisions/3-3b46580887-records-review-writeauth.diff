@@ -26,7 +26,7 @@ index 45751712fe..1b47c42819 100644
                              'initiallyCollapsed' => getUserSetting("demographics_ps_expand") == true ? true : false,
                              'tabID' => "DEM",
 @@ -1209,6 +1210,7 @@ $oemr_ui = new OemrUI($arrOeUiSettings);
- 
+
                          $id = "insurance_ps_expand";
                          $dispatchResult = $ed->dispatch(new CardRenderEvent('insurance'), CardRenderEvent::EVENT_HANDLE);
 +                        $ins_auth = ($_SESSION['authUser'] != '<records-review-user>') ? ACLMain::aclCheckCore('patients', 'demo', '', 'write') : false;
