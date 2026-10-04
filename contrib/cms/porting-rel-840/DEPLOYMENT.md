@@ -25,6 +25,12 @@ below:
 Fill in `config/` from the sections below, then use them as the checklist
 to verify each site.
 
+Each server pins the build it runs with `CMS_IMAGE` in `.env` (an image
+tagged with its cms-rel-840 commit). Later fixes (e.g. upstream cherry-picks)
+follow the kit README's "Updating": build, back up the databases, change
+`CMS_IMAGE`, `docker compose up -d`; going back is the same with the old
+tag.
+
 - [ ] **TLS certificate.** One hostname per server: set `CMS_DOMAIN` and
       `CMS_LETSENCRYPT_EMAIL` in `.env`; the container gets and renews the
       certificate (kit README, "TLS certificate"). DNS must point at the

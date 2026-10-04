@@ -36,14 +36,20 @@ list.
 
 ## 1. Build the image
 
-From a checkout of the repository:
+From a checkout of the repository at the cms-rel-840 commit to build (the
+build itself clones the branch from GitHub), tagged with that commit:
 
 ```sh
+git pull
+SHA=$(git rev-parse --short HEAD)
 docker build --no-cache-filter openemr-source \
   --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
   --build-arg OPENEMR_VERSION=cms-rel-840 \
-  -t cmsvt/openemr:cms-rel-840 docker/release
+  -t cmsvt/openemr:cms-rel-840-$SHA -t cmsvt/openemr:cms-rel-840 docker/release
 ```
+
+Set `CMS_IMAGE=cmsvt/openemr:cms-rel-840-<sha>` in `.env` so the server
+records which build it runs.
 
 The build clones the branch from GitHub (not your local checkout), runs
 `composer install --no-dev` and the npm build, and needs network access and
@@ -147,6 +153,22 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
    ```cron
    */15 * * * * cd /opt/cms/kit && docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=<site> >> /var/log/openemr-bg.log 2>&1
    ```
+
+## Updating (new commits on cms-rel-840)
+
+E.g. after cherry-picking upstream fixes into cms-rel-840:
+
+1. Build the new commit (section 1); keep the previous image.
+2. Back up every site's database: a fix that changes the schema upgrades
+   each site at the next start, as the move from 7.0.1 did.
+3. Set `CMS_IMAGE` in `.env` to the new tag and run `docker compose up -d`.
+   Compose recreates the container; the sites folder and databases are
+   outside it. A code-only change restarts in seconds; the hooks skip what's
+   applied, and every site's `statement.inc.php` follows the new image.
+
+To go back, set `CMS_IMAGE` to the previous tag and `docker compose up -d`.
+That reverts the code only: if the new build upgraded a schema, restore the
+databases from step 2 as well.
 
 ## TLS certificate (Let's Encrypt)
 

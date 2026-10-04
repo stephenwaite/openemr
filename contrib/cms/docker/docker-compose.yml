@@ -39,7 +39,9 @@ services:
       retries: 3
   openemr:
     restart: always
-    image: cmsvt/openemr:cms-rel-840
+    # The build this server runs; pin it to a commit tag (see README,
+    # "Updating"). Unset: whatever cms-rel-840 was last built as.
+    image: ${CMS_IMAGE:-cmsvt/openemr:cms-rel-840}
     ports:
     - ${CMS_HTTP_PORT:-80}:80
     - ${CMS_HTTPS_PORT:-443}:443
