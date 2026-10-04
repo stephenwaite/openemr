@@ -1874,6 +1874,12 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   container). Worth an upstream fix: add the job whenever `DOMAIN` is set.
   `/etc/ssl` is deliberately not a volume (it would pin the image's CA
   bundle).
+- **Port 80:** production keeps its HTTP site disabled and enables it
+  (`a2ensite`) by hand to renew. The image serves OpenEMR over plain HTTP on
+  80 by default (redirect commented out in `docker/release/openemr.conf`).
+  `06-cms-https-redirect` makes 80 answer only the ACME challenge and
+  redirect the rest (to `CMS_HTTPS_PORT` when not 443). Checked with a
+  throwaway Apache: challenge S1, login page 301 to HTTPS.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,

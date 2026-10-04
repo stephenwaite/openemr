@@ -67,6 +67,8 @@ services:
       # Let's Encrypt for this server's single hostname; empty = self-signed.
       DOMAIN: ${CMS_DOMAIN:-}
       EMAIL: ${CMS_LETSENCRYPT_EMAIL:-}
+      # For the HTTP-to-HTTPS redirect (06-cms-https-redirect).
+      CMS_HTTPS_PORT: ${CMS_HTTPS_PORT:-443}
       OE_USER: admin
       OE_PASS: ${CMS_DEFAULT_ADMIN_PASS:?set CMS_DEFAULT_ADMIN_PASS in .env}
     depends_on:

@@ -9,6 +9,9 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
       .env.example                       per-server settings; copy to .env
       hooks/prelaunch/05-cms-cert-renewal
                                          every start: keeps the Let's Encrypt renewal job in cron
+      hooks/prelaunch/06-cms-https-redirect
+                                         every start: port 80 serves only the Let's Encrypt
+                                         check and redirects the rest to HTTPS
       hooks/prelaunch/10-cms-site-files  every start: the image's statement.inc.php to
                                          every site, then config files into place
       hooks/prelaunch/20-cms-site-settings
@@ -149,6 +152,12 @@ makes sure root's crontab in the container renews it daily (the image only
 adds that job when it first obtains a certificate, which a recreated
 container doesn't do). Leave both settings empty for a self-signed
 certificate, as in a dry run.
+
+Port 80 stays published but serves nothing else: the image would serve
+OpenEMR over plain HTTP there, so `06-cms-https-redirect` makes it answer
+only `/.well-known/acme-challenge/` and redirect everything else to HTTPS
+(to `CMS_HTTPS_PORT` when that isn't 443). There's no manual step to open
+port 80 for renewals, as there was with the host's Apache.
 
 At cutover, the host's own certbot no longer has an Apache to work with:
 disable its renewal (its systemd timer or cron entry) once the container

@@ -28,8 +28,10 @@ to verify each site.
 - [ ] **TLS certificate.** One hostname per server: set `CMS_DOMAIN` and
       `CMS_LETSENCRYPT_EMAIL` in `.env`; the container gets and renews the
       certificate (kit README, "TLS certificate"). DNS must point at the
-      server and port 80 must be open. After cutover, disable the host
-      certbot's renewal. Until then, make sure it still renews: one
+      server and port 80 must be open. Port 80 only answers the Let's
+      Encrypt check and redirects the rest to HTTPS (`06-cms-https-redirect`),
+      so it stays open; no more enabling the port-80 site by hand for
+      renewals. After cutover, disable the host certbot's renewal. Until then, make sure it still renews: one
       server's certificate had 22 days left on 2026-10-04 (certbot renews
       at 30), so check `sudo certbot renew --dry-run`.
 
