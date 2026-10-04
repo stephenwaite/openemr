@@ -13,6 +13,8 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
                                          every start: applies per-site SQL, once per file
       hooks/prelaunch/cms-apply-sql.php  helper for the above
       tools/x12-diff.py                  compares two 837P files claim by claim
+      tools/decrypt-hl7.php              decrypts an archived HL7 result (dry-run lab tests)
+      tools/poll-labs.php                runs Process Results for one lab, summary only
       config/                            sample CMS config, mounted at /cms-config
         sql/all-sites.sql                applied to every site
         sql/site.sql.example             template for sql/<site>.sql, applied to that site
