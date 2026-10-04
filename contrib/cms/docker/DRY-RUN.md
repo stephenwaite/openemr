@@ -29,9 +29,12 @@ git clone --branch cms-rel-840 https://github.com/stephenwaite/openemr.git src
 cp -r src/contrib/cms/docker kit
 ```
 
-Copy the backups into `~/cms-dryrun/backup/` (for example
-`backup/sites/1100/` and `backup/1100.sql.gz`). Keep `backup/` untouched;
-the stack works on copies, so you can reset from it.
+Keep the backups in one place and never write to them: the stack works on
+copies, so you can reset from them. They can stay where they are (e.g. on a
+separate backup disk); the examples use `~/cms-dryrun/backup/`, with
+`sites/1100/` and `1100.sql.gz` inside. Don't copy them there as well if
+they're already on another disk: a big site's documents would take the
+space twice.
 
 ## 2. Build the image
 
@@ -47,8 +50,9 @@ docker build --no-cache-filter openemr-source \
 
 ```sh
 cd ~/cms-dryrun
+BACKUP=~/cms-dryrun/backup        # or wherever the backups are, e.g. /media/stee/alt-backup
 # sudo: the backup keeps production's owners, so your account can't read all of it
-sudo rsync -aHAX --numeric-ids --delete backup/sites/1100/ sites/1100/
+sudo rsync -aHAX --numeric-ids --delete --info=progress2 "$BACKUP/sites/1100/" sites/1100/
 
 # Stock default site from the image: configured on first start as a new, empty site
 docker run --rm --entrypoint tar cmsvt/openemr:cms-rel-840 \
@@ -103,7 +107,7 @@ password from `kit/.env`, so nothing is retyped:
 ```sh
 cd ~/cms-dryrun/kit
 SITE=1100                                    # the site being migrated
-DUMP=~/cms-dryrun/backup/$SITE.sql.gz        # its database dump
+DUMP=${BACKUP:-~/cms-dryrun/backup}/$SITE.sql.gz   # its database dump
 CONF=~/cms-dryrun/sites/$SITE/sqlconf.php
 conf() { sudo sed -nE "s/^\\\$$1[[:space:]]*=[[:space:]]*['\"](.*)['\"];.*/\1/p" "$CONF"; }
 DB=$(conf dbase); DBUSER=$(conf login); DBPASS=$(conf pass)
@@ -297,13 +301,14 @@ cp -r src/contrib/cms/docker kit
 ```
 
 **Back up the new site** as in "What you need": `sites/1400/` and its
-database dump from the same moment, checked complete, in
-`backup/sites/1400/` and `backup/1400.sql.gz`. Check disk space first
-(`df -h ~/cms-dryrun /var/lib/docker`): the backup and the working copy
-each take the full size of the site folder (1400: about 7 GB).
+database dump from the same moment, checked complete, next to the other
+backups (`$BACKUP/sites/1400/` and `$BACKUP/1400.sql.gz`). Check disk space
+first (`df -h ~/cms-dryrun /var/lib/docker`): the working copy takes the
+full size of the site folder (1400: about 7 GB), and so does the backup if
+it's on the same disk.
 
 **Then repeat steps 3–7 with the new site's name:**
-- **Step 3:** rsync `backup/sites/1400/` to `sites/1400/`.
+- **Step 3:** rsync `$BACKUP/sites/1400/` to `sites/1400/`.
   - Copy the stock `default` from the new image, as before. 1400 is on the
     same multisite server as 1100, which has no real `default`. (For a site
     on a server where `default` is real, migrate that one instead.)
