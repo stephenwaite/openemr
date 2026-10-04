@@ -206,8 +206,11 @@ CMS_SETUP_DB_ROOT_PASS="$RP" docker compose up -d
 docker compose logs -f openemr
 ```
 
-Once `Starting Apache!` appears, recreate the container without it, so the
-running container holds no database root password:
+Wait for `Setup Complete!` and then `Starting Apache!` before going on.
+Recreating the container earlier replaces its environment at once, and the
+stock `default`'s setup then fails with "unable to connect to database as
+root" (rerun the command above to recover). Then recreate the container
+without it, so the running container holds no database root password:
 
 ```sh
 docker compose up -d                       # recreates openemr; nothing is reconfigured
