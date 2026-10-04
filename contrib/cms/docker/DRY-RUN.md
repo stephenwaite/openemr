@@ -1,4 +1,4 @@
-# Dry run: upgrading one site (1100) in a sandbox
+# Dry run: upgrading one site in a sandbox
 
 A practice migration of one production site into the cms-rel-840 Docker
 stack, on a machine where production can't be affected. It uses a copy of
@@ -12,13 +12,13 @@ down. Delete them when the dry run is finished.
 
 ## What you need
 
-- The site backup (`sites/1100/`) and its database dump (`.sql.gz`) from the
+- The site backup (`sites/<site>/`) and its database dump (`.sql.gz`) from the
   same moment, both checked complete:
   - `gzip -t` passes on the dump;
   - its last line is `-- Dump completed on …`.
 - A machine or sandbox with Docker, network access to GitHub, and enough
   Docker disk: about 5 GB for the image, plus the size of the dump and of
-  `sites/1100`.
+  `sites/<site>`.
 
 ## 1. Workspace
 
@@ -32,7 +32,7 @@ cp -r src/contrib/cms/docker kit
 Keep the backups in one place and never write to them: the stack works on
 copies, so you can reset from them. They can stay where they are (e.g. on a
 separate backup disk); the examples use `~/cms-dryrun/backup/`, with
-`sites/1100/` and `1100.sql.gz` inside. Don't copy them there as well if
+`sites/<site>/` and `<site>.sql.gz` inside. Don't copy them there as well if
 they're already on another disk: a big site's documents would take the
 space twice.
 
@@ -50,9 +50,10 @@ docker build --no-cache-filter openemr-source \
 
 ```sh
 cd ~/cms-dryrun
-BACKUP=~/cms-dryrun/backup        # or wherever the backups are, e.g. /media/stee/alt-backup
+SITE=<site>                       # the site's directory name under sites/ (replace)
+BACKUP=~/cms-dryrun/backup        # or wherever the backups are, e.g. /media/<disk>/backup
 # sudo: the backup keeps production's owners, so your account can't read all of it
-sudo rsync -aHAX --numeric-ids --delete --info=progress2 "$BACKUP/sites/1100/" sites/1100/
+sudo rsync -aHAX --numeric-ids --delete --info=progress2 "$BACKUP/sites/$SITE/" sites/$SITE/
 
 # Stock default site from the image: configured on first start as a new, empty site
 docker run --rm --entrypoint tar cmsvt/openemr:cms-rel-840 \
@@ -67,8 +68,8 @@ Point the site at the database container. In `sqlconf.php`, `$host` must be
 start fails with "could not read the version table for <site>":
 
 ```sh
-sudo sed -i -E "s/^(\\\$host[[:space:]]*=[[:space:]]*)['\"][^'\"]*['\"];/\\1'mysql';/" sites/1100/sqlconf.php
-sudo grep -n '^\$host' sites/1100/sqlconf.php      # $host = 'mysql';
+sudo sed -i -E "s/^(\\\$host[[:space:]]*=[[:space:]]*)['\"][^'\"]*['\"];/\\1'mysql';/" sites/$SITE/sqlconf.php
+sudo grep -n '^\$host' sites/$SITE/sqlconf.php      # $host = 'mysql';
 ```
 
 ## 4. Configure the stack (`kit/`)
@@ -87,17 +88,18 @@ Create `kit/.env` from `kit/.env.example`. Keep a copy outside `kit/`
   (`sbx ports <sandbox> --publish 8443:8443`).
 
 `MYSQL_DATABASE` and `MYSQL_USER` in `kit/docker-compose.yml` (for the new
-`default`) must differ from site 1100's `$dbase` and `$login`. They're
+`default`) must differ from the site's `$dbase` and `$login`. They're
 `openemr_default`.
 
 In `kit/config/sql/`, keep `all-sites.sql`, delete the other sites' files,
-and add a `1100.sql` only for CMS settings 1100 had in production.
+and add a `<site>.sql` (from `site.sql.example`, or your private copy)
+only for CMS settings the site had in production.
 Every site gets the image's `statement.inc.php` automatically at start (the
 `10-cms-site-files` hook). The letterhead is normally already in place: production read
-the same Statement Logo global and `sites/1100/images/` file. Check after
-step 5 that `statement_logo` names a PNG in `sites/1100/images/`; only if
-not, add the PNG under `kit/config/sites/1100/images/` and set
-`statement_logo` in `1100.sql`.
+the same Statement Logo global and `sites/<site>/images/` file. Check after
+step 5 that `statement_logo` names a PNG in `sites/<site>/images/`; only if
+not, add the PNG under `kit/config/sites/<site>/images/` and set
+`statement_logo` in `<site>.sql`.
 
 ## 5. Load the database
 
@@ -107,7 +109,7 @@ password from `kit/.env`, so nothing is retyped:
 
 ```sh
 cd ~/cms-dryrun/kit
-SITE=1100                                    # the site being migrated
+SITE=<site>                                  # as in step 3 (set again in a new terminal)
 DUMP=${BACKUP:-~/cms-dryrun/backup}/$SITE.sql.gz   # its database dump
 CONF=~/cms-dryrun/sites/$SITE/sqlconf.php
 conf() { sudo sed -nE "s/^\\\$$1[[:space:]]*=[[:space:]]*['\"](.*)['\"];.*/\1/p" "$CONF"; }
@@ -135,8 +137,8 @@ State the collation: the upgrade creates new tables in the database's
 default, and MariaDB 11.5+ otherwise defaults to `utf8mb4_uca1400_ai_ci`.
 Joins between those and the dump's `utf8mb4_general_ci` tables then fail
 ("SQL Statement failed on preparation", e.g. on the patient's contacts).
-The dump's own mix (1100: `utf8mb3_general_ci`, `utf8mb4_general_ci` and a
-few `latin1`) is fine and stays as it is.
+The dump's own mix (typically `utf8mb3_general_ci`, `utf8mb4_general_ci`
+and a few `latin1`) is fine and stays as it is.
 
 Check the stored `x12_submitter_id` values (DEPLOYMENT.md section 1). It
 holds the user ID of the claims' submitter contact, and production's
@@ -216,22 +218,22 @@ Later starts and restarts don't need it: the upgrade check and the hooks
 use each site's own database user.
 
 Expected, in order:
-1. `Schema upgrade detected for 1100: database is at revision … (7.0.1)`,
-   then `Completed: schema upgrade for 1100 from 7.0.1`. Note how long it
+1. `Schema upgrade detected for <site>: database is at revision … (7.0.1)`,
+   then `Completed: schema upgrade for <site> from 7.0.1`. Note how long it
    takes; that's the downtime estimate for the real cutover.
 2. `Running quick setup!` and `Setup Complete!` for the new `default`.
 3. The prelaunch hooks: `cms prelaunch: …` (files) and `cms settings: …`
-   (SQL applied to 1100 and default).
+   (SQL applied to the site and default).
 4. `Starting Apache!`.
 
 If it stops, the last lines say why (a failed upgrade statement, a hook
 error). Fix it, reset (step 8) and start again. If quick setup keeps failing
 for `default`, the root password wasn't passed: rerun the first command.
 
-## 7. Check site 1100
+## 7. Check the site
 
-Log in at `https://localhost:<port>/interface/login/login.php?site=1100`
-with a real 1100 account, and work through DEPLOYMENT.md's smoke tests
+Log in at `https://localhost:<port>/interface/login/login.php?site=<site>`
+with a real account on that site, and work through DEPLOYMENT.md's smoke tests
 that apply to this site. At least:
 - **Documents:** patients' documents open (old file paths are rebuilt
   under the new site folder automatically). Open a few across years and
@@ -264,7 +266,7 @@ that apply to this site. At least:
   the file. Compare its text with a production statement for the same
   patient: wording and columns should be identical.
 - **Reports and ERA posting**, as far as test data allows.
-- **Labs** (results-only feed on 2400): re-import a result file that
+- **Labs** (on a site with a results-only feed): re-import a result file that
   production already processed, and compare the two. Production archives
   each file under `sites/<site>/documents/procedure_results/<ppid>-<npi>/`.
   Copy one into the local results folder, then click Process Results in
@@ -274,7 +276,7 @@ that apply to this site. At least:
   docker compose exec openemr sh -c 'cp "/var/www/localhost/htdocs/openemr/sites/<site>/documents/procedure_results/<ppid>-<npi>/<file>" /tmp/dryrun-hl7/results/ && chown apache /tmp/dryrun-hl7/results/*'
   ```
   The new order should match production's for the same file: the same
-  patient (by MRN on 2400), the visit number stored, no encounter, no
+  patient (by MRN, where that's set), the visit number stored, no encounter, no
   provider notice. Electronic Reports should default to Reviewed. The folder
   is inside the container, so it's empty again after a restart.
 
@@ -283,12 +285,11 @@ statements by email, no portal notices. Step 5's switch-off covers the
 automatic senders; the manual ones (Email Selected, claim uploads from the
 Billing Manager) are still up to you.
 
-## 8. Next site (e.g. 1400)
+## 8. Next site
 
 Each run starts clean: the previous site's stack, database and working
 copies are removed, the image and kit come from the current cms-rel-840, and
-steps 3–7 are repeated for the new site. The example moves from 1100 to
-1400.
+steps 3–7 are repeated for the new site (`<next>` below).
 
 **Tear down the previous run:**
 
@@ -316,33 +317,33 @@ cd ~/cms-dryrun
 cp -r src/contrib/cms/docker kit
 ```
 
-**Back up the new site** as in "What you need": `sites/1400/` and its
+**Back up the new site** as in "What you need": `sites/<next>/` and its
 database dump from the same moment, checked complete, next to the other
-backups (`$BACKUP/sites/1400/` and `$BACKUP/1400.sql.gz`). Check disk space
+backups (`$BACKUP/sites/<next>/` and `$BACKUP/<next>.sql.gz`). Check disk space
 first (`df -h ~/cms-dryrun /var/lib/docker`): the working copy takes the
-full size of the site folder (1400: about 7 GB), and so does the backup if
+full size of the site folder (several GB with many documents), and so does the backup if
 it's on the same disk.
 
 **Then repeat steps 3–7 with the new site's name:**
-- **Step 3:** rsync `$BACKUP/sites/1400/` to `sites/1400/`.
-  - Copy the stock `default` from the new image, as before. 1400 is on the
-    same multisite server as 1100, which has no real `default`. (For a site
+- **Step 3:** rsync `$BACKUP/sites/<next>/` to `sites/<next>/`.
+  - Copy the stock `default` from the new image, as before, if the new site
+    is on a multisite server without a real `default`. (For a site
     on a server where `default` is real, migrate that one instead.)
-  - Set `$host` to `mysql` in `sites/1400/sqlconf.php` (the `sed` in step 3).
+  - Set `$host` to `mysql` in `sites/<next>/sqlconf.php` (the `sed` in step 3).
 - **Step 4:**
-  - in `kit/config/sql/`, keep `all-sites.sql` and `1400.sql` (Hide Export
-    to Collections) and delete the rest;
+  - in `kit/config/sql/`, keep `all-sites.sql` and the new site's
+    `<next>.sql`, if it has one, and delete the rest;
   - copy your `.env` back in (`cp ../dryrun.env kit/.env`). Check that
-    `openemr_default` differs from 1400's `$dbase` and `$login`.
+    `openemr_default` differs from <next>'s `$dbase` and `$login`.
 - **Step 5:**
-  - set `SITE=1400` (and `DUMP`, if the dump is elsewhere), then run it
+  - set `SITE=<next>` (and `DUMP`, if the dump is elsewhere), then run it
     as written;
   - check the `x12_submitter_id` values;
   - run the switch-off SQL.
-- **Step 6:** note the schema upgrade time for 1400.
-- **Step 7:** log in at `?site=1400`. In addition to the checks there:
-  - Reports → Collections doesn't offer Export to Collections (agency);
-  - compare 837P claims with production using `kit/tools/x12-diff.py`.
+- **Step 6:** note the schema upgrade time for the new site.
+- **Step 7:** log in at `?site=<next>`. In addition to the checks there,
+  check the settings from its `<next>.sql` (DEPLOYMENT.md section 3), e.g.
+  that Reports → Collections hides Export to Collections where that's set.
 
 To redo the same site from scratch instead, tear down as above, but keep
 `kit/` (or copy it fresh if cms-rel-840 changed), and start again from

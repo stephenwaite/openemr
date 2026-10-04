@@ -56,7 +56,7 @@ to verify each site.
       `CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci` before loading the
       dump. MariaDB 11.5+ otherwise defaults to `utf8mb4_uca1400_ai_ci`,
       the upgrade's new tables get it, and joins with the old tables fail
-      (seen in the 1100 dry run on `contact_relation`).
+      (seen in the S2 dry run on `contact_relation`).
 - [ ] Back up the database and the site directory (`sites/<site>/`).
 - [ ] Run the normal OpenEMR upgrade (7.0.1 → 8.4), then log in as an admin.
 
@@ -84,18 +84,18 @@ what the site used in production.
 
 | Site | Setting | Value |
 |---|---|---|
-| 200 | Eligibility (270) Provider Override (`cmsvt_elig_provider_id`) | user ID of the provider hardcoded in production commit f5de47125c (`src/Billing/EDI270.php`); confirm that user's NPI matches |
-| 200 | Eligibility (270) Receiver Name Override (`cmsvt_elig_receiver_name`) | the receiver name from the same commit |
-| 200 | Billing Manager Default Date-of-Service Months (`cmsvt_billing_manager_dos_months`) | 2 |
-| 1400 | Hide Export to Collections (`cmsvt_collections_hide_agency_export`) | on |
+| S1 | Eligibility (270) Provider Override (`cmsvt_elig_provider_id`) | user ID of the provider hardcoded in production commit f5de47125c (`src/Billing/EDI270.php`); confirm that user's NPI matches |
+| S1 | Eligibility (270) Receiver Name Override (`cmsvt_elig_receiver_name`) | the receiver name from the same commit |
+| S1 | Billing Manager Default Date-of-Service Months (`cmsvt_billing_manager_dos_months`) | 2 |
+| S4 | Hide Export to Collections (`cmsvt_collections_hide_agency_export`) | on |
 | podiatry sites (primary business entity taxonomy 213E00000X) | Label Onset Date as Date Last Seen (`cmsvt_encounter_date_last_seen`) | on |
-| podiatry site billing as NPI 1134268188 | Claims: Routine Foot Care Billing NPIs (`cmsvt_claim_routine_foot_care_npis`) | 1134268188 |
-| 2400 | Match Lab Results by MRN Only (`cmsvt_hl7_match_patient_by_mrn`) | on |
-| 2400 | Electronic Reports Default to Reviewed (`cmsvt_lab_list_default_reviewed`) | on |
-| 4800 | Default Lab Results Processed Per Lab (`cmsvt_lab_results_per_lab`) | 50 |
-| 1500 | Claims: Payers Without NDCs (`cmsvt_claim_ndc_skip_payer_ids`) | 87726, 39026, TREST, PAMCD (not 25169) |
-| 1500 | Claims: Bill Under Provider (`cmsvt_claim_rendering_provider_id`) | 6 |
-| 1300 | Claims: Closed Service Facility NPIs (`cmsvt_claim_closed_facility_npis`) | the closed facility's NPI |
+| podiatry site billing as NPI <podiatry-npi> | Claims: Routine Foot Care Billing NPIs (`cmsvt_claim_routine_foot_care_npis`) | <podiatry-npi> |
+| S6 | Match Lab Results by MRN Only (`cmsvt_hl7_match_patient_by_mrn`) | on |
+| S6 | Electronic Reports Default to Reviewed (`cmsvt_lab_list_default_reviewed`) | on |
+| S7 | Default Lab Results Processed Per Lab (`cmsvt_lab_results_per_lab`) | 50 |
+| S5 | Claims: Payers Without NDCs (`cmsvt_claim_ndc_skip_payer_ids`) | 87726, 39026, TREST, PAMCD (not 25169) |
+| S5 | Claims: Bill Under Provider (`cmsvt_claim_rendering_provider_id`) | 6 |
+| S3 | Claims: Closed Service Facility NPIs (`cmsvt_claim_closed_facility_npis`) | the closed facility's NPI |
 | Press Ganey sites | Press Ganey Client ID / Survey Designator (`pg_client_id`, `pg_survey_designator`) | carried over: same keys as 7.0.1; check they show their old values |
 
 ## 4. Statements (every site)
@@ -178,8 +178,8 @@ cms-rel-840 includes upstream #14330 (cherry-picked):
 ## 7. Background services (cron)
 
 Production runs background services from root's crontab, per site:
-`php library/ajax/execute_background_services.php <site>` (2400 every 15
-minutes; 1100, 1400, 1500, 4800 and 5200 six times a day). In cms-rel-840:
+`php library/ajax/execute_background_services.php <site>` (S6 every 15
+minutes; S2, S4, S5, S7 and S8 six times a day). In cms-rel-840:
 - OpenEMR's CLI refuses to run as root (`RootCliGuard`), so those lines
   would fail even outside Docker;
 - the container runs no cron for OpenEMR (only certificate renewal);
@@ -196,7 +196,7 @@ minutes; 1100, 1400, 1500, 4800 and 5200 six times a day). In cms-rel-840:
 - [ ] **Replace the crontab** with host cron calling into the container as
       `apache`, one line per site, keeping today's schedules:
       ```cron
-      */15 * * * * cd /opt/cms/kit && docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=2400 >> /var/log/openemr-bg.log 2>&1
+      */15 * * * * cd /opt/cms/kit && docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=S6 >> /var/log/openemr-bg.log 2>&1
       ```
       `background:services run` runs every service that's due; `list`
       shows them, `unlock` frees one left running, and `crontab` prints
@@ -217,11 +217,11 @@ minutes; 1100, 1400, 1500, 4800 and 5200 six times a day). In cms-rel-840:
 
 Test data or a de-identified copy only.
 
-- [ ] **Eligibility (site 200):** a real-time 270 sends the override provider
+- [ ] **Eligibility (site S1):** a real-time 270 sends the override provider
       and receiver name.
-- [ ] **Billing Manager:** default date range (site 200: last 2 months),
+- [ ] **Billing Manager:** default date range (site S1: last 2 months),
       re-open and MBO options; Collections report shows/hides the agency
-      export (site 1400).
+      export (site S4).
 - [ ] **Fee sheet:** review shows today's prices; a drug code arrives with its
       default units; fee = price × units.
 - [ ] **Encounter form / report:** "Date Last Seen" label on podiatry sites.
@@ -240,9 +240,9 @@ Test data or a de-identified copy only.
       - a second click asks before starting another run;
       - the Due Pt list renders fully and shows the PRINT badge for patients
         with 2+ unpaid emailed statements.
-- [ ] **Labs:** import a results-only ORU (site 2400: matched by MRN; visit
+- [ ] **Labs:** import a results-only ORU (site S6: matched by MRN; visit
       number stored; no encounter or provider notice); Electronic Reports
-      defaults (2400 reviewed, 4800: 50 per lab); signing a result returns
+      defaults (S6 reviewed, S7: 50 per lab); signing a result returns
       to the list; the patient link opens the latest encounter.
 - [ ] **Claims (837P):** generate primary and secondary claims and compare
       with what cms-rel-701 produces for the same encounters
@@ -252,7 +252,7 @@ Test data or a de-identified copy only.
         production;
       - podiatry DTP*304 and supervisor;
       - pay-to address; Medicare IDs without dashes;
-      - site 1500: NDC skip and billing provider.
+      - site S5: NDC skip and billing provider.
 - [ ] **SFTP:** an upload to BCBS VT's MOVEit server goes out as
       `007111NN.x12`.
 - [ ] **Console:** `php bin/console cmsvt:fees-increase --site=<site>

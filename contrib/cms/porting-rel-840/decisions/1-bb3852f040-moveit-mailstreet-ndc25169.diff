@@ -12,7 +12,7 @@ index 20cc693bc7..8d71509733 100644
 @@ -76,6 +76,14 @@ class X12RemoteTracker extends BaseService
                  $claim_file = $GLOBALS['OE_SITE_DIR'] . "/documents/edi/" . $x12_remote['x12_filename'];
              }
- 
+
 +            if ($x12_remote['x12_sftp_host'] == 'moveit.bcbsvt.com') {
 +                $moveitFilename = '007111' . rand(20, 99) . '.x12';
 +                rename($claim_file, $GLOBALS['OE_SITE_DIR'] . "/documents/edi/" . $moveitFilename);
@@ -29,13 +29,13 @@ index 88ce1c333e..fb4f4b7ad3 100644
 --- a/src/Billing/Claim.php
 +++ b/src/Billing/Claim.php
 @@ -748,7 +748,7 @@ class Claim
- 
+
      public function payToFacilityStreet()
      {
 -        return $this->x12Clean(trim($this->billing_facility['mail_street']));
 +        return $this->x12Clean(trim($this->billing_facility['mail_street'] ?? ''));
      }
- 
+
      public function payToFacilityStreet2()
 diff --git a/src/Billing/X125010837P.php b/src/Billing/X125010837P.php
 index 7a3747c0e3..57fe12eb82 100644
@@ -44,7 +44,7 @@ index 7a3747c0e3..57fe12eb82 100644
 @@ -1585,7 +1585,7 @@ class X125010837P
                  // for esp
                  if (
-                     $_SESSION['site_id'] == '1500'
+                     $_SESSION['site_id'] == 'S5'
 -                    && in_array($claim->payerID(), ['87726', '39026', '25169', 'TREST', 'PAMCD'])
 +                    && in_array($claim->payerID(), ['87726', '39026', 'TREST', 'PAMCD'])
                  ) {

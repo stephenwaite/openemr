@@ -15,7 +15,8 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
       tools/x12-diff.py                  compares two 837P files claim by claim
       config/                            sample CMS config, mounted at /cms-config
         sql/all-sites.sql                applied to every site
-        sql/<site>.sql                   applied to that site (the directory name under sites/)
+        sql/site.sql.example             template for sql/<site>.sql, applied to that site
+                                         (the directory name under sites/); keep those private
         sites/<site>/...                 copied into sites/<site>/ on every start
         code/...                         copied into the code tree on every start
         php/*.ini                        copied into PHP's conf.d on every start
@@ -52,9 +53,10 @@ Copy `.env.example` to `.env` and fill it in: the sites folder, the
 database root password, the stock `default` site's passwords and the ports.
 `.env` holds passwords; keep it only on the server.
 
-- `sql/<site>.sql`: one file per site, from DEPLOYMENT.md section 3. Fill in
-  or remove the placeholders (site 200's eligibility override, site 1300's
-  NPI). Add a file for each podiatry site from `podiatry-site.sql.example`.
+- `sql/<site>.sql`: one file per site that has its own settings (DEPLOYMENT.md
+  section 3), made from `sql/site.sql.example`. These files identify the
+  sites: keep them only on the server (or in a private repository), never in
+  this public one.
 - `sql/all-sites.sql`: sets Statement Appearance to PDF Custom on every site
   (production's layout). Sites keep their production Statement Logo.
 - `sites/<site>/`: `chart_review.json` for the records-review site, and a
@@ -97,7 +99,7 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
    reading `sites/default/sqlconf.php`, and only restores a missing
    `default` in swarm mode.
    - **If `default` is one of your real sites,** migrate it like the others.
-   - **If it isn't** (as on the server with site 1100), give the container
+   - **If it isn't** (as on a multisite server without a real `default`), give the container
      a stock `default` from the image. On first start it configures it as a
      new, empty site:
      ```sh
@@ -128,7 +130,7 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
    rel-840's CLI refuses root. Schedule them from the host's crontab, per
    site, as `apache` (DEPLOYMENT.md section 7):
    ```cron
-   */15 * * * * cd /opt/cms/kit && docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=2400 >> /var/log/openemr-bg.log 2>&1
+   */15 * * * * cd /opt/cms/kit && docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=<site> >> /var/log/openemr-bg.log 2>&1
    ```
 
 ## How the hooks behave
