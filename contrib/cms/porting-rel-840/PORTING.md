@@ -1821,7 +1821,8 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   include it. Tests: spawner forwards `--site` only when set; command
   accepts it and prints it in crontab lines. Checked end to end in the dev
   container with a copied second site. Upstream PR: branch
-  `fix/background-services-multisite`, body in
+  `fix/bg-services-multisite-site` (Assisted-by trailer; the earlier
+  `fix/background-services-multisite` has the wrong trailer), body in
   `~/git/pr-fix-background-services-multisite.md`.
 - **Multi-site isolation (security):** all sites share one PHP process,
   one `sites/` tree and one MariaDB. Two mitigations in the kit:
