@@ -98,10 +98,18 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
    `x12_partners.x12_submitter_id` values on every site's database
    (DEPLOYMENT.md section 1). `all-sites.sql` widens the column itself.
 3. **Site directories.** The compose file bind-mounts the folder named by
-   `CMS_SITES_DIR` in `.env` as the image's `sites/`: a copy of the 7.0.1
-   `sites/` folder, not the live one. It must be readable and writable by
-   uid 1000, the image's `apache`; use `setfacl` if the host owner must
-   stay. In each migrated `sqlconf.php`, set `$host = 'mysql';`.
+   `CMS_SITES_DIR` in `.env` as the image's `sites/`. In production that's
+   the server's existing `sites/` folder, used in place (no copy); in a dry
+   run, a working copy. It must be readable and writable by uid 1000, the
+   image's `apache`; use `setfacl` if the host owner must stay. In each
+   migrated `sqlconf.php`, set `$host = 'mysql';`.
+   - With the live folder, disable (not just stop) the host's Apache and
+     OpenEMR cron jobs first: nothing else may use it.
+   - Once the container has run, the folder is changed (`sqlconf.php`
+     hosts, every site's `statement.inc.php`, `cms-applied/`, new documents
+     and results). Rolling back to 7.0.1 means restoring the database dumps
+     and setting `$host` back; take a `sync-sites.sh` copy right before the
+     cutover as a fallback.
 4. **`sites/default`.** The image decides whether OpenEMR is installed by
    reading `sites/default/sqlconf.php`, and only restores a missing
    `default` in swarm mode.

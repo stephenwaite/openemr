@@ -67,7 +67,14 @@ to verify each site.
       dump. MariaDB 11.5+ otherwise defaults to `utf8mb4_uca1400_ai_ci`,
       the upgrade's new tables get it, and joins with the old tables fail
       (seen in the S2 dry run on `contact_relation`).
-- [ ] Back up the database and the site directory (`sites/<site>/`).
+- [ ] Back up the database and the site directory (`sites/<site>/`). The
+      container then uses the live `sites/` folder in place
+      (`CMS_SITES_DIR`); the copy is only the rollback fallback.
+- [ ] **One server, one cutover.** All of a server's sites share one stack
+      and one `sites/` folder, so they move together: disable the host's
+      Apache and cron, dump every site's database at that moment, load
+      them, start. Downtime is about the sum of the sites' upgrade times
+      plus the dump and load.
 - [ ] Run the normal OpenEMR upgrade (7.0.1 → 8.4), then log in as an admin.
 
 ## 2. Every site
