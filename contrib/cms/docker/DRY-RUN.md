@@ -162,7 +162,8 @@ reload the dump:
 docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" -e "
   UPDATE background_services SET active = 0;
   UPDATE procedure_providers SET active = 0, protocol = 'FS', remote_host = '',
-    results_path = '/tmp/dryrun-hl7/results', orders_path = '/tmp/dryrun-hl7/orders';
+    results_path = CONCAT('/tmp/dryrun-hl7/', ppid, '/results'),
+    orders_path = CONCAT('/tmp/dryrun-hl7/', ppid, '/orders');
   UPDATE modules SET mod_active = 0 WHERE mod_directory <> 'oe-module-cmsvt';
   UPDATE globals SET gl_value = '0'
    WHERE gl_name IN ('medex_enable', 'auto_sftp_claims_to_x12_partner', 'phimail_enable');
@@ -174,9 +175,11 @@ docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" -e "
 Labs are pointed at local folders (protocol `FS`). `active = 0` alone
 isn't enough: Process Results in Electronic Reports polls every lab
 regardless, and its SFTP fetch **deletes each result file from the lab's
-server**, so production would never get those results. With `FS`, results
-are read from `/tmp/dryrun-hl7/results` in the container and orders are
-written to `/tmp/dryrun-hl7/orders`.
+server**, so production would never get those results. With `FS`, each
+lab's results are read from `/tmp/dryrun-hl7/<ppid>/results` in the
+container and its orders written to `/tmp/dryrun-hl7/<ppid>/orders`. Each
+lab needs its own folder: Process Results goes through the labs in name
+order, and a shared folder would let the first one take every file.
 Every module but CMS Vermont (what's being tested) is switched off.
 `smtp.invalid` can't resolve, so anything that tries to send email fails
 instead. Truncating `login_mfa_registrations` is optional: it lets you log
@@ -272,16 +275,19 @@ that apply to this site. At least:
 - **Labs** (on a site with a results-only feed): re-import a result file that
   production already processed, and compare the two. Production archives
   each file under `sites/<site>/documents/procedure_results/<ppid>-<npi>/`.
-  Copy one into the local results folder, then click Process Results in
-  Procedures → Electronic Reports:
+  Copy one into that lab's local results folder, then click Process Results
+  in Procedures → Electronic Reports:
   ```sh
-  docker compose exec openemr sh -c 'mkdir -p /tmp/dryrun-hl7/results /tmp/dryrun-hl7/orders && chown -R apache /tmp/dryrun-hl7'
-  docker compose exec openemr sh -c 'cp "/var/www/localhost/htdocs/openemr/sites/<site>/documents/procedure_results/<ppid>-<npi>/<file>" /tmp/dryrun-hl7/results/ && chown apache /tmp/dryrun-hl7/results/*'
+  docker compose exec openemr sh -c 'mkdir -p /tmp/dryrun-hl7/<ppid>/results /tmp/dryrun-hl7/<ppid>/orders && chown -R apache /tmp/dryrun-hl7'
+  docker compose exec openemr sh -c 'cp "/var/www/localhost/htdocs/openemr/sites/<site>/documents/procedure_results/<ppid>-<npi>/<file>" /tmp/dryrun-hl7/<ppid>/results/ && chown -R apache /tmp/dryrun-hl7'
   ```
   The new order should match production's for the same file: the same
   patient (by MRN, where that's set), the visit number stored, no encounter, no
-  provider notice. Electronic Reports should default to Reviewed. The folder
-  is inside the container, so it's empty again after a restart.
+  provider notice. The file disappears from the folder once processed.
+  Electronic Reports should default to Reviewed, which hides new results
+  until they're reviewed: choose All, with a date range (the list stops at
+  500 rows), to find it. The folders are inside the container, so they're
+  gone after a restart.
 
 Don't send anything real from the dry run: no claims to clearinghouses, no
 statements by email, no portal notices. Step 5's switch-off covers the
