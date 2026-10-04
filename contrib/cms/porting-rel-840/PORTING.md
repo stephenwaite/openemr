@@ -1820,7 +1820,15 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   which adds `--site`; the command declares `--site` and its crontab lines
   include it. Tests: spawner forwards `--site` only when set; command
   accepts it and prints it in crontab lines. Checked end to end in the dev
-  container with a copied second site. Upstream PR to follow.
+  container with a copied second site. Upstream PR: branch
+  `fix/background-services-multisite`, body in
+  `~/git/pr-fix-background-services-multisite.md`.
+- **Multisite's future upstream (#11370):** the admin call is weighing
+  whether to keep maintaining multisite and wants usage telemetry first.
+  CMS runs several sites per server. If multisite is deprecated, the
+  alternative is one container (or stack) per site, which the Docker kit
+  could grow into: each site already has its own database, and the kit's
+  hooks work per site.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,
