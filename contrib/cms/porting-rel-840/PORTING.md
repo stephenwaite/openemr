@@ -1806,6 +1806,21 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   production's results. The switch-off SQL now sets every provider to
   protocol `FS` with local paths. (Upstream behavior; worth raising: an
   inactive provider probably shouldn't be polled.)
+- Production's root crontab runs `execute_background_services.php <site>`
+  for 2400 (every 15 min), 1100, 1400, 1500, 4800 and 5200 (6×/day).
+  rel-840's CLI refuses root and the container has no OpenEMR cron:
+  DEPLOYMENT.md section 7 moves them to host cron calling `bin/console
+  background:services run --site=<site>` as apache.
+- **Upstream multisite bug, fixed (325cabacf7):** since 8.2.0 (#11801),
+  run-all-due spawns `bin/console background:services run --name=<svc>`
+  without `--site`, so every non-default site's services ran against
+  `default`'s database (browser polling, the legacy CLI script and the
+  console command alike). And `background:services` rejected `--site`. The
+  runner now passes its site (basename of OE_SITE_DIR) to the spawner,
+  which adds `--site`; the command declares `--site` and its crontab lines
+  include it. Tests: spawner forwards `--site` only when set; command
+  accepts it and prints it in crontab lines. Checked end to end in the dev
+  container with a copied second site. Upstream PR to follow.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,

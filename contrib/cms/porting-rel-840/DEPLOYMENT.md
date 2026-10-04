@@ -159,7 +159,35 @@ cms-rel-840 includes upstream #14330 (cherry-picked):
         Units (e.g. 40 for 40 mg) and NDC Unit/Quantity (e.g. ML 1 for the
         40 mg/mL vial).
 
-## 7. API callers
+## 7. Background services (cron)
+
+Production runs background services from root's crontab, per site:
+`php library/ajax/execute_background_services.php <site>` (2400 every 15
+minutes; 1100, 1400, 1500, 4800 and 5200 six times a day). In cms-rel-840:
+- OpenEMR's CLI refuses to run as root (`RootCliGuard`), so those lines
+  would fail even outside Docker;
+- the container runs no cron for OpenEMR (only certificate renewal);
+- upstream rel-840 ran every non-default site's services against the
+  `default` database (run-all-due subprocesses had no `--site`). Fixed in
+  cms-rel-840 (325cabacf7, being sent upstream); without it, only the
+  named-service form `execute_background_services.php <site> <service>`
+  runs against the right site.
+
+- [ ] **List each site's active services** in production:
+      ```sql
+      SELECT name, active, execute_interval, next_run FROM background_services WHERE active = 1;
+      ```
+- [ ] **Replace the crontab** with host cron calling into the container as
+      `apache`, one line per site, keeping today's schedules:
+      ```cron
+      */15 * * * * cd /opt/cms/kit && docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=2400 >> /var/log/openemr-bg.log 2>&1
+      ```
+      `background:services run` runs every service that's due; `list`
+      shows them, `unlock` frees one left running, and `crontab` prints
+      per-service lines if a service needs its own schedule. Remove the old
+      root lines when the site moves.
+
+## 8. API callers
 
 - [ ] Lab Observations can be searched by the lab's visit number:
       `GET /fhir/Observation?external_id=<visit no.>`.
@@ -169,7 +197,7 @@ cms-rel-840 includes upstream #14330 (cherry-picked):
       need no change. It's local time with offset; a caller that converts to
       UTC moves late-evening results to the next day.
 
-## 8. Smoke tests (staging)
+## 9. Smoke tests (staging)
 
 Test data or a de-identified copy only.
 
@@ -201,8 +229,8 @@ Test data or a de-identified copy only.
       defaults (2400 reviewed, 4800: 50 per lab); signing a result returns
       to the list; the patient link opens the latest encounter.
 - [ ] **Claims (837P):** generate primary and secondary claims and compare
-      with what cms-rel-701 produces for the same encounters (see the Phase 3
-      837P comparison):
+      with what cms-rel-701 produces for the same encounters
+      (`contrib/cms/docker/tools/x12-diff.py`):
       - Vermont Medicaid carrier codes in 2330B/SVD;
       - secondary claims carry only patient responsibility (no CO/OA), as
         production;

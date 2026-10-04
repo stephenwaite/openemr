@@ -119,6 +119,12 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
    A failing hook stops the start; the log shows which file and why. The
    upgrade time is your downtime estimate for the cutover.
 6. Log in to each site and work through DEPLOYMENT.md's smoke tests.
+7. **Background services:** the container runs no cron for OpenEMR, and
+   rel-840's CLI refuses root. Schedule them from the host's crontab, per
+   site, as `apache` (DEPLOYMENT.md section 7):
+   ```cron
+   */15 * * * * cd /opt/cms/kit && docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=2400 >> /var/log/openemr-bg.log 2>&1
+   ```
 
 ## How the hooks behave
 
