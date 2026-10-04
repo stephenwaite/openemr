@@ -1823,8 +1823,9 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   container with a copied second site. Upstream PR: branch
   `fix/background-services-multisite`, body in
   `~/git/pr-fix-background-services-multisite.md`.
-- **Multisite's future upstream (#11370):** the admin call is weighing
-  whether to keep maintaining multisite and wants usage telemetry first.
+- **Multisite's future upstream:** RFC #11387 proposes deprecating and
+  eventually removing multi-site, and asks production multi-site users to
+  comment (telemetry in #11370). It's an idea, not a commitment yet.
   CMS runs several sites per server. If multisite is deprecated, the
   alternative is one container (or stack) per site, which the Docker kit
   could grow into: each site already has its own database, and the kit's
