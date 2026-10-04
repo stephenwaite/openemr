@@ -1823,6 +1823,16 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   container with a copied second site. Upstream PR: branch
   `fix/background-services-multisite`, body in
   `~/git/pr-fix-background-services-multisite.md`.
+- **Multi-site isolation (security):** all sites share one PHP process,
+  one `sites/` tree and one MariaDB. Two mitigations in the kit:
+  - the openemr container no longer keeps MariaDB's root password: it's
+    passed only for the stock `default`'s first start
+    (`CMS_SETUP_DB_ROOT_PASS`). Nothing else needs it: the upgrade check
+    and hooks use each site's own user, and the image's "wait for MySQL"
+    ping succeeds with a wrong password (checked);
+  - DEPLOYMENT.md section 1 checks each site's grants (own database only,
+    no shared logins).
+  Per-site stacks (stronger isolation) to be raised on #11387.
 - **Multisite's future upstream:** RFC #11387 proposes deprecating and
   eventually removing multi-site, and asks production multi-site users to
   comment (telemetry in #11370). It's an idea, not a commitment yet.

@@ -36,6 +36,22 @@ to verify each site.
         FROM x12_partners p LEFT JOIN users u ON u.id = p.x12_submitter_id;
       ```
       A 127 may be clipped: pick the submitter again after the upgrade.
+- [ ] **Each site's database user reaches only its own database.** With
+      all sites in one MariaDB, a site user with wider grants (or a login
+      shared between sites) exposes other practices' data. For each site's
+      `$login` from its `sqlconf.php` (production's users may be
+      `@'localhost'`; list them first):
+      ```sql
+      SELECT user, host FROM mysql.user ORDER BY user;
+      SHOW GRANTS FOR '<login>'@'<host>';
+      ```
+      Only `USAGE` and the one site's database (`` `<dbase>`.* ``) should
+      appear: no `*.*` privileges and no other site's database. Give each
+      site its own login when creating the users.
+- [ ] **No database root password in the running container.** Pass it only
+      for the first start of a stock `default`
+      (`CMS_SETUP_DB_ROOT_PASS=… docker compose up -d`), then recreate the
+      container without it (kit README, step 5).
 - [ ] **Database collation.** Create the new database with
       `CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci` before loading the
       dump. MariaDB 11.5+ otherwise defaults to `utf8mb4_uca1400_ai_ci`,

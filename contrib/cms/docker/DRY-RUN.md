@@ -76,7 +76,8 @@ sudo grep -n '^\$host' sites/1100/sqlconf.php      # $host = 'mysql';
 Create `kit/.env` from `kit/.env.example`. Keep a copy outside `kit/`
 (e.g. `~/cms-dryrun/dryrun.env`) so a fresh kit only needs it copied back:
 - `CMS_SITES_DIR=../sites` (the default) bind-mounts `~/cms-dryrun/sites`.
-- `CMS_DB_ROOT_PASS`: MariaDB's root password, used by both containers.
+- `CMS_DB_ROOT_PASS`: MariaDB's root password (step 6 passes it to the
+  openemr container for its first start only).
   It's only read when the database volume is created; to change it
   later, `docker compose down -v` first.
 - `CMS_DEFAULT_DB_PASS` and `CMS_DEFAULT_ADMIN_PASS`: for the stock
@@ -195,10 +196,24 @@ docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" -e "
 
 ## 6. Start and watch
 
+The first start configures the stock `default`, which needs MariaDB's root
+password; pass it for this start only:
+
 ```sh
-docker compose up -d
+CMS_SETUP_DB_ROOT_PASS="$RP" docker compose up -d
 docker compose logs -f openemr
 ```
+
+Once `Starting Apache!` appears, recreate the container without it, so the
+running container holds no database root password:
+
+```sh
+docker compose up -d                       # recreates openemr; nothing is reconfigured
+docker compose exec openemr printenv MYSQL_ROOT_PASS      # unset
+```
+
+Later starts and restarts don't need it: the upgrade check and the hooks
+use each site's own database user.
 
 Expected, in order:
 1. `Schema upgrade detected for 1100: database is at revision … (7.0.1)`,
@@ -210,7 +225,8 @@ Expected, in order:
 4. `Starting Apache!`.
 
 If it stops, the last lines say why (a failed upgrade statement, a hook
-error). Fix it, reset (step 8) and start again.
+error). Fix it, reset (step 8) and start again. If quick setup keeps failing
+for `default`, the root password wasn't passed: rerun the first command.
 
 ## 7. Check site 1100
 

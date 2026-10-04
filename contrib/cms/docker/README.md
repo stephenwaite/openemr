@@ -107,8 +107,13 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
      `MYSQL_DATABASE` and `MYSQL_USER` in the compose file are used for that
      new site; keep them different from every migrated site's database and
      user.
-5. **Start it:** `docker compose up -d`, then follow
-   `docker compose logs -f openemr`. In order:
+5. **Start it.** The first start of a stock `default` needs MariaDB's root
+   password, passed for that start only:
+   `CMS_SETUP_DB_ROOT_PASS=<root password> docker compose up -d`. Follow
+   `docker compose logs -f openemr`. Once Apache is up, run
+   `docker compose up -d` without it, so the running container holds no
+   root password (every later start works without it: upgrades and hooks
+   use each site's own database user). In order:
    - `Schema upgrade detected for <site> … (7.0.1)` and `Completed: schema
      upgrade` for each migrated site;
    - `Running quick setup!` if a stock `default` is being configured;

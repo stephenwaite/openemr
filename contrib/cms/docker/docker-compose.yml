@@ -53,7 +53,11 @@ services:
     - ./config:/cms-config:ro
     environment:
       MYSQL_HOST: mysql
-      MYSQL_ROOT_PASS: ${CMS_DB_ROOT_PASS:?set CMS_DB_ROOT_PASS in .env}
+      # Only needed to configure a new stock `default` (first start). Leave
+      # CMS_SETUP_DB_ROOT_PASS unset afterwards so the running container
+      # holds no database root password; upgrades and hooks use each site's
+      # own sqlconf.php user.
+      MYSQL_ROOT_PASS: ${CMS_SETUP_DB_ROOT_PASS:-unset}
       MYSQL_DATABASE: openemr_default
       MYSQL_USER: openemr_default
       MYSQL_PASS: ${CMS_DEFAULT_DB_PASS:?set CMS_DEFAULT_DB_PASS in .env}
