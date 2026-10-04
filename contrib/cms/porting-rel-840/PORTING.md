@@ -1854,6 +1854,17 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   `poll-labs.php`. An early test that fed an encrypted archive back in
   produced "No Lab Match" and re-encrypted that archive copy (dry-run copy
   only).
+  - New-order path checked against production's own import of the same
+    message (by visit number, read-only on production): same provider (0),
+    encounter (0), lab, collection time, 1 code and 1 result per report.
+    Production makes one order per message, even for the same visit number.
+    The dry run's order had a second report, which came from a run that
+    failed on the archive write (below).
+  - **Robustness gap (upstream, also in 7.0.1):** `poll_hl7_results()`
+    commits the import to the database before writing the archive copy and
+    deleting the input file. If either fails ("Cannot create file"), the file
+    stays and the next run imports it again as a duplicate report. Possible
+    upstream issue.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,
