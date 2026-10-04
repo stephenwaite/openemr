@@ -1800,6 +1800,12 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   site-files hook now copies the image's (`/swarm-pieces/sites/default/`)
   into every configured site at each start; a `config/sites/<site>/` copy
   still wins.
+- **Lab polling ignores `procedure_providers.active`**: `poll_hl7_results()`
+  loops over every provider, and its SFTP fetch deletes each processed file
+  from the lab's server. A dry run clicking Process Results would have taken
+  production's results. The switch-off SQL now sets every provider to
+  protocol `FS` with local paths. (Upstream behavior; worth raising: an
+  inactive provider probably shouldn't be polled.)
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,
