@@ -279,8 +279,28 @@ that apply to this site. At least:
   in Procedures → Electronic Reports:
   ```sh
   docker compose exec openemr sh -c 'mkdir -p /tmp/dryrun-hl7/<ppid>/results /tmp/dryrun-hl7/<ppid>/orders && chown -R apache /tmp/dryrun-hl7'
-  docker compose exec openemr sh -c 'cp "/var/www/localhost/htdocs/openemr/sites/<site>/documents/procedure_results/<ppid>-<npi>/<file>" /tmp/dryrun-hl7/<ppid>/results/ && chown -R apache /tmp/dryrun-hl7'
+  docker compose cp tools/decrypt-hl7.php openemr:/tmp/decrypt-hl7.php
+  docker compose cp tools/poll-labs.php openemr:/tmp/poll-labs.php
+  # archives are encrypted when drive encryption is on: always decrypt first
+  docker compose exec -u apache openemr php /tmp/decrypt-hl7.php --site=<site> \
+    --in=/var/www/localhost/htdocs/openemr/sites/<site>/documents/procedure_results/<ppid>-<npi>/<file> \
+    --out=/tmp/dryrun-hl7/<ppid>/results/<file>
+  docker compose exec -u apache openemr php /tmp/poll-labs.php --site=<site> --lab=<ppid>
   ```
+  `decrypt-hl7.php` prints the layers removed and the segment types (it
+  refuses to write anything that isn't HL7 afterwards, e.g. wrong keys);
+  `poll-labs.php` runs Process Results for that lab and prints a summary
+  without patient details. Or click Process Results in the UI instead.
+  Importing an encrypted file doesn't fail cleanly: it ends in "No Lab
+  Match", and the import's own archive copy (same path and name as
+  production's) is overwritten with the ciphertext encrypted again. To put
+  back an archive copy from the backup, rsync that one file, then rerun
+  `sudo setfacl -m u:1000:rw <file>`: rsync restores the backup's ACL, and
+  the import can't write its archive copy over it ("Cannot create file").
+  Use a file production processed before the dump to compare with its
+  original: the import attaches to production's existing order (adding a
+  second, identical report, as production does for a resent message); a
+  newer file creates a new order.
   The new order should match production's for the same file: the same
   patient (by MRN, where that's set), the visit number stored, no encounter, no
   provider notice. The file disappears from the folder once processed.

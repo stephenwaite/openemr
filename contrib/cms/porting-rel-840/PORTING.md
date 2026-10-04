@@ -1841,6 +1841,19 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   alternative is one container (or stack) per site, which the Docker kit
   could grow into: each site already has its own database, and the kit's
   hooks work per site.
+- **Dry run, lab results-only feed (2026-10-04):** schema upgrade ~102 s;
+  all tables `utf8mb4_general_ci`. Archived results are encrypted once with
+  the site's keys (701 writes version 006; 840 writes 007) and decrypt in
+  840, so the keys migrated. A message newer than the dump created a new
+  order (MRN match, no prompt; provider 0, encounter 0, lab set, visit
+  number stored; no notice). A message production had processed attached to
+  production's order, adding a report identical to production's (same seq,
+  date, status, result count). One result per report despite many OBX
+  lines, as in production. Same duplicate-report behavior as production for
+  resent messages. Tools: `contrib/cms/docker/tools/decrypt-hl7.php`,
+  `poll-labs.php`. An early test that fed an encrypted archive back in
+  produced "No Lab Match" and re-encrypted that archive copy (dry-run copy
+  only).
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,
