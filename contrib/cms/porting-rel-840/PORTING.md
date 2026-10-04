@@ -1880,6 +1880,12 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   `06-cms-https-redirect` makes 80 answer only the ACME challenge and
   redirect the rest (to `CMS_HTTPS_PORT` when not 443). Checked with a
   throwaway Apache: challenge S1, login page 301 to HTTPS.
+- **Dry run, another lab site (2026-10-04, rebuilt image):** upgrade
+  ~148 s. Port 80 redirect (301), `--site` on the console command, and the
+  site's setting all worked. `Email_Service` came back **active** after the
+  switch-off: `7_0_1-to-7_0_2_upgrade.sql` inserts it active where the row
+  is missing. DRY-RUN.md step 6 now repeats the switch-off after the first
+  start; DEPLOYMENT.md section 7 notes the new active service.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,

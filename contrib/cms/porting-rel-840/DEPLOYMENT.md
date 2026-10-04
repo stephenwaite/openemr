@@ -212,6 +212,10 @@ minutes; S2, S4, S5, S7 and S8 six times a day). In cms-rel-840:
   named-service form `execute_background_services.php <site> <service>`
   runs against the right site.
 
+- [ ] **New services after the upgrade.** The 7.0.1 → 7.0.2 step adds
+      `Email_Service` **active** where a database doesn't have it (upstream
+      default; its queue, `email_queue`, starts empty). Decide per site
+      whether it should run, and include it in that site's schedule if so.
 - [ ] **List each site's active services** in production:
       ```sql
       SELECT name, active, execute_interval, next_run FROM background_services WHERE active = 1;

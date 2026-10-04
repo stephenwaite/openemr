@@ -223,6 +223,16 @@ docker compose exec openemr printenv MYSQL_ROOT_PASS      # unset
 Later starts and restarts don't need it: the upgrade check and the hooks
 use each site's own database user.
 
+Then switch the background services off again, before logging in: the
+upgrade adds services a 7.0.1 database didn't have (7.0.2's
+`Email_Service`), and adds them active.
+
+```sh
+docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" -e "
+  UPDATE background_services SET active = 0;
+  SELECT name, active FROM background_services;"
+```
+
 Expected, in order:
 1. `Schema upgrade detected for <site>: database is at revision … (7.0.1)`,
    then `Completed: schema upgrade for <site> from 7.0.1`. Note how long it
