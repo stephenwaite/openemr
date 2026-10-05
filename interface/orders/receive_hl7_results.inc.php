@@ -1552,7 +1552,10 @@ function poll_hl7_results(&$info, $labs = 0)
         $info['select'] = []; // match request responses
     }
 
-    $ppres = sqlStatement("SELECT * FROM procedure_providers ORDER BY name");
+    // Inactive providers are not polled: fetching deletes each processed file
+    // from the lab's server, so a polled inactive provider can take results
+    // meant for another system.
+    $ppres = sqlStatement("SELECT * FROM procedure_providers WHERE active = 1 ORDER BY name");
 
     while ($pprow = sqlFetchArray($ppres)) {
         $ppid = (int)$pprow['ppid'];
