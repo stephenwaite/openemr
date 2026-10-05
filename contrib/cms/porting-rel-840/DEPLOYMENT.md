@@ -176,41 +176,43 @@ cms-rel-840 includes upstream #14330 (cherry-picked):
   Production treated the price as the whole line (fee ÷ units was shown as
   the unit price).
 
-- [ ] **Convert those codes' prices to per-unit, once.** Production forced
-      the units in code (`library/FeeSheet.class.php` in cms-rel-701:
-      C9257 = 5, Q5124 = 5, J0178 = 2, J0177 = 8, J2777 = 60), not in
-      `codes.units`, which is why the SQL below uses those values directly
-      instead of `codes.units` (probably 0 or 1 in production's database
-      until `all-sites.sql` sets it at first start). Without the conversion,
-      a newly picked J2777 charges 60 × the old whole-dose price. List the
-      prices and what they become:
+- [ ] **Per-unit prices: decide from each site's billing history, per
+      code.** Since #14330 a newly picked HCPCS code's fee is price × units,
+      for any code. Production's history shows which prices are already
+      per-unit. Read-only, on the site's database (production or its dry
+      run):
       ```sql
-      SELECT c.code, c.modifier, p.pr_level, p.pr_price, u.units,
-             ROUND(p.pr_price / u.units, 2) AS per_unit
-        FROM codes c
-        JOIN prices p ON p.pr_id = c.id AND p.pr_selector = ''
-        JOIN (SELECT 'C9257' AS code, 5 AS units UNION ALL SELECT 'Q5124', 5
-              UNION ALL SELECT 'J0178', 2 UNION ALL SELECT 'J0177', 8
-              UNION ALL SELECT 'J2777', 60) u ON u.code = c.code
-       WHERE c.code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS')
-       ORDER BY c.code, c.modifier, p.pr_level;
+      SELECT b.code, b.units, b.fee, COUNT(*) AS line_count, MAX(b.date) AS last_billed
+        FROM billing b
+       WHERE b.code_type = 'HCPCS' AND b.activity = 1 AND b.units > 1
+         AND b.date > NOW() - INTERVAL 1 YEAR
+       GROUP BY b.code, b.units, b.fee
+       ORDER BY b.code, line_count DESC;
       ```
-      Check each `pr_price` is a whole-dose amount, then back up `prices`
-      and convert, **once** (a second run divides again):
+      Compare each code's fees with its price (Administration → Codes):
+      - **fee = price × units** (e.g. the lab-site dry run: J1010 at $1.00,
+        J3301 at $5.00): already per-unit, **leave it**. Converting would
+        divide it again.
+      - **fee = price on multi-unit lines**: a whole-dose price, **convert**
+        it (below).
+      - other fees: edited by hand on those lines; decide case by case.
+      The codes production forced units for in `library/FeeSheet.class.php`
+      (C9257 = 5, Q5124 = 5, J0178 = 2, J0177 = 8, J2777 = 60) are the
+      likeliest whole-dose prices. Convert only the codes the history marks,
+      once (a second run divides again), with each code's units:
       ```sql
       CREATE TABLE prices_pre_per_unit AS SELECT * FROM prices;
       UPDATE prices p
         JOIN codes c ON c.id = p.pr_id
-        JOIN (SELECT 'C9257' AS code, 5 AS units UNION ALL SELECT 'Q5124', 5
-              UNION ALL SELECT 'J0178', 2 UNION ALL SELECT 'J0177', 8
-              UNION ALL SELECT 'J2777', 60) u ON u.code = c.code
+        JOIN (SELECT '<code>' AS code, <units> AS units
+              UNION ALL SELECT '<code>', <units>) u ON u.code = c.code
          SET p.pr_price = ROUND(p.pr_price / u.units, 2)
        WHERE p.pr_selector = ''
          AND c.code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS');
       ```
-      Per site, in each site's database; it works before or after the first
-      start. Drugs whose units come from Inventory (Billing Units) need the
-      same per-unit price.
+      It works before or after the first start (it doesn't read
+      `codes.units`). Drugs whose units come from Inventory (Billing Units)
+      need the same per-unit price.
 - [ ] **Inventory drugs related to a HCPCS code need NDC Unit and NDC
       Quantity.** Since #14330 the related drug's NDC comes first; without a
       unit and quantity it's the bare number, which the fee sheet turns into
@@ -358,6 +360,8 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
 
 - [ ] All per-site dry runs done; note each site's upgrade time (the sum,
       plus dump and load time, is the downtime estimate).
+- [ ] Each site's per-unit price decision made from its billing history
+      (section 6): which codes, if any, to convert.
 - [ ] Image built from the final cms-rel-840 commit and tagged with it
       (kit README section 1); `docker images` on the server shows it.
 - [ ] Kit in `/opt/cms/kit`, and `bub /opt/cms "${BUB_DEST}"` added to
@@ -468,9 +472,9 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
    site's dump if needed, start again.
 8. **Drop the root password:** after `Starting Apache!`, `docker compose up -d`;
    `docker compose exec openemr printenv MYSQL_ROOT_PASS` shows `unset`.
-9. **Convert drug prices to per-unit** on each site's database, once
-   (section 6: list first, then the UPDATE with its `prices_pre_per_unit`
-   backup), before anyone picks those codes on a fee sheet.
+9. **Per-unit prices** on each site's database, once, only for the codes
+   its billing history marks as whole-dose (section 6; decided in the days
+   before), before anyone picks those codes on a fee sheet.
    **Check every site:** log in (`?site=<site>`); globals from sections 2–4;
    a statement PDF; Billing Manager; Electronic Reports; `https://` with the
    real certificate and port 80 redirecting.

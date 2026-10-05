@@ -1935,6 +1935,11 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   offered nothing from the custom lists. Fixed separately in 9641634e2d
   (DB test: 0 choices before, 4 after). Upstream branch
   `fix/fee-sheet-review-choices`, body `~/git/pr-fix-fee-sheet-review-choices.md`.
+- **Per-unit prices:** the lab-site dry run's billing history shows
+  J1010 ($1.00) and J3301 ($5.00) already billed at price × units, so a
+  blanket conversion would have divided per-unit prices again. DEPLOYMENT.md
+  section 6 now decides per site and per code from the billing history;
+  only whole-dose prices (fee = price on multi-unit lines) are converted.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,
