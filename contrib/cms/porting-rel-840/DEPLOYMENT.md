@@ -289,9 +289,12 @@ Test data or a de-identified copy only.
 ## 10. Cutover runbook (one server, all its sites)
 
 All of a server's sites move in one go: they share one stack and the live
-`sites/` folder. Times are an example for a 22:30 nightly dump. Paths:
-`/var/www/html/openemr/sites` (live sites), `/opt/cms/kit` (the kit; adjust),
-`<dumps>` (where the dump job writes).
+`sites/` folder. Paths: `/var/www/html/openemr/sites` (live sites),
+`/opt/cms/kit` (the kit; adjust). The server's snapshot script,
+`/etc/cron.daily/10-openemr-db-snapshots`, dumps each database in its list
+to `/var/backups/openemr/<dbase>-<mmddyy>.sql.gz` (7 days kept). It doesn't
+check that each dump succeeded (no `pipefail`), hence the completeness check
+in step 2.
 
 ### Days before
 
@@ -329,11 +332,18 @@ All of a server's sites move in one go: they share one stack and the live
    sudo crontab -e      # comment out only the execute_background_services.php lines
    ```
    Leave the dump job: it's the backup for step 2.
-2. **22:30 Dump** (the nightly job, or run it by hand now), then check every
-   file finished:
+2. **Dump, by hand, now that nothing writes** (whatever time cron.daily
+   normally runs), then check every file finished. `DAY` is fixed here so the
+   load finds these files even after midnight:
    ```sh
-   for f in <dumps>/*.sql.gz; do gzip -t "$f" && zcat "$f" | tail -1 | grep -q 'Dump completed' && echo "ok   $f" || echo "BAD  $f"; done
+   DAY=$(date +%m%d%y)
+   sudo /etc/cron.daily/10-openemr-db-snapshots
+   for f in /var/backups/openemr/*-$DAY.sql.gz; do
+     sudo gzip -t "$f" && sudo zcat "$f" | tail -1 | grep -q 'Dump completed' && echo "ok   $f" || echo "BAD  $f"
+   done
    ```
+   Every site's database should be listed `ok`; compare with the sites'
+   `$dbase` values.
 3. **Fallback copy of the sites folder** (rollback only, not used to run):
    ```sh
    sudo ./sync-sites.sh <every site>
@@ -353,10 +363,9 @@ All of a server's sites move in one go: they share one stack and the live
        CREATE DATABASE \`$DB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
        CREATE USER '$U'@'%' IDENTIFIED BY '$P';
        GRANT ALL PRIVILEGES ON \`$DB\`.* TO '$U'@'%';"
-     zcat "<dumps>/$DB.sql.gz" | docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" || echo "LOAD FAILED: $site"
+     sudo zcat "/var/backups/openemr/$DB-$DAY.sql.gz" | docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" || echo "LOAD FAILED: $site"
    done
    ```
-   (Adjust the dump file name to the job's naming.)
 5. **Point the sites at the container's database:**
    ```sh
    for site in <every site>; do
