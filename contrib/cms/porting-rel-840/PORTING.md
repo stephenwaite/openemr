@@ -1897,8 +1897,12 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   #7808, which is why production never listed them. Confirmed on the dry
   run with the line patched into the running container: the Billing
   Manager listed the 3 encounters with unbilled charges.
-- Same dry run: 837P claims eyeballed against production's, matching
-  (x12-diff.py not yet run).
+- Same dry run: 837P claims compared with x12-diff.py (one partner's batch
+  from before the dump, 3 claims re-opened and regenerated): envelope
+  identical; the only difference is CLM10 = `P` (patient signature source),
+  which rel-840 sends on every claim since upstream #7207 (2024-02-07,
+  workers' comp electronic claims) and 7.0.1 didn't. Open question for
+  Stephen: should `P` go on every claim, or only workers' comp?
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,
