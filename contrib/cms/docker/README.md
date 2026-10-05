@@ -30,9 +30,13 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
 
 For a practice run on a copy of one site first, see `DRY-RUN.md`.
 
-Copy this folder to the server and keep the real `config/` there. Don't
-commit it back: it holds site files and, for the records-review user, a pid
-list.
+This folder in the repository is a template. Copy it to each server once
+(e.g. `/opt/cms/kit`) and fill in the real settings in that copy: `.env`
+(passwords), `config/sql/<site>.sql` (they identify the sites), any
+`config/sites/<site>/` files and, for the records-review user, the
+PatientFilter config (a list of patient IDs). Never commit those back to the
+repository. Make sure the server's backups include that copy. The cutover
+runbook is in `contrib/cms/porting-rel-840/DEPLOYMENT.md`, section 10.
 
 ## 1. Build the image
 
