@@ -45,11 +45,27 @@ SHA=$(git rev-parse --short HEAD)
 docker build --no-cache-filter openemr-source \
   --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
   --build-arg OPENEMR_VERSION=cms-rel-840 \
+  --build-arg APACHE_UID="$(id -u openemr-web)" \
   -t cmsvt/openemr:cms-rel-840-$SHA -t cmsvt/openemr:cms-rel-840 docker/release
 ```
 
 Set `CMS_IMAGE=cmsvt/openemr:cms-rel-840-<sha>` in `.env` so the server
 records which build it runs.
+
+**Apache's uid.** The container's Apache owns the files it creates in the
+sites folder, and needs read/write on all of it. By default it's uid 1000,
+which on a server is usually a person's login, who would then get that
+access without `sudo`. On a production server, give it a dedicated account
+with no login, once, and build with its uid (`APACHE_UID` above):
+
+```sh
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin openemr-web
+id -u openemr-web
+```
+
+Leave `--build-arg APACHE_UID` out for a dry run; the default 1000 is fine
+there. `docker run --rm --entrypoint id <image> apache` shows which uid an
+image uses.
 
 The build clones the branch from GitHub (not your local checkout), runs
 `composer install --no-dev` and the npm build, and needs network access and
@@ -106,8 +122,9 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
 3. **Site directories.** The compose file bind-mounts the folder named by
    `CMS_SITES_DIR` in `.env` as the image's `sites/`. In production that's
    the server's existing `sites/` folder, used in place (no copy); in a dry
-   run, a working copy. It must be readable and writable by uid 1000, the
-   image's `apache`; use `setfacl` if the host owner must stay. In each
+   run, a working copy. It must be readable and writable by the image's
+   `apache` (`openemr-web` on a production server, uid 1000 by default); use
+   `setfacl` if the host owner must stay. In each
    migrated `sqlconf.php`, set `$host = 'mysql';`.
    - With the live folder, disable (not just stop) the host's Apache and
      OpenEMR cron jobs first: nothing else may use it.

@@ -59,7 +59,7 @@ sudo rsync -aHAX --numeric-ids --delete --info=progress2 "$BACKUP/sites/$SITE/" 
 docker run --rm --entrypoint tar cmsvt/openemr:cms-rel-840 \
   -C /var/www/localhost/htdocs/openemr/sites -c default | tar -C sites -x
 
-# The container's apache is uid 1000
+# The container's apache is uid 1000 (the image's default APACHE_UID)
 sudo setfacl -R -m u:1000:rwX -m d:u:1000:rwX sites
 ```
 

@@ -50,7 +50,8 @@ services:
     # Let's Encrypt certificates, kept across container recreates (only with
     # CMS_DOMAIN set; /etc/ssl itself stays in the image for its CA bundle).
     - letsencryptvolume:/etc/letsencrypt
-    # The existing sites folder, migrated in place (readable and writable by uid 1000).
+    # The existing sites folder, migrated in place (readable and writable by the
+    # image's apache: the APACHE_UID it was built with, 1000 by default).
     - ${CMS_SITES_DIR:?set CMS_SITES_DIR in .env}:/var/www/localhost/htdocs/openemr/sites
     # Vendor hooks (docker/HOOKS.md): scripts must stay executable.
     - ./hooks/prelaunch:/root/hooks/prelaunch:ro

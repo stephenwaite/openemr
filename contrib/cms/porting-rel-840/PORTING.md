@@ -1907,6 +1907,12 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   with an empty CLM10; otherwise the segment ends at CLM09, as in 7.0.1).
   Upstream branch `fix/clm10-workers-comp-only`, body in
   `~/git/pr-fix-clm10-workers-comp-only.md`.
+- **Apache's uid:** the release image hardcodes `usermod -u 1000 apache`;
+  on the multisite server uid 1000 is a person's login, which would get
+  read/write on every practice's files without sudo. Dockerfile now takes
+  `ARG APACHE_UID=1000` (default unchanged; checked by building the base
+  stage with 1234: `uid=1234(apache)`). Production builds with a dedicated
+  no-login account, `openemr-web`. Small upstream PR candidate.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,

@@ -315,14 +315,17 @@ in step 2.
 - [ ] Each site's grants and user known (`sqlconf.php`); no shared logins.
 - [ ] Docker disk: room for every site's database once loaded
       (`df -h /var/lib/docker`).
-- [ ] Who uid 1000 is on the host (`getent passwd 1000`): the container's
-      apache runs as uid 1000, gets read/write on the live folder below, and
-      owns the files it creates. If that's a person's login, they get the
-      same access; decide whether that's acceptable.
+- [ ] **A dedicated account for the container's Apache**, with no login:
+      `sudo useradd --system --no-create-home --shell /usr/sbin/nologin openemr-web`.
+      The image's default uid 1000 is a person's login on the multisite server, who
+      would otherwise get read/write on every practice's files without
+      `sudo`. Build the image with `--build-arg APACHE_UID=$(id -u openemr-web)`
+      (kit README section 1) and check:
+      `docker run --rm --entrypoint id <image> apache`.
 - [ ] The container's apache can use the live folder (harmless to the host
       Apache meanwhile; takes a while on big trees):
       ```sh
-      sudo setfacl -R -m u:1000:rwX -m d:u:1000:rwX /var/www/html/openemr/sites
+      sudo setfacl -R -m u:openemr-web:rwX -m d:u:openemr-web:rwX /var/www/html/openemr/sites
       ```
 - [ ] Host certbot renewing until the cutover (`sudo certbot renew --dry-run`).
 - [ ] Production lab providers keep their real settings: the dry-run
@@ -382,7 +385,7 @@ in step 2.
    ```sh
    docker run --rm --entrypoint tar "$(grep '^CMS_IMAGE=' .env | cut -d= -f2-)" \
      -C /var/www/localhost/htdocs/openemr/sites -c default | sudo tar -C "$S" -x
-   sudo setfacl -R -m u:1000:rwX -m d:u:1000:rwX "$S/default"
+   sudo setfacl -R -m u:openemr-web:rwX -m d:u:openemr-web:rwX "$S/default"
    ```
 7. **Start and watch** (root password only for the stock `default`'s setup):
    ```sh
@@ -410,7 +413,7 @@ The host MariaDB still has the pre-cutover data (stopped, not removed):
 cd /opt/cms/kit && docker compose down          # keeps volumes
 # put every site's sqlconf.php back as it was (saved in step 5):
 for site in <every site>; do sudo cp -p "$S/$site/sqlconf.php.pre-docker" "$S/$site/sqlconf.php"; done
-# files the container created belong to uid 1000; give the host Apache access back:
+# files the container created belong to openemr-web; give the host Apache access back:
 sudo setfacl -R -m u:www-data:rwX -m d:u:www-data:rwX /var/www/html/openemr/sites
 sudo systemctl enable --now apache2             # and restore the crontab lines
 ```
