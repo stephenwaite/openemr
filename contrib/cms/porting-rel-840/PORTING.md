@@ -1924,6 +1924,14 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   script's option file at it. The cutover night copies its dumps to
   `pre-cutover/` first (same-date file names). An older backup script in
   root's home has a broken dump loop but isn't scheduled.
+- **Several products on one HCPCS code** (J1010 in two strengths): #14330
+  picks one related drug (stock, then name). 9c0bd04b8d lets a custom fee
+  sheet list entry name the drug (`HCPCS|J1010|<drug_id>`), with
+  `HcpcsDrugDefaults::forDrug()` (only an active drug related to the code)
+  and the list editor showing it. DB tests added. Upstream branch
+  `feat/fee-sheet-list-drug`, body `~/git/pr-feat-fee-sheet-list-drug.md`.
+  Noticed: the fee sheet Review's `load_fee_sheet_options()` binds its SQL
+  expressions as values and never returns rows (upstream, untouched).
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,

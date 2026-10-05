@@ -226,6 +226,19 @@ cms-rel-840 includes upstream #14330 (cherry-picked):
       Fill in Inventory → Drugs for each row with an NDC but no unit and
       quantity, e.g. from the code's last billed line:
       `SELECT ndc_info, date FROM billing WHERE code_type = 'HCPCS' AND code = '<code>' AND ndc_info LIKE 'N4%' ORDER BY date DESC LIMIT 1;`
+- [ ] **Codes shared by several products** (e.g. J1010 in 40 and 80 mg/mL):
+      the fee sheet's default is the related drug with stock on hand, then
+      the first by name. Offer each product as its own custom fee sheet list
+      entry naming the drug (9c0bd04b8d), so staff pick the one used and the
+      line gets its NDC and units:
+      ```sql
+      SELECT drug_id, name, related_code FROM drugs WHERE active = 1 AND related_code LIKE '%HCPCS:J1010%';
+      INSERT INTO fee_sheet_options (fs_category, fs_option, fs_codes)
+        VALUES ('<category>', 'Depo-Medrol 40 mg (J1010)', 'HCPCS|J1010|<drug_id>');
+      ```
+      Administration → Lists → Fee Sheet then shows the drug next to the
+      code and keeps it when the list is saved. Code search still gives the
+      default.
 - [ ] **Default units:** `config/sql/all-sites.sql` sets `codes.units` to
       the same values at first start, replacing production's hardcoded
       table. Administration → Codes can't edit Units; for drugs, prefer
