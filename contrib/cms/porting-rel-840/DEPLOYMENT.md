@@ -285,3 +285,120 @@ Test data or a de-identified copy only.
 - [ ] **Console:** `php bin/console cmsvt:fees-increase --site=<site>
       --percent=1 --dry-run` lists the new prices without changing anything;
       `cmsvt:x12-sftp-password` is available.
+
+## 10. Cutover runbook (one server, all its sites)
+
+All of a server's sites move in one go: they share one stack and the live
+`sites/` folder. Times are an example for a 22:30 nightly dump. Paths:
+`/var/www/html/openemr/sites` (live sites), `/opt/cms/kit` (the kit; adjust),
+`<dumps>` (where the dump job writes).
+
+### Days before
+
+- [ ] All per-site dry runs done; note each site's upgrade time (the sum,
+      plus dump and load time, is the downtime estimate).
+- [ ] Image built from the final cms-rel-840 commit and tagged with it
+      (kit README section 1); `docker images` on the server shows it.
+- [ ] Kit in `/opt/cms/kit`, with:
+  - [ ] `.env`: `CMS_IMAGE` (the tag), `CMS_SITES_DIR=/var/www/html/openemr/sites`,
+        strong `CMS_DB_ROOT_PASS` / `CMS_DEFAULT_DB_PASS` /
+        `CMS_DEFAULT_ADMIN_PASS`, `CMS_DOMAIN`, `CMS_LETSENCRYPT_EMAIL`,
+        ports 80/443; `chmod 600 .env`.
+  - [ ] `config/sql/<site>.sql` for every site with its own settings (from
+        the private `site-config/`).
+  - [ ] `config/sites/<site>/` only for exceptions (letterhead, records
+        review `chart_review.json`, PatientFilter config under `config/code/`).
+- [ ] `x12_submitter_id` values checked on every site (section 1).
+- [ ] Each site's grants and user known (`sqlconf.php`); no shared logins.
+- [ ] Docker disk: room for every site's database once loaded
+      (`df -h /var/lib/docker`).
+- [ ] The container's apache can use the live folder (harmless to the host
+      Apache meanwhile; takes a while on big trees):
+      ```sh
+      sudo setfacl -R -m u:1000:rwX -m d:u:1000:rwX /var/www/html/openemr/sites
+      ```
+- [ ] Host certbot renewing until the cutover (`sudo certbot renew --dry-run`).
+- [ ] Production lab providers keep their real settings: the dry-run
+      switch-off (protocol `FS`, inactive) is **never** run on production.
+
+### Cutover night
+
+1. **~22:20 Stop everything that writes, so a reboot can't restart it:**
+   ```sh
+   sudo systemctl disable --now apache2
+   sudo crontab -e      # comment out only the execute_background_services.php lines
+   ```
+   Leave the dump job: it's the backup for step 2.
+2. **22:30 Dump** (the nightly job, or run it by hand now), then check every
+   file finished:
+   ```sh
+   for f in <dumps>/*.sql.gz; do gzip -t "$f" && zcat "$f" | tail -1 | grep -q 'Dump completed' && echo "ok   $f" || echo "BAD  $f"; done
+   ```
+3. **Fallback copy of the sites folder** (rollback only, not used to run):
+   ```sh
+   sudo ./sync-sites.sh <every site>
+   ```
+4. **Load every site's dump** into the container's MariaDB. Each site gets
+   its database and user from its own `sqlconf.php`:
+   ```sh
+   cd /opt/cms/kit
+   RP=$(grep '^CMS_DB_ROOT_PASS=' .env | cut -d= -f2-)
+   docker compose up -d --wait mysql
+   S=/var/www/html/openemr/sites
+   conf() { sudo sed -nE "s/^\\\$$2[[:space:]]*=[[:space:]]*['\"](.*)['\"];.*/\1/p" "$S/$1/sqlconf.php"; }
+   for site in <every site>; do
+     DB=$(conf "$site" dbase); U=$(conf "$site" login); P=$(conf "$site" pass)
+     echo "== $site ($DB)"
+     docker compose exec -T mysql mariadb -uroot -p"$RP" -e "
+       CREATE DATABASE \`$DB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+       CREATE USER '$U'@'%' IDENTIFIED BY '$P';
+       GRANT ALL PRIVILEGES ON \`$DB\`.* TO '$U'@'%';"
+     zcat "<dumps>/$DB.sql.gz" | docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" || echo "LOAD FAILED: $site"
+   done
+   ```
+   (Adjust the dump file name to the job's naming.)
+5. **Point the sites at the container's database:**
+   ```sh
+   for site in <every site>; do
+     sudo cp -p "$S/$site/sqlconf.php" "$S/$site/sqlconf.php.pre-docker"
+     sudo sed -i -E "s/^(\\\$host[[:space:]]*=[[:space:]]*)['\"][^'\"]*['\"];/\\1'mysql';/" "$S/$site/sqlconf.php"
+     sudo grep -H '^\$host' "$S/$site/sqlconf.php"
+   done
+   ```
+6. **Stock `default`** (only where `default` isn't a real site):
+   ```sh
+   docker run --rm --entrypoint tar "$(grep '^CMS_IMAGE=' .env | cut -d= -f2-)" \
+     -C /var/www/localhost/htdocs/openemr/sites -c default | sudo tar -C "$S" -x
+   sudo setfacl -R -m u:1000:rwX -m d:u:1000:rwX "$S/default"
+   ```
+7. **Start and watch** (root password only for the stock `default`'s setup):
+   ```sh
+   CMS_SETUP_DB_ROOT_PASS="$RP" docker compose up -d
+   docker compose logs -f openemr
+   ```
+   Each site: `Schema upgrade detected …` then `Completed …` (one at a time,
+   alphabetical); `Setup Complete!` for `default`; the `cms …` hooks;
+   Let's Encrypt for `CMS_DOMAIN`; `Starting Apache!`. If a site's upgrade
+   fails, `docker compose stop openemr`, read the error, restore that
+   site's dump if needed, start again.
+8. **Drop the root password:** after `Starting Apache!`, `docker compose up -d`;
+   `docker compose exec openemr printenv MYSQL_ROOT_PASS` shows `unset`.
+9. **Check every site:** log in (`?site=<site>`); globals from sections 2–4;
+   a statement PDF; Billing Manager; Electronic Reports; `https://` with the
+   real certificate and port 80 redirecting.
+10. **Background services:** add the host crontab lines (section 7), one per
+    site, as apache, keeping each site's schedule; disable the host
+    certbot's renewal.
+
+### Rollback (if the night goes wrong)
+
+The host MariaDB still has the pre-cutover data (stopped, not removed):
+```sh
+cd /opt/cms/kit && docker compose down          # keeps volumes
+# put every site's sqlconf.php back as it was (saved in step 5):
+for site in <every site>; do sudo cp -p "$S/$site/sqlconf.php.pre-docker" "$S/$site/sqlconf.php"; done
+sudo systemctl enable --now apache2             # and restore the crontab lines
+```
+Anything the container changed in `sites/` (statement.inc.php, cms-applied/,
+new documents) is in the fallback copy from step 3 if needed. Keep the host
+MariaDB, the dumps and the copy for a few days after a good cutover.
