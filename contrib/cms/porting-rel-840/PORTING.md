@@ -1901,8 +1901,12 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   from before the dump, 3 claims re-opened and regenerated): envelope
   identical; the only difference is CLM10 = `P` (patient signature source),
   which rel-840 sends on every claim since upstream #7207 (2024-02-07,
-  workers' comp electronic claims) and 7.0.1 didn't. Open question for
-  Stephen: should `P` go on every claim, or only workers' comp?
+  workers' comp electronic claims) and 7.0.1 didn't. Stephen: `P` is
+  required by a workers' comp payer, so only on workers' comp claims.
+  Fixed in b4b5912b3c (CLM10 `P` only with CLM11 `EM`; auto/other keep CLM11
+  with an empty CLM10; otherwise the segment ends at CLM09, as in 7.0.1).
+  Upstream branch `fix/clm10-workers-comp-only`, body in
+  `~/git/pr-fix-clm10-workers-comp-only.md`.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,
