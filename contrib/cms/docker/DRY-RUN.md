@@ -277,7 +277,11 @@ that apply to this site. At least:
   ```
   It matches claims by CLM01, ignores control numbers and creation dates,
   and prints each claim's differing segments. Its output contains claim
-  data; keep it with the backups.
+  data; keep it with the backups. With `--summary` it prints only which
+  kinds of segment differ (type, qualifier, element numbers) and how often,
+  with no values or claim IDs: safe to share. Both files must cover the same
+  encounters: take a production batch from before the dump, re-open its
+  encounters in the Billing Manager and generate them again.
 - **Statements:** a PDF download with Without Update checked writes only
   the file. Compare its text with a production statement for the same
   patient: wording and columns should be identical.
