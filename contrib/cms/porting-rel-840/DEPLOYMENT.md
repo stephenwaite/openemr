@@ -213,7 +213,10 @@ cms-rel-840 includes upstream #14330 (cherry-picked):
       ```
       Other price levels than `standard` need the same. Then show the
       practice the new workflow: units filled in (Inventory Billing Units,
-      or `codes.units`), the biller adjusts them, fee = price × units.
+      or `codes.units`), the biller adjusts them, fee = price × units. For
+      a sample or free drug the biller still overrides the line's fee (the
+      eye site's history has token fees, e.g. $0.60 for 60 units, typed in by
+      hand); it now starts at the full price × units.
 - [ ] **Inventory drugs related to a HCPCS code need NDC Unit and NDC
       Quantity.** Since #14330 the related drug's NDC comes first; without a
       unit and quantity it's the bare number, which the fee sheet turns into
