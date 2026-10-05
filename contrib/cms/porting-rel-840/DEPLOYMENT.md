@@ -211,6 +211,21 @@ cms-rel-840 includes upstream #14330 (cherry-picked):
       Per site, in each site's database; it works before or after the first
       start. Drugs whose units come from Inventory (Billing Units) need the
       same per-unit price.
+- [ ] **Inventory drugs related to a HCPCS code need NDC Unit and NDC
+      Quantity.** Since #14330 the related drug's NDC comes first; without a
+      unit and quantity it's the bare number, which the fee sheet turns into
+      `UN 1` (production used the last billed NDC string, with its real unit
+      and quantity). Units need nothing: an empty Billing Units falls back to
+      `codes.units`. After the upgrade (dry run or production):
+      ```sql
+      SELECT d.drug_id, d.name, d.related_code, d.ndc_number, d.ndc_uom, d.ndc_quantity, d.billing_units
+        FROM drugs d
+       WHERE d.active = 1 AND d.related_code LIKE '%HCPCS:%'
+       ORDER BY d.related_code, d.name;
+      ```
+      Fill in Inventory → Drugs for each row with an NDC but no unit and
+      quantity, e.g. from the code's last billed line:
+      `SELECT ndc_info, date FROM billing WHERE code_type = 'HCPCS' AND code = '<code>' AND ndc_info LIKE 'N4%' ORDER BY date DESC LIMIT 1;`
 - [ ] **Default units:** `config/sql/all-sites.sql` sets `codes.units` to
       the same values at first start, replacing production's hardcoded
       table. Administration → Codes can't edit Units; for drugs, prefer
