@@ -1940,6 +1940,20 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   blanket conversion would have divided per-unit prices again. DEPLOYMENT.md
   section 6 now decides per site and per code from the billing history;
   only whole-dose prices (fee = price on multi-unit lines) are converted.
+- **Upstream #14136 cherry-picked (d98e38f3e7):** secondary/tertiary 837P
+  claims send the prior payer's claim control number (REF*F8, from the 835's
+  CLP07 in `ar_activity.payer_claim_number`) last in loop 2330B, plus
+  claim-level DTP*573; `form_misc_billing_options` columns renamed
+  (`resubmission_code`, `original_reference_number`) and widened. Its upgrade
+  SQL went into a new `sql/8_4_1-to-8_4_2_upgrade.sql` (master has it in
+  8_4_1-to-8_5_0): `sql_upgrade.php` runs only files from the installed
+  release on, so SQL added to 8_4_0-to-8_4_1 would never reach a database
+  already at 8.4.1. v_database 544. Checked: upgrade from 8.4.1 on the dev DB
+  (columns renamed, 544), billing tests (287 isolated, 55 service), PHPStan,
+  and the cluster 12 secondary claim (DTP*573, then REF*F8 with a test ICN).
+  This intentionally changes secondary claims from production's.
+  Upstream oversight noticed: `interface/forms/misc_billing_options/table.sql`
+  still has the old column names (harmless: CREATE TABLE IF NOT EXISTS).
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,

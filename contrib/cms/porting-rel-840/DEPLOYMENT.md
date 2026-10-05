@@ -336,6 +336,10 @@ Test data or a de-identified copy only.
       - Vermont Medicaid carrier codes in 2330B/SVD;
       - secondary claims carry only patient responsibility (no CO/OA), as
         production;
+      - secondary/tertiary claims: loop 2330B now ends with DTP*573 and,
+        when the prior payer's 835 had a claim number, REF*F8 (#14136,
+        cherry-picked). These differ from production's claims on purpose;
+        expect them in `x12-diff.py` output;
       - podiatry DTP*304 and supervisor;
       - pay-to address; Medicare IDs without dashes;
       - CLM10 (`P`) only on workers' comp claims; others end at CLM09, as
