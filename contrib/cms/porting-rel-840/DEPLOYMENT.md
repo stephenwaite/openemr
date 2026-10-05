@@ -315,6 +315,10 @@ in step 2.
 - [ ] Each site's grants and user known (`sqlconf.php`); no shared logins.
 - [ ] Docker disk: room for every site's database once loaded
       (`df -h /var/lib/docker`).
+- [ ] Who uid 1000 is on the host (`getent passwd 1000`): the container's
+      apache runs as uid 1000, gets read/write on the live folder below, and
+      owns the files it creates. If that's a person's login, they get the
+      same access; decide whether that's acceptable.
 - [ ] The container's apache can use the live folder (harmless to the host
       Apache meanwhile; takes a while on big trees):
       ```sh
@@ -406,6 +410,8 @@ The host MariaDB still has the pre-cutover data (stopped, not removed):
 cd /opt/cms/kit && docker compose down          # keeps volumes
 # put every site's sqlconf.php back as it was (saved in step 5):
 for site in <every site>; do sudo cp -p "$S/$site/sqlconf.php.pre-docker" "$S/$site/sqlconf.php"; done
+# files the container created belong to uid 1000; give the host Apache access back:
+sudo setfacl -R -m u:www-data:rwX -m d:u:www-data:rwX /var/www/html/openemr/sites
 sudo systemctl enable --now apache2             # and restore the crontab lines
 ```
 Anything the container changed in `sites/` (statement.inc.php, cms-applied/,
