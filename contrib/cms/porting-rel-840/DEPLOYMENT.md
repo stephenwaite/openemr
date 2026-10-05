@@ -409,7 +409,9 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
    Leave the dump job: it's the backup for step 3.
 2. **Per-unit prices, now that nothing bills under 7.0.1 any more**
    (Administration → Codes, or SQL), on the sites whose prices are whole
-   doses (section 6; decided in the days before). Doing it here keeps every
+   doses (section 6; decided in the days before). A site whose
+   `config/sql/<site>.sql` sets them (fixed values, applied after the
+   upgrade and before Apache starts) needs nothing here. Doing it here keeps every
    site consistent and puts the new prices in the dump; done earlier, 7.0.1
    would bill the per-unit price as the whole line. Then show each practice
    the new workflow: units filled in from Inventory, the biller adjusts them,
