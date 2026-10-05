@@ -1894,7 +1894,11 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   test fails on the old condition. Upstream branch
   `fix/billing-unbilled-without-charges`, body in
   `~/git/pr-fix-billing-unbilled-without-charges.md`. 7.0.1 didn't have
-  #7808, which is why production never listed them.
+  #7808, which is why production never listed them. Confirmed on the dry
+  run with the line patched into the running container: the Billing
+  Manager listed the 3 encounters with unbilled charges.
+- Same dry run: 837P claims eyeballed against production's, matching
+  (x12-diff.py not yet run).
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,
