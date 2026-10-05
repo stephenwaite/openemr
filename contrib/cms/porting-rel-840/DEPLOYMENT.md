@@ -2,8 +2,10 @@
 
 Everything a site needs to behave like production (cms-rel-701) after it
 moves to cms-rel-840. The details and reasons for each item are in
-PORTING.md, by cluster. Work through this on a **staging copy of a
-production database first**, then repeat it for each production site.
+PORTING.md, by cluster. Rehearse each site first with the Docker kit's dry
+run (`contrib/cms/docker/DRY-RUN.md`) on a copy of its folder and database.
+A server's sites then move together on one night (section 10); sections
+0–8 are what to prepare and check.
 
 ## 0. Docker
 
@@ -15,12 +17,16 @@ stock `sites/default` where `default` isn't a real site), and the vendor
 hooks. The image upgrades each site's database straight from 7.0.1 on
 first start.
 
-Two prelaunch hooks, run on every start, automate most of sections 2–6
+Four prelaunch hooks, run on every start, automate most of sections 2–6
 below:
-- `10-cms-site-files` copies the site files (sections 4–5);
+- `05-cms-cert-renewal` keeps the Let's Encrypt renewal job in cron;
+- `06-cms-https-redirect` makes port 80 answer only the Let's Encrypt
+  check and redirect the rest to HTTPS;
+- `10-cms-site-files` gives every site the image's `statement.inc.php`
+  (section 4) and copies `config/` files into place (section 5);
 - `20-cms-site-settings` applies `config/sql/all-sites.sql` (module,
-  claim balancing, drug units) and each `config/sql/<site>.sql` (section 3),
-  once per file per site.
+  claim balancing, statement layout, drug units, `x12_submitter_id`) and
+  each `config/sql/<site>.sql` (section 3), once per file per site.
 
 Fill in `config/` from the sections below, then use them as the checklist
 to verify each site.
@@ -37,7 +43,9 @@ tag.
       server and port 80 must be open. Port 80 only answers the Let's
       Encrypt check and redirects the rest to HTTPS (`06-cms-https-redirect`),
       so it stays open; no more enabling the port-80 site by hand for
-      renewals. After cutover, disable the host certbot's renewal. Until then, make sure it still renews: one
+      renewals. After cutover, disable the host certbot's timer
+      (`snap.certbot.renew.timer` on the multisite server). Until then,
+      make sure it still renews: one
       server's certificate had 22 days left on 2026-10-04 (certbot renews
       at 30), so check `sudo certbot renew --dry-run`.
 
@@ -81,21 +89,22 @@ tag.
       Apache and cron, dump every site's database at that moment, load
       them, start. Downtime is about the sum of the sites' upgrade times
       plus the dump and load.
-- [ ] Run the normal OpenEMR upgrade (7.0.1 → 8.4), then log in as an admin.
+- [ ] The upgrade itself (7.0.1 → 8.4) needs no step: the container upgrades
+      each site's database at start (section 10, step 7).
 
 ## 2. Every site
 
-- [ ] **Enable oe-module-cmsvt** (Administration → Modules → Manage Modules:
-      register, install, enable). Installing runs its `table.sql`, which
-      creates `patient_statements` if it doesn't exist; it's a no-op where it
-      does.
+- [ ] **oe-module-cmsvt enabled** (Administration → Modules → Manage
+      Modules). `all-sites.sql` registers and enables it, and the settings
+      hook runs its `table.sql` (`patient_statements`); check it's listed as
+      active.
 - [ ] **Force claim balancing: OFF** (Administration → Globals → Billing,
-      `force_claim_balancing`). The upstream default is ON; production never
-      balanced claims (cluster 9).
+      `force_claim_balancing`), set by `all-sites.sql`. The upstream default
+      is ON; production never balanced claims (cluster 9).
 - [ ] **PHP limits.** Statement runs now allow 5 minutes
-      (`set_time_limit(300)`), but `memory_limit` still comes from php.ini.
-      Large statement or PDF runs need enough memory, and the web server or
-      proxy timeout must not be shorter than 5 minutes.
+      (`set_time_limit(300)`), but `memory_limit` comes from PHP's settings:
+      raise it with the kit's `config/php/99-cms.ini` (from
+      `99-cms.ini.example`) if large statement or PDF runs need more.
 - [ ] The CMS menu changes (Payment, Posting Payments, EDI History and
       Electronic Reports in their own tabs, Reports → Visits → Press Ganey
       Export) come from the module automatically; nothing to configure.
@@ -103,7 +112,9 @@ tag.
 ## 3. Per-site settings (Administration → Globals → CMS Vermont)
 
 All default to off/0/blank, which behaves like stock OpenEMR. Set only
-what the site used in production.
+what the site used in production. With the Docker kit, each site's values
+go in `config/sql/<site>.sql` (from `site.sql.example`; the real files are
+kept privately in `site-config/sql/`), applied at first start.
 
 | Site | Setting | Value |
 |---|---|---|
@@ -165,32 +176,45 @@ cms-rel-840 includes upstream #14330 (cherry-picked):
   Production treated the price as the whole line (fee ÷ units was shown as
   the unit price).
 
-- [ ] **Convert prices for codes billed with more than one unit, before
-      go-live.** Otherwise a newly picked J2777 (60 units) charges 60 × the
-      old price. First list them; check each price is a whole-dose amount:
+- [ ] **Convert those codes' prices to per-unit, once.** Production forced
+      the units in code (`library/FeeSheet.class.php` in cms-rel-701:
+      C9257 = 5, Q5124 = 5, J0178 = 2, J0177 = 8, J2777 = 60), not in
+      `codes.units`, which is why the SQL below uses those values directly
+      instead of `codes.units` (probably 0 or 1 in production's database
+      until `all-sites.sql` sets it at first start). Without the conversion,
+      a newly picked J2777 charges 60 × the old whole-dose price. List the
+      prices and what they become:
       ```sql
-      SELECT c.code, c.modifier, c.units, p.pr_level, p.pr_price,
-             ROUND(p.pr_price / c.units, 2) AS per_unit
-      FROM codes c
-      JOIN prices p ON p.pr_id = c.id AND p.pr_selector = ''
-      WHERE c.code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS')
-        AND c.units > 1
-      ORDER BY c.code, p.pr_level;
+      SELECT c.code, c.modifier, p.pr_level, p.pr_price, u.units,
+             ROUND(p.pr_price / u.units, 2) AS per_unit
+        FROM codes c
+        JOIN prices p ON p.pr_id = c.id AND p.pr_selector = ''
+        JOIN (SELECT 'C9257' AS code, 5 AS units UNION ALL SELECT 'Q5124', 5
+              UNION ALL SELECT 'J0178', 2 UNION ALL SELECT 'J0177', 8
+              UNION ALL SELECT 'J2777', 60) u ON u.code = c.code
+       WHERE c.code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS')
+       ORDER BY c.code, c.modifier, p.pr_level;
       ```
-      Then convert once (only the codes that are whole-dose prices):
+      Check each `pr_price` is a whole-dose amount, then back up `prices`
+      and convert, **once** (a second run divides again):
       ```sql
-      UPDATE prices p JOIN codes c ON c.id = p.pr_id
-      SET p.pr_price = ROUND(p.pr_price / c.units, 2)
-      WHERE p.pr_selector = ''
-        AND c.code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS')
-        AND c.code IN ('C9257', 'Q5124', 'J0178', 'J0177', 'J2777');
+      CREATE TABLE prices_pre_per_unit AS SELECT * FROM prices;
+      UPDATE prices p
+        JOIN codes c ON c.id = p.pr_id
+        JOIN (SELECT 'C9257' AS code, 5 AS units UNION ALL SELECT 'Q5124', 5
+              UNION ALL SELECT 'J0178', 2 UNION ALL SELECT 'J0177', 8
+              UNION ALL SELECT 'J2777', 60) u ON u.code = c.code
+         SET p.pr_price = ROUND(p.pr_price / u.units, 2)
+       WHERE p.pr_selector = ''
+         AND c.code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS');
       ```
-      Running it twice divides twice; back up `prices` first. Drugs whose
-      units come from Inventory (Billing Units) need the same per-unit price.
-- [ ] **Default units:** `config/sql/all-sites.sql` sets `codes.units` for
-      C9257 = 5, Q5124 = 5, J0178 = 2, J0177 = 8, J2777 = 60 (production
-      forced these). Administration → Codes still can't edit Units; for
-      drugs, prefer Inventory's Billing Units, which wins over `codes.units`.
+      Per site, in each site's database; it works before or after the first
+      start. Drugs whose units come from Inventory (Billing Units) need the
+      same per-unit price.
+- [ ] **Default units:** `config/sql/all-sites.sql` sets `codes.units` to
+      the same values at first start, replacing production's hardcoded
+      table. Administration → Codes can't edit Units; for drugs, prefer
+      Inventory's Billing Units, which wins over `codes.units`.
 - [ ] **Depo-Medrol (optional):**
       - deactivate J1020/J1030/J1040;
       - price J1010 at $1.00 per unit;
@@ -208,7 +232,7 @@ minutes; S2, S4, S5, S7 and S8 six times a day). In cms-rel-840:
 - the container runs no cron for OpenEMR (only certificate renewal);
 - upstream rel-840 ran every non-default site's services against the
   `default` database (run-all-due subprocesses had no `--site`). Fixed in
-  cms-rel-840 (325cabacf7, being sent upstream); without it, only the
+  cms-rel-840 (325cabacf7; upstream PR #14359); without it, only the
   named-service form `execute_background_services.php <site> <service>`
   runs against the right site.
 
@@ -247,8 +271,9 @@ Test data or a de-identified copy only.
 - [ ] **Eligibility (site S1):** a real-time 270 sends the override provider
       and receiver name.
 - [ ] **Billing Manager:** default date range (site S1: last 2 months),
-      re-open and MBO options; Collections report shows/hides the agency
-      export (site S4).
+      re-open and MBO options; "Unbilled" lists only encounters with
+      unbilled charges, not every encounter without charges (bf768a1177);
+      Collections report shows/hides the agency export (site S4).
 - [ ] **Fee sheet:** review shows today's prices; a drug code arrives with its
       default units; fee = price × units.
 - [ ] **Encounter form / report:** "Date Last Seen" label on podiatry sites.
@@ -279,7 +304,10 @@ Test data or a de-identified copy only.
         production;
       - podiatry DTP*304 and supervisor;
       - pay-to address; Medicare IDs without dashes;
+      - CLM10 (`P`) only on workers' comp claims; others end at CLM09, as
+        production (b4b5912b3c);
       - site S5: NDC skip and billing provider.
+      `x12-diff.py --summary` should report no differing claims.
 - [ ] **SFTP:** an upload to BCBS VT's MOVEit server goes out as
       `007111NN.x12`.
 - [ ] **Console:** `php bin/console cmsvt:fees-increase --site=<site>
