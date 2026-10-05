@@ -90,7 +90,7 @@ tag.
       them, start. Downtime is about the sum of the sites' upgrade times
       plus the dump and load.
 - [ ] The upgrade itself (7.0.1 → 8.4) needs no step: the container upgrades
-      each site's database at start (section 10, step 7).
+      each site's database at start (section 10, step 8).
 
 ## 2. Every site
 
@@ -198,21 +198,22 @@ cms-rel-840 includes upstream #14330 (cherry-picked):
       - other fees: edited by hand on those lines; decide case by case.
       The codes production forced units for in `library/FeeSheet.class.php`
       (C9257 = 5, Q5124 = 5, J0178 = 2, J0177 = 8, J2777 = 60) are the
-      likeliest whole-dose prices. Convert only the codes the history marks,
-      once (a second run divides again), with each code's units:
+      likeliest whole-dose prices (the eye site's are: J0178 $5,000 for 2
+      units). Set each such code's **per-unit price** (whole-dose price ÷ its
+      usual units) on cutover night, after writes stop and before the dump
+      (section 10, step 2): not earlier, or 7.0.1 bills the per-unit price as
+      the whole line. Agree the values with the practice beforehand. By hand
+      in Administration → Codes, or as fixed values (safe to repeat):
       ```sql
       CREATE TABLE prices_pre_per_unit AS SELECT * FROM prices;
-      UPDATE prices p
-        JOIN codes c ON c.id = p.pr_id
-        JOIN (SELECT '<code>' AS code, <units> AS units
-              UNION ALL SELECT '<code>', <units>) u ON u.code = c.code
-         SET p.pr_price = ROUND(p.pr_price / u.units, 2)
-       WHERE p.pr_selector = ''
+      UPDATE prices p JOIN codes c ON c.id = p.pr_id
+         SET p.pr_price = <per-unit price>
+       WHERE p.pr_selector = '' AND p.pr_level = 'standard' AND c.code = '<code>'
          AND c.code_type = (SELECT ct_id FROM code_types WHERE ct_key = 'HCPCS');
       ```
-      It works before or after the first start (it doesn't read
-      `codes.units`). Drugs whose units come from Inventory (Billing Units)
-      need the same per-unit price.
+      Other price levels than `standard` need the same. Then show the
+      practice the new workflow: units filled in (Inventory Billing Units,
+      or `codes.units`), the biller adjusts them, fee = price × units.
 - [ ] **Inventory drugs related to a HCPCS code need NDC Unit and NDC
       Quantity.** Since #14330 the related drug's NDC comes first; without a
       unit and quantity it's the bare number, which the fee sheet turns into
@@ -352,7 +353,7 @@ All of a server's sites move in one go: they share one stack and the live
 `/etc/cron.daily/10-openemr-db-snapshots`, dumps each database in its list
 to `/var/backups/openemr/<dbase>-<mmddyy>.sql.gz` (7 days kept). It doesn't
 check that each dump succeeded (no `pipefail`), hence the completeness check
-in step 2. cron.daily runs at 22:25 (`/etc/crontab`): first that script,
+in step 3. cron.daily runs at 22:25 (`/etc/crontab`): first that script,
 then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
 `/var/backups` (the dumps), among others, to the backup server as root.
 
@@ -393,7 +394,7 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
       ```
 - [ ] Host certbot renewing until the cutover (`sudo certbot renew --dry-run`).
 - [ ] A password for the dump account the snapshot script will use against
-      the container (step 10), kept with the server's other secrets.
+      the container (step 11), kept with the server's other secrets.
 - [ ] Production lab providers keep their real settings: the dry-run
       switch-off (protocol `FS`, inactive) is **never** run on production.
 
@@ -405,8 +406,15 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
    sudo systemctl disable --now apache2
    sudo crontab -e      # comment out only the execute_background_services.php lines
    ```
-   Leave the dump job: it's the backup for step 2.
-2. **Dump, now that nothing writes.** Let the 22:25 cron.daily run do it: it
+   Leave the dump job: it's the backup for step 3.
+2. **Per-unit prices, now that nothing bills under 7.0.1 any more**
+   (Administration → Codes, or SQL), on the sites whose prices are whole
+   doses (section 6; decided in the days before). Doing it here keeps every
+   site consistent and puts the new prices in the dump; done earlier, 7.0.1
+   would bill the per-unit price as the whole line. Then show each practice
+   the new workflow: units filled in from Inventory, the biller adjusts them,
+   fee = price × units.
+3. **Dump, now that nothing writes.** Let the 22:25 cron.daily run do it: it
    makes the dumps and pushes them, with the sites, off-site, which gives the
    backup server a pre-cutover copy. Wait for both scripts to finish
    (`pgrep -fa 'cron.daily|99-bub|mysqldump'` shows nothing), about 20
@@ -424,11 +432,11 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
    ```
    Every site's database should be listed `ok`; compare with the sites'
    `$dbase` values.
-3. **Fallback copy of the sites folder** (rollback only, not used to run):
+4. **Fallback copy of the sites folder** (rollback only, not used to run):
    ```sh
    sudo ./sync-sites.sh <every site>
    ```
-4. **Load every site's dump** into the container's MariaDB. Each site gets
+5. **Load every site's dump** into the container's MariaDB. Each site gets
    its database and user from its own `sqlconf.php`:
    ```sh
    cd /opt/cms/kit
@@ -446,7 +454,7 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
      sudo zcat "/var/backups/openemr/pre-cutover/$DB-$DAY.sql.gz" | docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" || echo "LOAD FAILED: $site"
    done
    ```
-5. **Point the sites at the container's database:**
+6. **Point the sites at the container's database:**
    ```sh
    for site in <every site>; do
      sudo cp -p "$S/$site/sqlconf.php" "$S/$site/sqlconf.php.pre-docker"
@@ -454,13 +462,13 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
      sudo grep -H '^\$host' "$S/$site/sqlconf.php"
    done
    ```
-6. **Stock `default`** (only where `default` isn't a real site):
+7. **Stock `default`** (only where `default` isn't a real site):
    ```sh
    docker run --rm --entrypoint tar "$(grep '^CMS_IMAGE=' .env | cut -d= -f2-)" \
      -C /var/www/localhost/htdocs/openemr/sites -c default | sudo tar -C "$S" -x
    sudo setfacl -R -m u:openemr-web:rwX -m d:u:openemr-web:rwX "$S/default"
    ```
-7. **Start and watch** (root password only for the stock `default`'s setup):
+8. **Start and watch** (root password only for the stock `default`'s setup):
    ```sh
    CMS_SETUP_DB_ROOT_PASS="$RP" docker compose up -d
    docker compose logs -f openemr
@@ -470,15 +478,12 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
    Let's Encrypt for `CMS_DOMAIN`; `Starting Apache!`. If a site's upgrade
    fails, `docker compose stop openemr`, read the error, restore that
    site's dump if needed, start again.
-8. **Drop the root password:** after `Starting Apache!`, `docker compose up -d`;
+9. **Drop the root password:** after `Starting Apache!`, `docker compose up -d`;
    `docker compose exec openemr printenv MYSQL_ROOT_PASS` shows `unset`.
-9. **Per-unit prices** on each site's database, once, only for the codes
-   its billing history marks as whole-dose (section 6; decided in the days
-   before), before anyone picks those codes on a fee sheet.
-   **Check every site:** log in (`?site=<site>`); globals from sections 2–4;
+10. **Check every site:** log in (`?site=<site>`); globals from sections 2–4;
    a statement PDF; Billing Manager; Electronic Reports; `https://` with the
    real certificate and port 80 redirecting.
-10. **Point the nightly dumps at the container's database.** The snapshot
+11. **Point the nightly dumps at the container's database.** The snapshot
     script runs `mysqldump` on the host; until this step it would dump the
     host's MariaDB, which still holds the pre-cutover data (kept for
     rollback), and send those stale dumps off-site every night. The
@@ -499,11 +504,11 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
     sudo /etc/cron.daily/10-openemr-db-snapshots        # a test run against the container
     for f in /var/backups/openemr/*-$DAY.sql.gz; do sudo zcat "$f" | tail -1 | grep -q 'Dump completed' && echo "ok   $f" || echo "BAD  $f"; done
     ```
-    (Run in the same terminal as step 4, which set `RP`, `S` and `conf`.)
+    (Run in the same terminal as step 5, which set `RP`, `S` and `conf`.)
     The test run's files replace tonight's
     pre-cutover ones in `/var/backups/openemr`; those are safe in
     `pre-cutover/`.
-11. **Background services and certificates:** add the host crontab lines
+12. **Background services and certificates:** add the host crontab lines
     (section 7), one per site, as apache, keeping each site's schedule.
     Disable the host certbot's timer:
     `sudo systemctl disable --now snap.certbot.renew.timer`.
@@ -524,12 +529,12 @@ The host MariaDB still has the pre-cutover data (stopped, not removed):
 cd /opt/cms/kit && docker compose down          # keeps volumes
 # the dumps back to the host database:
 sudo cp -p /etc/openemr/mysqldump.cnf.pre-docker /etc/openemr/mysqldump.cnf
-# put every site's sqlconf.php back as it was (saved in step 5):
+# put every site's sqlconf.php back as it was (saved in step 6):
 for site in <every site>; do sudo cp -p "$S/$site/sqlconf.php.pre-docker" "$S/$site/sqlconf.php"; done
 # files the container created belong to openemr-web; give the host Apache access back:
 sudo setfacl -R -m u:www-data:rwX -m d:u:www-data:rwX /var/www/html/openemr/sites
 sudo systemctl enable --now apache2             # and restore the crontab lines
 ```
 Anything the container changed in `sites/` (statement.inc.php, cms-applied/,
-new documents) is in the fallback copy from step 3 if needed. Keep the host
+new documents) is in the fallback copy from step 4 if needed. Keep the host
 MariaDB, the dumps and the copy for a few days after a good cutover.
