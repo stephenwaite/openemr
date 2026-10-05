@@ -440,7 +440,10 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
    site's dump if needed, start again.
 8. **Drop the root password:** after `Starting Apache!`, `docker compose up -d`;
    `docker compose exec openemr printenv MYSQL_ROOT_PASS` shows `unset`.
-9. **Check every site:** log in (`?site=<site>`); globals from sections 2–4;
+9. **Convert drug prices to per-unit** on each site's database, once
+   (section 6: list first, then the UPDATE with its `prices_pre_per_unit`
+   backup), before anyone picks those codes on a fee sheet.
+   **Check every site:** log in (`?site=<site>`); globals from sections 2–4;
    a statement PDF; Billing Manager; Electronic Reports; `https://` with the
    real certificate and port 80 redirecting.
 10. **Point the nightly dumps at the container's database.** The snapshot
