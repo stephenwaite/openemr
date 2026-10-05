@@ -294,7 +294,9 @@ All of a server's sites move in one go: they share one stack and the live
 `/etc/cron.daily/10-openemr-db-snapshots`, dumps each database in its list
 to `/var/backups/openemr/<dbase>-<mmddyy>.sql.gz` (7 days kept). It doesn't
 check that each dump succeeded (no `pipefail`), hence the completeness check
-in step 2.
+in step 2. cron.daily runs at 22:25 (`/etc/crontab`): first that script,
+then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
+`/var/backups` (the dumps), among others, to the backup server as root.
 
 ### Days before
 
@@ -302,7 +304,9 @@ in step 2.
       plus dump and load time, is the downtime estimate).
 - [ ] Image built from the final cms-rel-840 commit and tagged with it
       (kit README section 1); `docker images` on the server shows it.
-- [ ] Kit in `/opt/cms/kit`, with:
+- [ ] Kit in `/opt/cms/kit`, and `bub /opt/cms "${BUB_DEST}"` added to
+      `/etc/cron.daily/99-bub` (it holds `.env` and the per-site SQL, and
+      `/opt/cms` isn't otherwise backed up). Kit contents:
   - [ ] `.env`: `CMS_IMAGE` (the tag), `CMS_SITES_DIR=/var/www/html/openemr/sites`,
         strong `CMS_DB_ROOT_PASS` / `CMS_DEFAULT_DB_PASS` /
         `CMS_DEFAULT_ADMIN_PASS`, `CMS_DOMAIN`, `CMS_LETSENCRYPT_EMAIL`,
@@ -328,24 +332,33 @@ in step 2.
       sudo setfacl -R -m u:openemr-web:rwX -m d:u:openemr-web:rwX /var/www/html/openemr/sites
       ```
 - [ ] Host certbot renewing until the cutover (`sudo certbot renew --dry-run`).
+- [ ] A password for the dump account the snapshot script will use against
+      the container (step 10), kept with the server's other secrets.
 - [ ] Production lab providers keep their real settings: the dry-run
       switch-off (protocol `FS`, inactive) is **never** run on production.
 
 ### Cutover night
 
-1. **~22:20 Stop everything that writes, so a reboot can't restart it:**
+1. **22:15, before cron.daily starts at 22:25: stop everything that
+   writes, so a reboot can't restart it:**
    ```sh
    sudo systemctl disable --now apache2
    sudo crontab -e      # comment out only the execute_background_services.php lines
    ```
    Leave the dump job: it's the backup for step 2.
-2. **Dump, by hand, now that nothing writes** (whatever time cron.daily
-   normally runs), then check every file finished. `DAY` is fixed here so the
-   load finds these files even after midnight:
+2. **Dump, now that nothing writes.** Let the 22:25 cron.daily run do it: it
+   makes the dumps and pushes them, with the sites, off-site, which gives the
+   backup server a pre-cutover copy. Wait for both scripts to finish
+   (`pgrep -fa 'cron.daily|99-bub|mysqldump'` shows nothing), about 20
+   minutes. (Started after 22:25 instead? Run
+   `sudo /etc/cron.daily/10-openemr-db-snapshots` by hand.) Then check every
+   file, and copy them aside: tonight's later dumps would overwrite files of
+   the same date. `DAY` is fixed here so later steps find them after midnight:
    ```sh
    DAY=$(date +%m%d%y)
-   sudo /etc/cron.daily/10-openemr-db-snapshots
-   for f in /var/backups/openemr/*-$DAY.sql.gz; do
+   sudo mkdir -p /var/backups/openemr/pre-cutover
+   sudo cp -p /var/backups/openemr/*-$DAY.sql.gz /var/backups/openemr/pre-cutover/
+   for f in /var/backups/openemr/pre-cutover/*-$DAY.sql.gz; do
      sudo gzip -t "$f" && sudo zcat "$f" | tail -1 | grep -q 'Dump completed' && echo "ok   $f" || echo "BAD  $f"
    done
    ```
@@ -370,7 +383,7 @@ in step 2.
        CREATE DATABASE \`$DB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
        CREATE USER '$U'@'%' IDENTIFIED BY '$P';
        GRANT ALL PRIVILEGES ON \`$DB\`.* TO '$U'@'%';"
-     sudo zcat "/var/backups/openemr/$DB-$DAY.sql.gz" | docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" || echo "LOAD FAILED: $site"
+     sudo zcat "/var/backups/openemr/pre-cutover/$DB-$DAY.sql.gz" | docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" || echo "LOAD FAILED: $site"
    done
    ```
 5. **Point the sites at the container's database:**
@@ -402,15 +415,52 @@ in step 2.
 9. **Check every site:** log in (`?site=<site>`); globals from sections 2–4;
    a statement PDF; Billing Manager; Electronic Reports; `https://` with the
    real certificate and port 80 redirecting.
-10. **Background services:** add the host crontab lines (section 7), one per
-    site, as apache, keeping each site's schedule; disable the host
-    certbot's renewal.
+10. **Point the nightly dumps at the container's database.** The snapshot
+    script runs `mysqldump` on the host; until this step it would dump the
+    host's MariaDB, which still holds the pre-cutover data (kept for
+    rollback), and send those stale dumps off-site every night. The
+    container's MariaDB listens on `127.0.0.1:3307` (`CMS_DB_LOCAL_PORT`):
+    ```sh
+    DP=<dump account password>
+    docker compose exec -T mysql mariadb -uroot -p"$RP" -e "
+      CREATE USER 'oe_dump'@'%' IDENTIFIED BY '$DP';
+      GRANT SELECT ON mysql.proc TO 'oe_dump'@'%';"
+    for site in <every site>; do
+      DB=$(conf "$site" dbase)
+      docker compose exec -T mysql mariadb -uroot -p"$RP" -e "
+        GRANT SELECT, LOCK TABLES, SHOW VIEW, EVENT, TRIGGER ON \`$DB\`.* TO 'oe_dump'@'%';"
+    done
+    sudo cp -p /etc/openemr/mysqldump.cnf /etc/openemr/mysqldump.cnf.pre-docker
+    printf '[mysqldump]\nuser=oe_dump\npassword="%s"\nhost=127.0.0.1\nport=3307\n' "$DP" | sudo tee /etc/openemr/mysqldump.cnf >/dev/null
+    sudo chmod 600 /etc/openemr/mysqldump.cnf
+    sudo /etc/cron.daily/10-openemr-db-snapshots        # a test run against the container
+    for f in /var/backups/openemr/*-$DAY.sql.gz; do sudo zcat "$f" | tail -1 | grep -q 'Dump completed' && echo "ok   $f" || echo "BAD  $f"; done
+    ```
+    (Run in the same terminal as step 4, which set `RP`, `S` and `conf`.)
+    The test run's files replace tonight's
+    pre-cutover ones in `/var/backups/openemr`; those are safe in
+    `pre-cutover/`.
+11. **Background services and certificates:** add the host crontab lines
+    (section 7), one per site, as apache, keeping each site's schedule.
+    Disable the host certbot's timer:
+    `sudo systemctl disable --now snap.certbot.renew.timer`.
+
+### The morning after
+
+- [ ] The backup server received the night's push
+      (`/opt/bub/archives` on it, or its logs).
+- [ ] The next nightly dumps (22:25) come from the container: each file is
+      complete, and a site's newest data is there, e.g.
+      `sudo zcat /var/backups/openemr/<dbase>-<day>.sql.gz | grep -c "INSERT INTO \`log\`"`
+      grows from day to day.
 
 ### Rollback (if the night goes wrong)
 
 The host MariaDB still has the pre-cutover data (stopped, not removed):
 ```sh
 cd /opt/cms/kit && docker compose down          # keeps volumes
+# the dumps back to the host database:
+sudo cp -p /etc/openemr/mysqldump.cnf.pre-docker /etc/openemr/mysqldump.cnf
 # put every site's sqlconf.php back as it was (saved in step 5):
 for site in <every site>; do sudo cp -p "$S/$site/sqlconf.php.pre-docker" "$S/$site/sqlconf.php"; done
 # files the container created belong to openemr-web; give the host Apache access back:

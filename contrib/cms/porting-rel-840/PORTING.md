@@ -1913,6 +1913,17 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   `ARG APACHE_UID=1000` (default unchanged; checked by building the base
   stage with 1234: `uid=1234(apache)`). Production builds with a dedicated
   no-login account, `openemr-web`. Small upstream PR candidate.
+- **Nightly dumps after cutover:** the multisite server's cron.daily (22:25)
+  runs the snapshot script, then a push of `/var/www` and `/var/backups` to
+  the backup server. The snapshot script dumps the host's MariaDB, which
+  after cutover would be the stale pre-cutover copy kept for rollback. The
+  kit now publishes the container's MariaDB on `127.0.0.1:3307` only
+  (`CMS_DB_LOCAL_PORT`); runbook step 10 creates a dump account
+  (SELECT, LOCK TABLES, SHOW VIEW, EVENT, TRIGGER per database, SELECT on
+  mysql.proc; tested with the script's exact options) and points the
+  script's option file at it. The cutover night copies its dumps to
+  `pre-cutover/` first (same-date file names). An older backup script in
+  root's home has a broken dump loop but isn't scheduled.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,
