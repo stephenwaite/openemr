@@ -1886,6 +1886,15 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   switch-off: `7_0_1-to-7_0_2_upgrade.sql` inserts it active where the row
   is missing. DRY-RUN.md step 6 now repeats the switch-off after the first
   start; DEPLOYMENT.md section 7 notes the new active service.
+- **Billing Manager "Unbilled" listed every encounter without charges**
+  (upstream #7808, 2024: `OR billing.billed IS NULL` under a LEFT JOIN).
+  On the 2026-10-04 lab-site dry run: 42,837 such encounters, 3 with real
+  unbilled charges, 0 NULL-billed rows; the page also got very slow. Fixed
+  in bf768a1177 (NULL counts only with `billing.id IS NOT NULL`), isolated
+  test fails on the old condition. Upstream branch
+  `fix/billing-unbilled-without-charges`, body in
+  `~/git/pr-fix-billing-unbilled-without-charges.md`. 7.0.1 didn't have
+  #7808, which is why production never listed them.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,
