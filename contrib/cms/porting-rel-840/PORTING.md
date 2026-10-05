@@ -1930,8 +1930,11 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   `HcpcsDrugDefaults::forDrug()` (only an active drug related to the code)
   and the list editor showing it. DB tests added. Upstream branch
   `feat/fee-sheet-list-drug`, body `~/git/pr-feat-fee-sheet-list-drug.md`.
-  Noticed: the fee sheet Review's `load_fee_sheet_options()` binds its SQL
-  expressions as values and never returns rows (upstream, untouched).
+  The fee sheet Review's `load_fee_sheet_options()` had bound its SQL
+  expressions as values since 2018, so Review's swap-procedure dropdown
+  offered nothing from the custom lists. Fixed separately in 9641634e2d
+  (DB test: 0 choices before, 4 after). Upstream branch
+  `fix/fee-sheet-review-choices`, body `~/git/pr-fix-fee-sheet-review-choices.md`.
 - No production server has a real `default` site (Stephen), so the
   `site_id != 'default'` visit-details check never applied. Removed
   `config/sql/default.sql` and its DEPLOYMENT.md row; the global stays,
