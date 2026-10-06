@@ -30,9 +30,12 @@ require_once("./gen_hl7_order.inc.php");
 
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Database\QueryUtils;
+use OpenEMR\Common\Http\CurrentRequest;
 use OpenEMR\Common\Orders\Hl7OrderGenerationException;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Orders\LabResultsListFilterEvent;
 
 // Check authorization.
 $thisauth = AclMain::aclCheckCore('patients', 'med');
@@ -43,9 +46,19 @@ if (!$thisauth) {
 $form_patient = !empty($_POST['form_patient']);
 $processing_lab = $_REQUEST['form_lab_id'] ?? '';
 $start_form = false;
-if (!isset($_REQUEST['form_refresh']) && !isset($_REQUEST['form_process_labs']) && !isset($_REQUEST['form_manual'])) {
+// A refresh requested by the results window (after signing) redisplays the list too.
+if (
+    !isset($_REQUEST['form_refresh'])
+    && !isset($_REQUEST['form_process_labs'])
+    && !isset($_REQUEST['form_manual'])
+    && CurrentRequest::get()->request->getString('form_external_refresh') === ''
+) {
     $start_form = true;
 }
+
+$listDefaults = new LabResultsListFilterEvent();
+OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()
+    ->dispatch($listDefaults, LabResultsListFilterEvent::EVENT_NAME);
 
 $errmsg = '';
 
@@ -135,9 +148,14 @@ function openPtMatch(args) {
     dlgopen('patient_match_dialog.php?key=' + encodeURIComponent(args), '_blank', 850, 400, '', dlgtitle);
 }
 
-function openPatient(pid) {
+// Opens the patient, in their latest encounter when they have one.
+function openPatient(pid, encounter) {
     top.restoreSession();
-    document.location.href = "../patient_file/summary/demographics.php?set_pid=" + encodeURIComponent(pid);
+    let url = "../patient_file/summary/demographics.php?set_pid=" + encodeURIComponent(pid);
+    if (encounter) {
+        url += "&set_encounterid=" + encodeURIComponent(encounter);
+    }
+    document.location.href = url;
 }
 
 $(function () {
@@ -177,7 +195,7 @@ function doWait(e){
                     <select name='form_lab_id' id='form_lab_id' class='form-control'>
                         <option value="0"><?php echo xlt('All Labs'); ?></option>
                         <?php
-                        $ppres = sqlStatement("SELECT ppid, name, npi FROM procedure_providers ORDER BY name, ppid");
+                        $ppres = sqlStatement("SELECT ppid, name, npi FROM procedure_providers WHERE active = 1 ORDER BY name, ppid");
                         while ($pprow = sqlFetchArray($ppres)) {
                             echo "<option value='" . attr($pprow['ppid']) . "'";
                             if ($pprow['ppid'] == $processing_lab) {
@@ -197,7 +215,7 @@ function doWait(e){
                         style="max-width:75px;margin-left:20px;"
                         type="number" title="<?php echo xla('Max number of results to process at a time per Lab') ?>"
                         step="1" min="0" max="50"
-                        value="<?php echo attr($_REQUEST['form_max_results'] ?? 10); ?>" />
+                        value="<?php echo attr($_REQUEST['form_max_results'] ?? $listDefaults->getDefaultMaxResultsPerLab()); ?>" />
                         <span class="input-group-text"><?php echo xlt('Results Per Lab'); ?></span>
                     </div>
                     <div class="form-check form-check-inline ml-2">
@@ -265,7 +283,7 @@ function doWait(e){
             $s .= "  <td>&nbsp;</td>\n";
             $s .= "  <td>&nbsp;</td>\n";
                         $s .= "  <td><a href='javascript:openPtMatch(" . attr_js($matchkey) . ")'>";
-                        $tmp = is_array($decoded = json_decode((string) $matchkey, true)) ? $decoded : [];
+                        $tmp = is_array($decoded = json_decode($matchkey, true)) ? $decoded : [];
             $s .= xlt('Click to match patient') . ' "' . text($tmp['lname'] ?? '') . ', ' . text($tmp['fname'] ?? '') . '"';
             $s .= "</a>";
             $s .= "</td>\n";
@@ -358,7 +376,7 @@ function doWait(e){
     $form_from_date = empty($_POST['form_from_date']) ? '' : trim((string) $_POST['form_from_date']);
     $form_to_date = empty($_POST['form_to_date']) ? '' : trim((string) $_POST['form_to_date']);
 
-    $form_reviewed = empty($_POST['form_reviewed']) ? 3 : (int)$_POST['form_reviewed'];
+    $form_reviewed = empty($_POST['form_reviewed']) ? $listDefaults->getDefaultReviewedFilter() : (int)$_POST['form_reviewed'];
     $form_patient = !empty($_POST['form_patient']);
     $form_provider = empty($_POST['form_provider']) ? '' : (int)$_POST['form_provider'];
     $form_lab_search = empty($_POST['form_lab_search']) ? '' : (int)$_POST['form_lab_search'];
@@ -501,7 +519,9 @@ function doWait(e){
                 "LEFT JOIN procedure_providers AS pp ON po.lab_id = pp.ppid " .
                 "LEFT JOIN patient_data AS pd ON pd.pid = po.patient_id $joins " .
                 "WHERE $where " .
-                "ORDER BY pd.lname, pd.fname, pd.mname, po.patient_id, $orderby";
+                "ORDER BY pd.lname, pd.fname, pd.mname, po.patient_id, $orderby " .
+                // "All" over years of results can be tens of thousands of rows.
+                "LIMIT 500";
 
             $res = sqlStatement($query, $sqlBindArray);
 
@@ -546,7 +566,13 @@ function doWait(e){
                 // Generate patient columns.
                 if ($lastptid != $patient_id) {
                     $lastpoid = -1;
-                    echo "  <td class='text-primary' onclick='openPatient(" . attr_js($patient_id) . ")' style='cursor: pointer;'>";
+                    $latestEncounter = QueryUtils::fetchSingleValue(
+                        "SELECT encounter FROM form_encounter WHERE pid = ? ORDER BY date DESC, encounter DESC LIMIT 1",
+                        'encounter',
+                        [$patient_id]
+                    );
+                    echo "  <td class='text-primary' onclick='openPatient(" . attr_js($patient_id) . ", " .
+                        attr_js(is_numeric($latestEncounter) ? (string) $latestEncounter : '') . ")' style='cursor: pointer;'>";
                     echo text($ptname);
                     echo "</td>\n";
                     echo "  <td>" . text($row['pubpid']) . "</td>\n";

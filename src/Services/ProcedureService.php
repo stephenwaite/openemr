@@ -104,8 +104,10 @@ class ProcedureService extends BaseService
         ,porder.order_intent
         ,porder.location_id
         ,porder.specimen_fasting
+        ,porder.order_external_id
 
         ,preport.report_date
+        ,preport.report_date_collected
         ,preport.procedure_report_id
         ,preport.report_uuid
         ,preport.report_notes
@@ -185,6 +187,7 @@ class ProcedureService extends BaseService
             ,order_intent
             ,location_id
             ,specimen_fasting
+            ,external_id AS order_external_id
         FROM procedure_order
         WHERE activity = 1
     ) porder
@@ -201,6 +204,7 @@ class ProcedureService extends BaseService
     LEFT JOIN (
         SELECT
             date_report AS report_date
+            ,date_collected AS report_date_collected
             ,procedure_report_id
             ,procedure_order_id
             ,procedure_order_seq
@@ -368,6 +372,7 @@ class ProcedureService extends BaseService
                     ,'performer_type' => $record['performer_type'] ?? null
                     ,'order_intent' => $record['order_intent'] ?? null
                     ,'specimen_fasting' => $record['specimen_fasting'] ?? null
+                    ,'external_id' => $record['order_external_id'] ?? null
                     ,'reports' => []
                 ];
 
@@ -433,6 +438,7 @@ class ProcedureService extends BaseService
                 if (!isset($reportsByUuid[$reportUuid])) {
                     $report = [
                         'date' => $record['report_date']
+                        ,'date_collected' => $record['report_date_collected'] ?? null
                         ,'id' => $record['procedure_report_id']
                         ,'uuid' => $record['report_uuid']
                         , 'notes' => $record['report_notes']

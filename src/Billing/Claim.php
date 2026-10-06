@@ -16,8 +16,10 @@ namespace OpenEMR\Billing;
 
 use InsuranceCompany;
 use OpenEMR\Billing\InvoiceSummary;
+use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Utils\ValidationUtils;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Billing\ClaimProviderFilterEvent;
 use OpenEMR\Services\EncounterService;
 use OpenEMR\Services\FacilityService;
 use OpenEMR\Services\PatientService;
@@ -43,7 +45,8 @@ class Claim
     public $insurance_numbers; // row from insurance_numbers table for current payer
     public $supervisor_numbers;// row from insurance_numbers table for current payer
     public $patient_data;      // row from patient_data table
-    public $billing_options;   // row from form_misc_billing_options table
+    /** @var array<mixed> row from form_misc_billing_options table */
+    public array $billing_options = [];
     public $invoice;           // result from get_invoice_summary()
     public $payers = [];       // array of arrays, for all payers
     public $copay;             // total of copays from the ar_activity table
@@ -51,7 +54,9 @@ class Claim
     public $pay_to_provider;   // to be implemented in facility ui
     private $encounterService;
     public $billing_prov_id;
-    public $line_item_adjs;    // adjustment array with key of [group code][reason code] needed for secondary claims
+    public $line_item_adjs;
+    /** Report prior payers' posted adjustments; false reports only the remaining patient responsibility (PR-3). */
+    private bool $reportsPriorPayerAdjustments = true;    // adjustment array with key of [group code][reason code] needed for secondary claims
     public $using_modifiers;
 
 
@@ -70,7 +75,11 @@ class Claim
         $this->facility = $this->facilityService->getById($this->encounter['facility_id']);
         $this->pay_to_provider = ''; // will populate from facility someday :)
         $this->x12_partner = $this->getX12Partner($x12_partner_id);
-        $this->provider = (new UserService())->getUser($this->encounter['provider_id']);
+        $encounterProviderId = $this->encounter['provider_id'] ?? null;
+        $providerFilter = new ClaimProviderFilterEvent(is_numeric($encounterProviderId) ? (int) $encounterProviderId : 0);
+        OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()
+            ->dispatch($providerFilter, ClaimProviderFilterEvent::EVENT_NAME);
+        $this->provider = (new UserService())->getUser($providerFilter->getProviderId());
         $this->billing_facility = empty($this->encounter['billing_facility']) ?
             $this->facilityService->getPrimaryBillingLocation() :
             $this->facilityService->getById($this->encounter['billing_facility']);
@@ -173,6 +182,10 @@ class Claim
         return sqlQuery($sql, [$payer_id, $provider_id]);
     }
 
+    /**
+     * @return array<mixed> empty when the encounter has no misc
+     *                      billing options form
+     */
     public function getMiscBillingOptions($pid, $encounter_id)
     {
         $sql = "SELECT fpa.* FROM forms JOIN form_misc_billing_options AS fpa " .
@@ -180,7 +193,9 @@ class Claim
             "WHERE forms.pid = ? AND forms.encounter = ? AND " .
             "forms.deleted = 0 AND forms.formdir = 'misc_billing_options' " .
             "ORDER BY forms.date";
-        return sqlQuery($sql, [$pid, $encounter_id]);
+        $row = sqlQuery($sql, [$pid, $encounter_id]);
+
+        return is_array($row) ? $row : [];
     }
 
     public function getReferrerId()
@@ -377,13 +392,14 @@ class Claim
             $date = '';
             $deductible  = 0;
             $coinsurance = 0;
+            $copay       = 0;
             $inslabel = ($this->payerSequence($ins) == 'S') ? 'Ins2' : 'Ins1';
             $insnumber = substr($inslabel, 3);
 
             // Compute this procedure's patient responsibility amount as of this
             // prior payer, which is the original charge minus all insurance
             // payments and "hard" adjustments up to this payer.
-            $ptresp = $this->invoice[$code]['chg'] + $this->invoice[$code]['adj'] ?? '';
+            $ptresp = ($this->invoice[$code]['chg'] ?? 0) + ($this->invoice[$code]['adj'] ?? 0);
             foreach ($this->invoice[$code]['dtl'] as $key => $value) {
                 // plv (from ar_activity.payer_type) exists to
                 // indicate the payer level.
@@ -412,7 +428,14 @@ class Claim
                     $date = $tmp;
                 }
 
-                if ($tmp && (($value['pmt'] ?? null) == 0)) { // not original charge and not a payment
+                // not original charge, not a payment, and posted at this payer's level
+                if (
+                    $this->reportsPriorPayerAdjustments
+                    && $tmp
+                    && (($value['pmt'] ?? null) == 0)
+                    && is_numeric($value['plv'] ?? null)
+                    && (int) $value['plv'] === (int) $insnumber
+                ) {
                     $rsn = $value['rsn'];
                     $chg = 0 - $value['chg']; // adjustments are negative charges
 
@@ -428,7 +451,7 @@ class Claim
                         $deductible = $ptresp; // from manual post
                         continue;
                     } elseif (preg_match("/copay: (\S+)/i", (string) $rsn, $tmp) && !$chg) {
-                        $coinsurance = $tmp[1]; // from 835 as of 6/2007
+                        $copay = $tmp[1]; // from 835 as of 6/2007
                         continue;
                     } elseif (preg_match("/coins: (\S+)/i", (string) $rsn, $tmp) && !$chg) {
                         $coinsurance = $tmp[1]; // from 835 and manual post as of 6/2007
@@ -482,28 +505,15 @@ class Claim
                 $deductible  = $ptresp;
             }
 
-            // Find out if this payer paid anything at all on this claim.  This will
-            // help us allocate any unknown patient responsibility amounts.
-            $thispaidanything = 0;
-            foreach ($this->invoice as $codeval) {
-                foreach ($codeval['dtl'] as $value) {
-                    // plv exists to indicate the payer level.
-                    if (isset($value['plv']) && $value['plv'] == $insnumber) {
-                        $thispaidanything += $value['pmt'];
-                    }
-                }
-            }
-
-            // Allocate any unknown patient responsibility by guessing if the
-            // deductible has been satisfied.
-            if ($thispaidanything) {
-                $coinsurance = $ptresp - $deductible;
-            } else {
-                $deductible = $ptresp - $coinsurance;
+            // Patient responsibility the payer didn't break down is reported as
+            // copay rather than guessed into deductible or coinsurance.
+            if ($coinsurance == 0 && $deductible == 0 && $copay == 0 && $ptresp != 0) {
+                $copay = $ptresp;
             }
 
             $deductible  = sprintf('%.2f', $deductible);
             $coinsurance = sprintf('%.2f', $coinsurance);
+            $copay       = sprintf('%.2f', is_numeric($copay) ? (float) $copay : 0.0);
 
             if ($date && $deductible != 0) {
                 $aadj[] = [$date, 'PR', '1', $deductible, $msp];
@@ -511,6 +521,10 @@ class Claim
 
             if ($date && $coinsurance != 0) {
                 $aadj[] = [$date, 'PR', '2', $coinsurance, $msp];
+            }
+
+            if ($date && $copay != 0) {
+                $aadj[] = [$date, 'PR', '3', $copay, $msp ?? null];
             }
         } // end if
 
@@ -771,6 +785,45 @@ class Claim
     public function billingFacilityZip()
     {
         return $this->x12Zip($this->billing_facility['postal_code']);
+    }
+
+    public function setReportsPriorPayerAdjustments(bool $reports): void
+    {
+        $this->reportsPriorPayerAdjustments = $reports;
+    }
+
+    /**
+     * The billing facility's mailing address, sent as the 837P pay-to address.
+     */
+    public function payToFacilityStreet(): string
+    {
+        return $this->billingFacilityMailField('mail_street');
+    }
+
+    public function payToFacilityStreet2(): string
+    {
+        return $this->billingFacilityMailField('mail_street2');
+    }
+
+    public function payToFacilityCity(): string
+    {
+        return $this->billingFacilityMailField('mail_city');
+    }
+
+    public function payToFacilityState(): string
+    {
+        return $this->billingFacilityMailField('mail_state');
+    }
+
+    public function payToFacilityZip(): string
+    {
+        return (string) $this->x12Zip($this->billingFacilityMailField('mail_zip'));
+    }
+
+    private function billingFacilityMailField(string $field): string
+    {
+        $value = is_array($this->billing_facility) ? ($this->billing_facility[$field] ?? '') : '';
+        return is_string($value) ? (string) $this->x12Clean(trim($value)) : '';
     }
 
     /**
@@ -1548,17 +1601,17 @@ class Claim
         return $this->x12Clean(trim($this->billing_options['prior_auth_number'] ?? ''));
     }
 
-    public function isRelatedEmployment()
+    public function isRelatedEmployment(): bool
     {
         return !empty($this->billing_options['employment_related']);
     }
 
-    public function isRelatedAuto()
+    public function isRelatedAuto(): bool
     {
         return !empty($this->billing_options['auto_accident']);
     }
 
-    public function isRelatedOther()
+    public function isRelatedOther(): bool
     {
         return !empty($this->billing_options['other_accident']);
     }
@@ -1651,17 +1704,131 @@ class Claim
     /**
      * @return string
      */
+    /**
+     * HCFA box 22, the resubmission code of a claim this one replaces.  The
+     * 08/05 revision of the form labelled this box "Medicaid Resubmission";
+     * the 02/12 revision dropped the Medicaid prefix.
+     *
+     * @return string
+     */
+    public function resubmissionCode()
+    {
+        return $this->x12Clean(trim($this->billing_options['resubmission_code'] ?? ''));
+    }
+
+    /**
+     * @deprecated since 8.5.0, use resubmissionCode() instead.
+     * @return string
+     */
     public function medicaidResubmissionCode()
     {
-        return $this->x12Clean(trim($this->billing_options['medicaid_resubmission_code'] ?? ''));
+        return $this->resubmissionCode();
     }
 
     /**
      * @return string
      */
+    /**
+     * HCFA box 22a, the original reference number of a claim this one replaces.
+     * Not Medicaid-specific despite the old name.
+     *
+     * @return string
+     */
+    public function originalReferenceNumber()
+    {
+        return $this->x12Clean(trim($this->billing_options['original_reference_number'] ?? ''));
+    }
+
+    /**
+     * @deprecated since 8.5.0, use originalReferenceNumber() instead.
+     * @return string
+     */
     public function medicaidOriginalReference()
     {
-        return $this->x12Clean(trim($this->billing_options['medicaid_original_reference'] ?? ''));
+        return $this->originalReferenceNumber();
+    }
+
+    /**
+     * Map an index into $this->payers onto the payer level used by
+     * ar_activity.payer_type, where 1 = primary, 2 = secondary, 3 = tertiary.
+     *
+     * @param int $ins
+     * @return int 0 if the payer's sequence is unknown
+     */
+    public function payerLevel($ins = 0)
+    {
+        return match ($this->payerSequence($ins)) {
+            'P' => 1,
+            'S' => 2,
+            'T' => 3,
+            default => 0,
+        };
+    }
+
+    /**
+     * The claim control number (ICN/DCN) that a prior payer assigned to this
+     * claim, captured from CLP07 of their 835 and stored in ar_activity.
+     * Used for Loop 2330B REF*F8 on secondary and tertiary claims.
+     *
+     * Note this is the PRIOR payer's number, and is distinct from HCFA box 22a
+     * (originalReferenceNumber) and from icnResubmissionNumber(), both of which
+     * carry the DESTINATION payer's number on a replacement claim.
+     *
+     * @param int $ins index into $this->payers, where 0 is the destination payer
+     * @return string
+     */
+    public function otherPayerClaimControlNumber($ins = 1)
+    {
+        $level = $this->payerLevel($ins);
+        if ($level < 1) {
+            return '';
+        }
+
+        $row = QueryUtils::querySingleRow(
+            "SELECT payer_claim_number FROM ar_activity WHERE " .
+            "pid = ? AND encounter = ? AND payer_type = ? AND " .
+            "payer_claim_number IS NOT NULL AND payer_claim_number != '' AND " .
+            "deleted IS NULL " .
+            "ORDER BY post_time DESC, sequence_no DESC LIMIT 1",
+            [$this->pid, $this->encounter_id, $level]
+        );
+
+        $icn = (is_array($row) && is_string($row['payer_claim_number'] ?? null))
+            ? $row['payer_claim_number']
+            : '';
+
+        return $this->x12Clean(trim($icn));
+    }
+
+    /**
+     * The date a prior payer adjudicated this claim, taken from the check date
+     * of the ERA session the payment was posted under.  Loop 2330B DTP*573.
+     *
+     * @param int $ins index into $this->payers, where 0 is the destination payer
+     * @return string CCYYMMDD, or an empty string if unknown
+     */
+    public function otherPayerAdjudicationDate($ins = 1)
+    {
+        $level = $this->payerLevel($ins);
+        if ($level < 1) {
+            return '';
+        }
+
+        $row = QueryUtils::querySingleRow(
+            "SELECT IFNULL(s.check_date, a.post_date) AS adjudication_date " .
+            "FROM ar_activity AS a " .
+            "LEFT JOIN ar_session AS s ON s.session_id = a.session_id WHERE " .
+            "a.pid = ? AND a.encounter = ? AND a.payer_type = ? AND " .
+            "a.pay_amount != 0 AND a.deleted IS NULL " .
+            "ORDER BY a.post_time DESC, a.sequence_no DESC LIMIT 1",
+            [$this->pid, $this->encounter_id, $level]
+        );
+
+        $adjudicationDate = (is_array($row) && is_string($row['adjudication_date'] ?? null))
+            ? $row['adjudication_date']
+            : '';
+
+        return $this->cleanDate($adjudicationDate);
     }
 
     public function frequencyTypeCode()

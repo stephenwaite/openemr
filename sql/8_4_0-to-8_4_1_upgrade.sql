@@ -112,3 +112,17 @@
 --  #IfMBOEncounterNeeded
 --    desc: Add encounter to the form_misc_billing_options table
 --    arguments: none
+
+-- cms-rel-840: from upstream #14330 (8_4_1-to-8_5_0_upgrade.sql on master).
+-- The same #IfMissingColumn blocks there skip once these have run.
+#IfMissingColumn drugs billing_units
+ALTER TABLE `drugs` ADD COLUMN `billing_units` int(11) DEFAULT NULL COMMENT 'default units when the related HCPCS code is added to a fee sheet' AFTER `related_code`;
+#EndIf
+
+#IfMissingColumn drugs ndc_uom
+ALTER TABLE `drugs` ADD COLUMN `ndc_uom` varchar(2) NOT NULL DEFAULT '' COMMENT 'NDC unit of measure for the related HCPCS service line' AFTER `billing_units`;
+#EndIf
+
+#IfMissingColumn drugs ndc_quantity
+ALTER TABLE `drugs` ADD COLUMN `ndc_quantity` decimal(10,3) DEFAULT NULL COMMENT 'NDC quantity for the related HCPCS service line' AFTER `ndc_uom`;
+#EndIf

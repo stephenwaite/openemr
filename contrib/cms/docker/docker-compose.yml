@@ -1,0 +1,102 @@
+# CMS Vermont production stack for cms-rel-840.
+# Based on docker/production/docker-compose.yml; see contrib/cms/docker/README.md.
+#
+# Build the image first (from the repository root):
+#   docker build --no-cache-filter openemr-source \
+#     --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
+#     --build-arg OPENEMR_VERSION=cms-rel-840 \
+#     -t cmsvt/openemr:cms-rel-840 docker/release
+#
+# Settings that differ per server (passwords, the sites folder, ports) come
+# from .env next to this file; copy .env.example and fill it in.
+#
+# MYSQL_* and OE_* below are only used to configure a brand-new install,
+# including a stock sites/default on a server where default isn't a real
+# site; migrated sites keep their own sites/<site>/sqlconf.php. Keep
+# MYSQL_DATABASE and MYSQL_USER different from every migrated site's.
+services:
+  mysql:
+    restart: always
+    image: mariadb:12.3.3@sha256:dd9b303aed4f4890ed09f766d8ca9ddfd176c0c6f6267feff53b3192ec65a979
+    command: ['mariadbd', '--character-set-server=utf8mb4']
+    # Reachable from this host only (for the nightly dump scripts), on a port
+    # that doesn't clash with a host MariaDB kept for rollback.
+    ports:
+    - 127.0.0.1:${CMS_DB_LOCAL_PORT:-3307}:3306
+    volumes:
+    - databasevolume:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${CMS_DB_ROOT_PASS:?set CMS_DB_ROOT_PASS in .env}
+      # Runs mariadb-upgrade when started on an older MariaDB data directory.
+      MARIADB_AUTO_UPGRADE: '1'
+    healthcheck:
+      test:
+      - CMD
+      - /usr/local/bin/healthcheck.sh
+      - --su-mysql
+      - --connect
+      - --innodb_initialized
+      start_period: 1m
+      start_interval: 10s
+      interval: 1m
+      timeout: 5s
+      retries: 3
+  openemr:
+    restart: always
+    # The build this server runs; pin it to a commit tag (see README,
+    # "Updating"). Unset: whatever cms-rel-840 was last built as.
+    image: ${CMS_IMAGE:-cmsvt/openemr:cms-rel-840}
+    ports:
+    - ${CMS_HTTP_PORT:-80}:80
+    - ${CMS_HTTPS_PORT:-443}:443
+    volumes:
+    - logvolume01:/var/log
+    # Let's Encrypt certificates, kept across container recreates (only with
+    # CMS_DOMAIN set; /etc/ssl itself stays in the image for its CA bundle).
+    - letsencryptvolume:/etc/letsencrypt
+    # The existing sites folder, migrated in place (readable and writable by the
+    # image's apache: the APACHE_UID it was built with, 1000 by default).
+    - ${CMS_SITES_DIR:?set CMS_SITES_DIR in .env}:/var/www/localhost/htdocs/openemr/sites
+    # Vendor hooks (docker/HOOKS.md): scripts must stay executable.
+    - ./hooks/prelaunch:/root/hooks/prelaunch:ro
+    # CMS config read by the hooks (site files, per-site SQL, PHP overrides).
+    - ./config:/cms-config:ro
+    environment:
+      MYSQL_HOST: mysql
+      # Only needed to configure a new stock `default` (first start). Leave
+      # CMS_SETUP_DB_ROOT_PASS unset afterwards so the running container
+      # holds no database root password; upgrades and hooks use each site's
+      # own sqlconf.php user.
+      MYSQL_ROOT_PASS: ${CMS_SETUP_DB_ROOT_PASS:-unset}
+      MYSQL_DATABASE: openemr_default
+      MYSQL_USER: openemr_default
+      MYSQL_PASS: ${CMS_DEFAULT_DB_PASS:?set CMS_DEFAULT_DB_PASS in .env}
+      # Let's Encrypt for this server's single hostname; empty = self-signed.
+      DOMAIN: ${CMS_DOMAIN:-}
+      EMAIL: ${CMS_LETSENCRYPT_EMAIL:-}
+      # For the HTTP-to-HTTPS redirect (06-cms-https-redirect).
+      CMS_HTTPS_PORT: ${CMS_HTTPS_PORT:-443}
+      OE_USER: admin
+      OE_PASS: ${CMS_DEFAULT_ADMIN_PASS:?set CMS_DEFAULT_ADMIN_PASS in .env}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD
+      - /usr/bin/curl
+      - --fail
+      - --insecure
+      - --location
+      - --show-error
+      - --silent
+      - https://localhost/meta/health/readyz
+      start_period: 3m
+      start_interval: 10s
+      interval: 1m
+      timeout: 5s
+      retries: 3
+volumes:
+  logvolume01: {}
+  letsencryptvolume: {}
+  databasevolume: {}

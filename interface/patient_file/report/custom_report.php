@@ -31,6 +31,7 @@ use Mpdf\Mpdf;
 use Mpdf\MpdfException;
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
+use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Forms\FormReportRenderer;
 use OpenEMR\Common\Lists\IssueTypeRegistry;
 use OpenEMR\Core\Header;
@@ -161,6 +162,10 @@ function getContent()
       img {
         max-width: 700px;
       }
+
+      .text {
+        font-size: 1rem;
+      }
     </style>
 
     <?php if (!$PDF_OUTPUT) { ?>
@@ -174,7 +179,7 @@ function getContent()
 
 <body>
     <div class="container">
-        <div id="report_custom w-100">  <!-- large outer DIV -->
+        <div id="report_custom w-100" style="padding: 3em;">  <!-- large outer DIV -->
             <?php
             $ar = count($_GET) > 0 ? $_GET : $_POST;
 
@@ -210,7 +215,14 @@ function getContent()
                     $logo = OEGlobalsBag::getInstance()->get('OE_SITE_WEBROOT') . "/images/" . basename((string) $practice_logo);
                 }
 
-                echo genFacilityTitle(getPatientName($pid), $session->get('pc_facility'), $logo); ?>
+                $patientName = getPatientName($pid);
+                $reportTitle = is_string($patientName) ? $patientName : '';
+                $dob = QueryUtils::fetchSingleValue('SELECT `DOB` FROM `patient_data` WHERE `pid` = ?', 'DOB', [$pid]);
+                $formattedDob = is_string($dob) && $dob !== '' ? oeFormatShortDate($dob) : '';
+                if (is_string($formattedDob) && $formattedDob !== '') {
+                    $reportTitle .= ' - ' . $formattedDob;
+                }
+                echo genFacilityTitle($reportTitle, $session->get('pc_facility'), $logo); ?>
 
             <?php } else { // not printable
                 ?>
@@ -732,23 +744,20 @@ function getContent()
                             $dateres = getEncounterDateByEncounter($form_encounter);
                             $formId = getFormIdByFormdirAndFormid($res[1], $form_id);
 
-                            if ($res[1] == 'newpatient') {
+                            // Encounter and dictation read as one visit record: no form headings.
+                            if (in_array($res[1], ['newpatient', 'dictation'], true)) {
                                 echo "<div class='text encounter'>\n";
-                                echo "<h4>" . xlt($formres["form_name"]) . "</h4>";
                             } else {
                                 echo "<div class='text encounter_form'>";
                                 echo "<h4>" . text(xl_form_title($formres["form_name"])) . "</h4>";
                             }
-                            if (!empty($dateres['date'])) {
-                            // show the encounter's date
-                                echo "(" . text(oeFormatSDFT(strtotime((string) $dateres["date"]))) . ") ";
-                            }
                             if ($res[1] == 'newpatient') {
+                                if (!empty($dateres['date'])) {
+                                    echo xlt('Date of Service') . ": (" . text(oeFormatSDFT(strtotime((string) $dateres["date"]))) . ") ";
+                                }
                                 // display the provider info
                                 echo ' ' . xlt('Provider') . ': ' . text(getProviderName(getProviderIdOfEncounter($form_encounter)));
                             }
-
-                            echo "<br />\n";
 
                             // call the report function for the form
                             ?>
@@ -772,34 +781,12 @@ function getContent()
                             </div>
                             <?php
 
-                            if ($res[1] == 'newpatient') {
-                                // display billing info
-                                $bres = sqlStatement(
-                                    "SELECT b.date, b.code, b.code_text, b.modifier " .
-                                    "FROM billing AS b, code_types AS ct WHERE " .
-                                    "b.pid = ? AND " .
-                                    "b.encounter = ? AND " .
-                                    "b.activity = 1 AND " .
-                                    "b.code_type = ct.ct_key AND " .
-                                    "ct.ct_diag = 0 " .
-                                    "ORDER BY b.date",
-                                    [$pid, $form_encounter]
-                                );
-                                while ($brow = sqlFetchArray($bres)) {
-                                    echo "<div class='font-weight-bold d-inline-block'>&nbsp;" . xlt('Procedure') . ": </div><div class='text d-inline-block'>" .
-                                        text($brow['code']) . ":" . text($brow['modifier']) . " " . text($brow['code_text']) . "</div><br />\n";
-                                }
-                            }
-
                             print "</div>";
                         } // end auth-check for encounter forms
                     } // end if('issue_')... else...
                 } // end if('include_')... else...
             } // end $ar loop
 
-            if ($printable && !$PDF_OUTPUT) {// Patched out of pdf 04/20/2017 sjpadgett
-                echo "<br /><br />" . xlt('Signature') . ": _______________________________<br />";
-            }
             ?>
 
         </div> <!-- end of report_custom DIV -->

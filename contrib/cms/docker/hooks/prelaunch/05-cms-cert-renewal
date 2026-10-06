@@ -1,0 +1,27 @@
+#!/bin/bash
+# Prelaunch hook (runs on every container start, before Apache).
+#
+# Makes sure root's crontab renews the Let's Encrypt certificate. The image's
+# ssl.sh adds the renewal job only when it first obtains a certificate, and
+# the crontab lives in the container: once the certificate is kept in the
+# letsencrypt volume, a recreated container would run crond without it and
+# the certificate would expire.
+set -euo pipefail
+
+domain="${DOMAIN:-}"
+if [[ "${domain}" = "" ]]; then
+    exit 0
+fi
+if [[ ! -f "/etc/letsencrypt/live/${domain}/fullchain.pem" ]]; then
+    echo "cms cert renewal: no certificate for ${domain} yet; ssl.sh adds the job when it obtains one"
+    exit 0
+fi
+
+job='1 23 * * * certbot renew -q --post-hook "httpd -k graceful"'
+current="$(crontab -l 2>/dev/null || true)"
+if grep -q 'certbot renew' <<< "${current}"; then
+    echo "cms cert renewal: renewal job present"
+    exit 0
+fi
+printf '%s\n%s\n' "${current}" "${job}" | sed '/^$/d' | crontab -
+echo "cms cert renewal: renewal job added for ${domain}"
