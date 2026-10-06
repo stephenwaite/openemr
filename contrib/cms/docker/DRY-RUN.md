@@ -172,10 +172,11 @@ docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" -e "
   SELECT name, active FROM background_services;"
 ```
 
-Labs are pointed at local folders (protocol `FS`). `active = 0` alone
-isn't enough: Process Results in Electronic Reports polls every lab
-regardless, and its SFTP fetch **deletes each result file from the lab's
-server**, so production would never get those results. With `FS`, each
+Labs are switched off and pointed at local folders (protocol `FS`).
+Process Results in Electronic Reports skips inactive labs, but older
+builds polled every lab regardless, and its SFTP fetch **deletes each
+result file from the lab's server**, so production would never get those
+results. Keep both settings: with `FS`, each
 lab's results are read from `/tmp/dryrun-hl7/<ppid>/results` in the
 container and its orders written to `/tmp/dryrun-hl7/<ppid>/orders`. Each
 lab needs its own folder: Process Results goes through the labs in name
@@ -289,9 +290,12 @@ that apply to this site. At least:
 - **Labs** (on a site with a results-only feed): re-import a result file that
   production already processed, and compare the two. Production archives
   each file under `sites/<site>/documents/procedure_results/<ppid>-<npi>/`.
-  Copy one into that lab's local results folder, then click Process Results
-  in Procedures → Electronic Reports:
+  Copy one into that lab's local results folder, switch that one lab back
+  on (it reads only the local folder now), then click Process Results in
+  Procedures → Electronic Reports:
   ```sh
+  docker compose exec -T mysql mariadb -uroot -p<root password> <dbase> -e "
+    UPDATE procedure_providers SET active = 1 WHERE ppid = <ppid> AND protocol = 'FS'"
   docker compose exec openemr sh -c 'mkdir -p /tmp/dryrun-hl7/<ppid>/results /tmp/dryrun-hl7/<ppid>/orders && chown -R apache /tmp/dryrun-hl7'
   docker compose cp tools/decrypt-hl7.php openemr:/tmp/decrypt-hl7.php
   docker compose cp tools/poll-labs.php openemr:/tmp/poll-labs.php
@@ -310,7 +314,8 @@ that apply to this site. At least:
   production's) is overwritten with the ciphertext encrypted again. To put
   back an archive copy from the backup, rsync that one file, then rerun
   `sudo setfacl -m u:1000:rw <file>`: rsync restores the backup's ACL, and
-  the import can't write its archive copy over it ("Cannot create file").
+  the import can't write its archive copy over it: the page then shows "Not
+  imported, cannot create file" and leaves the file in the results folder.
   Use a file production processed before the dump to compare with its
   original: the import attaches to production's existing order (adding a
   second, identical report, as production does for a resent message); a
