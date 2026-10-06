@@ -44,7 +44,7 @@ index 7a3747c0e3..57fe12eb82 100644
 @@ -1585,7 +1585,7 @@ class X125010837P
                  // for esp
                  if (
-                     $_SESSION['site_id'] == 'S5'
+                     $_SESSION['site_id'] == '1500'
 -                    && in_array($claim->payerID(), ['87726', '39026', '25169', 'TREST', 'PAMCD'])
 +                    && in_array($claim->payerID(), ['87726', '39026', 'TREST', 'PAMCD'])
                  ) {

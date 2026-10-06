@@ -62,7 +62,7 @@ Full diffs are in `decisions/`.
 
 | # | Item | Net change (production vs rebase) | Where it would land on rel-840 |
 |---|---|---|---|
-| 1 | bb3852f040 | (a) X12RemoteTracker: for SFTP host `moveit.bcbsvt.com`, rename the claim file to `007111NN.x12` (NN random 20–99) before upload. (b) `Claim::payToFacilityStreet()` `mail_street ?? ''`. (c) Site S5 NDC-skip payer list drops `25169`: production **sends** NDCs for 25169; the rebase skips them. | (a) X12RemoteTracker (rel-840 added SFTP retry, #13854). (b) Claim.php. (c) X125010837P.php; the site-S5 check becomes a per-site global (decision 3). |
+| 1 | bb3852f040 | (a) X12RemoteTracker: for SFTP host `moveit.bcbsvt.com`, rename the claim file to `007111NN.x12` (NN random 20–99) before upload. (b) `Claim::payToFacilityStreet()` `mail_street ?? ''`. (c) Site 1500 NDC-skip payer list drops `25169`: production **sends** NDCs for 25169; the rebase skips them. | (a) X12RemoteTracker (rel-840 added SFTP retry, #13854). (b) Claim.php. (c) X125010837P.php; the site-1500 check becomes a per-site global (decision 3). |
 | 2 | 0e3c453afa + 907594e8a0 | Encounter form: the onset-date label reads "Date Last Seen" when the primary business entity's facility taxonomy is `213E00000X`, else "Onset/Hosp. Date". | `C_EncounterVisitForm` + `_date-of-onset.html.twig` (the label is hardcoded there). |
 | 3 | 3b46580887 | The records-review user gets **no Edit button** on the Demographics and Insurance cards (write auth forced false for that username). | `src/Patient/Cards/DemographicsViewCard.php`, `InsuranceViewCard.php`. The username becomes a per-site global (decision 3). |
 | 4 | 250f586c09 | ISA02 / ISA04 input `maxlength` 10 → 20 on the X12 partner form. | templates/x12_partners/general_edit.html. X12 defines ISA02/ISA04 as fixed 10 characters. |
@@ -220,7 +220,7 @@ production both have. Keep upstream's code; do not carry these edits:
 
 | SHA | Missing from rebase | Where it would go in 8.x |
 |---|---|---|
-| bb3852f040 | (1) X12RemoteTracker: rename to `007111NN.x12` for moveit.bcbsvt.com. (2) `Claim::payToFacilityStreet` `mail_street ?? ''`. (3) Payer **25169** removed from the site-S5 NDC-skip list: the rebase re-ported an older list, so **it still skips NDCs for 25169 and production doesn't.** | C1 837P cluster |
+| bb3852f040 | (1) X12RemoteTracker: rename to `007111NN.x12` for moveit.bcbsvt.com. (2) `Claim::payToFacilityStreet` `mail_street ?? ''`. (3) Payer **25169** removed from the site-1500 NDC-skip list: the rebase re-ported an older list, so **it still skips NDCs for 25169 and production doesn't.** | C1 837P cluster |
 | 0e3c453afa, 907594e8a0 | "Date Last Seen" label for facility taxonomy 213E00000X in the encounter form | rel-703+ moved the form to C_EncounterVisitForm and Twig; `_date-of-onset.html.twig` hardcodes "Onset/hosp. date:" |
 | 3b46580887 | `<records-review-user>` exclusion from demographics/insurance write-auth | now src/Patient/Cards/DemographicsViewCard.php:64 and InsuranceViewCard.php:46 |
 | 250f586c09 | `maxlength="20"` on ISA02/ISA04 inputs (the rebase has 10) | templates/x12_partners/general_edit.html. X12 fixes ISA02/04 at 10 characters: still needed? |
@@ -308,7 +308,7 @@ delta. Upstream renamed **none** of the port files and deleted **one**:
 
 Two cross-cutting issues show up in nearly every cluster:
 - **`$_SESSION` reads are forbidden by rel-840's PHPStan rules.** CMS code
-  gates on `$_SESSION['site_id']` (sites S1, S4, S6, S7, 'default') and
+  gates on `$_SESSION['site_id']` (sites 200, 1400, 2400, 4800, 'default') and
   `$_SESSION['authUser'] == '<records-review-user>'`. Every gate needs
   `SessionWrapperFactory`, or better, a global or site config instead of
   hardcoded site IDs.
@@ -352,7 +352,7 @@ One-off import/export and admin CLI scripts.
 | library/edihistory/edih_io.php | 2 (whitespace/comment) | mechanical, ACL #13200 | clean | drop |
 | library/edihistory/edih_csv_parse.php | 5 (HL-22 claim split when `gen_x12_based_on_ins_co`; `?? ''`) | mechanical (`(string)` casts), #13151 | 7 conflicts, all mechanical | rewrite using `OEGlobalsBag::getBoolean` (medium) |
 | interface/themes/misc/edi_history_v2.scss | 1 (DataTables length-select width) | header only | clean | port |
-| src/Billing/EDI270.php | 1: hardcodes provider NPI, ID and name when `site_id == 'S1'` | mechanical, #11583 | clean | **Recommend config** rather than a hardcode |
+| src/Billing/EDI270.php | 1: hardcodes provider NPI, ID and name when `site_id == '200'` | mechanical, #11583 | clean | **Recommend config** rather than a hardcode |
 | templates/x12_partners/general_edit.html | 0 in rebase; production 250f586c09 `maxlength="20"` on ISA02/04 | whitespace | none | Decision: X12 fixes ISA02/04 at 10 characters |
 | library/classes/X12Partner.class.php | 0 | Rector | — | nothing to port (upstreamed) |
 
@@ -360,13 +360,13 @@ One-off import/export and admin CLI scripts.
 
 | File | CMS hunks | Upstream | Overlap | Proposal |
 |---|---|---|---|---|
-| interface/billing/billing_report.php | 4 (site S1 default 60 days; reopen with `can_mark`; `forms.authorized` filter removed "for <person>") + missing "patient" button (bf2848ba3e) | structural UI #13765, QueryUtils #10884 | 1 region | port; replace the site hardcode |
+| interface/billing/billing_report.php | 4 (site 200 default 60 days; reopen with `can_mark`; `forms.authorized` filter removed "for <person>") + missing "patient" button (bf2848ba3e) | structural UI #13765, QueryUtils #10884 | 1 region | port; replace the site hardcode |
 | interface/patient_file/front_payment.php | 1 (check-no field for credit_card) | mechanical | clean | port |
 | interface/patient_file/history/edit_billnote.php | 1 (rows 12) | minor | 1 region | port |
 | interface/patient_file/deleter.php | 1 | **already fixed** | 1 region | drop |
 | interface/billing/sl_receipts_report.php | delta 984ce86650 (1 line, `irnumber`→`invnumber`) | mechanical | clean | port |
 | interface/reports/receipts_by_method_report.php + src/Services/InsuranceService.php | 2 + 1 (insurance by effective date) | mechanical | 1 + 1 | port; make `$date` optional; **remove the `pid == '<pid>'` error_log debug** |
-| interface/reports/collections_report.php | 3 (default "Due Ins", export forces individual, site S4) | mechanical | 2 regions | port |
+| interface/reports/collections_report.php | 3 (default "Due Ins", export forces individual, site 1400) | mechanical | 2 regions | port |
 | src/Services/InsuranceCompanyService.php | 1 (`getAllByName`) | mechanical | clean | drop (only the chart_review_pids hack uses it) |
 
 #### 5. C9 Chart review / practice access & custom report — medium — 1-by-1
@@ -433,12 +433,12 @@ CMS-specific in the schema.
 | interface/billing/sl_eob_search.php | 9 hunks incl. a 165-line letterhead PDF writer inside `upload_file_to_client()`; requires bare `.inc` files (would fatal) | **structural**: `upload_file_to_client_pdf()` split out, gated on `statement_appearance`; printing via symfony/process (#11414) | 6 regions | needs a small hook for the letterhead PDF rather than inline CMS code |
 
 #### 11. C8 Labs / HL7 / FHIR — HL7 medium, **FHIR hard** — 1-by-1
-Site-specific lab ingest (site S6 matches by MRN/pubpid, visit no. → `external_id`), lab review list fixes, and FHIR Observation search by `external_id` using the order transmit date.
+Site-specific lab ingest (site 2400 matches by MRN/pubpid, visit no. → `external_id`), lab review list fixes, and FHIR Observation search by `external_id` using the order transmit date.
 
 | File | CMS hunks | Upstream | Overlap | Notes |
 |---|---|---|---|---|
 | interface/orders/receive_hl7_results.inc.php | 6 + delta f7f691ac06 (2) | mechanical (Rector, OEGlobalsBag, session wrapper, QueryUtils txns) | 4 | keep the `$external_id = $in_external_visit_no` adaptation; the delta's `nlist` guard is already fixed upstream (drop) |
-| interface/orders/list_reports.php | 7 (stayHere, site S7 max 50, site S6 reviewed=2, `LIMIT 500`, latest-encounter link) | mechanical + local-function dedupe | 1 | |
+| interface/orders/list_reports.php | 7 (stayHere, site 4800 max 50, site 2400 reviewed=2, `LIMIT 500`, latest-encounter link) | mechanical + local-function dedupe | 1 | |
 | interface/orders/single_order_results.php | 2 (stayHere) | mechanical | none | pairs with list_reports |
 | interface/orders/single_order_results.inc.php | 1 | **already fixed** | 1 | drop |
 | src/Services/FHIR/FhirObservationService.php | 3: **comments out the SocialHistory and Vitals mapped services**; adds `external_id` search | **structural** (US Core 8 / USCDI v5, granular scopes) | 1 | **Changes API output for every client** |
@@ -495,7 +495,7 @@ essential for this cluster.
    image on printed prescriptions?
 4. **MedEx (C11, 0219cd4943):** was removing `$ignoreAuth = true` from the
    callback intentional?
-5. **Hardcoded site IDs** (S1, S4, S6, S7, 'default') and the
+5. **Hardcoded site IDs** (200, 1400, 2400, 4800, 'default') and the
    `<records-review-user>` username: port them as-is through the session wrapper, or
    replace them with globals/site config? (Config recommended; bigger change.)
 6. **One-off import scripts (C12):** drop from the repo?
@@ -517,16 +517,16 @@ open: it's a production schema check, needed before the DB upgrade.)
 |---|---|---|
 | 1 | C12 Site utilities | import scripts moved out of the repo; setup.php, config.yaml and the chart_review_pids hack dropped; NGS password becomes a console command in the new CMS module |
 | 2 | C11 Small UI / misc | **drop** C_Prescription (printed-Rx signature) and MedEx (use upstream) |
-| 3 | C4 EDI / X12 partners / eligibility | EDI270 site-S1 provider hardcode becomes a CMS-module global; ISA maxlength pending item 4 |
-| 4 | C5 Billing manager & payments | site S1/S4 checks become CMS-module globals; "patient" button pending item 6 |
+| 3 | C4 EDI / X12 partners / eligibility | EDI270 site-200 provider hardcode becomes a CMS-module global; ISA maxlength pending item 4 |
+| 4 | C5 Billing manager & payments | site 200/1400 checks become CMS-module globals; "patient" button pending item 6 |
 | 5 | C9 Chart review / access / custom report | records-review user and site checks become CMS-module globals; **drop** the globals.inc.php audit-default changes (set per site in Globals); dier gating pending item 7 |
 | 6 | C10 Encounter form gaps | pending items 2 and 5 |
 | 7 | C6 Fee sheet & fee schedule | unchanged |
 | 8 | C7 Custom reports | menu entries go to Custom.json |
 | 9 | C2 ERA/EOB posting | unchanged |
 | 10 | **Statements (new source)** | **replaces C3.** Port `statement.inc.php` and the custom-statement global in `library/globals.inc.php` from `origin/rel-830-sunflower` (the global stays in core: upstream candidate). The cms-rel-701 statement changes are **not** ported. |
-| 11 | C8 Labs / HL7 (FHIR dropped) | **drop** all FHIR changes (Vitals/SocialHistory removal, lab effectiveDateTime); HL7 site-S6/S7 checks become CMS-module globals |
-| 12 | C1 837P | restore both N4 zips (2310C, 2330A); the site-S5 NDC list becomes a CMS-module global; bb3852f040 pending item 1 |
+| 11 | C8 Labs / HL7 (FHIR dropped) | **drop** all FHIR changes (Vitals/SocialHistory removal, lab effectiveDateTime); HL7 site-2400/4800 checks become CMS-module globals |
+| 12 | C1 837P | restore both N4 zips (2310C, 2330A); the site-1500 NDC list becomes a CMS-module global; bb3852f040 pending item 1 |
 
 ## Phase 2 log
 
@@ -644,7 +644,7 @@ changed.
 ### Cluster 3 — C4 EDI history / X12 partners / eligibility (2026-09-28)
 
 Sources: e93f13e540, 14bbe6fa18 (edih_csv_parse.php); 1e7747358f
-(edi_history_v2.scss); f5de47125c (EDI270.php site-S1 override).
+(edi_history_v2.scss); f5de47125c (EDI270.php site-200 override).
 
 **Ported:**
 - `library/edihistory/edih_csv_parse.php`: with `gen_x12_based_on_ins_co`
@@ -662,7 +662,7 @@ Sources: e93f13e540, 14bbe6fa18 (edih_csv_parse.php); 1e7747358f
   clusters:** new code in baselined files must be type-clean on its own.
 - `interface/themes/misc/edi_history_v2.scss`: DataTables length-select
   width 50px.
-- **Site-S1 eligibility provider override → per-site globals** (decision 3),
+- **Site-200 eligibility provider override → per-site globals** (decision 3),
   the first CMS globals:
   - Core: new generic `OpenEMR\Events\Billing\EligibilityRequestFilterEvent`,
     dispatched by `EDI270::requestRealTimeEligible()` for each request row
@@ -677,7 +677,7 @@ Sources: e93f13e540, 14bbe6fa18 (edih_csv_parse.php); 1e7747358f
   - **Differs from production:** production hardcoded an NPI, a provider
     name in `facility_name`, and a `provider_ID` key that nothing reads, and
     it skipped validation entirely. Here the NPI comes from the configured
-    user's record. **Deployment, site S1:** set the provider ID and receiver
+    user's record. **Deployment, site 200:** set the provider ID and receiver
     name to the values hardcoded in production commit f5de47125c
     (`src/Billing/EDI270.php`), after confirming that user's NPI matches.
   - Verified at runtime on the test DB: no listener → unchanged; global 0 →
@@ -715,7 +715,7 @@ listener core behaves as upstream. Applies to all later site gates.
   local arrays and assigned to `$_REQUEST` once, which lowers the baselined
   `$_REQUEST` write count instead of raising it. Module:
   `cmsvt_billing_manager_dos_months` (default 0 = all unbilled, which is what
-  every CMS site except S1 had; site S1 = 2; -1 = stock).
+  every CMS site except 200 had; site 200 = 2; -1 = stock).
 - front_payment.php: the check-number field is also enabled for credit card.
 - edit_billnote.php: billing-note textarea 12 rows (rel-840 has 4).
 - receipts_by_method_report.php + InsuranceService: when a payment has no
@@ -729,7 +729,7 @@ listener core behaves as upstream. Applies to all later site gates.
   `CurrentRequest`, not a new `$_POST` access).
 - **Collections "Export Selected to Collections" → per-site global.** Core:
   new `CollectionsReportFilterEvent` (`showExportToCollections`). Module:
-  `cmsvt_collections_hide_agency_export` (site S4 = on).
+  `cmsvt_collections_hide_agency_export` (site 1400 = on).
 - sl_receipts_report.php: the invoice column always shows pid.encounter
   (`invnumber`), not the invoice reference number.
 
@@ -1273,9 +1273,9 @@ All four lint clean. Not run on a rel-830 stack.
 ### Cluster 11 — C8 Labs / HL7 (FHIR dropped) (2026-09-28)
 
 Sources: cms-rel-701 / rebase-cms-rel-703 receive_hl7_results.inc.php
-(90a0e34214 5fb849e0f5 e76dbdcf45 644076aed4 82d202a86c, and the site-S6
-match), list_reports.php and single_order_results.php (stayHere, site S7
-per-lab maximum, site S6 review filter, `LIMIT 500`, latest-encounter link).
+(90a0e34214 5fb849e0f5 e76dbdcf45 644076aed4 82d202a86c, and the site-2400
+match), list_reports.php and single_order_results.php (stayHere, site 4800
+per-lab maximum, site 2400 review filter, `LIMIT 500`, latest-encounter link).
 f7f691ac06 (`nlist` guard) is already fixed upstream; dropped.
 single_order_results.inc.php: already fixed upstream; dropped. All FHIR,
 ProcedureService and swagger changes: dropped (decision 2026-09-23).
@@ -1290,7 +1290,7 @@ never stored. cms-rel-701, the production code, stores it. The port follows
   receive_hl7_results.inc.php. Without a listener, import is exactly
   upstream. Module `Labs\LabOptions::applyToImport()`:
   - **Match on MRN only** (PID-3 = `patient_data.pubpid`) when
-    `cmsvt_hl7_match_patient_by_mrn` is on (was `site_id == S6`). No
+    `cmsvt_hl7_match_patient_by_mrn` is on (was `site_id == 2400`). No
     name/DOB/SSN ambiguity search: one pid matches, several ask the user,
     none returns 0 (as production).
   - **All CMS sites**, as production: results-only orders store the **visit
@@ -1300,10 +1300,10 @@ never stored. cms-rel-701, the production code, stores it. The port follows
     empty value.
 - `OpenEMR\Events\Orders\LabResultsListFilterEvent`, dispatched from
   list_reports.php. Module `applyToList()`:
-  - `cmsvt_lab_results_per_lab`: default "Results Per Lab" (was site S7 =
+  - `cmsvt_lab_results_per_lab`: default "Results Per Lab" (was site 4800 =
     50);
   - `cmsvt_lab_list_default_reviewed`: default filter = Reviewed (was site
-    S6).
+    2400).
   - **Differs from production:** these are now *defaults*. Production forced
     them and ignored what the user picked.
 - **Core, all sites, as production:**
@@ -1325,9 +1325,9 @@ never stored. cms-rel-701, the production code, stores it. The port follows
 = [])` (no caller without arguments).
 
 **Deployment:**
-- site S6: `cmsvt_hl7_match_patient_by_mrn` on and
+- site 2400: `cmsvt_hl7_match_patient_by_mrn` on and
   `cmsvt_lab_list_default_reviewed` on;
-- site S7: `cmsvt_lab_results_per_lab` = 50.
+- site 4800: `cmsvt_lab_results_per_lab` = 50.
 
 Baseline: **reductions only**. receive_hl7_results.inc.php: "ternary always
 true" removed, `non-falsy-string . mixed` 28→26. single_order_results.php:
@@ -1460,18 +1460,18 @@ by diff).
 - **2420A** always sent for payer 14165.
 - **1000A NM109** = the X12 partner's sender ID (third-party submitter).
 - **Routine foot care** for billing NPIs in `cmsvt_claim_routine_foot_care_npis`
-  (was hardcoded <podiatry-npi>):
+  (was hardcoded 1134268188):
   - the onset date goes out as DTP*304;
   - the referring provider is sent as supervisor when none is chosen;
   - Medicare requires the 2310A referrer for foot care and foot x-rays;
   - lines without Q7/Q8/Q9 get a warning.
 - **Warnings:** POS 01, payer ID 99999, VA CCN without prior auth, and a
-  closed service facility (`cmsvt_claim_closed_facility_npis`, was site S3
+  closed service facility (`cmsvt_claim_closed_facility_npis`, was site 1300
   with an NPI).
 - **Per-site settings:**
-  - `cmsvt_claim_ndc_skip_payer_ids` (was site S5: 87726, 39026, TREST,
+  - `cmsvt_claim_ndc_skip_payer_ids` (was site 1500: 87726, 39026, TREST,
     PAMCD; **25169 is removed**, per bb3852f040);
-  - `cmsvt_claim_rendering_provider_id` (was site S5 = user 6, "incident
+  - `cmsvt_claim_rendering_provider_id` (was site 1500 = user 6, "incident
     to").
 - **MOVEit:** uploads to moveit.bcbsvt.com are named `007111NN.x12`.
   **Differs from production:** only the remote name changes. Production
@@ -1487,7 +1487,7 @@ by diff).
   similar lines. **Stephen to confirm** (see the Phase 3 837P diff).
   **Decided 2026-09-29: match production** (see the follow-up below).
 - **Skipping an NDC no longer skips the rest of the line.** Production's
-  site-S5 NDC skip used `continue`, which also dropped 2420A and 2430 for
+  site-1500 NDC skip used `continue`, which also dropped 2420A and 2430 for
   that line.
 - **A payer left out of 2330 is also left out of 2430 (SVD).** Production
   still sent SVD for it.
@@ -1525,10 +1525,10 @@ by diff).
   starting point for Phase 3. All test rows are removed.
 
 **Deployment:**
-- site S5: `cmsvt_claim_ndc_skip_payer_ids` = 87726, 39026, TREST, PAMCD,
+- site 1500: `cmsvt_claim_ndc_skip_payer_ids` = 87726, 39026, TREST, PAMCD,
   and `cmsvt_claim_rendering_provider_id` = 6;
-- site S3: `cmsvt_claim_closed_facility_npis` = the closed facility's NPI;
-- the podiatry site: `cmsvt_claim_routine_foot_care_npis` = <podiatry-npi>.
+- site 1300: `cmsvt_claim_closed_facility_npis` = the closed facility's NPI;
+- the podiatry site: `cmsvt_claim_routine_foot_care_npis` = 1134268188.
 
 ### Cluster 11b — FHIR lab Observation search by external ID (2026-09-28)
 
@@ -1709,7 +1709,7 @@ units and NDC now come from Inventory.
 ## Docker kit correction (2026-10-02)
 
 Reading `openemr.sh`'s main flow more closely, while Stephen hit "no
-sqlconf.php" for `default` on the site-S2 server:
+sqlconf.php" for `default` on the site-1100 server:
 - **The marker-`5` step was wrong.** `run_upgrade` (the `fsupgrade-N` path)
   needs `${OE_ROOT}/docker-version`, a code marker that lives in the
   container's code tree, isn't in the image, and is written only after
@@ -1723,7 +1723,7 @@ sqlconf.php" for `default` on the site-S2 server:
   in the dev container: first start applied, second skipped.
 - **A missing `sites/default` is only restored in swarm mode**, and
   `sites/default/sqlconf.php` is how the image decides OpenEMR is
-  installed. On a server where `default` isn't a real site (site S2's
+  installed. On a server where `default` isn't a real site (site 1100's
   server), the container gets a stock `default` copied from the image. It's
   configured as a new empty site, using `MYSQL_DATABASE`/`MYSQL_USER`,
   which the compose file now sets to `openemr_default` so they can't
@@ -1765,19 +1765,19 @@ branch. Sites keep production's `statement_logo` and letterhead PNG
 (production drew it the same way, full page at 612×792). Kit READMEs,
 DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
 
-## Dry run, site S2 (2026-10-03)
+## Dry run, site 1100 (2026-10-03)
 
-- `x12_partners.x12_submitter_id` was `tinyint(1)` on S2; altered to
+- `x12_partners.x12_submitter_id` was `tinyint(1)` on 1100; altered to
   `smallint(6)` before the first start (DEPLOYMENT.md section 1 confirmed).
 - Schema upgrade 7.0.1 → 8.4 (revision 487 → 543): about 61 s, with no
   failed statements.
-- A comment-only `config/sql/S2.sql` stopped the start ("Query was
+- A comment-only `config/sql/1100.sql` stopped the start ("Query was
   empty"). Fixed in the helper (bd7c7e8f77): files with nothing to apply
   are skipped.
 - Patient page: "SQL Statement failed on preparation" on the
   `contact_relation` query. Cause: the database was created without a
   collation, so MariaDB 12 gave the upgrade's new tables
-  `utf8mb4_uca1400_ai_ci` against the dump's `utf8mb4_general_ci`. S2
+  `utf8mb4_uca1400_ai_ci` against the dump's `utf8mb4_general_ci`. 1100
   had 28 such tables, next to production's 216 `utf8mb3_general_ci`, 27
   `utf8mb4_general_ci` and 16 `latin1_swedish_ci` (those compare fine across
   character sets and were left alone). Fix: convert the 28 to
@@ -1793,9 +1793,9 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   added it as tinyint with a syntax error; #6459 (2023-05-17) fixed both
   and changed it to `smallint(6)` before any release. cms-rel-701 took #6456
   and fixed the syntax itself, but kept tinyint. Not an upstream bug in any
-  release. `all-sites.sql` now widens it on every site. S4: tinyint, all
+  release. `all-sites.sql` now widens it on every site. 1400: tinyint, all
   values 11 or NULL.
-- S4 started without `config/sites/S4/statement.inc.php`, so it kept
+- 1400 started without `config/sites/1400/statement.inc.php`, so it kept
   its 7.0.1 copy. Every site should have the same file (Stephen), so the
   site-files hook now copies the image's (`/swarm-pieces/sites/default/`)
   into every configured site at each start; a `config/sites/<site>/` copy
@@ -1807,7 +1807,7 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   protocol `FS` with local paths. (Upstream behavior; worth raising: an
   inactive provider probably shouldn't be polled.)
 - Production's root crontab runs `execute_background_services.php <site>`
-  for S6 (every 15 min), S2, S4, S5, S7 and S8 (6×/day).
+  for 2400 (every 15 min), 1100, 1400, 1500, 4800 and 5200 (6×/day).
   rel-840's CLI refuses root and the container has no OpenEMR cron:
   DEPLOYMENT.md section 7 moves them to host cron calling `bin/console
   background:services run --site=<site>` as apache.
@@ -1879,7 +1879,7 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
   80 by default (redirect commented out in `docker/release/openemr.conf`).
   `06-cms-https-redirect` makes 80 answer only the ACME challenge and
   redirect the rest (to `CMS_HTTPS_PORT` when not 443). Checked with a
-  throwaway Apache: challenge S1, login page 301 to HTTPS.
+  throwaway Apache: challenge 200, login page 301 to HTTPS.
 - **Dry run, another lab site (2026-10-04, rebuilt image):** upgrade
   ~148 s. Port 80 redirect (301), `--site` on the console command, and the
   site's setting all worked. `Email_Service` came back **active** after the
@@ -1966,16 +1966,16 @@ DRY-RUN.md and DEPLOYMENT.md section 4 are updated.
 
 | Production check | Where | Replacement | Cluster |
 |---|---|---|---|
-| `site_id == 'S1'`: fixed eligibility provider | EDI270.php | `cmsvt_elig_provider_id`, `cmsvt_elig_receiver_name` | 3 |
-| `site_id == 'S1'`: Billing Manager default = last 2 months (others: all unbilled) | billing_report.php | `cmsvt_billing_manager_dos_months` (S1 → 2, others → 0) | 4 |
-| `site_id != 'S4'`: show Export to Collections | collections_report.php | `cmsvt_collections_hide_agency_export` (S4 → on) | 4 |
+| `site_id == '200'`: fixed eligibility provider | EDI270.php | `cmsvt_elig_provider_id`, `cmsvt_elig_receiver_name` | 3 |
+| `site_id == '200'`: Billing Manager default = last 2 months (others: all unbilled) | billing_report.php | `cmsvt_billing_manager_dos_months` (200 → 2, others → 0) | 4 |
+| `site_id != '1400'`: show Export to Collections | collections_report.php | `cmsvt_collections_hide_agency_export` (1400 → on) | 4 |
 | `site_id != 'default'`: show visit details in the encounter report | newpatient/report.php | `cmsvt_encounter_report_hide_visit_details` (no site: `default` isn't real anywhere) | 5 |
 | `authUser == '<records-review-user>'` (records-review user): 4 checks | demographics.php, stats.php, edit_globals.php | **not a global:** the reviewer's ACL group (see cluster 5) | 5 |
 | primary business entity taxonomy `213E00000X`: "Date Last Seen" label | newpatient encounter form | `cmsvt_encounter_date_last_seen` (podiatry sites → on) | 6 |
-| `site_id == 'S6'`: match lab results by MRN only | receive_hl7_results.inc.php | `cmsvt_hl7_match_patient_by_mrn` (S6 → on) | 11 |
-| `site_id == 'S6'`: Electronic Reports filter forced to Reviewed | list_reports.php | `cmsvt_lab_list_default_reviewed` (S6 → on; now a default) | 11 |
-| `site_id == 'S7'`: 50 results per lab | list_reports.php | `cmsvt_lab_results_per_lab` (S7 → 50; now a default) | 11 |
-| `site_id == 'S5'`: payers without NDCs | X125010837P.php | `cmsvt_claim_ndc_skip_payer_ids` (S5 → 87726, 39026, TREST, PAMCD) | 12 |
-| `site_id == 'S5'`: bill under user 6 | Claim.php | `cmsvt_claim_rendering_provider_id` (S5 → 6) | 12 |
-| `site_id == 'S3'` + facility NPI: closed facility warning | X125010837P.php | `cmsvt_claim_closed_facility_npis` (S3 → that NPI) | 12 |
-| billing NPI `<podiatry-npi>`: podiatry claim rules | X125010837P.php | `cmsvt_claim_routine_foot_care_npis` (podiatry site → <podiatry-npi>) | 12 |
+| `site_id == '2400'`: match lab results by MRN only | receive_hl7_results.inc.php | `cmsvt_hl7_match_patient_by_mrn` (2400 → on) | 11 |
+| `site_id == '2400'`: Electronic Reports filter forced to Reviewed | list_reports.php | `cmsvt_lab_list_default_reviewed` (2400 → on; now a default) | 11 |
+| `site_id == '4800'`: 50 results per lab | list_reports.php | `cmsvt_lab_results_per_lab` (4800 → 50; now a default) | 11 |
+| `site_id == '1500'`: payers without NDCs | X125010837P.php | `cmsvt_claim_ndc_skip_payer_ids` (1500 → 87726, 39026, TREST, PAMCD) | 12 |
+| `site_id == '1500'`: bill under user 6 | Claim.php | `cmsvt_claim_rendering_provider_id` (1500 → 6) | 12 |
+| `site_id == '1300'` + facility NPI: closed facility warning | X125010837P.php | `cmsvt_claim_closed_facility_npis` (1300 → that NPI) | 12 |
+| billing NPI `1134268188`: podiatry claim rules | X125010837P.php | `cmsvt_claim_routine_foot_care_npis` (podiatry site → 1134268188) | 12 |

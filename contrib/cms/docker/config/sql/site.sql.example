@@ -2,7 +2,6 @@
 -- site's directory name under sites/, keep only the settings that site used
 -- in production (DEPLOYMENT.md section 3), fill in the values and uncomment.
 -- The prelaunch settings hook applies each <site>.sql once to that site.
--- Keep the real files out of git: they identify the sites.
 
 -- Billing Manager: default to the last N months of service dates.
 -- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_billing_manager_dos_months', 0, '<months>');

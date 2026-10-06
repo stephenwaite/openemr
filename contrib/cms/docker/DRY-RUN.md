@@ -91,9 +91,9 @@ Create `kit/.env` from `kit/.env.example`. Keep a copy outside `kit/`
 `default`) must differ from the site's `$dbase` and `$login`. They're
 `openemr_default`.
 
-In `kit/config/sql/`, keep `all-sites.sql`, delete the other sites' files,
-and add a `<site>.sql` (from `site.sql.example`, or your private copy)
-only for CMS settings the site had in production.
+`kit/config/sql/` has `all-sites.sql` and each CMS site's own `<site>.sql`.
+Leave them all: the hook applies a `<site>.sql` only to the site of that
+name under `sites/`.
 Every site gets the image's `statement.inc.php` automatically at start (the
 `10-cms-site-files` hook). The letterhead is normally already in place: production read
 the same Statement Logo global and `sites/<site>/images/` file. Check after
@@ -367,8 +367,7 @@ rsync -a src/contrib/cms/docker/ kit/
 
 The trailing slashes matter: this updates `kit/` in place. (`cp -r` into an
 existing `kit/` would make a new `kit/docker/` instead.) Files that aren't in
-the repo, like `.env` and your private `config/sql/<site>.sql`, are left as
-they are.
+the repo, like `.env`, are left as they are.
 
 **Back up the new site** as in "What you need": `sites/<next>/` and its
 database dump from the same moment, checked complete, next to the other
@@ -384,9 +383,6 @@ it's on the same disk.
     on a server where `default` is real, migrate that one instead.)
   - Set `$host` to `mysql` in `sites/<next>/sqlconf.php` (the `sed` in step 3).
 - **Step 4:**
-  - copy the new site's private `<next>.sql`, if it has one, into
-    `kit/config/sql/`. Other sites' files there are ignored (the hook only
-    applies `<site>.sql` to sites under `sites/`), but you can delete them;
   - copy your `.env` back in (`cp ../dryrun.env kit/.env`). Check that
     `openemr_default` differs from <next>'s `$dbase` and `$login`.
 - **Step 5:**

@@ -22,8 +22,9 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
       tools/poll-labs.php                runs Process Results for one lab, summary only
       config/                            sample CMS config, mounted at /cms-config
         sql/all-sites.sql                applied to every site
-        sql/site.sql.example             template for sql/<site>.sql, applied to that site
-                                         (the directory name under sites/); keep those private
+        sql/<site>.sql                   that site's own settings (<site> is the
+                                         directory name under sites/)
+        sql/site.sql.example             template for a new site's file
         sites/<site>/...                 copied into sites/<site>/ on every start
         code/...                         copied into the code tree on every start
         php/*.ini                        copied into PHP's conf.d on every start
@@ -32,8 +33,7 @@ For a practice run on a copy of one site first, see `DRY-RUN.md`.
 
 This folder in the repository is a template. Copy it to each server once
 (e.g. `/opt/cms/kit`) and fill in the real settings in that copy: `.env`
-(passwords), `config/sql/<site>.sql` (they identify the sites), any
-`config/sites/<site>/` files and, for the records-review user, the
+(passwords), any `config/sites/<site>/` files and, for the records-review user, the
 PatientFilter config (a list of patient IDs). Never commit those back to the
 repository. Make sure the server's backups include that copy. The cutover
 runbook is in `contrib/cms/porting-rel-840/DEPLOYMENT.md`, section 10.
@@ -86,10 +86,10 @@ Copy `.env.example` to `.env` and fill it in: the sites folder, the
 database root password, the stock `default` site's passwords and the ports.
 `.env` holds passwords; keep it only on the server.
 
-- `sql/<site>.sql`: one file per site that has its own settings (DEPLOYMENT.md
-  section 3), made from `sql/site.sql.example`. These files identify the
-  sites: keep them only on the server (or in a private repository), never in
-  this public one.
+- `sql/<site>.sql`: one file per CMS site that has its own settings
+  (DEPLOYMENT.md section 3). The hook applies each only to the site of that
+  name, so every server can keep all of them. For a new site, start from
+  `sql/site.sql.example`.
 - `sql/all-sites.sql`: sets Statement Appearance to PDF Custom on every site
   (production's layout). Sites keep their production Statement Logo.
 - `sites/<site>/`: `chart_review.json` for the records-review site, and a
