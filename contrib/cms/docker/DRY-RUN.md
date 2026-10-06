@@ -357,8 +357,13 @@ docker build --no-cache-filter openemr-source \
   --build-arg OPENEMR_VERSION=cms-rel-840 \
   -t cmsvt/openemr:cms-rel-840 docker/release
 cd ~/cms-dryrun
-cp -r src/contrib/cms/docker kit
+rsync -a src/contrib/cms/docker/ kit/
 ```
+
+The trailing slashes matter: this updates `kit/` in place. (`cp -r` into an
+existing `kit/` would make a new `kit/docker/` instead.) Files that aren't in
+the repo, like `.env` and your private `config/sql/<site>.sql`, are left as
+they are.
 
 **Back up the new site** as in "What you need": `sites/<next>/` and its
 database dump from the same moment, checked complete, next to the other
@@ -374,8 +379,9 @@ it's on the same disk.
     on a server where `default` is real, migrate that one instead.)
   - Set `$host` to `mysql` in `sites/<next>/sqlconf.php` (the `sed` in step 3).
 - **Step 4:**
-  - in `kit/config/sql/`, keep `all-sites.sql` and the new site's
-    `<next>.sql`, if it has one, and delete the rest;
+  - copy the new site's private `<next>.sql`, if it has one, into
+    `kit/config/sql/`. Other sites' files there are ignored (the hook only
+    applies `<site>.sql` to sites under `sites/`), but you can delete them;
   - copy your `.env` back in (`cp ../dryrun.env kit/.env`). Check that
     `openemr_default` differs from <next>'s `$dbase` and `$login`.
 - **Step 5:**
