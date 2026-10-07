@@ -849,7 +849,28 @@ $language_direction = $session->get('language_direction'); // fetch before the <
             }
         }
 
-        // LOCAL: flip the current selection, for running print after email.
+        // LOCAL: check exactly the rows that need a printed statement: patients who
+        //        can't be emailed plus those with 2+ unpaid emails (PRINT badge), not
+        //        in collections. Replaces the whole selection in one step, so the
+        //        print batch doesn't depend on clicking Select All Not Email, Invert
+        //        and hand-checking in the right order.
+        function checkPrintRun() {
+            let count = 0;
+            document.querySelectorAll("input[type='checkbox'][name^='form_cb']")
+                .forEach(box => {
+                    const row = box.closest('tr');
+                    const td = row ? row.querySelector('td[data-print-run]') : null;
+                    box.checked = !!td && td.dataset.printRun === '1';
+                    if (box.checked) {
+                        count++;
+                    }
+                });
+            if (count === 0) {
+                alert(<?php echo js_escape(xl('No patients in this list need a printed statement.')); ?>);
+            }
+        }
+
+        // LOCAL: flip the current selection.
         function invertStatementSelection() {
             document.querySelectorAll("input[type='checkbox'][name^='form_cb']")
                 .forEach(box => {
@@ -1451,8 +1472,9 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                         </td>
                                     <?php } ?>
                                     <?php
-                                    // LOCAL: the data attribute lets checkAllNotEmail() select the
-                                    //        rows that cannot be emailed. Fields come from the main
+                                    // LOCAL: the data attributes let checkAllNotEmail() select the
+                                    //        rows that cannot be emailed, and checkPrintRun() the rows
+                                    //        that need a printed statement. Fields come from the main
                                     //        query; see the note there about querying in this loop.
                                     $emailEligible = (
                                         $row['hipaa_allowemail'] == "YES"
@@ -1460,8 +1482,9 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                         && $row['hipaa_notice'] == "YES"
                                         && ValidationUtils::isValidEmail($row['email'] ?? '')
                                     );
+                                    $printRun = !$in_collections && (!$emailEligible || $should_print_not_email);
                                     ?>
-                                    <td class="detail text-left" data-email-eligible="<?php echo $emailEligible ? '1' : '0'; ?>">
+                                    <td class="detail text-left" data-email-eligible="<?php echo $emailEligible ? '1' : '0'; ?>" data-print-run="<?php echo $printRun ? '1' : '0'; ?>">
                                         <?php
                                         echo $emailEligible ? xlt("YES") : xlt("NO");
                                         if ($should_print_not_email) {
@@ -1499,6 +1522,11 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                 <a href='#' class='btn btn-secondary btn-sm' onclick='checkAllNotEmail(); return false;'>
                                     <?php echo xlt('Select All Not Email'); ?>
                                 </a>
+                                <button type='button' class='btn btn-secondary btn-sm'
+                                    onclick='checkPrintRun()'
+                                    title='<?php echo xla('Select patients who cannot be emailed and patients marked PRINT, skipping those in collections'); ?>'>
+                                    <?php echo xlt('Select for Print Run'); ?>
+                                </button>
                                 <button type="submit" class="btn btn-secondary btn-mail" name='form_email'
                                     value="<?php echo xla('Email Selected Statements'); ?>"
                                     onclick="return confirmEmail(this.form);">
@@ -1506,7 +1534,7 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                 </button>
                                 <button type='button' class='btn btn-secondary btn-sm'
                                     onclick='invertStatementSelection()'
-                                    title='<?php echo xla('Toggle all statement checkboxes - useful after an email batch to select the print batch'); ?>'>
+                                    title='<?php echo xla('Toggle all statement checkboxes. For the print batch, use Select for Print Run instead'); ?>'>
                                     <?php echo xlt('Invert Selection'); ?>
                                 </button>
                                 <?php
