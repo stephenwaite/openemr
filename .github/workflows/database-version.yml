@@ -107,6 +107,54 @@ jobs:
           printf 'Both `version.php` and `sql/database.sql` declare v_database = %s\n' "$php_version"
         } >> "$GITHUB_STEP_SUMMARY"
 
+    - name: Check v_database bump is ahead of base
+      env:
+        BASE_REF: ${{ github.base_ref }}
+        PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        # Two open PRs can both bump v_database from N to N+1. Once one
+        # merges, the other's identical edit to version.php merges cleanly,
+        # so the checked-out merge ref looks fine. Compare the PR head's own
+        # bump against the current base tip instead.
+        v_database_at() {
+          local tmp
+          tmp=$(mktemp)
+          git show "$1:version.php" > "$tmp"
+          php bin/get-v-database.php "$tmp"
+          rm -f "$tmp"
+        }
+
+        base_tip="origin/$BASE_REF"
+        fork_point=$(git merge-base "$base_tip" "$PR_HEAD_SHA")
+        fork_v=$(v_database_at "$fork_point")
+        pr_v=$(v_database_at "$PR_HEAD_SHA")
+        base_v=$(v_database_at "$base_tip")
+
+        if [[ "$pr_v" == "$fork_v" ]]; then
+          echo '::notice::This PR does not bump v_database — skipping.'
+          exit 0
+        fi
+
+        if (( pr_v <= base_v )); then
+          {
+            echo '## ❌ v_database is already taken on the base branch'
+            echo
+            printf 'This PR bumps `$v_database` from **%s** to **%s**, but `%s` is already at **%s**.\n' "$fork_v" "$pr_v" "$BASE_REF" "$base_v"
+            echo
+            echo 'Another migration has landed since this branch was created. Installations'
+            echo 'that already upgraded to that version would skip this migration.'
+            echo
+            echo '### How to fix'
+            echo
+            printf 'Rebase on `%s` and set `$v_database` to **%s** in both `version.php`\n' "$BASE_REF" "$((base_v + 1))"
+            echo 'and the `sql/database.sql` header.'
+          } >> "$GITHUB_STEP_SUMMARY"
+          printf '::error file=version.php::v_database %s is not ahead of %s (%s); use %s\n' "$pr_v" "$BASE_REF" "$base_v" "$((base_v + 1))"
+          exit 1
+        fi
+
+        printf '::notice::v_database %s is ahead of %s (%s).\n' "$pr_v" "$BASE_REF" "$base_v"
+
     - name: Check for missing upgrade SQL
       run: |
         base_ref="origin/${{ github.base_ref }}"
