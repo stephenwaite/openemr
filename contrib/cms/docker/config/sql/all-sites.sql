@@ -36,3 +36,14 @@ UPDATE codes SET units = 60 WHERE code_type = (SELECT ct_id FROM code_types WHER
 -- only for a site without one.
 REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('statement_appearance', 0, '2');
 -- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('statement_logo', 0, '<letterhead>.png');
+
+-- Old data clean-ups found in the dry runs. Both are safe to repeat.
+-- insurance_data.provider is a varchar and production holds company ids
+-- zero-padded ('003'); SQL joins match them, string compares don't (the
+-- 8.x insurance editor showed such policies as Unassigned until fixed in
+-- InsuranceService). Leaves blanks and NULLs alone.
+UPDATE insurance_data SET provider = CAST(provider AS UNSIGNED) WHERE provider REGEXP '^0+[1-9][0-9]*$';
+-- The 7.0.1 fee sheet list editor saved the JavaScript value "undefined"
+-- as a code's third field ('HCPCS|J3301|undefined'); harmless, but the
+-- field now names an inventory drug, so clear it.
+UPDATE fee_sheet_options SET fs_codes = REPLACE(fs_codes, '|undefined', '|') WHERE fs_codes LIKE '%|undefined%';
