@@ -90,8 +90,7 @@ class InsuranceService extends BaseService
     {
         $sql = "SELECT `insurance_data`.*,
                        `puuid`,
-                       `insureruuid`,
-                       `insurerid`
+                       `insureruuid`
                 FROM `insurance_data`
                 LEFT JOIN (
                     SELECT
@@ -120,33 +119,10 @@ class InsuranceService extends BaseService
 
         $processingResult = new ProcessingResult();
         while ($row = sqlFetchArray($statementResults)) {
-            $resultRecord = $this->createResultRecordFromDatabaseResult($this->withProviderAsCompanyId($row));
+            $resultRecord = $this->createResultRecordFromDatabaseResult($row);
             $processingResult->addData($resultRecord);
         }
         return $processingResult;
-    }
-
-    /**
-     * provider is a varchar, and databases from older releases hold the company id zero-padded
-     * ("003"). The join matched it as a number; hand out the id it matched, which is what the
-     * insurance editor's provider list is keyed by. The join column itself isn't part of the result.
-     *
-     * @param array<mixed> $row A fetched row of the search query.
-     * @return array<string, mixed>
-     */
-    private function withProviderAsCompanyId(array $row): array
-    {
-        $record = [];
-        foreach ($row as $column => $value) {
-            if (is_string($column)) {
-                $record[$column] = $value;
-            }
-        }
-        if (is_numeric($record['insurerid'] ?? null)) {
-            $record['provider'] = (string) $record['insurerid'];
-        }
-        unset($record['insurerid']);
-        return $record;
     }
 
     public function getOne($uuid)
