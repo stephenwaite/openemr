@@ -66,6 +66,18 @@ On the server, set `CMS_IMAGE=cmswest1/openemr:cms-rel-840-<sha>` in `.env`
 so it records which build it runs, and `docker compose pull` fetches it. A
 dry run can pull the same image instead of building (DRY-RUN.md section 2).
 
+The sha says which commit the image was built from, not that it is the
+branch head. The image holds the code the build cloned, not this kit (which
+is rsynced into `kit/` on the server) and not the notes, so later commits
+that touch only `contrib/cms/` don't call for a rebuild. To check:
+
+```sh
+git diff --stat <sha>..origin/cms-rel-840 -- . ':!contrib/cms'
+```
+
+No output means the image is current. The commit each image was built from
+is also tagged `image/cms-rel-840-<sha>` in git.
+
 **Apache's uid.** The container's Apache owns the files it creates in the
 sites folder, and needs read/write on all of it. By default it's uid 1000,
 which on a server is usually a person's login, who would then get that
