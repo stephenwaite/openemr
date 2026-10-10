@@ -256,13 +256,15 @@ that apply to this site. At least:
   under the new site folder automatically). Open a few across years and
   types, then check that every active document's file exists. The path is
   rebuilt the way `Document::get_filesystem_filepath()` does it, from the
-  file name plus `path_depth` folders. From `~/cms-dryrun`, with your site:
+  file name plus `path_depth` folders. From `~/cms-dryrun`, with step 5's
+  `SITE`, `DB` and `RP` still set (re-run its first block in a new
+  terminal):
   ```sh
-  docker compose -f kit/docker-compose.yml exec -T mysql mariadb -uroot -p<root password> <dbase> -N -e "
+  docker compose -f kit/docker-compose.yml exec -T mysql mariadb -uroot -p"$RP" "$DB" -N -e "
     SELECT id, SUBSTRING_INDEX(url, '/', -(path_depth + 1)) FROM documents
      WHERE deleted = 0 AND storagemethod = 0 AND url <> ''" > docs.tsv
   sudo bash -c 'while IFS=$'"'"'\t'"'"' read -r id rel; do
-    [ -f "sites/<site>/documents/$rel" ] || printf "%s\t%s\n" "$id" "$rel"
+    [ -f "sites/'"$SITE"'/documents/$rel" ] || printf "%s\t%s\n" "$id" "$rel"
   done < docs.tsv' > missing.tsv
   wc -l docs.tsv missing.tsv
   ```
@@ -294,17 +296,19 @@ that apply to this site. At least:
   on (it reads only the local folder now), then click Process Results in
   Procedures → Electronic Reports:
   ```sh
-  docker compose exec -T mysql mariadb -uroot -p<root password> <dbase> -e "
+  docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" -e "
     UPDATE procedure_providers SET active = 1 WHERE ppid = <ppid> AND protocol = 'FS'"
   docker compose exec openemr sh -c 'mkdir -p /tmp/dryrun-hl7/<ppid>/results /tmp/dryrun-hl7/<ppid>/orders && chown -R apache /tmp/dryrun-hl7'
   docker compose cp tools/decrypt-hl7.php openemr:/tmp/decrypt-hl7.php
   docker compose cp tools/poll-labs.php openemr:/tmp/poll-labs.php
   # archives are encrypted when drive encryption is on: always decrypt first
-  docker compose exec -u apache openemr php /tmp/decrypt-hl7.php --site=<site> \
-    --in=/var/www/localhost/htdocs/openemr/sites/<site>/documents/procedure_results/<ppid>-<npi>/<file> \
+  docker compose exec -u apache openemr php /tmp/decrypt-hl7.php --site="$SITE" \
+    --in=/var/www/localhost/htdocs/openemr/sites/"$SITE"/documents/procedure_results/<ppid>-<npi>/<file> \
     --out=/tmp/dryrun-hl7/<ppid>/results/<file>
-  docker compose exec -u apache openemr php /tmp/poll-labs.php --site=<site> --lab=<ppid>
+  docker compose exec -u apache openemr php /tmp/poll-labs.php --site="$SITE" --lab=<ppid>
   ```
+  (`<ppid>`, `<npi>` and `<file>` are the lab's id, its NPI and the archived
+  file name: type them in; the other values come from step 5's variables.)
   `decrypt-hl7.php` prints the layers removed and the segment types (it
   refuses to write anything that isn't HL7 afterwards, e.g. wrong keys);
   `poll-labs.php` runs Process Results for that lab and prints a summary
