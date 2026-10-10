@@ -242,7 +242,7 @@ cms-rel-840 includes upstream #14330 (cherry-picked):
       INSERT INTO fee_sheet_options (fs_category, fs_option, fs_codes)
         VALUES ('<category>', 'Depo-Medrol 40 mg (J1010)', 'HCPCS|J1010|<drug_id>');
       ```
-      Administration → Lists → Fee Sheet then shows the drug next to the
+      Administration → Forms → Lists, Fee Sheet, then shows the drug next to the
       code and keeps it when the list is saved. Code search still gives the
       default.
 - [ ] **Default units:** `config/sql/all-sites.sql` sets `codes.units` to
