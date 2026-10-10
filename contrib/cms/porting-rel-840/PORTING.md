@@ -1270,6 +1270,26 @@ Statement Appearance wasn't set to PDF Custom.)
 
 All four lint clean. Not run on a rel-830 stack.
 
+5. `rel-830-sunflower-select-print-run.patch` (2026-10-07, on top of 1–4):
+   a **Select for Print Run** button on the statement list. It checks every
+   row whose patient can't be emailed or carries the PRINT badge (2+ unpaid
+   email statements), skips patients in collections, and clears every
+   other row. If nothing qualifies, it says so. The row's email cell gets a
+   `data-print-run` attribute next to `data-email-eligible`. Invert
+   Selection's tooltip no longer recommends it for picking the print batch.
+   - Why: the 2026-09-01 print run went only to PRINT-badged patients. The
+     documents table shows exactly 78 Invoice documents that day, matching
+     the 78 `patient_statements` rows, so nothing was printed without being
+     recorded. Patients who couldn't be emailed were left out because both
+     existing buttons replace the whole selection: Select All Not Email
+     unchecks the PRINT rows, and Invert flips every box. That wipes any
+     hand ticks made before pressing either one.
+   - Checks: `php -l` clean (php:8.3-cli container). `checkPrintRun()`
+     tested with node against mocked rows: not-email and PRINT rows are
+     checked and others cleared; earlier ticks are replaced; an empty
+     result alerts. `git apply --check` passes on `a95025b472` after
+     patches 1–4. phpcs not run, and not run on a rel-830 stack.
+
 ### Cluster 11 — C8 Labs / HL7 (FHIR dropped) (2026-09-28)
 
 Sources: cms-rel-701 / rebase-cms-rel-703 receive_hl7_results.inc.php
