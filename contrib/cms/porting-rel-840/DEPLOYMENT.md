@@ -378,8 +378,13 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
 - [x] Image built from the final cms-rel-840 commit, tagged with it and pushed
       to Docker Hub (`cmswest1/openemr:cms-rel-840-<sha>`, kit README section 1):
       `cms-rel-840-f270a42ca7`, 2026-10-10, uid 1500; git tag `image/cms-rel-840-f270a42ca7`.
-      (kit README section 1); `docker images` on the server shows it.
-- [ ] Kit in `/opt/cms/kit`, and `bub /opt/cms "${BUB_DEST}"` added to
+      (1ff0629490 reverted the insurance provider change that image carries;
+      a rebuild from 1ff0629490 is optional, the extra code is inert on
+      cleaned data.) On the server: `cd /opt/cms/kit && docker compose pull`
+      after `.env` names the tag; `docker images` then shows it.
+- [ ] Kit in `/opt/cms/kit` (`rsync -a <checkout>/contrib/cms/docker/ /opt/cms/kit/`
+      from the cms-rel-840 checkout), `scripts/sync-sites.sh` next to it for
+      step 4, and `bub /opt/cms "${BUB_DEST}"` added to
       `/etc/cron.daily/99-bub` (it holds `.env` and the per-site SQL, and
       `/opt/cms` isn't otherwise backed up). Kit contents:
   - [ ] `.env`: `CMS_IMAGE` (the tag), `CMS_SITES_DIR=/var/www/html/openemr/sites`,
@@ -396,15 +401,14 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
 - [x] Docker disk: room for every site's database once loaded
       (`df -h /var/lib/docker`): 670 GB free on `/var` (encrypted volume,
       checked 2026-10-10).
-- [ ] **A dedicated account for the container's Apache**, with no login:
-      `sudo useradd --system --no-create-home --shell /usr/sbin/nologin openemr-web`.
-      The image's default uid 1000 is a person's login on the multisite server, who
-      would otherwise get read/write on every practice's files without
-      `sudo`. Build the image with `--build-arg APACHE_UID=$(id -u openemr-web)`
-      (kit README section 1) and check:
-      `docker run --rm --entrypoint id <image> apache`.
+- [x] **A dedicated account for the container's Apache**, with no login:
+      `openemr-web`, uid 1500 on whiterocks (2026-10-10); the image was built
+      with `APACHE_UID=1500` and `docker run --rm --entrypoint id <image> apache`
+      shows `uid=1500(apache)`. (The image's default uid 1000 is a person's
+      login there.)
 - [ ] The container's apache can use the live folder (harmless to the host
-      Apache meanwhile; takes a while on big trees):
+      Apache meanwhile; takes a while on big trees, so run it well before
+      cutover night's 22:15):
       ```sh
       sudo setfacl -R -m u:openemr-web:rwX -m d:u:openemr-web:rwX /var/www/html/openemr/sites
       ```
