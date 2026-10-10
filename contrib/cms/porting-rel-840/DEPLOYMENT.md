@@ -32,10 +32,15 @@ Fill in `config/` from the sections below, then use them as the checklist
 to verify each site.
 
 Each server pins the build it runs with `CMS_IMAGE` in `.env` (an image
-tagged with its cms-rel-840 commit). Later fixes (e.g. upstream cherry-picks)
-follow the kit README's "Updating": build, back up the databases, change
-`CMS_IMAGE`, `docker compose up -d`; going back is the same with the old
-tag.
+tagged with its cms-rel-840 commit, published on Docker Hub as
+`cmswest1/openemr:cms-rel-840-<sha>`). Later fixes (e.g. upstream
+cherry-picks) follow the kit README's "Updating": build and push, back up
+the databases, change `CMS_IMAGE`, `docker compose pull` and `up -d`;
+going back is the same with the old tag.
+
+- [x] **Docker on the server:** Docker 28.1.1 on whiterocks, usable by the
+      deploying account without `sudo`, nothing else running in it
+      (checked 2026-10-10); Compose plugin v2.35.1.
 
 - [ ] **TLS certificate.** One hostname per server: set `CMS_DOMAIN` and
       `CMS_LETSENCRYPT_EMAIL` in `.env`; the container gets and renews the
@@ -370,7 +375,9 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
       plus dump and load time, is the downtime estimate).
 - [ ] Each site's per-unit price decision made from its billing history
       (section 6): which codes, if any, to convert.
-- [ ] Image built from the final cms-rel-840 commit and tagged with it
+- [x] Image built from the final cms-rel-840 commit, tagged with it and pushed
+      to Docker Hub (`cmswest1/openemr:cms-rel-840-<sha>`, kit README section 1):
+      `cms-rel-840-f270a42ca7`, 2026-10-10, uid 1500; git tag `image/cms-rel-840-f270a42ca7`.
       (kit README section 1); `docker images` on the server shows it.
 - [ ] Kit in `/opt/cms/kit`, and `bub /opt/cms "${BUB_DEST}"` added to
       `/etc/cron.daily/99-bub` (it holds `.env` and the per-site SQL, and
@@ -386,8 +393,9 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
         review `chart_review.json`, PatientFilter config under `config/code/`).
 - [ ] `x12_submitter_id` values checked on every site (section 1).
 - [ ] Each site's grants and user known (`sqlconf.php`); no shared logins.
-- [ ] Docker disk: room for every site's database once loaded
-      (`df -h /var/lib/docker`).
+- [x] Docker disk: room for every site's database once loaded
+      (`df -h /var/lib/docker`): 670 GB free on `/var` (encrypted volume,
+      checked 2026-10-10).
 - [ ] **A dedicated account for the container's Apache**, with no login:
       `sudo useradd --system --no-create-home --shell /usr/sbin/nologin openemr-web`.
       The image's default uid 1000 is a person's login on the multisite server, who
