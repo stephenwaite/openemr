@@ -256,10 +256,11 @@ that apply to this site. At least:
   under the new site folder automatically). Open a few across years and
   types, then check that every active document's file exists. The path is
   rebuilt the way `Document::get_filesystem_filepath()` does it, from the
-  file name plus `path_depth` folders. From `~/cms-dryrun`, with step 5's
-  `SITE`, `DB` and `RP` still set (re-run its first block in a new
-  terminal):
+  file name plus `path_depth` folders. With step 5's `SITE`, `DB` and `RP`
+  still set (re-run its first block in a new terminal; `echo $SITE $DB`
+  to check), from any directory:
   ```sh
+  cd ~/cms-dryrun
   docker compose -f kit/docker-compose.yml exec -T mysql mariadb -uroot -p"$RP" "$DB" -N -e "
     SELECT id, SUBSTRING_INDEX(url, '/', -(path_depth + 1)) FROM documents
      WHERE deleted = 0 AND storagemethod = 0 AND url <> ''" > docs.tsv
@@ -268,6 +269,9 @@ that apply to this site. At least:
   done < docs.tsv' > missing.tsv
   wc -l docs.tsv missing.tsv
   ```
+  `docs.tsv` should have as many lines as the site has active documents;
+  0 lines means the query didn't run (wrong directory or unset variables),
+  not that there are no documents.
   `missing.tsv` should be empty. Delete both files afterwards: they hold
   document names.
 - **Fee sheet:** pick a drug code; check its units and price. Run the
