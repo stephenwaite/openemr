@@ -49,12 +49,21 @@ SHA=$(git rev-parse --short HEAD)
 docker build --no-cache-filter openemr-source \
   --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
   --build-arg OPENEMR_VERSION=cms-rel-840 \
-  --build-arg APACHE_UID="$(id -u openemr-web)" \
-  -t cmsvt/openemr:cms-rel-840-$SHA -t cmsvt/openemr:cms-rel-840 docker/release
+  --build-arg APACHE_UID=1500 \   # openemr-web on the server ($(id -u openemr-web) there)
+  -t cmswest1/openemr:cms-rel-840-$SHA -t cmswest1/openemr:cms-rel-840 docker/release
 ```
 
-Set `CMS_IMAGE=cmsvt/openemr:cms-rel-840-<sha>` in `.env` so the server
-records which build it runs.
+Push both tags to Docker Hub (`cmswest1/openemr`; `docker login` first) so
+the server pulls the build instead of building it:
+
+```sh
+docker push cmswest1/openemr:cms-rel-840-$SHA
+docker push cmswest1/openemr:cms-rel-840
+```
+
+On the server, set `CMS_IMAGE=cmswest1/openemr:cms-rel-840-<sha>` in `.env`
+so it records which build it runs, and `docker compose pull` fetches it. A
+dry run can pull the same image instead of building (DRY-RUN.md section 2).
 
 **Apache's uid.** The container's Apache owns the files it creates in the
 sites folder, and needs read/write on all of it. By default it's uid 1000,
@@ -77,7 +86,7 @@ several GB of disk. Rebuild after every change to cms-rel-840.
 `--no-cache-filter openemr-source` makes it clone again; without it, Docker
 reuses the cached clone and the image keeps the old code. The image has no
 `.git`, so to check what's in it, look for something recent, e.g.
-`docker run --rm --entrypoint grep cmsvt/openemr:cms-rel-840 -c adjustmentReason
+`docker run --rm --entrypoint grep cmswest1/openemr:cms-rel-840 -c adjustmentReason
 /var/www/localhost/htdocs/openemr/src/Billing/Statement/CustomPdfStatementText.php`.
 
 ## 2. Fill in .env and config/
@@ -145,7 +154,7 @@ upgraded on its own, straight from 7.0.1; no version marker is needed.
      a stock `default` from the image. On first start it configures it as a
      new, empty site:
      ```sh
-     docker run --rm --entrypoint tar cmsvt/openemr:cms-rel-840 \
+     docker run --rm --entrypoint tar cmswest1/openemr:cms-rel-840 \
        -C /var/www/localhost/htdocs/openemr/sites -c default | tar -C <sites folder> -x
      ```
      `MYSQL_DATABASE` and `MYSQL_USER` in the compose file are used for that

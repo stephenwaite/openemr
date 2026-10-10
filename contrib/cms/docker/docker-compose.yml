@@ -5,7 +5,7 @@
 #   docker build --no-cache-filter openemr-source \
 #     --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
 #     --build-arg OPENEMR_VERSION=cms-rel-840 \
-#     -t cmsvt/openemr:cms-rel-840 docker/release
+#     -t cmswest1/openemr:cms-rel-840 docker/release
 #
 # Settings that differ per server (passwords, the sites folder, ports) come
 # from .env next to this file; copy .env.example and fill it in.
@@ -45,7 +45,7 @@ services:
     restart: always
     # The build this server runs; pin it to a commit tag (see README,
     # "Updating"). Unset: whatever cms-rel-840 was last built as.
-    image: ${CMS_IMAGE:-cmsvt/openemr:cms-rel-840}
+    image: ${CMS_IMAGE:-cmswest1/openemr:cms-rel-840}
     ports:
     - ${CMS_HTTP_PORT:-80}:80
     - ${CMS_HTTPS_PORT:-443}:443

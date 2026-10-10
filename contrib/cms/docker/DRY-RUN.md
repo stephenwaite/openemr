@@ -43,7 +43,15 @@ cd ~/cms-dryrun/src
 docker build --no-cache-filter openemr-source \
   --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
   --build-arg OPENEMR_VERSION=cms-rel-840 \
-  -t cmsvt/openemr:cms-rel-840 docker/release
+  -t cmswest1/openemr:cms-rel-840 docker/release
+```
+
+Or pull a build already pushed to Docker Hub instead (its Apache uid is the
+server's `openemr-web`, 1500, so `setfacl` below uses that uid, not 1000):
+
+```sh
+docker pull cmswest1/openemr:cms-rel-840-<sha>
+docker tag cmswest1/openemr:cms-rel-840-<sha> cmswest1/openemr:cms-rel-840
 ```
 
 ## 3. Working copy of the sites folder
@@ -56,7 +64,7 @@ BACKUP=~/cms-dryrun/backup        # or wherever the backups are, e.g. /media/<di
 sudo rsync -aHAX --numeric-ids --delete --info=progress2 "$BACKUP/sites/$SITE/" sites/$SITE/
 
 # Stock default site from the image: configured on first start as a new, empty site
-docker run --rm --entrypoint tar cmsvt/openemr:cms-rel-840 \
+docker run --rm --entrypoint tar cmswest1/openemr:cms-rel-840 \
   -C /var/www/localhost/htdocs/openemr/sites -c default | tar -C sites -x
 
 # The container's apache is uid 1000 (the image's default APACHE_UID)
@@ -368,7 +376,7 @@ git pull                                  # for the kit; the build clones from G
 docker build --no-cache-filter openemr-source \
   --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
   --build-arg OPENEMR_VERSION=cms-rel-840 \
-  -t cmsvt/openemr:cms-rel-840 docker/release
+  -t cmswest1/openemr:cms-rel-840 docker/release
 cd ~/cms-dryrun
 rsync -a src/contrib/cms/docker/ kit/
 ```
