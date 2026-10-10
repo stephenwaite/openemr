@@ -46,10 +46,11 @@ build itself clones the branch from GitHub), tagged with that commit:
 ```sh
 git pull
 SHA=$(git rev-parse --short HEAD)
+# APACHE_UID: the server's openemr-web account, 1500 ($(id -u openemr-web) there)
 docker build --no-cache-filter openemr-source \
   --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
   --build-arg OPENEMR_VERSION=cms-rel-840 \
-  --build-arg APACHE_UID=1500 \   # openemr-web on the server ($(id -u openemr-web) there)
+  --build-arg APACHE_UID=1500 \
   -t cmswest1/openemr:cms-rel-840-$SHA -t cmswest1/openemr:cms-rel-840 docker/release
 ```
 
