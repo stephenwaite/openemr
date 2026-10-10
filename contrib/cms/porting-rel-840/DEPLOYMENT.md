@@ -454,9 +454,12 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
    ```
    Every site's database should be listed `ok`; compare with the sites'
    `$dbase` values.
-4. **Fallback copy of the sites folder** (rollback only, not used to run):
+4. **Fallback copy of the sites folder** (rollback only, not used to run).
+   `sync-sites.sh` refuses to write unless the parent of `DEST` is a mount
+   point, so put the copy directly under `/var` (its own encrypted volume,
+   670 GB free):
    ```sh
-   sudo ./sync-sites.sh <every site>
+   sudo DEST=/var/sites-pre-cutover /opt/cms/sync-sites.sh <every site>
    ```
 5. **Load every site's dump** into the container's MariaDB. Each site gets
    its database and user from its own `sqlconf.php`:
