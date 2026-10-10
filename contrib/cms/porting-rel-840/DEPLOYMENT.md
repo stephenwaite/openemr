@@ -377,10 +377,8 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
       (section 6): which codes, if any, to convert.
 - [x] Image built from the final cms-rel-840 commit, tagged with it and pushed
       to Docker Hub (`cmswest1/openemr:cms-rel-840-<sha>`, kit README section 1):
-      `cms-rel-840-f270a42ca7`, 2026-10-10, uid 1500; git tag `image/cms-rel-840-f270a42ca7`.
-      (1ff0629490 reverted the insurance provider change that image carries;
-      a rebuild from 1ff0629490 is optional, the extra code is inert on
-      cleaned data.) On the server: `cd /opt/cms/kit && docker compose pull`
+      `cms-rel-840-1b8e920e64`, 2026-10-10, uid 1500; git tag `image/cms-rel-840-1b8e920e64` (rebuilt after the insurance revert; first build f270a42ca7 stays on Hub).
+      On the server: `cd /opt/cms/kit && docker compose pull`
       after `.env` names the tag; `docker images` then shows it.
 - [ ] Kit in `/opt/cms/kit` (`rsync -a <checkout>/contrib/cms/docker/ /opt/cms/kit/`
       from the cms-rel-840 checkout), `scripts/sync-sites.sh` next to it for
@@ -406,12 +404,16 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
       with `APACHE_UID=1500` and `docker run --rm --entrypoint id <image> apache`
       shows `uid=1500(apache)`. (The image's default uid 1000 is a person's
       login there.)
-- [ ] The container's apache can use the live folder (harmless to the host
-      Apache meanwhile; takes a while on big trees, so run it well before
-      cutover night's 22:15):
+- [x] The container's apache can use the live folder (harmless to the host
+      Apache meanwhile: it only adds an entry for openemr-web; takes a while
+      on big trees, so run it well before cutover night's 22:15, as a
+      transient service that survives logout):
       ```sh
-      sudo setfacl -R -m u:openemr-web:rwX -m d:u:openemr-web:rwX /var/www/html/openemr/sites
+      sudo systemd-run --unit=cms-setfacl -p Nice=19 -p IOSchedulingClass=idle \
+        /usr/bin/setfacl -R -m u:openemr-web:rwX -m d:u:openemr-web:rwX /var/www/html/openemr/sites
+      systemctl status cms-setfacl      # inactive (dead), status=0/SUCCESS when done
       ```
+      Started 2026-10-10 ~17:30; check the status before step 8.
 - [ ] Host certbot renewing until the cutover (`sudo certbot renew --dry-run`).
 - [ ] A password for the dump account the snapshot script will use against
       the container (step 11), kept with the server's other secrets.
