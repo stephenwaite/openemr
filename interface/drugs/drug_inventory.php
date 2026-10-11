@@ -150,6 +150,11 @@ function inventory_mapToTable($row): void
         echo "  <td>" . ($row['active'] ? xlt('Yes') : xlt('No')) . "</td>\n";
         echo "  <td>" . ($row['consumable'] ? xlt('Yes') : xlt('No')) . "</td>\n";
         echo "  <td>" . text($row['ndc_number']) . "</td>\n";
+        // related_code holds the billing codes the Fee Sheet links to this
+        // drug, e.g. "HCPCS:J1030" or "CPT4:96372;HCPCS:J1030".
+        $relatedCode = is_array($row) ? ($row['related_code'] ?? '') : '';
+        $relatedCodes = is_string($relatedCode) ? str_replace(';', ' ', $relatedCode) : '';
+        echo "  <td>" . text($relatedCodes) . "</td>\n";
         echo "  <td>" .
         generate_display_field(['data_type' => '1','list_id' => 'drug_form'], $row['form']) .
         "</td>\n";
@@ -393,6 +398,7 @@ foreach (
             <th><?php echo xlt('Act'); ?></th>
             <th><?php echo xlt('Cons'); ?></th>
             <th><?php echo xlt('NDC'); ?> </a></th>
+            <th title='<?php echo xla('Related billing codes (Fee Sheet)'); ?>'><?php echo xlt('Codes'); ?></th>
             <th><?php echo xlt('Form'); ?> </a></th>
             <th><?php echo xlt('Size'); ?></th>
             <th title='<?php echo xlt('Measurement Units'); ?>'><?php echo xlt('Unit'); ?></th>
