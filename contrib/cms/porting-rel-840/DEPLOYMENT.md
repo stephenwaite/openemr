@@ -79,7 +79,7 @@ going back is the same with the old tag.
       site its own login when creating the users.
 - [ ] **No database root password in the running container.** Pass it only
       for the first start of a stock `default`
-      (`CMS_SETUP_DB_ROOT_PASS=… docker compose up -d`), then recreate the
+      (`CMS_SETUP_DB_ROOT_PASS=… sudo docker compose up -d`), then recreate the
       container without it (kit README, step 5).
 - [ ] **Database collation.** Create the new database with
       `CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci` before loading the
@@ -286,7 +286,7 @@ minutes; 1100, 1400, 1500, 4800 and 5200 six times a day). In cms-rel-840:
 - [ ] **Replace the crontab** with host cron calling into the container as
       `apache`, one line per site, keeping today's schedules:
       ```cron
-      */15 * * * * cd /opt/cms/kit && docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=2400 >> /var/log/openemr-bg.log 2>&1
+      */15 * * * * cd /opt/cms/kit && sudo docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=2400 >> /var/log/openemr-bg.log 2>&1
       ```
       `background:services run` runs every service that's due; `list`
       shows them, `unlock` frees one left running, and `crontab` prints
@@ -378,7 +378,7 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
 - [x] Image built from the final cms-rel-840 commit, tagged with it and pushed
       to Docker Hub (`cmswest1/openemr:cms-rel-840-<sha>`, kit README section 1):
       `cms-rel-840-1b8e920e64`, 2026-10-10, uid 1500; git tag `image/cms-rel-840-1b8e920e64` (rebuilt after the insurance revert; first build f270a42ca7 stays on Hub).
-      On the server: `cd /opt/cms/kit && docker compose pull`
+      On the server: `cd /opt/cms/kit && sudo docker compose pull`
       after `.env` names the tag; `docker images` then shows it.
 - [x] Kit in `/opt/cms/kit` (from `~/src/openemr` on the server:
       `git archive cms-rel-840 contrib/cms/docker | sudo tar -x -C /opt/cms/kit --strip-components=3`;
@@ -396,9 +396,10 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
         strong `CMS_DB_ROOT_PASS` / `CMS_DEFAULT_DB_PASS` /
         `CMS_DEFAULT_ADMIN_PASS`, `CMS_DOMAIN`, `CMS_LETSENCRYPT_EMAIL`,
         ports 80/443; `chmod 600 .env`.
-  - [ ] `config/sql/<site>.sql`: the kit has every site's file; check the
-        two with placeholders (1300's closed facility NPI, 200's
-        eligibility provider and receiver name) are filled in and uncommented.
+  - [x] `config/sql/<site>.sql`: the kit has every site's file. The two
+        with placeholders (1300's closed facility NPI, 200's eligibility
+        provider and receiver name) stay commented out: Stephen, 2026-10-10
+        22:15, "that's old code", not needed.
   - [ ] `config/sites/<site>/` only for exceptions (letterhead, records
         review `chart_review.json`, PatientFilter config under `config/code/`).
 - [ ] `x12_submitter_id` values checked on every site (section 1).
@@ -420,7 +421,19 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
         /usr/bin/setfacl -R -m u:openemr-web:rwX -m d:u:openemr-web:rwX /var/www/html/openemr/sites
       systemctl status cms-setfacl      # inactive (dead), status=0/SUCCESS when done
       ```
-      Done 2026-10-10 17:21 (12 s for the whole tree, no errors).
+      Done 2026-10-10 17:21 (12 s for the whole tree, no errors). It
+      changes every file's ctime, so the next incremental off-site push
+      (`99-bub`, tar `--listed-incremental`) re-sends the whole tree: run
+      it a night or two before the cutover, not the same afternoon (on
+      2026-10-10 the 22:25 push was still going at 01:00).
+- [ ] **Every folder under `sites/` accounted for** (`ls sites/`): the
+      container checks each one that has a `sqlconf.php` and exits on the
+      first whose database it can't reach, which stops the whole start. A
+      live site gets dumped, loaded and repointed (steps 3, 5, 6); a retired
+      one moves out of the folder first, e.g. to
+      `/var/www/html/openemr-sites-retired/` (still under `/var/www` for the
+      backups). Found at the cutover: eight retired folders, one of them
+      with a working `sqlconf.php` pointing at `localhost`.
 - [ ] Host certbot renewing until the cutover (`sudo certbot renew --dry-run`).
 - [ ] A password for the dump account the snapshot script will use against
       the container (step 11), kept with the server's other secrets.
@@ -480,18 +493,18 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
    its database and user from its own `sqlconf.php`:
    ```sh
    cd /opt/cms/kit
-   RP=$(grep '^CMS_DB_ROOT_PASS=' .env | cut -d= -f2-)
-   docker compose up -d --wait mysql
+   RP=$(sudo grep '^CMS_DB_ROOT_PASS=' .env | cut -d= -f2-)
+   sudo docker compose up -d --wait mysql
    S=/var/www/html/openemr/sites
    conf() { sudo sed -nE "s/^\\\$$2[[:space:]]*=[[:space:]]*['\"](.*)['\"];.*/\1/p" "$S/$1/sqlconf.php"; }
    for site in <every site>; do
      DB=$(conf "$site" dbase); U=$(conf "$site" login); P=$(conf "$site" pass)
      echo "== $site ($DB)"
-     docker compose exec -T mysql mariadb -uroot -p"$RP" -e "
+     sudo docker compose exec -T mysql mariadb -uroot -p"$RP" -e "
        CREATE DATABASE \`$DB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
        CREATE USER '$U'@'%' IDENTIFIED BY '$P';
        GRANT ALL PRIVILEGES ON \`$DB\`.* TO '$U'@'%';"
-     sudo zcat "/var/backups/openemr/pre-cutover/$DB-$DAY.sql.gz" | docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" || echo "LOAD FAILED: $site"
+     sudo zcat "/var/backups/openemr/pre-cutover/$DB-$DAY.sql.gz" | sudo docker compose exec -T mysql mariadb -uroot -p"$RP" "$DB" || echo "LOAD FAILED: $site"
    done
    ```
 6. **Point the sites at the container's database:**
@@ -504,22 +517,25 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
    ```
 7. **Stock `default`** (only where `default` isn't a real site):
    ```sh
-   docker run --rm --entrypoint tar "$(grep '^CMS_IMAGE=' .env | cut -d= -f2-)" \
+   sudo mv "$S/default" "$S/default.pre-docker"
+   sudo docker run --rm --entrypoint tar "$(sudo grep '^CMS_IMAGE=' .env | cut -d= -f2-)" \
      -C /var/www/localhost/htdocs/openemr/sites -c default | sudo tar -C "$S" -x
    sudo setfacl -R -m u:openemr-web:rwX -m d:u:openemr-web:rwX "$S/default"
    ```
 8. **Start and watch** (root password only for the stock `default`'s setup):
    ```sh
-   CMS_SETUP_DB_ROOT_PASS="$RP" docker compose up -d
-   docker compose logs -f openemr
+   sudo CMS_SETUP_DB_ROOT_PASS="$RP" docker compose up -d
+   sudo docker compose logs -f openemr 2>&1 | grep -E '^openemr-1  \| (Schema upgrade|Completed:|Setup Complete|cms |Starting Apache|ERROR|Fatal|failed)'
    ```
+   (The unfiltered log is the upgrade pages' HTML, thousands of lines per
+   site; a plain `grep -i error` matches their JavaScript.)
    Each site: `Schema upgrade detected …` then `Completed …` (one at a time,
    alphabetical); `Setup Complete!` for `default`; the `cms …` hooks;
    Let's Encrypt for `CMS_DOMAIN`; `Starting Apache!`. If a site's upgrade
-   fails, `docker compose stop openemr`, read the error, restore that
+   fails, `sudo docker compose stop openemr`, read the error, restore that
    site's dump if needed, start again.
-9. **Drop the root password:** after `Starting Apache!`, `docker compose up -d`;
-   `docker compose exec openemr printenv MYSQL_ROOT_PASS` shows `unset`.
+9. **Drop the root password:** after `Starting Apache!`, `sudo docker compose up -d`;
+   `sudo docker compose exec openemr printenv MYSQL_ROOT_PASS` shows `unset`.
 10. **Check every site:** log in at the old URL
    (`https://cmsvt.com/openemr/interface/login/login.php?site=<site>`; the
    image serves OpenEMR at `/`, hook `07-cms-web-root` puts it back under
@@ -533,12 +549,12 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
     container's MariaDB listens on `127.0.0.1:3307` (`CMS_DB_LOCAL_PORT`):
     ```sh
     DP=<dump account password>
-    docker compose exec -T mysql mariadb -uroot -p"$RP" -e "
+    sudo docker compose exec -T mysql mariadb -uroot -p"$RP" -e "
       CREATE USER 'oe_dump'@'%' IDENTIFIED BY '$DP';
       GRANT SELECT ON mysql.proc TO 'oe_dump'@'%';"
     for site in <every site>; do
       DB=$(conf "$site" dbase)
-      docker compose exec -T mysql mariadb -uroot -p"$RP" -e "
+      sudo docker compose exec -T mysql mariadb -uroot -p"$RP" -e "
         GRANT SELECT, LOCK TABLES, SHOW VIEW, EVENT, TRIGGER ON \`$DB\`.* TO 'oe_dump'@'%';"
     done
     sudo cp -p /etc/openemr/mysqldump.cnf /etc/openemr/mysqldump.cnf.pre-docker
@@ -553,7 +569,15 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
     `pre-cutover/`.
 12. **Background services and certificates:** add the host crontab lines
     (section 7), one per site, as apache, keeping each site's schedule.
-    Disable the host certbot's timer:
+    Then run one by hand before the first scheduled run:
+    ```sh
+    sudo docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=2400; echo "exit $?"
+    # a service that just failed isn't "due" again; force it once:
+    sudo docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=2400 --name=vhie --force
+    ```
+    `vhie` on 2400 is the lab poller (`poll_hl7_results()`, every 15 min);
+    phimail, X12_SFTP and WenoExchange are inactive there and show as
+    skipped. Disable the host certbot's timer:
     `sudo systemctl disable --now snap.certbot.renew.timer`.
 
 ### The morning after
@@ -569,7 +593,7 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
 
 The host MariaDB still has the pre-cutover data (stopped, not removed):
 ```sh
-cd /opt/cms/kit && docker compose down          # keeps volumes
+cd /opt/cms/kit && sudo docker compose down          # keeps volumes
 # the dumps back to the host database:
 sudo cp -p /etc/openemr/mysqldump.cnf.pre-docker /etc/openemr/mysqldump.cnf
 # put every site's sqlconf.php (step 6) and statement.inc.php (step 4) back:
