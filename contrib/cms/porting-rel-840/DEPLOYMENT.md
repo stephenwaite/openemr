@@ -380,9 +380,11 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
       `cms-rel-840-1b8e920e64`, 2026-10-10, uid 1500; git tag `image/cms-rel-840-1b8e920e64` (rebuilt after the insurance revert; first build f270a42ca7 stays on Hub).
       On the server: `cd /opt/cms/kit && docker compose pull`
       after `.env` names the tag; `docker images` then shows it.
-- [ ] Kit in `/opt/cms/kit` (`rsync -a <checkout>/contrib/cms/docker/ /opt/cms/kit/`
-      from the cms-rel-840 checkout), `scripts/sync-sites.sh` next to it for
-      step 4, and `bub /opt/cms "${BUB_DEST}"` added to
+- [x] Kit in `/opt/cms/kit` (from `~/src/openemr` on the server:
+      `git archive cms-rel-840 contrib/cms/docker | sudo tar -x -C /opt/cms/kit --strip-components=3`;
+      `tools/` is export-ignored by the repo's `.gitattributes`, copy it with
+      `git show` if wanted; done 2026-10-10 17:26 at 033b1b769d), and
+- [ ] `bub /opt/cms "${BUB_DEST}"` added to
       `/etc/cron.daily/99-bub` (it holds `.env` and the per-site SQL, and
       `/opt/cms` isn't otherwise backed up). Kit contents:
   - [ ] `.env`: `CMS_IMAGE` (the tag), `CMS_SITES_DIR=/var/www/html/openemr/sites`,
@@ -413,7 +415,7 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
         /usr/bin/setfacl -R -m u:openemr-web:rwX -m d:u:openemr-web:rwX /var/www/html/openemr/sites
       systemctl status cms-setfacl      # inactive (dead), status=0/SUCCESS when done
       ```
-      Started 2026-10-10 ~17:30; check the status before step 8.
+      Done 2026-10-10 17:21 (12 s for the whole tree, no errors).
 - [ ] Host certbot renewing until the cutover (`sudo certbot renew --dry-run`).
 - [ ] A password for the dump account the snapshot script will use against
       the container (step 11), kept with the server's other secrets.
@@ -456,12 +458,18 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
    ```
    Every site's database should be listed `ok`; compare with the sites'
    `$dbase` values.
-4. **Fallback copy of the sites folder** (rollback only, not used to run).
-   `sync-sites.sh` refuses to write unless the parent of `DEST` is a mount
-   point, so put the copy directly under `/var` (its own encrypted volume,
-   670 GB free):
+4. **Keep what the container overwrites.** The off-site pushes hold full
+   copies of the sites folder; the only file the hooks replace in place is
+   each site's `statement.inc.php` (everything else they write is new).
+   7.0.1 prints statements from `library/statement.inc.php`, so the site
+   copy doesn't matter for printing, but its `era_payments.php` requires
+   the site copy, which an 8.4 version would break after a rollback. Save
+   the ones that exist:
    ```sh
-   sudo DEST=/var/sites-pre-cutover /opt/cms/sync-sites.sh <every site>
+   S=/var/www/html/openemr/sites
+   for site in <every site>; do
+     [ -f "$S/$site/statement.inc.php" ] && sudo cp -p "$S/$site/statement.inc.php" "$S/$site/statement.inc.php.pre-docker"
+   done
    ```
 5. **Load every site's dump** into the container's MariaDB. Each site gets
    its database and user from its own `sqlconf.php`:
@@ -556,12 +564,15 @@ The host MariaDB still has the pre-cutover data (stopped, not removed):
 cd /opt/cms/kit && docker compose down          # keeps volumes
 # the dumps back to the host database:
 sudo cp -p /etc/openemr/mysqldump.cnf.pre-docker /etc/openemr/mysqldump.cnf
-# put every site's sqlconf.php back as it was (saved in step 6):
-for site in <every site>; do sudo cp -p "$S/$site/sqlconf.php.pre-docker" "$S/$site/sqlconf.php"; done
+# put every site's sqlconf.php (step 6) and statement.inc.php (step 4) back:
+for site in <every site>; do
+  sudo cp -p "$S/$site/sqlconf.php.pre-docker" "$S/$site/sqlconf.php"
+  [ -f "$S/$site/statement.inc.php.pre-docker" ] && sudo cp -p "$S/$site/statement.inc.php.pre-docker" "$S/$site/statement.inc.php"
+done
 # files the container created belong to openemr-web; give the host Apache access back:
 sudo setfacl -R -m u:www-data:rwX -m d:u:www-data:rwX /var/www/html/openemr/sites
 sudo systemctl enable --now apache2             # and restore the crontab lines
 ```
-Anything the container changed in `sites/` (statement.inc.php, cms-applied/,
-new documents) is in the fallback copy from step 4 if needed. Keep the host
-MariaDB, the dumps and the copy for a few days after a good cutover.
+What the container added in `sites/` (`cms-applied/`, new documents) can
+stay. Keep the host MariaDB, the dumps and the `.pre-docker` files for a
+few days after a good cutover.
