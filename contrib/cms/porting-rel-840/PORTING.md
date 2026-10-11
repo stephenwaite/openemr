@@ -1341,8 +1341,12 @@ never stored. cms-rel-701, the production code, stores it. The port follows
   and always printed the messages. Production's attempt kept the same
   precedence bug.
 
-**Not ported:** `pd.dob` in the list query (unused); `poll_hl7_results(&$info
-= [])` (no caller without arguments).
+**Not ported:** `pd.dob` in the list query (unused).
+`poll_hl7_results(&$info = [])` was first left out as "no caller without
+arguments"; the caller is site 2400's `vhie` row in `background_services`,
+which the runner calls as a bare `$function()`. Found at the cutover
+(2026-10-11 00:20, `ArgumentCountError`), ported then; until the next image
+the kit carries the patched file in `config/code/interface/orders/`.
 
 **Deployment:**
 - site 2400: `cmsvt_hl7_match_patient_by_mrn` on and
