@@ -14,8 +14,8 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
                                          check and redirects the rest to HTTPS
       hooks/prelaunch/07-cms-web-root    every start: serves OpenEMR under /openemr/, the
                                          path the 7.0.1 host used
-      hooks/prelaunch/08-cms-api-local   every start: OAuth2 and the REST API answer only
-                                         the server itself, as on the 7.0.1 host
+      hooks/prelaunch/08-cms-api-local   every start: OAuth2 answers only the server
+                                         itself, as on the 7.0.1 host
       hooks/prelaunch/10-cms-site-files  every start: the image's statement.inc.php to
                                          every site, then config files into place
       hooks/prelaunch/20-cms-site-settings
@@ -250,7 +250,11 @@ the host never sent).
 The 7.0.1 host let only the server itself reach `/openemr/oauth2/` and
 `/openemr/apis/` (the local integration is their only consumer) and didn't
 redirect the server's own plain-HTTP requests to HTTPS. `08-cms-api-local`
-and `06-cms-https-redirect` do the same for the sources in `CMS_LOCAL_FROM`
+restricts the OAuth2 endpoints the same way, which is what keeps outsiders
+out of the API (no token, 401); the API path itself stays open because the
+8.4 UI calls it from the browser with the session (the insurance editor,
+for one), which 7.0.1's UI never did. `06-cms-https-redirect` skips the
+redirect for the same sources. Both use `CMS_LOCAL_FROM`
 (`.env`; default `127.0.0.1 ::1 172.16.0.0/12`, because the host's own
 connections reach the container from Docker's bridge network, not from
 127.0.0.1). When `CMS_DOMAIN` is set, the port 80 redirect goes to that
