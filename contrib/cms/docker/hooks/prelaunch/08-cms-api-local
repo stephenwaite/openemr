@@ -1,0 +1,31 @@
+#!/bin/bash
+# Prelaunch hook (runs on every container start, before Apache).
+#
+# The 7.0.1 host let only the server itself reach OpenEMR's OAuth2 and REST
+# API paths (the local integration is their only consumer); the image leaves
+# them open. Restrict them to CMS_LOCAL_FROM. Connections from the host
+# arrive in the container from Docker's bridge network, not 127.0.0.1, so
+# the default includes 172.16.0.0/12.
+set -euo pipefail
+
+conf="${CMS_APACHE_CONF:-/etc/apache2/conf.d/openemr.conf}"
+marker='# CMS: OAuth2 and the REST API only from this server'
+local_from="${CMS_LOCAL_FROM:-127.0.0.1 ::1 172.16.0.0/12}"
+if [[ ! "${local_from}" =~ ^[0-9a-fA-F.:/\ ]+$ ]]; then
+    echo "cms api local: CMS_LOCAL_FROM must be IP addresses or networks separated by spaces" >&2
+    exit 1
+fi
+
+if grep -qF "${marker}" "${conf}"; then
+    echo "cms api local: already configured"
+    exit 0
+fi
+
+cat >> "${conf}" <<EOF
+
+${marker}
+<LocationMatch "^/(openemr/)?(oauth2|apis)/">
+    Require ip ${local_from}
+</LocationMatch>
+EOF
+echo "cms api local: /openemr/oauth2/ and /openemr/apis/ answer only ${local_from}"

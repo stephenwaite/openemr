@@ -14,6 +14,8 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
                                          check and redirects the rest to HTTPS
       hooks/prelaunch/07-cms-web-root    every start: serves OpenEMR under /openemr/, the
                                          path the 7.0.1 host used
+      hooks/prelaunch/08-cms-api-local   every start: OAuth2 and the REST API answer only
+                                         the server itself, as on the 7.0.1 host
       hooks/prelaunch/10-cms-site-files  every start: the image's statement.inc.php to
                                          every site, then config files into place
       hooks/prelaunch/20-cms-site-settings
@@ -241,7 +243,18 @@ database use. `07-cms-web-root` moves Apache's document root up one level so
 the old URLs keep working (`https://host/openemr/interface/login/login.php?site=<site>`),
 redirects `/` to `/openemr/`, and keeps the Let's Encrypt check reachable
 (the image's certbot writes it under OpenEMR's directory). Nothing answers
-at the root path any more.
+at the root path any more. The same hook trims the image's HSTS header to
+the hostname itself (the image's version also covers every subdomain, which
+the host never sent).
+
+The 7.0.1 host let only the server itself reach `/openemr/oauth2/` and
+`/openemr/apis/` (the local integration is their only consumer) and didn't
+redirect the server's own plain-HTTP requests to HTTPS. `08-cms-api-local`
+and `06-cms-https-redirect` do the same for the sources in `CMS_LOCAL_FROM`
+(`.env`; default `127.0.0.1 ::1 172.16.0.0/12`, because the host's own
+connections reach the container from Docker's bridge network, not from
+127.0.0.1). When `CMS_DOMAIN` is set, the port 80 redirect goes to that
+name, so `www.<domain>` lands on the name the certificate covers.
 
 At cutover, the host's own certbot no longer has an Apache to work with:
 disable its renewal (its systemd timer or cron entry) once the container

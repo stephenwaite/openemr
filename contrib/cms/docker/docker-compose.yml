@@ -76,6 +76,8 @@ services:
       EMAIL: ${CMS_LETSENCRYPT_EMAIL:-}
       # For the HTTP-to-HTTPS redirect (06-cms-https-redirect).
       CMS_HTTPS_PORT: ${CMS_HTTPS_PORT:-443}
+      # "This server" for 06 (no redirect) and 08 (API access).
+      CMS_LOCAL_FROM: ${CMS_LOCAL_FROM:-127.0.0.1 ::1 172.16.0.0/12}
       OE_USER: admin
       OE_PASS: ${CMS_DEFAULT_ADMIN_PASS:?set CMS_DEFAULT_ADMIN_PASS in .env}
     depends_on:
@@ -90,7 +92,7 @@ services:
       - --location
       - --show-error
       - --silent
-      - https://localhost/meta/health/readyz
+      - https://localhost/openemr/meta/health/readyz
       start_period: 3m
       start_interval: 10s
       interval: 1m

@@ -38,5 +38,8 @@ RedirectMatch 301 ^/\$ /openemr/
 # The image's certbot writes its HTTP check files under OpenEMR's directory
 # (ssl.sh: certbot --webroot -w ${openemr}/), which is no longer the root.
 Alias /.well-known/acme-challenge ${openemr}/.well-known/acme-challenge
+# The image's HSTS header also covers every subdomain of the hostname; the
+# 7.0.1 host sent none. Keep it for the hostname only.
+Header set Strict-Transport-Security "max-age=31536000"
 EOF
 echo "cms web root: OpenEMR served under /openemr/"

@@ -384,9 +384,11 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
       `git archive cms-rel-840 contrib/cms/docker | sudo tar -x -C /opt/cms/kit --strip-components=3`;
       `tools/` is export-ignored by the repo's `.gitattributes`, copy it with
       `git show` if wanted; done 2026-10-10 17:26 at 033b1b769d). Refresh
-      only the hooks after that (the kit copy holds `.env` and the filled-in
-      SQL): `git fetch origin && git archive origin/cms-rel-840 contrib/cms/docker/hooks | sudo tar -x -C /opt/cms/kit --strip-components=3`
-      — needed once for `07-cms-web-root` (2026-10-11), and
+      only the hooks and the compose file after that (the kit copy holds
+      `.env` and the filled-in SQL):
+      `git fetch origin && git archive origin/cms-rel-840 contrib/cms/docker/hooks contrib/cms/docker/docker-compose.yml contrib/cms/docker/.env.example | sudo tar -x -C /opt/cms/kit --strip-components=3`
+      — needed once for `07-cms-web-root`, `08-cms-api-local`, the reworked
+      `06` and the `/openemr/` healthcheck (2026-10-11), and
 - [ ] `bub /opt/cms "${BUB_DEST}"` added to
       `/etc/cron.daily/99-bub` (it holds `.env` and the per-site SQL, and
       `/opt/cms` isn't otherwise backed up). Kit contents:
