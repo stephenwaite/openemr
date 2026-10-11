@@ -12,6 +12,8 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
       hooks/prelaunch/06-cms-https-redirect
                                          every start: port 80 serves only the Let's Encrypt
                                          check and redirects the rest to HTTPS
+      hooks/prelaunch/07-cms-web-root    every start: serves OpenEMR under /openemr/, the
+                                         path the 7.0.1 host used
       hooks/prelaunch/10-cms-site-files  every start: the image's statement.inc.php to
                                          every site, then config files into place
       hooks/prelaunch/20-cms-site-settings
@@ -231,6 +233,15 @@ OpenEMR over plain HTTP there, so `06-cms-https-redirect` makes it answer
 only `/.well-known/acme-challenge/` and redirect everything else to HTTPS
 (to `CMS_HTTPS_PORT` when that isn't 443). There's no manual step to open
 port 80 for renewals, as there was with the host's Apache.
+
+The image serves OpenEMR at the root of the site (`https://host/interface/...`);
+the 7.0.1 host served it under `/openemr/`, which is what bookmarks, the
+patient portal address and the OAuth redirect URIs stored in each site's
+database use. `07-cms-web-root` moves Apache's document root up one level so
+the old URLs keep working (`https://host/openemr/interface/login/login.php?site=<site>`),
+redirects `/` to `/openemr/`, and keeps the Let's Encrypt check reachable
+(the image's certbot writes it under OpenEMR's directory). Nothing answers
+at the root path any more.
 
 At cutover, the host's own certbot no longer has an Apache to work with:
 disable its renewal (its systemd timer or cron entry) once the container

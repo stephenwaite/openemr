@@ -257,7 +257,8 @@ for `default`, the root password wasn't passed: rerun the first command.
 
 ## 7. Check the site
 
-Log in at `https://localhost:<port>/interface/login/login.php?site=<site>`
+Log in at `https://localhost:<port>/openemr/interface/login/login.php?site=<site>`
+(the same path as on the 7.0.1 host; `07-cms-web-root` keeps it)
 with a real account on that site, and work through DEPLOYMENT.md's smoke tests
 that apply to this site. At least:
 - **Documents:** patients' documents open (old file paths are rebuilt

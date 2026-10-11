@@ -383,7 +383,10 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
 - [x] Kit in `/opt/cms/kit` (from `~/src/openemr` on the server:
       `git archive cms-rel-840 contrib/cms/docker | sudo tar -x -C /opt/cms/kit --strip-components=3`;
       `tools/` is export-ignored by the repo's `.gitattributes`, copy it with
-      `git show` if wanted; done 2026-10-10 17:26 at 033b1b769d), and
+      `git show` if wanted; done 2026-10-10 17:26 at 033b1b769d). Refresh
+      only the hooks after that (the kit copy holds `.env` and the filled-in
+      SQL): `git fetch origin && git archive origin/cms-rel-840 contrib/cms/docker/hooks | sudo tar -x -C /opt/cms/kit --strip-components=3`
+      — needed once for `07-cms-web-root` (2026-10-11), and
 - [ ] `bub /opt/cms "${BUB_DEST}"` added to
       `/etc/cron.daily/99-bub` (it holds `.env` and the per-site SQL, and
       `/opt/cms` isn't otherwise backed up). Kit contents:
@@ -515,7 +518,10 @@ then `/etc/cron.daily/99-bub`, which pushes `/var/www` (the sites) and
    site's dump if needed, start again.
 9. **Drop the root password:** after `Starting Apache!`, `docker compose up -d`;
    `docker compose exec openemr printenv MYSQL_ROOT_PASS` shows `unset`.
-10. **Check every site:** log in (`?site=<site>`); globals from sections 2–4;
+10. **Check every site:** log in at the old URL
+   (`https://cmsvt.com/openemr/interface/login/login.php?site=<site>`; the
+   image serves OpenEMR at `/`, hook `07-cms-web-root` puts it back under
+   `/openemr/`, and `https://cmsvt.com/` redirects there); globals from sections 2–4;
    a statement PDF; Billing Manager; Electronic Reports; `https://` with the
    real certificate and port 80 redirecting.
 11. **Point the nightly dumps at the container's database.** The snapshot
