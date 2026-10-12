@@ -462,6 +462,11 @@ function eob_process_era_callback(array &$out): void
         $service_date = parseDate($out['dos'] ?? $out['claim_date']);
         $check_date = $paydate ?: parseDate($out['check_date']);
         $production_date = $paydate ?: parseDate($out['production_date']);
+        // CLP07, the payer's claim control number. It is stored on every row this
+        // claim posts, so a claim the payer paid nothing on still records it.
+        $payer_claim_number = is_string($out['payer_claim_id'] ?? null) && $out['payer_claim_id'] !== ''
+            ? $out['payer_claim_id']
+            : null;
 
         $insurance_id = SLEOB::arGetPayerID($pid, $service_date, substr($inslabel, 3));
         $patient_name = empty($ferow['lname'])
@@ -605,7 +610,7 @@ function eob_process_era_callback(array &$out): void
                         memo: $out['check_number'],
                         codetype: $codetype,
                         date: $check_date,
-                        payer_claim_number: $out['payer_claim_id']
+                        payer_claim_number: $payer_claim_number
                     );
                     $invoice_total -= $svc['paid'];
                 }
@@ -666,6 +671,7 @@ function eob_process_era_callback(array &$out): void
                             payer_type: substr($inslabel, 3),
                             reason: $reason,
                             codetype: $codetype,
+                            payer_claim_number: $payer_claim_number,
                         );
                     }
 
@@ -687,6 +693,7 @@ function eob_process_era_callback(array &$out): void
                         payer_type: substr($inslabel, 3),
                         reason: "Adjust code " . $adj['reason_code'],
                         codetype: $codetype,
+                        payer_claim_number: $payer_claim_number,
                     );
                     $invoice_total -= $adj['amount'];
                 }
