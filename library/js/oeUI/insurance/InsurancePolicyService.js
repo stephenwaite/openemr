@@ -160,7 +160,7 @@ export class InsurancePolicyService
 
     /**
      * Compares two dates (or nulls) for a descending sort with nulls last, which
-     * is what MySQL's `ORDER BY date DESC` does on the server side.
+     * is what MySQL's and MariaDB's `ORDER BY date DESC` do on the server side.
      * @param {Date|null} a
      * @param {Date|null} b
      * @returns {number} negative when a sorts before b, positive when after, 0 when equal
@@ -214,7 +214,7 @@ export class InsurancePolicyService
                 return sortIndex;
             }
             // `date` DESC as the server orders it: most recent start first, and a
-            // policy with no start date last (MySQL puts NULLs last in a DESC sort),
+            // policy with no start date last (MySQL and MariaDB put NULLs last in a DESC sort),
             // so an old policy that never got a start date can't shadow the current one.
             sortIndex = InsurancePolicyService.compareDatesDesc(a.date, b.date);
             if (sortIndex !== 0) {

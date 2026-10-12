@@ -3,7 +3,7 @@
  *
  * The editor opens on the first policy of each type, so the order must match the server's
  * (`InsuranceService`): active policies first, then most recent start date, with a policy
- * that has no start date last, as MySQL orders NULLs in a DESC sort.
+ * that has no start date last, as MySQL and MariaDB order NULLs in a DESC sort.
  *
  * Run with: npm run test:js
  */
