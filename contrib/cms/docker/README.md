@@ -124,6 +124,10 @@ database root password, the stock `default` site's passwords and the ports.
 - Records-review user: put production's PatientFilter config, with the pids
   under `whitelist`, at
   `code/interface/modules/zend_modules/module/PatientFilter/config/blacklist.php`.
+- `php/10-cms-timezone.ini`: `date.timezone = America/New_York`. The
+  container's clock is UTC; without this PHP shows the next day's calendar
+  from 20:00 Eastern on (found the first Sunday evening after the cutover).
+  Change the zone for a server elsewhere.
 - `php/99-cms.ini`: optional, from `99-cms.ini.example`, to raise
   `memory_limit`.
 
