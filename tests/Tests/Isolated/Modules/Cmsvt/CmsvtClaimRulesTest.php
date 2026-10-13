@@ -207,8 +207,9 @@ namespace OpenEMR\Tests\Isolated\Modules\Cmsvt {
             $this->assertFalse($rules->sendsServiceFacility($this->claim(['billingNpi' => '1', 'facilityNpi' => '1']), true));
             $this->assertTrue($rules->sendsServiceFacility($this->claim(['billingNpi' => '1', 'facilityNpi' => '2']), false));
             $this->assertSame('CMSTEST', $rules->submitterIdentifier($this->claim([])));
-            // Production has always sent secondary claims without posted CO/OA adjustments.
-            $this->assertFalse($rules->reportsPriorPayerAdjustments($this->claim([])));
+            // Secondary claims report the prior payer's posted adjustments, so each
+            // line balances (SV102 = SVD02 + CAS); 7.0.1's PR-only lines were rejected.
+            $this->assertTrue($rules->reportsPriorPayerAdjustments($this->claim([])));
         }
 
         #[Test]
