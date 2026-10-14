@@ -40,6 +40,8 @@ final class CmsvtGlobals
     // Off switches rather than on switches: a module setting nobody has saved reads
     // as false, and CMS must keep the claim rules and menu without saving anything.
     public const CLAIM_RULES_DISABLED = 'cmsvt_claim_rules_disabled';
+    public const ERA_SECONDARY_WRITEOFF_PAYER_IDS = 'cmsvt_era_secondary_writeoff_payer_ids';
+    public const ERA_CONTRACTUAL_CO_BY_PROCEDURE = 'cmsvt_era_contractual_co_by_procedure';
     public const MENU_CHANGES_DISABLED = 'cmsvt_menu_changes_disabled';
     // Press Ganey keys keep their 7.0.1 names so existing site values carry over.
     public const PG_CLIENT_ID = 'pg_client_id';
@@ -134,6 +136,18 @@ final class CmsvtGlobals
             GlobalSetting::DATA_TYPE_BOOL,
             '0',
             xl('Send claims with the stock 837P rules instead of the CMS Vermont ones (Vermont Medicaid carrier codes, CLIA, routine foot care, NDC and facility rules). For practices outside CMS that use this module.')
+        ));
+        $service->appendToSection($section, self::ERA_SECONDARY_WRITEOFF_PAYER_IDS, new GlobalSetting(
+            xl('ERA: Secondary Payers Posted as Write-offs'),
+            GlobalSetting::DATA_TYPE_TEXT,
+            '',
+            xl('Payer IDs (comma separated) of Medicaid payers of last resort. When one of them pays as a secondary, its CO and PI adjustments are posted as write-offs instead of notes. OA and patient responsibility stay notes.')
+        ));
+        $service->appendToSection($section, self::ERA_CONTRACTUAL_CO_BY_PROCEDURE, new GlobalSetting(
+            xl('ERA: Contractual CO Reasons by Procedure'),
+            GlobalSetting::DATA_TYPE_TEXT,
+            '',
+            xl('reason:procedure pairs (comma separated), e.g. 97:92015. A CO adjustment with that reason on that procedure is a contractual write-off, so a zero-paid line posts instead of being flagged.')
         ));
         $service->appendToSection($section, self::MENU_CHANGES_DISABLED, new GlobalSetting(
             xl('Disable CMS Menu Changes'),

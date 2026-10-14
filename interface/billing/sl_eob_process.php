@@ -32,6 +32,7 @@ use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Billing\EraAdjustmentPolicyEvent;
 
 if (!AclMain::aclCheckCore('acct', 'bill', '', 'write') && !AclMain::aclCheckCore('acct', 'eob', '', 'write')) {
     AccessDeniedHelper::denyWithTemplate("ACL check failed for acct/bill or acct/eob: ERA Posting", xl("ERA Posting"));
@@ -639,9 +640,21 @@ function eob_process_era_callback(array &$out): void
             foreach ($svc['adj'] as $adj) {
                 $description = ($adj['reason_code'] ?? '') . ': ' .
                     BillingUtilities::CLAIM_ADJUSTMENT_REASON_CODES[$adj['reason_code'] ?? ''];
-                $isContractualWriteoff = $adj['group_code'] === 'CO'
-                    && in_array($adj['reason_code'], ['45', '59'], true);
-                if ($adj['group_code'] === 'PR' || !$primary) {
+                // Payer-specific rules may change how this adjustment posts; with no
+                // listener the policy is the stock one.
+                $adjustmentPolicy = new EraAdjustmentPolicyEvent(
+                    payerId: is_array($out) && is_string($out['payer_id'] ?? null) ? $out['payer_id'] : '',
+                    primary: $primary,
+                    groupCode: is_string($adj['group_code'] ?? null) ? $adj['group_code'] : '',
+                    reasonCode: is_scalar($adj['reason_code'] ?? null) ? (string) $adj['reason_code'] : '',
+                    procedureCode: is_array($svc) && is_string($svc['code'] ?? null) ? $svc['code'] : '',
+                );
+                OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()->dispatch(
+                    $adjustmentPolicy,
+                    EraAdjustmentPolicyEvent::EVENT_NAME
+                );
+                $isContractualWriteoff = $adjustmentPolicy->isContractual();
+                if ($adj['group_code'] === 'PR' || (!$primary && !$adjustmentPolicy->isSecondaryWriteOff())) {
                     // Group code PR is Patient Responsibility.  Enter these as zero
                     // adjustments to retain the note without crediting the claim.
                     if ($primary) {
@@ -691,7 +704,7 @@ function eob_process_era_callback(array &$out): void
                         amount: $adj['amount'],
                         code: $codekey,
                         payer_type: substr($inslabel, 3),
-                        reason: "Adjust code " . $adj['reason_code'],
+                        reason: $adjustmentPolicy->getMemo(),
                         codetype: $codetype,
                         payer_claim_number: $payer_claim_number,
                     );

@@ -17,6 +17,7 @@ namespace Cmsvt\OpenEMR\Modules\Customizations;
 use Cmsvt\OpenEMR\Modules\Customizations\Billing\BillingManagerDefaults;
 use Cmsvt\OpenEMR\Modules\Customizations\Billing\ClaimOptions;
 use Cmsvt\OpenEMR\Modules\Customizations\Billing\CollectionsReportOptions;
+use Cmsvt\OpenEMR\Modules\Customizations\Billing\EraAdjustmentPolicy;
 use Cmsvt\OpenEMR\Modules\Customizations\Command\IncreaseFeesCommand;
 use Cmsvt\OpenEMR\Modules\Customizations\Command\UpdateX12SftpPasswordCommand;
 use Cmsvt\OpenEMR\Modules\Customizations\Eligibility\EligibilityProviderOverride;
@@ -32,6 +33,7 @@ use OpenEMR\Events\Billing\Claim837PRulesEvent;
 use OpenEMR\Events\Billing\ClaimProviderFilterEvent;
 use OpenEMR\Events\Billing\CollectionsReportFilterEvent;
 use OpenEMR\Events\Billing\EligibilityRequestFilterEvent;
+use OpenEMR\Events\Billing\EraAdjustmentPolicyEvent;
 use OpenEMR\Events\Billing\PatientStatementSavedEvent;
 use OpenEMR\Events\Billing\StatementPrintSuggestionFilterEvent;
 use OpenEMR\Events\Billing\X12RemoteFilenameFilterEvent;
@@ -84,6 +86,10 @@ final readonly class Bootstrap
         $this->eventDispatcher->addListener(
             MenuEvent::MENU_UPDATE,
             (new CmsvtMenu($globals))->apply(...)
+        );
+        $this->eventDispatcher->addListener(
+            EraAdjustmentPolicyEvent::EVENT_NAME,
+            (new EraAdjustmentPolicy($globals))->apply(...)
         );
         $claimOptions = new ClaimOptions($globals);
         $this->eventDispatcher->addListener(
