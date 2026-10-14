@@ -83,7 +83,7 @@ final readonly class Bootstrap
         );
         $this->eventDispatcher->addListener(
             MenuEvent::MENU_UPDATE,
-            (new CmsvtMenu())->apply(...)
+            (new CmsvtMenu($globals))->apply(...)
         );
         $claimOptions = new ClaimOptions($globals);
         $this->eventDispatcher->addListener(

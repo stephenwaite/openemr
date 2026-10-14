@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\Customizations\Menu;
 
+use Cmsvt\OpenEMR\Modules\Customizations\Globals\CmsvtGlobals;
+use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Menu\MenuEvent;
 use stdClass;
 
@@ -31,8 +33,15 @@ final class CmsvtMenu
 
     private const PRESS_GANEY_URL = '/interface/modules/custom_modules/oe-module-cmsvt/public/press_ganey_export.php';
 
+    public function __construct(private readonly OEGlobalsBag $globals)
+    {
+    }
+
     public function apply(MenuEvent $event): void
     {
+        if ($this->globals->getBoolean(CmsvtGlobals::MENU_CHANGES_DISABLED)) {
+            return;
+        }
         $menu = $event->getMenu();
         $this->walk($menu, []);
         $event->setMenu($menu);

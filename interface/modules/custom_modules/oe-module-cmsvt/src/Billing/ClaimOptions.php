@@ -32,6 +32,9 @@ final readonly class ClaimOptions
 
     public function applyRules(Claim837PRulesEvent $event): void
     {
+        if ($this->globals->getBoolean(CmsvtGlobals::CLAIM_RULES_DISABLED)) {
+            return;
+        }
         $event->setRules(new CmsvtClaimRules(
             $this->list(CmsvtGlobals::CLAIM_ROUTINE_FOOT_CARE_NPIS),
             $this->list(CmsvtGlobals::CLAIM_NDC_SKIP_PAYER_IDS),

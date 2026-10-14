@@ -37,6 +37,10 @@ final class CmsvtGlobals
     public const CLAIM_NDC_SKIP_PAYER_IDS = 'cmsvt_claim_ndc_skip_payer_ids';
     public const CLAIM_CLOSED_FACILITY_NPIS = 'cmsvt_claim_closed_facility_npis';
     public const CLAIM_RENDERING_PROVIDER_ID = 'cmsvt_claim_rendering_provider_id';
+    // Off switches rather than on switches: a module setting nobody has saved reads
+    // as false, and CMS must keep the claim rules and menu without saving anything.
+    public const CLAIM_RULES_DISABLED = 'cmsvt_claim_rules_disabled';
+    public const MENU_CHANGES_DISABLED = 'cmsvt_menu_changes_disabled';
     // Press Ganey keys keep their 7.0.1 names so existing site values carry over.
     public const PG_CLIENT_ID = 'pg_client_id';
     public const PG_SURVEY_DESIGNATOR = 'pg_survey_designator';
@@ -124,6 +128,18 @@ final class CmsvtGlobals
             GlobalSetting::DATA_TYPE_NUMBER,
             '0',
             xl('User ID of the provider every claim is billed under ("incident to" billing). 0 bills under each encounter\'s provider.')
+        ));
+        $service->appendToSection($section, self::CLAIM_RULES_DISABLED, new GlobalSetting(
+            xl('Claims: Disable Vermont 837 Rules'),
+            GlobalSetting::DATA_TYPE_BOOL,
+            '0',
+            xl('Send claims with the stock 837P rules instead of the CMS Vermont ones (Vermont Medicaid carrier codes, CLIA, routine foot care, NDC and facility rules). For practices outside CMS that use this module.')
+        ));
+        $service->appendToSection($section, self::MENU_CHANGES_DISABLED, new GlobalSetting(
+            xl('Disable CMS Menu Changes'),
+            GlobalSetting::DATA_TYPE_BOOL,
+            '0',
+            xl('Keep the stock menu: no CMS retargeted menu items and no Press Ganey export entry.')
         ));
         $service->appendToSection($section, self::PG_CLIENT_ID, new GlobalSetting(
             xl('Press Ganey Client ID'),
