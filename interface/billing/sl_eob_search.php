@@ -818,6 +818,24 @@ $language_direction = $session->get('language_direction'); // fetch before the <
             });
         }
 
+        // Check exactly the rows that need a printed statement: patients who can't be
+        // emailed plus those marked PRINT, skipping collections. It replaces the whole
+        // selection, so the print batch doesn't depend on Select All Not Email,
+        // Invert Selection and hand-checking being done in the right order.
+        function checkPrintRun() {
+            let count = 0;
+            document.querySelectorAll("input[type='checkbox'][name^='form_cb']").forEach(box => {
+                const td = box.closest('tr')?.querySelector('td[data-print-run]');
+                box.checked = !!td && td.dataset.printRun === '1';
+                if (box.checked) {
+                    count++;
+                }
+            });
+            if (count === 0) {
+                alert(<?php echo xlj('No patients in this list need a printed statement.'); ?>);
+            }
+        }
+
         function invertStatementSelection() {
             document.querySelectorAll("input[type='checkbox'][name^='form_cb']").forEach(box => {
                 box.checked = !box.checked;
@@ -1380,8 +1398,9 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                         && $row['allow_patient_portal'] == "YES"
                                         && $row['hipaa_notice'] == "YES"
                                         && ValidationUtils::isValidEmail($row['email'] ?? '');
+                                    $printRun = !$in_collections && (!$emailEligible || $printInstead);
                                     ?>
-                                    <td class="detail text-left" data-email-eligible="<?php echo $emailEligible ? '1' : '0'; ?>">
+                                    <td class="detail text-left" data-email-eligible="<?php echo $emailEligible ? '1' : '0'; ?>" data-print-run="<?php echo $printRun ? '1' : '0'; ?>">
                                         <?php
                                         echo $emailEligible ? xlt("YES") : xlt("NO");
                                         if ($printInstead) {
@@ -1417,8 +1436,9 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                 <?php } ?>
                                 <button type="submit" class="btn btn-secondary btn-download" name='form_pdf' value="<?php echo xla('PDF Download Selected Statements'); ?>"><?php echo xlt('PDF Download Selected'); ?></button>
                                 <button type="button" class="btn btn-secondary" onclick='checkAllNotEmail()'><?php echo xlt('Select All Not Email'); ?></button>
+                                <button type="button" class="btn btn-secondary" onclick='checkPrintRun()' title="<?php echo xla('Select patients who cannot be emailed and patients marked PRINT, skipping those in collections'); ?>"><?php echo xlt('Select for Print Run'); ?></button>
                                 <button type="submit" class="btn btn-secondary btn-mail" name='form_email' value="<?php echo xla('Email Selected Statements'); ?>" onclick="return confirmEmail(this.form);"><?php echo xlt('Email Selected'); ?></button>
-                                <button type="button" class="btn btn-secondary" onclick='invertStatementSelection()' title="<?php echo xla('Select the statements not selected now, e.g. to print the rest after emailing'); ?>"><?php echo xlt('Invert Selection'); ?></button>
+                                <button type="button" class="btn btn-secondary" onclick='invertStatementSelection()' title="<?php echo xla('Select the statements not selected now. For the print batch, use Select for Print Run instead'); ?>"><?php echo xlt('Invert Selection'); ?></button>
                                 <?php
                                 if (!empty($is_portal)) { ?>
                                     <button type="submit" class="btn btn-secondary btn-save" name='form_portalnotify' value="<?php echo xla('Notify via Patient Portal'); ?>"><?php echo xlt('Notify Patients Portal'); ?></button>
