@@ -20,7 +20,7 @@ use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Menu\MenuEvent;
 use stdClass;
 
-final class CmsvtMenu
+final readonly class CmsvtMenu
 {
     /**
      * Open these screens in their own tabs: url => [stock target, CMS target].
@@ -35,7 +35,7 @@ final class CmsvtMenu
     private const PRESS_GANEY_URL = '/interface/modules/custom_modules/oe-module-cmsvt/public/press_ganey_export.php';
     private const MIPS_509_URL = '/interface/modules/custom_modules/oe-module-cmsvt/public/mips_509_report.php';
 
-    public function __construct(private readonly OEGlobalsBag $globals)
+    public function __construct(private OEGlobalsBag $globals)
     {
     }
 
