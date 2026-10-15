@@ -4,7 +4,7 @@
  * MIPS 410: Psoriasis: Clinical Response to Systemic Medications (2026 spec, v10.0).
  *
  * Lists patients of any age with psoriasis vulgaris (L40.0) and no other psoriasis
- * code (L40.1-L40.9), with a qualifying visit in the year whose reason names a
+ * code (L40.1-L40.9) in the performance year, with a qualifying visit in the year whose reason names a
  * systemic medication or whose fee sheet has G9764. Patients with G9764 in the year
  * are the denominator. The most recent quality data code counts, per the spec.
  *
@@ -68,7 +68,10 @@ final readonly class Measure410 implements MipsMeasure
     ];
 
     private const VULGARIS_DX = "b.code_type = 'ICD10' AND (b.code LIKE 'L40.0%' OR b.code = 'L400')";
-    /** Any other psoriasis code, ever billed, excludes the patient (Margaret's rule, pending the spec check). */
+    /**
+     * Any other psoriasis code billed in the performance year excludes the patient
+     * (Margaret, 2026-10-15: no other concurrent psoriasis diagnosis; earlier years don't count).
+     */
     private const OTHER_PSORIASIS_DX = "o.code_type = 'ICD10' AND o.code LIKE 'L40%' AND o.code NOT LIKE 'L40.0%' AND o.code <> 'L400'";
 
     public const UNDER_SIX_MONTHS = 'Under 6 months on systemic medication at last visit';
@@ -97,7 +100,7 @@ final readonly class Measure410 implements MipsMeasure
     public function notes(): array
     {
         return [
-            'Lists patients of any age with psoriasis vulgaris (L40.0) and no other psoriasis code (L40.1-L40.9) ever billed, with a qualifying visit whose reason names a systemic medication or whose fee sheet has G9764. Patients with G9764 in the year are the denominator.',
+            'Lists patients of any age with psoriasis vulgaris (L40.0) and no other psoriasis code (L40.1-L40.9) billed in the performance year, with a qualifying visit whose reason names a systemic medication or whose fee sheet has G9764. Patients with G9764 in the year are the denominator.',
             'The spec counts only systemic medications prescribed by the provider being evaluated; confirm the prescriber before entering G9764.',
             'The most recent quality data code counts, as the spec directs. A patient whose most recent visit has more than one numerator code shows as conflicting so it can be corrected.',
             '"Systemic Med Since" is the earliest visit naming a systemic medication, or G9764, since ' . self::MED_LOOKBACK_MONTHS . ' months before the year. Patients under 6 months at their last visit may qualify for the exception (G9765) if they did not meet a benchmark; check the chart for the start date and any gaps.',
@@ -136,11 +139,15 @@ final readonly class Measure410 implements MipsMeasure
             $period,
             self::VISIT_CODES,
             "EXISTS (SELECT 1 FROM billing AS b WHERE b.pid = p.pid AND b.activity = 1 AND " . self::VULGARIS_DX . ")
-             AND NOT EXISTS (SELECT 1 FROM billing AS o WHERE o.pid = p.pid AND o.activity = 1 AND " . self::OTHER_PSORIASIS_DX . ")
+             AND NOT EXISTS (SELECT 1
+                               FROM billing AS o
+                               JOIN form_encounter AS fe_o ON fe_o.encounter = o.encounter AND fe_o.pid = o.pid
+                              WHERE o.pid = p.pid AND o.activity = 1 AND " . self::OTHER_PSORIASIS_DX . "
+                                AND fe_o.date BETWEEN ? AND ?)
              AND ($medication OR EXISTS (SELECT 1 FROM billing AS g
                                           WHERE g.encounter = fe.encounter AND g.pid = fe.pid
                                             AND g.code = ? AND g.activity = 1))",
-            [...$medicationBinds, self::DENOMINATOR_CODE]
+            [$period->startTs(), $period->endTs(), ...$medicationBinds, self::DENOMINATOR_CODE]
         );
         $pids = MipsRows::pids($encounters);
         $lookback = $this->lookbackStart($period);
