@@ -43,8 +43,8 @@ final class CmsvtGlobals
     public const ERA_SECONDARY_WRITEOFF_PAYER_IDS = 'cmsvt_era_secondary_writeoff_payer_ids';
     public const ERA_CONTRACTUAL_CO_BY_PROCEDURE = 'cmsvt_era_contractual_co_by_procedure';
     public const MENU_CHANGES_DISABLED = 'cmsvt_menu_changes_disabled';
-    // An on switch: only site 200 uses the melanoma report.
-    public const MIPS_509_REPORT = 'cmsvt_mips_509_report';
+    // An on switch: only site 200 uses the MIPS quality measure report.
+    public const MIPS_REPORTS = 'cmsvt_mips_reports';
     // Press Ganey keys keep their 7.0.1 names so existing site values carry over.
     public const PG_CLIENT_ID = 'pg_client_id';
     public const PG_SURVEY_DESIGNATOR = 'pg_survey_designator';
@@ -155,13 +155,13 @@ final class CmsvtGlobals
             xl('Disable CMS Menu Changes'),
             GlobalSetting::DATA_TYPE_BOOL,
             '0',
-            xl('Keep the stock menu: no CMS retargeted menu items and no Press Ganey export or MIPS 509 report entries.')
+            xl('Keep the stock menu: no CMS retargeted menu items and no Press Ganey export or MIPS report entries.')
         ));
-        $service->appendToSection($section, self::MIPS_509_REPORT, new GlobalSetting(
-            xl('Show MIPS 509 Melanoma Report'),
+        $service->appendToSection($section, self::MIPS_REPORTS, new GlobalSetting(
+            xl('Show MIPS Quality Measures Report'),
             GlobalSetting::DATA_TYPE_BOOL,
             '0',
-            xl('Add Reports > Clinic > MIPS 509: Melanoma Tracking (melanoma patients, qualifying visits and their 509 quality data codes).')
+            xl('Add Reports > Clinic > MIPS Quality Measures (measures 176, 410 and 509: eligible patients, their visits and quality data codes).')
         ));
         $service->appendToSection($section, self::PG_CLIENT_ID, new GlobalSetting(
             xl('Press Ganey Client ID'),

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * A qualifying performance-year visit on the MIPS 509 report.
+ * A qualifying performance-year visit on a MIPS report.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -14,7 +14,7 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\Customizations\Mips;
 
-final readonly class Mips509Encounter
+final readonly class MipsEncounter
 {
     /**
      * @param list<string> $measureCodes tracked codes on this fee sheet, "M1388 2026-02-11"
@@ -26,5 +26,10 @@ final readonly class Mips509Encounter
         public string $visitCodes,
         public array $measureCodes,
     ) {
+    }
+
+    public function day(): string
+    {
+        return substr($this->date, 0, 10);
     }
 }

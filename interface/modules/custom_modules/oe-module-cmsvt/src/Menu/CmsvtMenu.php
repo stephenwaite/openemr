@@ -2,7 +2,7 @@
 
 /**
  * CMS menu adjustments: tab targets for billing screens, the Press Ganey export and the
- * MIPS 509 report.
+ * MIPS quality measures report.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -33,7 +33,7 @@ final readonly class CmsvtMenu
     ];
 
     private const PRESS_GANEY_URL = '/interface/modules/custom_modules/oe-module-cmsvt/public/press_ganey_export.php';
-    private const MIPS_509_URL = '/interface/modules/custom_modules/oe-module-cmsvt/public/mips_509_report.php';
+    private const MIPS_URL = '/interface/modules/custom_modules/oe-module-cmsvt/public/mips_report.php';
 
     public function __construct(private OEGlobalsBag $globals)
     {
@@ -71,21 +71,21 @@ final readonly class CmsvtMenu
                 $item->children = $this->withPressGaney($children);
                 $children = $item->children;
             }
-            if ($path === ['Reports'] && $label === 'Clinic' && $this->globals->getBoolean(CmsvtGlobals::MIPS_509_REPORT)) {
-                $children[] = $this->mips509Entry();
+            if ($path === ['Reports'] && $label === 'Clinic' && $this->globals->getBoolean(CmsvtGlobals::MIPS_REPORTS)) {
+                $children[] = $this->mipsEntry();
                 $item->children = $children;
             }
             $this->walk($children, [...$path, $label]);
         }
     }
 
-    private function mips509Entry(): stdClass
+    private function mipsEntry(): stdClass
     {
         $entry = new stdClass();
-        $entry->label = xl('MIPS 509: Melanoma Tracking');
+        $entry->label = xl('MIPS Quality Measures');
         $entry->menu_id = 'rep0';
         $entry->target = 'rep';
-        $entry->url = self::MIPS_509_URL;
+        $entry->url = self::MIPS_URL;
         $entry->children = [];
         $entry->requirement = 0;
         $entry->acl_req = ['patients', 'med'];

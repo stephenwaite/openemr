@@ -50,26 +50,33 @@ layout. The Client ID and Survey Designator are the `pg_client_id` and
 the keys keep their 7.0.1 names so existing values carry over. The field
 layout is pinned by `tests/Tests/Isolated/Modules/Cmsvt/PressGaneyRecordFormatterTest.php`.
 
-### MIPS 509: Melanoma Tracking
+### MIPS Quality Measures
 
-`public/mips_509_report.php` (Reports → Clinic → MIPS 509: Melanoma Tracking,
-`patients/med` ACL) lists living patients with a melanoma (C43) or melanoma in
-situ (D03) diagnosis billed in the five years before the chosen performance
-year, their qualifying visits (office / consult E/M) in that year, and the
-measure 509 quality data codes (M1388, M1390-M1393) and excision CPTs on their
-fee sheets, with each patient's criteria 1 and 2 status. Only patients with a
-qualifying visit count toward the denominator and the criteria totals. Both
-tables export to CSV. It's off unless the site turns on "Show MIPS 509
-Melanoma Report" in Administration → Globals → CMS Vermont (site 200 only).
-Started from Margaret Haywood's `interface/reports/mips_509_report.php`; the
-rules are pinned by `tests/Tests/Isolated/Modules/Cmsvt/Mips509ReportTest.php`.
+`public/mips_report.php` (Reports → Clinic → MIPS Quality Measures,
+`patients/med` ACL) runs one measure for one performance year, picked on the
+page: 176 (TB screening before a first biologic), 410 (psoriasis clinical
+response to systemic medications) or 509 (melanoma tracking and evaluation of
+recurrence). For each it lists the eligible patients, their qualifying visits
+and the measure's quality data codes on their fee sheets, with each patient's
+status, data completeness and performance rate over the denominator, and flags
+to review. Both tables export to CSV. It's off unless the site turns on "Show
+MIPS Quality Measures Report" in Administration → Globals → CMS Vermont (site
+200 only).
+
+Each measure is a class in `src/Mips/Measures/` implementing `MipsMeasure`: its
+codes, how it finds its patients (`fetch()`, SQL) and how it turns their codes
+into statuses (`build()`, pure). The page, template, counts and CSV are shared;
+a new measure is one class registered in `MipsMeasures`. Started from Margaret
+Haywood's `interface/reports/mips_*_report.php` (margarethaywood/openemr,
+`Jones-Reporting`); the rules are pinned by
+`tests/Tests/Isolated/Modules/Cmsvt/MipsReportTest.php`.
 
 ## Menu
 
 The module adjusts the standard menu through `MenuEvent`: Payment, Posting
 Payments, EDI History and Electronic Reports open in their own tabs (`pay`,
 `edi`, `edih`, `lab`), and it adds the Press Ganey export and, where enabled,
-the MIPS 509 report.
+the MIPS quality measures report.
 
 ## Patient statements
 
