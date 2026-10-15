@@ -22,7 +22,6 @@ ob_start();
 require_once("../globals.php");
 
 use OpenEMR\Billing\BillingUtilities;
-use OpenEMR\Billing\EraCheckPosting;
 use OpenEMR\Billing\InvoiceSummary;
 use OpenEMR\Billing\ParseERA;
 use OpenEMR\Billing\SLEOB;
@@ -30,7 +29,6 @@ use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Database\QueryUtils;
-use OpenEMR\Common\Http\CurrentRequest;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
@@ -247,11 +245,7 @@ function eob_process_era_callback_check(array &$out): void
         for ($check_count = 1; $check_count <= $out['check_count']; $check_count++) {
             $bgcolor = $check_count % 2 === 1 ? '#ddddff' : '#ffdddd';
 
-            $listedCheck = $out['check_number' . $check_count];
-            $records = QueryUtils::fetchRecords(
-                "select reference from ar_session where reference IN (?, ?)",
-                EraCheckPosting::references(is_string($listedCheck) ? $listedCheck : '')
-            );
+            $records = QueryUtils::fetchRecords("select reference from ar_session where reference=?", [$out['check_number' . $check_count]]);
 
             if (!empty($records)) {
                 $bgcolor = '#ff0000';
@@ -287,17 +281,7 @@ function eob_process_era_callback_check(array &$out): void
                 $check_date = $out['check_date' . $check_count] ?: $_REQUEST['paydate'];
                 $post_to_date = $_REQUEST['post_to_date'] ?: date('Y-m-d');
                 $deposit_date = $_REQUEST['deposit_date'] ?: date('Y-m-d');
-                // A check posted before keeps its payment session: a second one would
-                // count the check twice. Its claims already posted are skipped below.
-                $thisCheck = $out['check_number' . $check_count];
-                $thisCheck = is_string($thisCheck) ? $thisCheck : '';
-                $thisCheckDate = $out['check_date' . $check_count];
-                $eraRun = EraCheckPosting::forRequest(CurrentRequest::get());
-                $existingSession = $eraRun->existingSession($thisCheck, is_string($thisCheckDate) ? $thisCheckDate : '');
-                if ($existingSession > 0) {
-                    $eraRun->reuseSession($thisCheck, $existingSession);
-                }
-                $InsertionId[$out['check_number' . $check_count]] = $existingSession > 0 ? $existingSession : SLEOB::arPostSession(
+                $InsertionId[$out['check_number' . $check_count]] = SLEOB::arPostSession(
                     payer_id: $_REQUEST['InsId'],
                     check_number: $out['check_number' . $check_count],
                     check_date: $out['check_date' . $check_count],
@@ -324,9 +308,6 @@ function eob_process_era_callback(array &$out): void
     // last inserted ID of ar_session table
     global $InsertionId;
 
-    $checkNumber = is_string($out['check_number'] ?? null) ? $out['check_number'] : '';
-    $checkDate = is_string($out['check_date'] ?? null) ? $out['check_date'] : '';
-
     // Some heading information.
     $chk_123 = str_replace(' ', '_', $out['check_number']);
     if (isset($_REQUEST['chk' . $chk_123])) {
@@ -343,16 +324,6 @@ function eob_process_era_callback(array &$out): void
                     "WITHOUT UPDATE is selected; no changes will be applied."
                 );
             }
-        }
-        $eraRun = EraCheckPosting::forRequest(CurrentRequest::get());
-        $reusedSession = $eraRun->takeReusedSession($checkNumber);
-        if ($reusedSession !== null) {
-            echo getMessageLine(
-                'var(--white)',
-                'errdetail',
-                "Check $checkNumber was posted before (payment session $reusedSession); "
-                . "only claims not yet posted from it are posted now"
-            );
         }
 
         $last_code = '';
@@ -387,23 +358,12 @@ function eob_process_era_callback(array &$out): void
             default => 'Ins1'
         };
 
-        // Re-posting an ERA must not post a claim's payments and adjustments twice:
-        // skip a claim this check was already posted to in an earlier run. Several
-        // claim lines (CLPs) for one claim in this ERA still post.
-        $alreadyPosted = !$inverror && $eraRun->postedBefore(
-            is_numeric($pid) ? (int) $pid : 0,
-            is_numeric($encounter) ? (int) $encounter : 0,
-            $checkNumber,
-            $checkDate
-        );
-
         // Payers do not reliably report their COB position in CLP02: a tertiary Medicaid
         // unaware of an intermediate Medigap plan reports itself as secondary. If the
         // reported level already has postings on this encounter, post at the lowest level
         // with none yet. A late remit for a still-unposted level (e.g. a primary posted
-        // after the secondary) stays at its reported level. Never demote. A claim already
-        // posted from this check is skipped, so a re-posted ERA can't land at the next level.
-        if (!$inverror && !$alreadyPosted) {
+        // after the secondary) stays at its reported level. Never demote.
+        if (!$inverror) {
             $postedLevels = array_map(static fn(mixed $level): int => is_numeric($level) ? (int) $level : 0, QueryUtils::fetchTableColumn(
                 "SELECT DISTINCT payer_type FROM ar_activity WHERE pid = ? AND encounter = ? AND deleted IS NULL AND payer_type > 0",
                 'payer_type',
@@ -455,14 +415,7 @@ function eob_process_era_callback(array &$out): void
             // }
         }
 
-        if ($alreadyPosted) {
-            $inverror = true;
-            echo getMessageLine(
-                $bgcolor,
-                'errdetail',
-                "Already posted from check $checkNumber; not posted again"
-            );
-        } elseif ($csc === '4') {
+        if ($csc === '4') {
             // Denial case, code is stored in the claims table for display in the billing manager screen with reason explained.
             $inverror = true;
             if (!$debug) {
@@ -930,7 +883,7 @@ if (!$debug) {
 <title><?php echo xlt('EOB Posting - Electronic Remittances'); ?></title>
 </head>
 <body class='m-0'>
-<form action="sl_eob_process.php" method="get" onsubmit="return submitOnce(this)">
+<form action="sl_eob_process.php" method="get">
 <input type="hidden" name="csrf_token_form" value="<?php echo CsrfUtils::collectCsrfToken(session: $session); ?>" />
 
 <?php
@@ -1009,20 +962,6 @@ if ($alertmsg) {
     echo " alert(" . js_escape($alertmsg) . ");\n";
 }
 ?>
-// Post a check list once: a double click or a second Enter would post the checks again.
-function submitOnce(form) {
-    if (form.dataset.submitted) {
-        return false;
-    }
-    form.dataset.submitted = '1';
-    setTimeout(function () {
-        form.querySelectorAll('input[type=submit]').forEach(function (button) {
-            button.disabled = true;
-        });
-    }, 0);
-    return true;
-}
-
 function checkAll(checked) {
     var f = document.forms[0];
     for (var i = 0; i < f.elements.length; ++i) {
