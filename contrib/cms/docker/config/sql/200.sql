@@ -7,3 +7,6 @@ REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_billing_manage
 -- matches, then uncomment.
 -- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_elig_provider_id', 0, '<users.id>');
 -- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_elig_receiver_name', 0, '<receiver name>');
+
+-- MIPS 509 melanoma report (Reports > Clinic): site 200 only (Stephen, 2026-10-15).
+REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_mips_509_report', 0, '1');

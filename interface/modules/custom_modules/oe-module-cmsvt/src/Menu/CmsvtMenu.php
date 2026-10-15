@@ -1,7 +1,8 @@
 <?php
 
 /**
- * CMS menu adjustments: tab targets for billing screens and the Press Ganey export.
+ * CMS menu adjustments: tab targets for billing screens, the Press Ganey export and the
+ * MIPS 509 report.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -32,6 +33,7 @@ final class CmsvtMenu
     ];
 
     private const PRESS_GANEY_URL = '/interface/modules/custom_modules/oe-module-cmsvt/public/press_ganey_export.php';
+    private const MIPS_509_URL = '/interface/modules/custom_modules/oe-module-cmsvt/public/mips_509_report.php';
 
     public function __construct(private readonly OEGlobalsBag $globals)
     {
@@ -69,8 +71,25 @@ final class CmsvtMenu
                 $item->children = $this->withPressGaney($children);
                 $children = $item->children;
             }
+            if ($path === ['Reports'] && $label === 'Clinic' && $this->globals->getBoolean(CmsvtGlobals::MIPS_509_REPORT)) {
+                $children[] = $this->mips509Entry();
+                $item->children = $children;
+            }
             $this->walk($children, [...$path, $label]);
         }
+    }
+
+    private function mips509Entry(): stdClass
+    {
+        $entry = new stdClass();
+        $entry->label = xl('MIPS 509: Melanoma Tracking');
+        $entry->menu_id = 'rep0';
+        $entry->target = 'rep';
+        $entry->url = self::MIPS_509_URL;
+        $entry->children = [];
+        $entry->requirement = 0;
+        $entry->acl_req = ['patients', 'med'];
+        return $entry;
     }
 
     /**

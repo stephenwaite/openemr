@@ -50,11 +50,26 @@ layout. The Client ID and Survey Designator are the `pg_client_id` and
 the keys keep their 7.0.1 names so existing values carry over. The field
 layout is pinned by `tests/Tests/Isolated/Modules/Cmsvt/PressGaneyRecordFormatterTest.php`.
 
+### MIPS 509: Melanoma Tracking
+
+`public/mips_509_report.php` (Reports → Clinic → MIPS 509: Melanoma Tracking,
+`patients/med` ACL) lists living patients with a melanoma (C43) or melanoma in
+situ (D03) diagnosis billed in the five years before the chosen performance
+year, their qualifying visits (office / consult E/M) in that year, and the
+measure 509 quality data codes (M1388, M1390-M1393) and excision CPTs on their
+fee sheets, with each patient's criteria 1 and 2 status. Only patients with a
+qualifying visit count toward the denominator and the criteria totals. Both
+tables export to CSV. It's off unless the site turns on "Show MIPS 509
+Melanoma Report" in Administration → Globals → CMS Vermont (site 200 only).
+Started from Margaret Haywood's `interface/reports/mips_509_report.php`; the
+rules are pinned by `tests/Tests/Isolated/Modules/Cmsvt/Mips509ReportTest.php`.
+
 ## Menu
 
 The module adjusts the standard menu through `MenuEvent`: Payment, Posting
 Payments, EDI History and Electronic Reports open in their own tabs (`pay`,
-`edi`, `edih`, `lab`), and it adds the Press Ganey export.
+`edi`, `edih`, `lab`), and it adds the Press Ganey export and, where enabled,
+the MIPS 509 report.
 
 ## Patient statements
 
