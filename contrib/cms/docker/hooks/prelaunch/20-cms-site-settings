@@ -45,6 +45,27 @@ apply_once() {
     echo "cms settings: ${site}: ${name} applied"
 }
 
+# EDI control numbers (ISA13, GS06) come from each site's own edi_sequences,
+# which starts at 1, but the sites send to the same X12 partners under the
+# same sender ID, so a partner saw "000000001" from more than one site and
+# rejected it as a repeat. Give each numbered site its own block of 100,000:
+# site 200 counts from 20000000, site 4800 from 480000000 (ISA13 is 9 digits,
+# so up to site 9998). GREATEST only moves a counter forward, so this runs at
+# every start and is a no-op once a site is in its block.
+edi_control_range() {
+    local site="$1" site_dir="$2" sql_file
+    [[ "${site}" =~ ^[1-9][0-9]{0,3}$ ]] && (( site <= 9998 )) || return 0
+    sql_file="$(mktemp)"
+    echo "UPDATE edi_sequences SET id = GREATEST(id, ${site} * 100000);" > "${sql_file}"
+    if ! CMS_SQLCONF="${site_dir}/sqlconf.php" CMS_SQL_FILE="${sql_file}" php -f "${helper}"; then
+        rm -f "${sql_file}"
+        echo "cms settings: ${site}: EDI control number range FAILED" >&2
+        return 1
+    fi
+    rm -f "${sql_file}"
+    echo "cms settings: ${site}: EDI control numbers from $(( site * 100000 ))"
+}
+
 for site_dir in "${oe_root}"/sites/*/; do
     site_dir="${site_dir%/}"
     site="$(basename "${site_dir}")"
@@ -52,6 +73,7 @@ for site_dir in "${oe_root}"/sites/*/; do
     apply_once "${site}" "${site_dir}" "${module_sql}" module-table
     apply_once "${site}" "${site_dir}" "${config_root}/sql/all-sites.sql" all-sites
     apply_once "${site}" "${site_dir}" "${config_root}/sql/${site}.sql" "site-${site}"
+    edi_control_range "${site}" "${site_dir}"
 done
 
 echo "cms settings: done"

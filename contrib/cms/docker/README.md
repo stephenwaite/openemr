@@ -286,6 +286,12 @@ Both run on every start, after the database upgrade and before Apache:
   ```sh
   docker compose exec openemr /root/hooks/prelaunch/20-cms-site-settings
   ```
+  At every start it also moves each numbered site's EDI control-number
+  counter (`edi_sequences`, used for ISA13 and GS06) up to site × 100,000,
+  so site 200's 837s count from 20000000. Each site counts on its own and
+  all of them send under the same X12 sender ID, so without this a partner
+  sees the same ISA13 from different sites and rejects it as a repeat. The
+  counter only ever moves forward.
 - Why not `postupgrade`: that hook only fires on the image's
   `docker-version` path, which needs a code marker that a new image doesn't
   have. In practice, schema upgrades go through `check_schema_upgrade`, which
