@@ -42,6 +42,7 @@ final class CmsvtGlobals
     public const CLAIM_RULES_DISABLED = 'cmsvt_claim_rules_disabled';
     public const ERA_SECONDARY_WRITEOFF_PAYER_IDS = 'cmsvt_era_secondary_writeoff_payer_ids';
     public const ERA_CONTRACTUAL_CO_BY_PROCEDURE = 'cmsvt_era_contractual_co_by_procedure';
+    public const ADJUSTMENT_MEMO_USES_TITLE = 'cmsvt_adjustment_memo_uses_title';
     public const MENU_CHANGES_DISABLED = 'cmsvt_menu_changes_disabled';
     // An on switch: only site 200 uses the MIPS quality measure report.
     public const MIPS_REPORTS = 'cmsvt_mips_reports';
@@ -150,6 +151,12 @@ final class CmsvtGlobals
             GlobalSetting::DATA_TYPE_TEXT,
             '',
             xl('reason:procedure pairs (comma separated), e.g. 97:92015. A CO adjustment with that reason on that procedure is a contractual write-off, so a zero-paid line posts instead of being flagged.')
+        ));
+        $service->appendToSection($section, self::ADJUSTMENT_MEMO_USES_TITLE, new GlobalSetting(
+            xl('Payments: Adjustment Memo Shows Reason Title'),
+            GlobalSetting::DATA_TYPE_BOOL,
+            '0',
+            xl('When posting by hand on an invoice, store the adjustment reason\'s title in the memo instead of its ID, for sites whose Adjustment Reasons list uses codes as IDs. Earlier postings keep what they stored.')
         ));
         $service->appendToSection($section, self::MENU_CHANGES_DISABLED, new GlobalSetting(
             xl('Disable CMS Menu Changes'),

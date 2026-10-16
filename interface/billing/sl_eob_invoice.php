@@ -31,6 +31,7 @@ use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Common\Utils\FormatMoney;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Billing\InvoiceAdjustmentReasonEvent;
 
 if (!AclMain::aclCheckCore('acct', 'eob', '', 'write')) {
     AccessDeniedHelper::denyWithTemplate("ACL check failed for acct/eob: EOB Posting - Invoice", xl("EOB Posting - Invoice"));
@@ -348,8 +349,16 @@ if (!empty($_POST['form_save']) || !empty($_POST['form_cancel']) || !empty($_POS
 // 4 = Other pt resp
 // 5 = Comment
             $reason_type = '1';
+            // Text stored in the memo for the reason; listeners may swap the id for its title.
+            $reason_text = is_string($reason) ? $reason : '';
             if ($reason) {
-                $tmp = sqlQuery("SELECT option_value FROM list_options WHERE list_id = 'adjreason' AND activity = 1 AND option_id = ?", [$reason]);
+                $tmp = sqlQuery("SELECT option_value, title FROM list_options WHERE list_id = 'adjreason' AND activity = 1 AND option_id = ?", [$reason]);
+                $reasonEvent = new InvoiceAdjustmentReasonEvent($reason_text, is_string($tmp['title'] ?? null) ? $tmp['title'] : '');
+                OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()->dispatch(
+                    $reasonEvent,
+                    InvoiceAdjustmentReasonEvent::EVENT_NAME
+                );
+                $reason_text = $reasonEvent->getReasonText();
                 if (empty($tmp['option_value'])) {
 // This should not happen but if it does, apply old logic.
                     if (preg_match("/To copay/", (string) $reason)) {
@@ -388,16 +397,18 @@ if (!empty($_POST['form_save']) || !empty($_POST['form_cancel']) || !empty($_POS
                     $reason = $_POST['form_insurance'] . " dedbl: $thisadj";
                     $thisadj = 0;
                 } elseif ($reason_type == '4') {
-                    $reason = $_POST['form_insurance'] . " ptresp: $thisadj $reason";
+                    $reason = $_POST['form_insurance'] . " ptresp: $thisadj $reason_text";
                     $thisadj = 0;
                 } elseif ($reason_type == '5') {
-                    $reason = $_POST['form_insurance'] . " note: $thisadj $reason";
+                    $reason = $_POST['form_insurance'] . " note: $thisadj $reason_text";
                     $thisadj = 0;
                 } else {
 // An adjustment reason including "Ins" is assumed to be assigned by
 // insurance, and in that case we identify which one by appending
-// Ins1, Ins2 or Ins3.
-                    if (str_contains(strtolower((string) $reason), 'ins')) {
+// Ins1, Ins2 or Ins3. The test stays on the id, whatever the stored text.
+                    $reason_id = $reason;
+                    $reason = $reason_text;
+                    if (str_contains(strtolower((string) $reason_id), 'ins')) {
                         $reason .= ' ' . $_POST['form_insurance'];
                     }
                 }
