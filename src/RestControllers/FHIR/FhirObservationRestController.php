@@ -205,6 +205,13 @@ class FhirObservationRestController
                 required: false,
                 schema: new OA\Schema(type: 'string')
             ),
+            new OA\Parameter(
+                name: 'external_id',
+                in: 'query',
+                description: 'The external ID of the laboratory order the results belong to (for results received without an order, the lab\'s visit number). Returns laboratory Observations only.',
+                required: false,
+                schema: new OA\Schema(type: 'string')
+            ),
         ],
         responses: [
             new OA\Response(

@@ -16,6 +16,7 @@ namespace OpenEMR\Billing\BillingProcessor;
 
 use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Billing\X12RemoteFilenameFilterEvent;
 use OpenEMR\Services\BaseService;
 
 class X12RemoteTracker extends BaseService
@@ -127,8 +128,12 @@ class X12RemoteTracker extends BaseService
             $x12_remote['status'] = self::STATUS_IN_PROGRESS;
             $remoteTracker->update($x12_remote);
 
-            // Upload the file
-            if (false === $sftp->put($x12_remote['x12_filename'], $claim_file_contents)) {
+            // Upload the file, under the name the partner requires if a listener sets one.
+            $localFilename = is_string($x12_remote['x12_filename']) ? $x12_remote['x12_filename'] : '';
+            $remoteFilename = new X12RemoteFilenameFilterEvent(is_string($sftpHost) ? $sftpHost : '', $localFilename);
+            OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()
+                ->dispatch($remoteFilename, X12RemoteFilenameFilterEvent::EVENT_NAME);
+            if (false === $sftp->put($remoteFilename->getFilename(), $claim_file_contents)) {
                 $x12_remote['status'] = self::STATUS_UPLOAD_ERRROR;
                 $x12_remote['messages'][] = "Could not upload file.";
                 $x12_remote['messages'] = array_merge($x12_remote['messages'], $sftp->getSFTPErrors());

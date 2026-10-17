@@ -1,0 +1,62 @@
+#!/bin/bash
+# Prelaunch hook (runs on every container start, before Apache).
+#
+# The image serves OpenEMR over plain HTTP on port 80 by default. This makes
+# port 80 answer only Let's Encrypt's HTTP check (/.well-known/acme-challenge/)
+# and redirect everything else to HTTPS, so the container can renew its
+# certificate without an unencrypted way in. Two exceptions, as on the 7.0.1
+# host: requests from the server itself (CMS_LOCAL_FROM; the local
+# integration talks to the API over plain HTTP on localhost) aren't
+# redirected, and the redirect goes to the configured hostname (DOMAIN) when
+# there is one, so www.<domain> ends up on the name the certificate covers.
+set -euo pipefail
+
+conf="${CMS_APACHE_CONF:-/etc/apache2/conf.d/openemr.conf}"
+marker='# CMS: HTTP only for the Let'"'"'s Encrypt check; everything else to HTTPS'
+https_port="${CMS_HTTPS_PORT:-443}"
+local_from="${CMS_LOCAL_FROM:-127.0.0.1 ::1 172.16.0.0/12}"
+if [[ ! "${https_port}" =~ ^[0-9]+$ ]]; then
+    echo "cms https redirect: CMS_HTTPS_PORT must be a number" >&2
+    exit 1
+fi
+if [[ ! "${local_from}" =~ ^[0-9a-fA-F.:/\ ]+$ ]]; then
+    echo "cms https redirect: CMS_LOCAL_FROM must be IP addresses or networks separated by spaces" >&2
+    exit 1
+fi
+
+if grep -qF "${marker}" "${conf}"; then
+    echo "cms https redirect: already configured"
+    exit 0
+fi
+if ! grep -q '^<VirtualHost \*:80>' "${conf}"; then
+    echo "cms https redirect: no port 80 virtual host in ${conf}" >&2
+    exit 1
+fi
+
+if [[ "${DOMAIN:-}" != "" ]]; then
+    target="https://${DOMAIN}"
+else
+    target='https://%{SERVER_NAME}'
+fi
+if [[ "${https_port}" != "443" ]]; then
+    target="${target}:${https_port}"
+fi
+# "-R" tests the remote address against a network; a bare address is /32.
+local_expr=""
+for net in ${local_from}; do
+    local_expr="${local_expr:+${local_expr} || }-R '${net}'"
+done
+tmp="$(mktemp)"
+awk -v marker="${marker}" -v target="${target}" -v local_expr="${local_expr}" '
+    { print }
+    /^<VirtualHost \*:80>/ {
+        print "    " marker
+        print "    RewriteEngine On"
+        print "    RewriteCond %{REQUEST_URI} !^/\\.well-known/acme-challenge/"
+        print "    RewriteCond expr \"!(" local_expr ")\""
+        print "    RewriteRule ^ " target "%{REQUEST_URI} [R=301,L]"
+    }
+' "${conf}" > "${tmp}"
+cat "${tmp}" > "${conf}"
+rm -f "${tmp}"
+echo "cms https redirect: port 80 redirects to ${target} (not from ${local_from})"

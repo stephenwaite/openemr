@@ -219,20 +219,25 @@ class GeneratorX12Direct extends AbstractGenerator implements GeneratorInterface
         // Tell our batch that we've processed this claim
         $batch->addClaim($claim);
 
-        $log = 'X12Direct ' . $claim->action . ' ';
+        $claimId = $claim->getId();
+        $log = 'X12Direct ' . $claim->action . ' ' . (is_scalar($claimId) ? $claimId : '') . ' ';
         $is_last_claim = $claim->getIsLast();
         $HLCount = count($batch->getClaims());
         if ($HLCount > 1) {
             $idx = $HLCount - 2;
             $prior_claim = $batch->getClaims()[$idx];
-            $priorX12ClaimSelfInsured = (
-                new Claim(
+            // Build the preceding claim for the payer it was generated for; that
+            // payer is at index 0, so its subscriber relationship is the one the
+            // preceding claim's hierarchy used.
+            if (
+                $prior_claim instanceof BillingClaim
+                && !(new Claim(
                     $prior_claim->getPid(),
                     $prior_claim->getEncounter(),
-                    $prior_claim->getPartner()
-                )
-                )->isSelfOfInsured($prior_claim->getPayorType() - 1);
-            if (!$priorX12ClaimSelfInsured) {
+                    $prior_claim->getPartner(),
+                    $prior_claim->getSelectedPayerId()
+                ))->isSelfOfInsured(0)
+            ) {
                 $patSegmentCount++;
             }
         }
@@ -247,7 +252,8 @@ class GeneratorX12Direct extends AbstractGenerator implements GeneratorInterface
             $is_last_claim,
             $HLCount,
             $edicount,
-            $patSegmentCount
+            $patSegmentCount,
+            $claim->getSelectedPayerId()
         ));
         // edi count is passed by reference and incremented in the genX12837P function, and we need to set it back here
         $this->edi_counts[$claim->getPartner()] = $edicount;

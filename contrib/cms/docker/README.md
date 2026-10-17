@@ -1,0 +1,303 @@
+# Running cms-rel-840 in Docker
+
+cms-rel-840 needs PHP 8.3+ and MariaDB 10.11+. Instead of upgrading the
+server, it runs in OpenEMR's release image built from the fork, with the CMS
+configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
+
+    contrib/cms/docker/
+      docker-compose.yml                 the stack (MariaDB + the cms-rel-840 image)
+      .env.example                       per-server settings; copy to .env
+      hooks/prelaunch/05-cms-cert-renewal
+                                         every start: keeps the Let's Encrypt renewal job in cron
+      hooks/prelaunch/06-cms-https-redirect
+                                         every start: port 80 serves only the Let's Encrypt
+                                         check and redirects the rest to HTTPS
+      hooks/prelaunch/07-cms-web-root    every start: serves OpenEMR under /openemr/, the
+                                         path the 7.0.1 host used
+      hooks/prelaunch/08-cms-api-local   every start: OAuth2 answers only the server
+                                         itself, as on the 7.0.1 host
+      hooks/prelaunch/10-cms-site-files  every start: the image's statement.inc.php to
+                                         every site, then config files into place
+      hooks/prelaunch/20-cms-site-settings
+                                         every start: applies per-site SQL, once per file
+      hooks/prelaunch/cms-apply-sql.php  helper for the above
+      tools/x12-diff.py                  compares two 837P files claim by claim
+      tools/decrypt-hl7.php              decrypts an archived HL7 result (dry-run lab tests)
+      tools/poll-labs.php                runs Process Results for one lab, summary only
+      config/                            sample CMS config, mounted at /cms-config
+        sql/all-sites.sql                applied to every site
+        sql/<site>.sql                   that site's own settings (<site> is the
+                                         directory name under sites/)
+        sql/site.sql.example             template for a new site's file
+        sites/<site>/...                 copied into sites/<site>/ on every start
+        code/...                         copied into the code tree on every start
+        php/*.ini                        copied into PHP's conf.d on every start
+
+For a practice run on a copy of one site first, see `DRY-RUN.md`.
+
+This folder in the repository is a template. Copy it to each server once
+(e.g. `/opt/cms/kit`) and fill in the real settings in that copy: `.env`
+(passwords), any `config/sites/<site>/` files and, for the records-review user, the
+PatientFilter config (a list of patient IDs). Never commit those back to the
+repository. Make sure the server's backups include that copy. The cutover
+runbook is in `contrib/cms/porting-rel-840/DEPLOYMENT.md`, section 10.
+
+## 1. Build the image
+
+From a checkout of the repository at the cms-rel-840 commit to build (the
+build itself clones the branch from GitHub), tagged with that commit:
+
+```sh
+git pull
+SHA=$(git rev-parse --short HEAD)
+# APACHE_UID: the server's openemr-web account, 1500 ($(id -u openemr-web) there)
+docker build --no-cache-filter openemr-source \
+  --build-arg OPENEMR_GIT=https://github.com/stephenwaite/openemr.git \
+  --build-arg OPENEMR_VERSION=cms-rel-840 \
+  --build-arg APACHE_UID=1500 \
+  -t cmswest1/openemr:cms-rel-840-$SHA -t cmswest1/openemr:cms-rel-840 docker/release
+```
+
+Push both tags to Docker Hub (`cmswest1/openemr`; `docker login` first) so
+the server pulls the build instead of building it:
+
+```sh
+docker push cmswest1/openemr:cms-rel-840-$SHA
+docker push cmswest1/openemr:cms-rel-840
+```
+
+On the server, set `CMS_IMAGE=cmswest1/openemr:cms-rel-840-<sha>` in `.env`
+so it records which build it runs, and `docker compose pull` fetches it. A
+dry run can pull the same image instead of building (DRY-RUN.md section 2).
+
+The sha says which commit the image was built from, not that it is the
+branch head. The image holds the code the build cloned, not this kit (which
+is rsynced into `kit/` on the server) and not the notes, so later commits
+that touch only `contrib/cms/` don't call for a rebuild. To check:
+
+```sh
+git diff --stat <sha>..origin/cms-rel-840 -- . ':!contrib/cms'
+```
+
+No output means the image is current. The commit each image was built from
+is also tagged `image/cms-rel-840-<sha>` in git.
+
+**Apache's uid.** The container's Apache owns the files it creates in the
+sites folder, and needs read/write on all of it. By default it's uid 1000,
+which on a server is usually a person's login, who would then get that
+access without `sudo`. On a production server, give it a dedicated account
+with no login, once, and build with its uid (`APACHE_UID` above):
+
+```sh
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin openemr-web
+id -u openemr-web
+```
+
+Leave `--build-arg APACHE_UID` out for a dry run; the default 1000 is fine
+there. `docker run --rm --entrypoint id <image> apache` shows which uid an
+image uses.
+
+The build clones the branch from GitHub (not your local checkout), runs
+`composer install --no-dev` and the npm build, and needs network access and
+several GB of disk. Rebuild after every change to cms-rel-840.
+`--no-cache-filter openemr-source` makes it clone again; without it, Docker
+reuses the cached clone and the image keeps the old code. The image has no
+`.git`, so to check what's in it, look for something recent, e.g.
+`docker run --rm --entrypoint grep cmswest1/openemr:cms-rel-840 -c adjustmentReason
+/var/www/localhost/htdocs/openemr/src/Billing/Statement/CustomPdfStatementText.php`.
+
+## 2. Fill in .env and config/
+
+Copy `.env.example` to `.env` and fill it in: the sites folder, the
+database root password, the stock `default` site's passwords and the ports.
+`.env` holds passwords; keep it only on the server.
+
+- `sql/<site>.sql`: one file per CMS site that has its own settings
+  (DEPLOYMENT.md section 3). The hook applies each only to the site of that
+  name, so every server can keep all of them. For a new site, start from
+  `sql/site.sql.example`.
+- `sql/all-sites.sql`: sets Statement Appearance to PDF Custom on every site
+  (production's layout). Sites keep their production Statement Logo.
+- `sites/<site>/`: `chart_review.json` for the records-review site, and a
+  letterhead PNG only for a site that lacks it (see `sites/README.md`).
+  `statement.inc.php` comes from the image automatically.
+- Records-review user: put production's PatientFilter config, with the pids
+  under `whitelist`, at
+  `code/interface/modules/zend_modules/module/PatientFilter/config/blacklist.php`.
+- `php/10-cms-timezone.ini`: `date.timezone = America/New_York`. The
+  container's clock is UTC; without this PHP shows the next day's calendar
+  from 20:00 Eastern on (found the first Sunday evening after the cutover).
+  Change the zone for a server elsewhere.
+- `php/99-cms.ini`: optional, from `99-cms.ini.example`, to raise
+  `memory_limit`.
+
+## 3. Move an existing 7.0.1 install in
+
+How the image upgrades: at every start, for each site folder with a
+configured `sqlconf.php`, it reads that database's `version` row and runs
+`sql_upgrade.php --from=<that release>` if the code is newer
+(`check_schema_upgrade` in `docker/release/openemr.sh`). Each site is
+upgraded on its own, straight from 7.0.1; no version marker is needed.
+
+1. **Database.**
+   - Start only the database: `docker compose up -d --wait mysql` (`--wait`
+     returns once it accepts connections; the first start takes a while).
+   - Load each site's database from a dump of production
+     (`mariadb-dump --single-transaction` → `mariadb`).
+   - Create each site's database with
+     `CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci`, before loading it.
+     Without the collation, MariaDB 11.5+ uses `utf8mb4_uca1400_ai_ci` for
+     the tables the upgrade creates, and joins with the dump's tables fail.
+   - Create each site's database user with the password in its
+     `sqlconf.php`.
+2. **Before the first start:** check the stored
+   `x12_partners.x12_submitter_id` values on every site's database
+   (DEPLOYMENT.md section 1). `all-sites.sql` widens the column itself.
+3. **Site directories.** The compose file bind-mounts the folder named by
+   `CMS_SITES_DIR` in `.env` as the image's `sites/`. In production that's
+   the server's existing `sites/` folder, used in place (no copy); in a dry
+   run, a working copy. It must be readable and writable by the image's
+   `apache` (`openemr-web` on a production server, uid 1000 by default); use
+   `setfacl` if the host owner must stay. In each
+   migrated `sqlconf.php`, set `$host = 'mysql';`.
+   - With the live folder, disable (not just stop) the host's Apache and
+     OpenEMR cron jobs first: nothing else may use it.
+   - Once the container has run, the folder is changed (`sqlconf.php`
+     hosts, every site's `statement.inc.php`, `cms-applied/`, new documents
+     and results). Rolling back to 7.0.1 means restoring the database dumps
+     and setting `$host` back; take a `sync-sites.sh` copy right before the
+     cutover as a fallback.
+4. **`sites/default`.** The image decides whether OpenEMR is installed by
+   reading `sites/default/sqlconf.php`, and only restores a missing
+   `default` in swarm mode.
+   - **If `default` is one of your real sites,** migrate it like the others.
+   - **If it isn't** (as on a multisite server without a real `default`), give the container
+     a stock `default` from the image. On first start it configures it as a
+     new, empty site:
+     ```sh
+     docker run --rm --entrypoint tar cmswest1/openemr:cms-rel-840 \
+       -C /var/www/localhost/htdocs/openemr/sites -c default | tar -C <sites folder> -x
+     ```
+     `MYSQL_DATABASE` and `MYSQL_USER` in the compose file are used for that
+     new site; keep them different from every migrated site's database and
+     user.
+5. **Start it.** The first start of a stock `default` needs MariaDB's root
+   password, passed for that start only:
+   `CMS_SETUP_DB_ROOT_PASS=<root password> docker compose up -d`. Follow
+   `docker compose logs -f openemr`. Once Apache is up, run
+   `docker compose up -d` without it, so the running container holds no
+   root password (every later start works without it: upgrades and hooks
+   use each site's own database user). In order:
+   - `Schema upgrade detected for <site> … (7.0.1)` and `Completed: schema
+     upgrade` for each migrated site;
+   - `Running quick setup!` if a stock `default` is being configured;
+   - the prelaunch hooks: `cms prelaunch:` (files) and `cms settings:`
+     (SQL);
+   - `Starting Apache!`.
+
+   A failing hook stops the start; the log shows which file and why. The
+   upgrade time is your downtime estimate for the cutover.
+6. Log in to each site and work through DEPLOYMENT.md's smoke tests.
+7. **Background services:** the container runs no cron for OpenEMR, and
+   rel-840's CLI refuses root. Schedule them from the host's crontab, per
+   site, as `apache` (DEPLOYMENT.md section 7):
+   ```cron
+   */15 * * * * cd /opt/cms/kit && docker compose exec -T -u apache openemr php /var/www/localhost/htdocs/openemr/bin/console background:services run --site=<site> >> /var/log/openemr-bg.log 2>&1
+   ```
+
+## Updating (new commits on cms-rel-840)
+
+E.g. after cherry-picking upstream fixes into cms-rel-840:
+
+1. Build the new commit (section 1); keep the previous image.
+2. Back up every site's database: a fix that changes the schema upgrades
+   each site at the next start, as the move from 7.0.1 did.
+3. Set `CMS_IMAGE` in `.env` to the new tag and run `docker compose up -d`.
+   Compose recreates the container; the sites folder and databases are
+   outside it. A code-only change restarts in seconds; the hooks skip what's
+   applied, and every site's `statement.inc.php` follows the new image.
+
+To go back, set `CMS_IMAGE` to the previous tag and `docker compose up -d`.
+That reverts the code only: if the new build upgraded a schema, restore the
+databases from step 2 as well.
+
+## TLS certificate (Let's Encrypt)
+
+Each server is reached at one hostname, so the image's own certbot handles
+the certificate. In `.env`, set `CMS_DOMAIN` (the hostname) and
+`CMS_LETSENCRYPT_EMAIL`. On the first start with them, the container gets a
+certificate by HTTP validation on port 80, so the hostname's DNS must point
+at the server and port 80 must be reachable from the internet. The
+certificate is kept in the `letsencryptvolume` volume; `05-cms-cert-renewal`
+makes sure root's crontab in the container renews it daily (the image only
+adds that job when it first obtains a certificate, which a recreated
+container doesn't do). Leave both settings empty for a self-signed
+certificate, as in a dry run.
+
+Port 80 stays published but serves nothing else: the image would serve
+OpenEMR over plain HTTP there, so `06-cms-https-redirect` makes it answer
+only `/.well-known/acme-challenge/` and redirect everything else to HTTPS
+(to `CMS_HTTPS_PORT` when that isn't 443). There's no manual step to open
+port 80 for renewals, as there was with the host's Apache.
+
+The image serves OpenEMR at the root of the site (`https://host/interface/...`);
+the 7.0.1 host served it under `/openemr/`, which is what bookmarks, the
+patient portal address and the OAuth redirect URIs stored in each site's
+database use. `07-cms-web-root` moves Apache's document root up one level so
+the old URLs keep working (`https://host/openemr/interface/login/login.php?site=<site>`),
+redirects `/` to `/openemr/`, and keeps the Let's Encrypt check reachable
+(the image's certbot writes it under OpenEMR's directory). Nothing answers
+at the root path any more. The same hook trims the image's HSTS header to
+the hostname itself (the image's version also covers every subdomain, which
+the host never sent).
+
+The 7.0.1 host let only the server itself reach `/openemr/oauth2/` and
+`/openemr/apis/` (the local integration is their only consumer) and didn't
+redirect the server's own plain-HTTP requests to HTTPS. `08-cms-api-local`
+restricts the OAuth2 endpoints the same way, which is what keeps outsiders
+out of the API (no token, 401); the API path itself stays open because the
+8.4 UI calls it from the browser with the session (the insurance editor,
+for one), which 7.0.1's UI never did. `06-cms-https-redirect` skips the
+redirect for the same sources. Both use `CMS_LOCAL_FROM`
+(`.env`; default `127.0.0.1 ::1 172.16.0.0/12`, because the host's own
+connections reach the container from Docker's bridge network, not from
+127.0.0.1). When `CMS_DOMAIN` is set, the port 80 redirect goes to that
+name, so `www.<domain>` lands on the name the certificate covers.
+
+At cutover, the host's own certbot no longer has an Apache to work with:
+disable its renewal (its systemd timer or cron entry) once the container
+serves the hostname.
+
+## How the hooks behave
+
+Both run on every start, after the database upgrade and before Apache:
+
+- **`10-cms-site-files`** first gives every site with a `sqlconf.php` the
+  image's `statement.inc.php` (from `/swarm-pieces/sites/default/`, the
+  image's own copy of `sites/`), unless `config/sites/<site>/` has one. A
+  rebuilt image updates every site. Then it copies `config/` files; it
+  overwrites, never deletes, and skips `sites/<site>` folders that don't
+  exist. It's safe to run any number of times.
+- **`20-cms-site-settings`** applies `table.sql`, `all-sites.sql` and each
+  `<site>.sql` to a site **once per file**; its checksum is kept in
+  `sites/<site>/cms-applied/`. Later starts don't overwrite settings changed
+  in OpenEMR. Edit a file and it applies again at the next start, or right
+  away with:
+  ```sh
+  docker compose exec openemr /root/hooks/prelaunch/20-cms-site-settings
+  ```
+  At every start it also moves each numbered site's EDI control-number
+  counter (`edi_sequences`, used for ISA13 and GS06) up to site × 100,000,
+  so site 200's 837s count from 20000000. Each site counts on its own and
+  all of them send under the same X12 sender ID, so without this a partner
+  sees the same ISA13 from different sites and rejects it as a repeat. The
+  counter only ever moves forward.
+- Why not `postupgrade`: that hook only fires on the image's
+  `docker-version` path, which needs a code marker that a new image doesn't
+  have. In practice, schema upgrades go through `check_schema_upgrade`, which
+  runs no hook.
+- The SQL helper connects with each site's `sqlconf.php` and doesn't handle
+  database TLS certificates. If the database requires TLS, apply the SQL by
+  hand instead.
+- The hooks run as root inside the container. Keep `hooks/` and `config/`
+  writable only by administrators on the host.
