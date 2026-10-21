@@ -325,9 +325,10 @@ class X125010837P
 
             // Situational PER*1C segment omitted.
 
-            // Loop 2010AB Pay-To Address: sent when the billing facility has a mailing
-            // address, which is where payments go. 5010 uses only NM101-NM102 here.
-            if ($claim->payToFacilityStreet() !== '') {
+            // Loop 2010AB Pay-To Address: the billing facility's mailing address, sent
+            // only when it differs from the billing provider address in 2010AA.
+            // 5010 uses only NM101-NM102 here: the pay-to loop is an address, not a provider.
+            if ($claim->hasPayToAddress()) {
                 ++$edicount;
                 $out .= "NM1" .       // Loop 2010AB Pay-To Address
                 "*" . "87" .
@@ -357,9 +358,9 @@ class X125010837P
                     $log .= "*** Pay to address has no state.\n";
                 }
                 $out .= "*";
-                // X12 requires a 9 digit zip but we output it anyways
-                if (strlen($claim->payToFacilityZip()) != 9) {
-                    $log .= "*** Pay to address zip is not 9 digits.\n";
+                // Unlike 2010AA and 2310C, the TR3 doesn't require ZIP+4 here: 5 or 9 digits.
+                if (!in_array(strlen($claim->payToFacilityZip()), [5, 9], true)) {
+                    $log .= "*** Pay to address zip is not 5 or 9 digits.\n";
                 }
                 $out .= $claim->payToFacilityZip();
                 $out .= "~\n";

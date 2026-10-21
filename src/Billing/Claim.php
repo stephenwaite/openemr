@@ -51,7 +51,6 @@ class Claim
     public $payers = [];       // array of arrays, for all payers
     public $copay;             // total of copays from the ar_activity table
     public $facilityService;   // via matthew.vita orm work :)
-    public $pay_to_provider;   // to be implemented in facility ui
     private $encounterService;
     public $billing_prov_id;
     public $line_item_adjs;
@@ -76,7 +75,6 @@ class Claim
         $this->copay = $this->getCopay($this->pid, $this->encounter_id);
         $this->facilityService = new FacilityService();
         $this->facility = $this->facilityService->getById($this->encounter['facility_id']);
-        $this->pay_to_provider = ''; // will populate from facility someday :)
         $this->x12_partner = $this->getX12Partner($x12_partner_id);
         $encounterProviderId = $this->encounter['provider_id'] ?? null;
         $providerFilter = new ClaimProviderFilterEvent(is_numeric($encounterProviderId) ? (int) $encounterProviderId : 0);
@@ -800,26 +798,37 @@ class Claim
     }
 
     /**
+     * Whether the 837P sends a pay-to address (loop 2010AB): the billing facility has a
+     * mailing address and it differs from the physical address sent for the billing
+     * provider (loop 2010AA). 2010AB is only for a payment address that differs from
+     * the billing provider's.
+     */
+    public function hasPayToAddress(): bool
+    {
+        return self::mailingAddressDiffers(is_array($this->billing_facility) ? $this->billing_facility : []);
+    }
+
+    /**
      * The billing facility's mailing address, sent as the 837P pay-to address.
      */
     public function payToFacilityStreet(): string
     {
-        return $this->billingFacilityMailField('mail_street');
+        return (string) $this->x12Clean($this->billingFacilityMailField('mail_street'));
     }
 
     public function payToFacilityStreet2(): string
     {
-        return $this->billingFacilityMailField('mail_street2');
+        return (string) $this->x12Clean($this->billingFacilityMailField('mail_street2'));
     }
 
     public function payToFacilityCity(): string
     {
-        return $this->billingFacilityMailField('mail_city');
+        return (string) $this->x12Clean($this->billingFacilityMailField('mail_city'));
     }
 
     public function payToFacilityState(): string
     {
-        return $this->billingFacilityMailField('mail_state');
+        return (string) $this->x12Clean($this->billingFacilityMailField('mail_state'));
     }
 
     public function payToFacilityZip(): string
@@ -829,8 +838,44 @@ class Claim
 
     private function billingFacilityMailField(string $field): string
     {
-        $value = is_array($this->billing_facility) ? ($this->billing_facility[$field] ?? '') : '';
-        return is_string($value) ? (string) $this->x12Clean(trim($value)) : '';
+        $value = is_array($this->billing_facility) ? ($this->billing_facility[$field] ?? null) : null;
+        return is_string($value) ? trim($value) : '';
+    }
+
+    /**
+     * Whether a facility row has a mailing address that differs from its physical address.
+     *
+     * Streets compare without case, punctuation or extra spaces (mailing street and
+     * street2 together against the physical street). ZIP codes compare as digits, and a
+     * 5-digit ZIP matches a ZIP+4 that starts with it.
+     *
+     * @param array<mixed> $facility row from the facility table
+     */
+    private static function mailingAddressDiffers(array $facility): bool
+    {
+        $field = static fn (string $key): string => is_string($facility[$key] ?? null) ? trim($facility[$key]) : '';
+        $words = static fn (string $value): string => trim((string) preg_replace(
+            '/\s+/',
+            ' ',
+            (string) preg_replace('/[^A-Z0-9 ]/', ' ', strtoupper($value))
+        ));
+        $digits = static fn (string $value): string => (string) preg_replace('/\D/', '', $value);
+
+        if ($field('mail_street') === '') {
+            return false;
+        }
+        $mailZip = $digits($field('mail_zip'));
+        $physicalZip = $digits($field('postal_code'));
+        $sameZip = $mailZip === $physicalZip
+            || (strlen($mailZip) === 5 && str_starts_with($physicalZip, $mailZip))
+            || (strlen($physicalZip) === 5 && str_starts_with($mailZip, $physicalZip));
+
+        return !(
+            $words($field('mail_street') . ' ' . $field('mail_street2')) === $words($field('street'))
+            && $words($field('mail_city')) === $words($field('city'))
+            && $words($field('mail_state')) === $words($field('state'))
+            && $sameZip
+        );
     }
 
     /**
