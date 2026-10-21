@@ -4,8 +4,8 @@
  * Gifford charge import module bootstrap.
  *
  * Imports Gifford Medical Center's radiology charge files (delivered by SFTP)
- * into site 2400 as patients, policies, encounters and billing lines, after
- * each file is reviewed and approved.
+ * into site 2400 as patients, policies, encounters and billing lines. An hourly
+ * background service stages each new file; lines with problems are held.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -16,11 +16,15 @@
 
 declare(strict_types=1);
 
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Bootstrap;
 use OpenEMR\Core\ModulesClassLoader;
 use OpenEMR\Core\OEGlobalsBag;
 
-$classLoader = new ModulesClassLoader(OEGlobalsBag::getInstance()->getProjectDir());
+$globalsBag = OEGlobalsBag::getInstance();
+$classLoader = new ModulesClassLoader($globalsBag->getProjectDir());
 $classLoader->registerNamespaceIfNotExists(
     'Cmsvt\\OpenEMR\\Modules\\GiffordCharges\\',
     __DIR__ . DIRECTORY_SEPARATOR . 'src'
 );
+
+(new Bootstrap($globalsBag->getKernel()->getEventDispatcher()))->subscribeToEvents();
