@@ -16,6 +16,9 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
                                          path the 7.0.1 host used
       hooks/prelaunch/08-cms-api-local   every start: OAuth2 answers only the server
                                          itself, as on the 7.0.1 host
+      hooks/prelaunch/09-cms-ip-allowlist
+                                         every start: with config/ip-allowlist.txt, only
+                                         those addresses (and the server) reach Apache
       hooks/prelaunch/10-cms-site-files  every start: the image's statement.inc.php to
                                          every site, then config files into place
       hooks/prelaunch/20-cms-site-settings
@@ -32,6 +35,7 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
         sites/<site>/...                 copied into sites/<site>/ on every start
         code/...                         copied into the code tree on every start
         php/*.ini                        copied into PHP's conf.d on every start
+        ip-allowlist.txt                 optional: addresses allowed in (hook 09)
 
 For a practice run on a copy of one site first, see `DRY-RUN.md`.
 
@@ -263,6 +267,33 @@ redirect for the same sources. Both use `CMS_LOCAL_FROM`
 connections reach the container from Docker's bridge network, not from
 127.0.0.1). When `CMS_DOMAIN` is set, the port 80 redirect goes to that
 name, so `www.<domain>` lands on the name the certificate covers.
+
+### IP allowlist (optional)
+
+With `config/ip-allowlist.txt` present, `09-cms-ip-allowlist` lets only those
+addresses, plus the server itself (`CMS_LOCAL_FROM`), reach anything Apache
+serves, on either port; everyone else gets 403 before any PHP runs. Let's
+Encrypt's check (`/.well-known/acme-challenge/`) stays open so the certificate
+still renews, and port 80 still answers with its redirect to HTTPS. The file
+has one IPv4 or IPv6 address or CIDR network per line; `#` starts a comment.
+A line that isn't an address is reported and skipped, and a file with no
+usable line leaves the allowlist off rather than locking everyone out. The
+hook writes `/etc/apache2/conf.d/zz-cms-ip-allowlist.conf` with
+`AuthMerging And`, so it narrows the other rules (OAuth2 stays local-only)
+and never loosens them, and keeps the previous file if Apache's config test
+fails. A firewall such as ufw doesn't filter Docker's published ports, which
+is why this lives in Apache.
+
+To find the addresses staff log in from, list each site's successful logins
+(the audit log keeps `success: <ip>` on every one). After editing the list,
+apply it without a restart:
+
+```sh
+sudo docker compose exec -T openemr /root/hooks/prelaunch/09-cms-ip-allowlist
+sudo docker compose exec -T openemr httpd -k graceful
+```
+
+To turn it off, remove the file and run the same two commands.
 
 At cutover, the host's own certbot no longer has an Apache to work with:
 disable its renewal (its systemd timer or cron entry) once the container
