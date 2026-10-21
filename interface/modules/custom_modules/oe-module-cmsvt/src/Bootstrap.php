@@ -19,6 +19,7 @@ use Cmsvt\OpenEMR\Modules\Customizations\Billing\BillingManagerDefaults;
 use Cmsvt\OpenEMR\Modules\Customizations\Billing\ClaimOptions;
 use Cmsvt\OpenEMR\Modules\Customizations\Billing\CollectionsReportOptions;
 use Cmsvt\OpenEMR\Modules\Customizations\Billing\EraAdjustmentPolicy;
+use Cmsvt\OpenEMR\Modules\Customizations\Command\ImportProcFileCommand;
 use Cmsvt\OpenEMR\Modules\Customizations\Command\IncreaseFeesCommand;
 use Cmsvt\OpenEMR\Modules\Customizations\Command\UpdateX12SftpPasswordCommand;
 use Cmsvt\OpenEMR\Modules\Customizations\Eligibility\EligibilityProviderOverride;
@@ -134,5 +135,6 @@ final readonly class Bootstrap
     {
         $event->setCommand(UpdateX12SftpPasswordCommand::class, new UpdateX12SftpPasswordCommand());
         $event->setCommand(IncreaseFeesCommand::class, new IncreaseFeesCommand());
+        $event->setCommand(ImportProcFileCommand::class, new ImportProcFileCommand());
     }
 }

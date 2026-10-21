@@ -39,6 +39,30 @@ php bin/console cmsvt:fees-increase --site=default --percent=5 --dry-run
 php bin/console cmsvt:fees-increase --site=default --percent=5
 ```
 
+### `cmsvt:procfile-import`
+
+Loads a site's codes and standard prices from a CMS fee file: fixed-width
+records laid out by the COBOL copybook `PROCFILE01` (charge master number,
+CPT/HCPCS, modifier, type, title, amount with two implied decimals; 46
+characters a line).
+
+- $0 records are skipped. Lines that aren't 46-character records, and codes
+  that are neither CPT4 nor HCPCS, are listed and skipped.
+- One price per code and modifier (`71046` and `71046:26` are separate). When
+  a code's records disagree, the most common fee wins, and of equally common
+  fees the highest; every disagreement is listed with the fees not used.
+- A missing code is added with the fee file's title (the wording most of its
+  records share), 1 unit, active, and its standard price. An existing code keeps
+  its description, active flag and other price levels; only its standard price
+  (and `codes.fee`) changes. Running the same file again changes nothing.
+- `--dry-run` lists every addition and change and writes nothing. `-v` also
+  lists the codes already right.
+
+```sh
+php bin/console cmsvt:procfile-import --site=2400 --file=/tmp/wste --dry-run
+php bin/console cmsvt:procfile-import --site=2400 --file=/tmp/wste
+```
+
 ## Reports
 
 ### Press Ganey survey export
