@@ -7,9 +7,12 @@
  * Each ordfile charge gets a new encounter (the place of service's category
  * and class, the patient's referring doctor, the admit date as onset), a CPT4
  * line with the fee for the code and its first modifier, and, when RRMC sent a
- * diagnosis in the accession field, an ICD10 line it is justified by. The CPT4
- * line is linked to the ordfile line in cmsvt_ordfile_record_billing, which the
- * coding page reads, and which tells a second run the line is billed.
+ * diagnosis in the accession field, an ICD10 line it is justified by. Both are
+ * linked to the ordfile line in cmsvt_ordfile_record_billing, the CPT4 line as
+ * the source (which also tells a second run the line is billed) and the ICD10
+ * line as the coding page's Dx 1, so the page shows RRMC's diagnosis and the
+ * biller confirms or changes it (7.0.2 left it unlinked, and the page's saves
+ * then cleared the CPT4 line's justify).
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -92,10 +95,14 @@ final class DatabaseChargeBilling implements ChargeBilling
                 [$charge->recordId, $billingId]
             );
             if ($diagnosis !== '') {
-                QueryUtils::sqlInsert(
+                $diagnosisId = QueryUtils::sqlInsert(
                     'INSERT INTO `billing` (`date`, `code_type`, `code`, `pid`, `provider_id`, `authorized`, `encounter`, `code_text`, `activity`)'
                     . " VALUES (NOW(), 'ICD10', ?, ?, ?, 1, ?, ?, 1)",
                     [$diagnosis, $charge->patient->pid, $charge->providerId, $encounter, $this->diagnosisText($diagnosis)]
+                );
+                QueryUtils::sqlStatementThrowException(
+                    "INSERT INTO `cmsvt_ordfile_record_billing` (`ordfile_record_id`, `billing_id`, `record_type`) VALUES (?, ?, 'primary')",
+                    [$charge->recordId, $diagnosisId]
                 );
             }
             return $encounter;
