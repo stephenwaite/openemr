@@ -2,15 +2,18 @@
 
 /**
  * Step 4's dangling credits (COBOL rri222 and rri221): for each cancel ('-') in
- * the ordfile, the charge it cancels in the same account (same CDM, a later
- * date of service), listed together and left out of the other checks; a cancel
- * without one is a dangling credit, a cancel of something billed before.
+ * the ordfile, the charge it cancels in the same account (same CDM, dated the
+ * same day as the cancel or earlier), listed together and left out of the
+ * other checks and of billing; a cancel without one is a dangling credit, a
+ * cancel of something billed before.
  *
  * Changes from 7.0.2: the lines are grouped by account (7.0.2 looked up only the
  * first account and then checked every later line on its own, under the first
  * account's name), and a charge is a line with a blank indicator (7.0.2 compared
  * it with ' ', which the database gives back as '', so no pair ever matched).
- * The date test is 7.0.2's (cancel date < charge date); see PORT-PLAN question 5.
+ * The date test is the COBOL's (credit date NOT < charge date), so RRMC's
+ * same-day cancels pair; 7.0.2 had it the other way round. A charge pairs with
+ * one cancel only.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -52,7 +55,7 @@ final readonly class DanglingCredits
                 }
                 $chargeId = null;
                 foreach ($lines as $id => $line) {
-                    if ($line->proc === $cancel->proc && $line->ind === ' ' && $cancel->dateT < $line->dateT) {
+                    if ($line->proc === $cancel->proc && $line->ind === ' ' && $cancel->dateT >= $line->dateT && !isset($paired[$id])) {
                         $chargeId = $id;
                     }
                 }
