@@ -21,6 +21,15 @@ namespace Cmsvt\OpenEMR\Modules\RriBilling\Lookup;
 interface PayerDirectory
 {
     /**
+     * The hospital file's insurance key for RRMC's payer code ('003'), or null
+     * when the code isn't in the hospital file.
+     */
+    public function insuranceKeyForRrmcCode(string $rrmcCode): ?string;
+
+    /** The insurance company with this id, or null. */
+    public function companyById(int $id): ?PayerCompany;
+
+    /**
      * The insurance company for RRMC's payer code, or null when the code isn't
      * in the hospital file or its key names no insurance company.
      */

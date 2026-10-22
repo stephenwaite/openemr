@@ -49,7 +49,13 @@ The port is in progress. Done so far:
   on a typed account record (`Account\AccountRecord`, the account file's
   columns). Rule for rule as in 7.0.2.
 
-Still to come: the rest of step 3 (choosing the insurances, the account file
-and patient updates, the ordfile), the lookup-file
+- Step 3's account building (`Account\AccountBuilder`, the per-patient part
+  of rrmc006): address, relationship, referring doctor (found by NPI, chosen
+  or added), the primary and secondary insurance from RRMC's codes, RRMC's
+  miscellaneous payers, then the insurance rules. The biller's questions go
+  through `StepThreePrompts`; `--yes` answers them with the defaults.
+
+Still to come: saving step 3 (account file, ordfile, patient and insurance
+updates) and the database lookups it uses, the lookup-file
 install, the console steps (`cmsvt:qqq`, `cmsvt:rri-248`, `-245`, `-247`,
 `-250`) and the coding page.

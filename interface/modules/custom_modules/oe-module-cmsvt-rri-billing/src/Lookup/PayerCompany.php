@@ -1,7 +1,7 @@
 <?php
 
 /**
- * An insurance company as the RRI checks need it.
+ * An insurance company as the RRI steps need it.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -20,10 +20,14 @@ final readonly class PayerCompany
      * @param int $id insurance_companies.id
      * @param bool $electronic has a payer id (cms_id), i.e. is billed electronically
      *                         (the old system's claim type 'E')
+     * @param string $assign the old insurance file's assignment flag (cmsvt_insfile.insassign:
+     *                       'A' assigned, 'U' unassigned, '' when the file has no row)
      */
     public function __construct(
         public int $id,
         public bool $electronic,
+        public string $assign = '',
+        public string $name = '',
     ) {
     }
 

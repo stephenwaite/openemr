@@ -300,6 +300,16 @@ final class StepOneRulesTest extends TestCase
     public function paperAndUnknownPayersAreListedInTheOldLayoutAndOrder(): void
     {
         $directory = new class implements PayerDirectory {
+            public function insuranceKeyForRrmcCode(string $rrmcCode): ?string
+            {
+                return $this->companyForRrmcCode($rrmcCode)?->legacyCode();
+            }
+
+            public function companyById(int $id): ?PayerCompany
+            {
+                return null;
+            }
+
             public function companyForRrmcCode(string $rrmcCode): ?PayerCompany
             {
                 return match ($rrmcCode) {

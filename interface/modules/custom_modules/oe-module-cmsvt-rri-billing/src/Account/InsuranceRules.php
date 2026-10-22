@@ -250,16 +250,9 @@ final class InsuranceRules
         return $this->messages;
     }
 
-    /**
-     * Equal as PHP's == compares two strings: as numbers when both are numeric,
-     * so "3", "03" and "003" are the same payer code.
-     */
     private static function is(string $a, string $b): bool
     {
-        if (is_numeric($a) && is_numeric($b)) {
-            return (($a + 0) <=> ($b + 0)) === 0;
-        }
-        return $a === $b;
+        return LegacyCode::same($a, $b);
     }
 
     /**
@@ -267,12 +260,7 @@ final class InsuranceRules
      */
     private static function isOneOf(string $code, array $codes): bool
     {
-        foreach ($codes as $candidate) {
-            if (self::is($code, $candidate)) {
-                return true;
-            }
-        }
-        return false;
+        return LegacyCode::oneOf($code, $codes);
     }
 
     /** Strictly between, read as a whole number ("234" .. "244" for 233 and 245). */

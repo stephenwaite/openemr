@@ -20,7 +20,7 @@ final readonly class ChargeFilePatient
     /**
      * @param string $email kept in the case RRMC sent it; every other field is uppercase
      * @param string $gender M or F as sent (may be blank)
-     * @param string $dobRaw YYMMDD as sent (may be blank)
+     * @param string $dobRaw MMDDYY as sent (may be blank)
      */
     public function __construct(
         public PersonName $name,
