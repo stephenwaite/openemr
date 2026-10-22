@@ -20,8 +20,10 @@ use Cmsvt\OpenEMR\Modules\RriBilling\Command\Rri247Command;
 use Cmsvt\OpenEMR\Modules\RriBilling\Command\Rri248Command;
 use Cmsvt\OpenEMR\Modules\RriBilling\Command\Rri250Command;
 use Cmsvt\OpenEMR\Modules\RriBilling\Globals\RriGlobals;
+use Cmsvt\OpenEMR\Modules\RriBilling\Menu\RriMenu;
 use OpenEMR\Events\Command\CommandRunnerFilterEvent;
 use OpenEMR\Events\Globals\GlobalsInitializedEvent;
+use OpenEMR\Menu\MenuEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final readonly class Bootstrap
@@ -36,6 +38,7 @@ final readonly class Bootstrap
             GlobalsInitializedEvent::EVENT_HANDLE,
             (new RriGlobals())->register(...)
         );
+        $this->eventDispatcher->addListener(MenuEvent::MENU_UPDATE, (new RriMenu())->apply(...));
         $this->eventDispatcher->addListener(
             CommandRunnerFilterEvent::EVENT_NAME,
             static function (CommandRunnerFilterEvent $event): void {
