@@ -42,6 +42,14 @@ The port is in progress. Done so far:
     file (`cmsvt_hospfile`) or naming no insurance company (`XXX`), and
     companies without a payer id (paper claims, self pay).
 
-Still to come: the account and insurance rules (rrmc006), the lookup-file
+- Step 3's insurance rules (`Account\InsuranceRules`, rrmc006 P2-2/P2-3): the
+  old billing system's rewrites of payer codes, policy numbers, groups and
+  relationships for Medicare, railroad Medicare, Medicaid of Vermont, BCBS of
+  Vermont and out of state, NYS Empire, Medigap, Medicomp and CNA work comp,
+  on a typed account record (`Account\AccountRecord`, the account file's
+  columns). Rule for rule as in 7.0.2.
+
+Still to come: the rest of step 3 (choosing the insurances, the account file
+and patient updates, the ordfile), the lookup-file
 install, the console steps (`cmsvt:qqq`, `cmsvt:rri-248`, `-245`, `-247`,
 `-250`) and the coding page.

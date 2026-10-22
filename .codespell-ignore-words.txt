@@ -72,6 +72,7 @@ assertin
 # Proper names (citations, authors, sample data)
 captian
 cartledge
+cna
 hart
 kake
 nast
