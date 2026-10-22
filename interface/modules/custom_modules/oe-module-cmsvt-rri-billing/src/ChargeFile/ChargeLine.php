@@ -63,4 +63,29 @@ final readonly class ChargeLine
     {
         return substr($this->readingDoctor, 0, 4);
     }
+
+    /** A copy with RRMC's charge rules applied to the CPT and first two modifiers. */
+    public function withCptAndModifiers(string $cpt, string $modifier1, string $modifier2): self
+    {
+        return new self(
+            $this->indicator,
+            $this->department,
+            $this->glCode,
+            $this->cdm,
+            $this->dateOfService,
+            $this->dateOfServiceRaw,
+            $this->units,
+            $this->clinical,
+            $this->placeOfService,
+            $this->readingDoctor,
+            $cpt,
+            $this->hcpcs,
+            $modifier1,
+            $modifier2,
+            $this->modifier3,
+            $this->observation,
+            $this->location,
+            $this->accession,
+        );
+    }
 }
