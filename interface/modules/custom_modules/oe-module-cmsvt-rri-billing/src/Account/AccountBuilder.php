@@ -99,7 +99,9 @@ final class AccountBuilder
             $prior = $this->insuranceHistory->currentPrimary(ltrim($existing->actno, '0'));
         }
 
-        $account->garname = $patient->name->last . ';' . $patient->name->first . $patient->name->middle;
+        // "LAST;FIRST MIDDLE", as rri-248 wrote it (its untrimmed middle name kept the space).
+        $account->garname = $patient->name->last . ';' . $patient->name->first
+            . ($patient->name->middle === '' ? '' : ' ' . $patient->name->middle);
         $this->contact($file, $account);
         if ($account->city === '' || $account->state === '' || $account->zip === '') {
             $this->errors[] = $account->garname . ' HAS A BAD ADDRESS, MEDREC # ' . $mrn;

@@ -273,7 +273,7 @@ final class AccountBuilderTest extends TestCase
 
         $this->assertSame('00123456', $result->mrn);
         $this->assertSame('W00', $result->referringDoctor?->refkey);
-        $this->assertSame(['00123456', 'DOE;JANEQ', 'DOE'], [$account->actno, $account->garname, $account->namekey]);
+        $this->assertSame(['00123456', 'DOE;JANE Q', 'DOE'], [$account->actno, $account->garname, $account->namekey]);
         $this->assertSame(['1 MAIN ST', 'APT 2', 'RUTLAND', 'VT', '05701-1234'], [$account->billadd, $account->street, $account->city, $account->state, $account->zip]);
         $this->assertSame('8025550199', $account->phone);
         $this->assertSame(['F', 'K'], [$account->sex, $account->relate]);
@@ -296,7 +296,7 @@ final class AccountBuilderTest extends TestCase
 
         $this->assertSame(['268', 'QRS123456789'], [$account->prins, $account->pripol->toString()]);
         $this->assertSame('001', $account->seins, 'nothing after the chosen primary');
-        $this->assertSame(['HOSP=NOPE 00123456 DOE;JANEQ BAD HOSPITAL CODE '], $result->insuranceErrors);
+        $this->assertSame(['HOSP=NOPE 00123456 DOE;JANE Q BAD HOSPITAL CODE '], $result->insuranceErrors);
     }
 
     #[Test]
@@ -306,8 +306,8 @@ final class AccountBuilderTest extends TestCase
         $account = self::built($result);
 
         $this->assertSame('001', $account->prins);
-        $this->assertSame(['HOSP=GHOST 00123456 DOE;JANEQ BAD INSURANCE CODE '], $result->insuranceErrors);
-        $this->assertSame(['warning: 777 MISSING GHOST 00123456 DOE;JANEQ'], $this->shown);
+        $this->assertSame(['HOSP=GHOST 00123456 DOE;JANE Q BAD INSURANCE CODE '], $result->insuranceErrors);
+        $this->assertSame(['warning: 777 MISSING GHOST 00123456 DOE;JANE Q'], $this->shown);
     }
 
     #[Test]
@@ -323,7 +323,7 @@ final class AccountBuilderTest extends TestCase
     {
         $account = self::built($this->builder()->build(self::file(['p1.subscriber' => 'SELF'])));
 
-        $this->assertSame('DOE;JANEQ', $account->prname);
+        $this->assertSame('DOE;JANE Q', $account->prname);
     }
 
     #[Test]
@@ -459,8 +459,8 @@ final class AccountBuilderTest extends TestCase
         $this->answers = [''];
         $result = $this->builder()->build(self::file(['guarantorZip' => '']));
 
-        $this->assertSame(['DOE;JANEQ HAS A BAD ADDRESS, MEDREC # 00123456'], $result->errors);
-        $this->assertSame('warning: bad address, will be listed, any key to proceed DOE;JANEQ 00123456', $this->shown[0]);
+        $this->assertSame(['DOE;JANE Q HAS A BAD ADDRESS, MEDREC # 00123456'], $result->errors);
+        $this->assertSame('warning: bad address, will be listed, any key to proceed DOE;JANE Q 00123456', $this->shown[0]);
     }
 
     #[Test]

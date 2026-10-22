@@ -62,7 +62,25 @@ The port is in progress. Done so far:
   comp addresses and email/authorization rows (`Ordfile\DatabaseStepThreeFiles`).
   Setting "Reading Doctor Code" (blank: 01) is the ordfile's docp.
 
-Still to come: the patient and insurance updates and the `cmsvt:rri-248`
-command that runs step 3, the lookup-file
+- Step 3, `cmsvt:rri-248` (rrmc006): accounts, ordfile, work comp and
+  email/authorization rows, and the patient and insurance update
+  (`Patient\PatientUpdater`: every policy's subscriber is the patient, a new
+  policy starts January 1). Writes `ordfiles/ordfile-<time>` and, when there
+  is anything to report, `errors/errfile248-<time>` (smart edits) and
+  `errors/err248-<time>` (bad insurance information from RRMC).
+
+  ```sh
+  php bin/console cmsvt:rri-248 --site=1600 --dry-run   # nothing saved; files named ...-dry-run
+  php bin/console cmsvt:rri-248 --site=1600             # newest charge file, report date today
+  php bin/console cmsvt:rri-248 --site=1600 --file=radb_eisemannbilling261020.txt --date=10212026 --yes
+  ```
+
+  `--yes` answers the questions with their defaults (insurance 95 for
+  RRMC's miscellaneous payers unless `--y-primary` / `--y-2ndary` say
+  otherwise; both are checked before the run). `--resume=<MRN>` starts at a
+  patient.
+
+Still to come: steps 4-6 (`cmsvt:rri-245`, `-247`, `-250`), step 1 as a
+command (`cmsvt:qqq`), the lookup-file
 install, the console steps (`cmsvt:qqq`, `cmsvt:rri-248`, `-245`, `-247`,
 `-250`) and the coding page.
