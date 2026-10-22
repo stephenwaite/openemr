@@ -35,6 +35,7 @@ use Cmsvt\OpenEMR\Modules\RriBilling\Lookup\PayerDirectory;
 use Cmsvt\OpenEMR\Modules\RriBilling\Rules\ChargeRules;
 use Cmsvt\OpenEMR\Modules\RriBilling\Rules\PayerCheck;
 use Cmsvt\OpenEMR\Modules\RriBilling\Rules\VisitInsuranceCheck;
+use Cmsvt\OpenEMR\Modules\RriBilling\Step\StepOne;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -366,5 +367,52 @@ final class StepOneRulesTest extends TestCase
             'PRIMARY    P0003 001 ' . str_repeat(' ', 30) . ' ' . str_repeat(' ', 20) . '    ' . str_repeat(' ', 10) . ' '
                 . str_repeat(' ', 12) . ' MRN 1234567         ',
         ], $lines);
+    }
+
+    #[Test]
+    public function stepOneReportsTheRulesThenTheVisitsAndThePayers(): void
+    {
+        $directory = new class implements PayerDirectory {
+            public function insuranceKeyForRrmcCode(string $rrmcCode): ?string
+            {
+                return null;
+            }
+
+            public function companyById(int $id): ?PayerCompany
+            {
+                return null;
+            }
+
+            public function companyForRrmcCode(string $rrmcCode): ?PayerCompany
+            {
+                return null;
+            }
+        };
+        $chargeMaster = new class implements ChargeMaster {
+            public function find(string $cdm, string $code): ?ChargeMasterEntry
+            {
+                return null;
+            }
+
+            public function findAnyModifier(string $cdm, string $code): ?ChargeMasterEntry
+            {
+                return null;
+            }
+        };
+        $accounts = [
+            self::account([self::charge()], '10000001', '12-34-56', [self::insurance('P0001')]),
+            self::account([], '10000002', '12-34-56', [self::insurance('P0002')]),
+        ];
+
+        [$errfile008, $errfile007] = (new StepOne($chargeMaster, $directory))->check($accounts);
+
+        $this->assertSame([
+            'UNDEFINED PROCEDURE FOR MRN 123456 CDM 7000 CPT 71046 HCPCS  DOS 102026',
+            '** STOP! And ADD THIS CDM-CPT IN THE 52 TO CAPTURE THE NEW RRMC CDM, re-run qqq thank you. MAIN **',
+            '*** uh oh, rrmc ins code P0002 is different from prior record ins code P0001 in this file for mrn 123456',
+            '*** which means we were given different insurances for distinct charges for the same person and should be remedied.',
+        ], $errfile008);
+        $this->assertSame(['PRIMARY    P0002 XXX', 'PRIMARY    P0001 XXX'], array_map(static fn(string $line): string => substr($line, 0, 20), $errfile007));
+        $this->assertCount(1, $accounts[0]->charges, 'step 1 changes nothing');
     }
 }

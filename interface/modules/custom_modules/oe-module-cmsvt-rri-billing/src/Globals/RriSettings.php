@@ -29,6 +29,7 @@ final readonly class RriSettings
     private const DEFAULT_AUTOSAVE_SECONDS = 15;
     private const MINIMUM_AUTOSAVE_SECONDS = 5;
     private const DEFAULT_READING_DOCTOR_CODE = '01';
+    private const DEFAULT_CHARGE_FILE_PREFIX = 'radb_eisemannbilling';
     private const DEFAULT_READING_DOCTOR_USER = 5000;
     private const DEFAULT_OUTPATIENT_FACILITY = 4;
     private const DEFAULT_INPATIENT_FACILITY = 5;
@@ -72,6 +73,13 @@ final readonly class RriSettings
             $username,
             $password,
         );
+    }
+
+    /** The name of the day's charge file on RRMC's server: prefix (blank: radb_eisemannbilling), YYMMDD, .txt. */
+    public function chargeFileName(\DateTimeImmutable $day): string
+    {
+        $prefix = trim($this->globals->getString(RriGlobals::CHARGE_FILE_PREFIX));
+        return ($prefix === '' ? self::DEFAULT_CHARGE_FILE_PREFIX : $prefix) . $day->format('ymd') . '.txt';
     }
 
     public function debug(): bool

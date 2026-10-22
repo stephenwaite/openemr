@@ -42,6 +42,20 @@ The port is in progress. Done so far:
     file (`cmsvt_hospfile`) or naming no insurance company (`XXX`), and
     companies without a payer id (paper claims, self pay).
 
+- Step 1, `cmsvt:qqq`: fetches the day's charge file (`<prefix>YYMMDD.txt`,
+  setting "Charge File Name Prefix", blank: radb_eisemannbilling) from the
+  SFTP server into `charges/`, through a `.part` file, asking before fetching
+  one that is already there; or takes `--file`. Then runs the rules above,
+  writing `errors/errfile008-<time>` (and asking whether to go on) and
+  `errors/errfile007-<time>` (exit code 1 when there is one, as 7.0.2). It
+  changes nothing; the file is touched so step 3 takes it as the newest.
+
+  ```sh
+  php bin/console cmsvt:qqq --site=1600                  # asks for the day (MMDDYY), default today
+  php bin/console cmsvt:qqq --site=1600 --date=102026
+  php bin/console cmsvt:qqq --site=1600 --file=radb_eisemannbilling261020.txt
+  ```
+
 - Step 3's insurance rules (`Account\InsuranceRules`, rrmc006 P2-2/P2-3): the
   old billing system's rewrites of payer codes, policy numbers, groups and
   relationships for Medicare, railroad Medicare, Medicaid of Vermont, BCBS of
@@ -117,5 +131,4 @@ The port is in progress. Done so far:
   php bin/console cmsvt:rri-250 --site=1600
   ```
 
-Still to come: step 1 as a command (`cmsvt:qqq`), the lookup-file install and
-the coding page.
+Still to come: the lookup-file install and the coding page.
