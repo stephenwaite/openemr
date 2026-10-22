@@ -53,6 +53,13 @@ final class Rri250Command extends Command
         $io = new SymfonyStyle($input, $output);
         $clock = ServiceContainer::getClock();
         $settings = new RriSettings(OEGlobalsBag::getInstance(), ServiceContainer::getCrypto());
+        $readingDoctor = $settings->readingDoctorUser();
+        $outpatient = $settings->facility(PlaceOfService::OutpatientHospital);
+        $inpatient = $settings->facility(PlaceOfService::InpatientHospital);
+        if ($readingDoctor === null || $outpatient === null || $inpatient === null) {
+            $io->error('Set Reading Doctor User ID, Outpatient Facility ID and Inpatient Facility ID in the RRI Billing settings first.');
+            return Command::INVALID;
+        }
         $ordfile = OrdfileOption::select($input, $io, new DatabaseOrdfileSource($clock));
         if ($ordfile === null) {
             return Command::INVALID;
@@ -62,8 +69,8 @@ final class Rri250Command extends Command
             new DatabaseAccountFile(),
             new DatabaseChargeBilling(new EncounterService()),
             $settings->readingDoctorCode(),
-            $settings->readingDoctorUser(),
-            $settings->facility(...),
+            $readingDoctor,
+            static fn(PlaceOfService $place): int => $place === PlaceOfService::InpatientHospital ? $inpatient : $outpatient,
         );
         $askPlace = static function (OrdfileLine $line) use ($io): PlaceOfService {
             $io->error('Unknown Place of Service for MRN ' . $line->ord8 . ' with IOPAT of ' . $line->iopat);
