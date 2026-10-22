@@ -119,8 +119,8 @@ The port is in progress. Done so far:
   the account file (`errors/file242-<time>`; OpenEMR's insurance is not
   changed). Then each charge gets an encounter of its own (place of service
   from iopat, the patient's referring doctor) with a CPT4 line and, when RRMC
-  sent one in the accession field, the ICD10 diagnosis, ready for the coding
-  page. A charge paired with its cancel in step 4 is not billed, nor is any
+  sent one in the accession field, the ICD10 diagnosis, which the coding
+  page shows as Dx 1. A charge paired with its cancel in step 4 is not billed, nor is any
   cancel; charges it can't bill go to `errors/errfile240-<time>`. Running it
   again on the same ordfile bills only what wasn't.
   Settings "Reading Doctor User ID" (blank: 5000) is the provider of the

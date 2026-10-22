@@ -2,7 +2,7 @@
 
 /**
  * Database tests for step 6's billing: the patient lookup, and the encounter,
- * CPT4 and ICD10 lines and ordfile link made for a charge. Rows are invented
+ * CPT4 and ICD10 lines made for a charge and their links to its ordfile line. Rows are invented
  * and removed afterwards.
  *
  * @package   OpenEMR
@@ -133,15 +133,18 @@ class StepSixBillingTest extends TestCase
                 self::number($row['facility_id']), self::number($row['provider_id']), self::number($row['referring_provider_id'])]
         );
         $lines = QueryUtils::fetchRecords(
-            'SELECT b.`code_type`, b.`code`, b.`modifier`, b.`justify`, b.`external_id`, b.`billed`, c.`ordfile_record_id`'
+            'SELECT b.`code_type`, b.`code`, b.`modifier`, b.`justify`, b.`external_id`, b.`billed`, c.`ordfile_record_id`, c.`record_type`'
             . ' FROM `billing` b LEFT JOIN `cmsvt_ordfile_record_billing` c ON c.`billing_id` = b.`id` WHERE b.`encounter` = ? ORDER BY b.`id`',
             [$encounter]
         );
         $this->assertCount(2, $lines);
-        $this->assertSame(['CPT4', '73562', 'RT', 'ICD10|M17.11:', 'M17.11', 0, $recordId], [
+        $this->assertSame(['CPT4', '73562', 'RT', 'ICD10|M17.11:', 'M17.11', 0, $recordId, 'source'], [
             $lines[0]['code_type'], $lines[0]['code'], $lines[0]['modifier'], $lines[0]['justify'], $lines[0]['external_id'],
-            self::number($lines[0]['billed']), self::number($lines[0]['ordfile_record_id']),
+            self::number($lines[0]['billed']), self::number($lines[0]['ordfile_record_id']), $lines[0]['record_type'],
         ]);
-        $this->assertSame(['ICD10', 'M17.11', null], [$lines[1]['code_type'], $lines[1]['code'], $lines[1]['ordfile_record_id']]);
+        $this->assertSame(
+            ['ICD10', 'M17.11', $recordId, 'primary'],
+            [$lines[1]['code_type'], $lines[1]['code'], self::number($lines[1]['ordfile_record_id']), $lines[1]['record_type']]
+        );
     }
 }
