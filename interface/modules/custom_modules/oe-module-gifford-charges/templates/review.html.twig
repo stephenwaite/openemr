@@ -111,18 +111,28 @@
                 <td>{{ line.accession|text }}</td>
                 <td>
                     {% for problem in line.problems %}<div>{{ problem|text }}</div>{% endfor %}
-                    {% if line.released %}<div class="text-success">{{ 'Released: posts on the next run.'|xlt }}</div>{% endif %}
+                    {% if line.released %}<div class="text-success">{% if line.addedModifier %}{{ 'Released with modifier'|xlt }} {{ line.addedModifier|text }}: {% else %}{{ 'Released'|xlt }}: {% endif %}{{ 'posts on the next run.'|xlt }}</div>{% endif %}
                 </td>
-                <td class="text-nowrap">
-                    {% if line.correction and not line.released %}
-                        <form method="post" class="d-inline" onsubmit="return top.restoreSession()">
+                <td>
+                    {% if line.repeat and not line.released %}
+                        {% for modifier in ['76', '77'] %}
+                        <form method="post" class="mb-1" onsubmit="return top.restoreSession()">
+                            {{ csrfToken('default', 'csrf_token_form') }}
+                            <input type="hidden" name="form_action" value="release" />
+                            <input type="hidden" name="line_id" value="{{ line.id|attr }}" />
+                            <input type="hidden" name="add_modifier" value="{{ modifier|attr }}" />
+                            <button type="submit" class="btn btn-sm btn-secondary text-nowrap" title="{{ (modifier == '76' ? 'Repeat procedure by the same physician' : 'Repeat procedure by another physician')|xla }}">{{ 'Post with'|xlt }} {{ modifier|text }}</button>
+                        </form>
+                        {% endfor %}
+                    {% elseif line.correction and not line.released %}
+                        <form method="post" class="mb-1" onsubmit="return top.restoreSession()">
                             {{ csrfToken('default', 'csrf_token_form') }}
                             <input type="hidden" name="form_action" value="release" />
                             <input type="hidden" name="line_id" value="{{ line.id|attr }}" />
                             <button type="submit" class="btn btn-sm btn-secondary">{{ 'Post it'|xlt }}</button>
                         </form>
                     {% endif %}
-                    <form method="post" class="d-inline" onsubmit="return top.restoreSession() && confirm({{ 'Skip this line? It will not be posted.'|xlj }})">
+                    <form method="post" class="mb-1" onsubmit="return top.restoreSession() && confirm({{ 'Skip this line? It will not be posted.'|xlj }})">
                         {{ csrfToken('default', 'csrf_token_form') }}
                         <input type="hidden" name="form_action" value="skip" />
                         <input type="hidden" name="line_id" value="{{ line.id|attr }}" />

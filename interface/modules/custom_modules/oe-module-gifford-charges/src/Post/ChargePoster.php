@@ -38,10 +38,12 @@ use Psr\Clock\ClockInterface;
  *   encounter already posted), or the visit number is too long for the encounter;
  * - it has no price, or Gifford sent TC;
  * - an earlier file already posted its accession as a different charge (a corrected
- *   re-send), until a person releases it.
- * A line identical to one already posted (from an earlier file or earlier in its own
- * file), or to one posting in the same run, is marked duplicate. Different codes on one
- * accession in the same file are separate charges.
+ *   re-send), until a person releases it;
+ * - the patient already has the same code that day (posted from this file, or from another
+ *   file on another accession, or posting in this run) and the line has no 76 or 77: a
+ *   possible repeat procedure, until a person posts it with 76 or 77 or skips it.
+ * A line identical to a charge posted from an earlier file on the same accession (the file
+ * sent again) is marked duplicate.
  */
 final readonly class ChargePoster
 {
@@ -134,9 +136,14 @@ final readonly class ChargePoster
             if ($providerId === null) {
                 $problems[] = sprintf('rendering NPI %s is not a provider on this site', self::encounterOf($parsed)->renderingNpi);
             }
+            // Gifford sending a file again: the same charge on the same accession, posted
+            // from an earlier file. Lines of one file are checked as repeats below.
             $duplicateOf = null;
             $postedAs = [];
             foreach ($this->lines->postedEarlier($charge->accession, $line->batchId, $line->row->line) as $posted) {
+                if ($posted['same_file']) {
+                    continue;
+                }
                 $earlier = $this->parser->parse(new RawRow(0, $posted['raw']))->charge;
                 if ($earlier === null) {
                     continue;
@@ -145,29 +152,47 @@ final readonly class ChargePoster
                     $duplicateOf = $posted['line_id'];
                     break;
                 }
-                // Other codes on the accession in the same file are the visit's other charges.
-                if (!$posted['same_file']) {
-                    $postedAs[] = sprintf('%s%s x%d', $earlier->code, $earlier->modifiers === [] ? '' : '-' . implode(':', $earlier->modifiers), $earlier->units);
-                }
-            }
-            // The same charge twice in this run: the first is posting, the second repeats it.
-            foreach ($ready as $r) {
-                if ($duplicateOf === null && self::sameCharge($r['charge'], $charge)) {
-                    $duplicateOf = $r['line']->id;
-                }
-            }
-            if ($duplicateOf === null && $postedAs !== [] && !$line->released) {
-                $problems[] = sprintf(
-                    'corrected re-send? accession %s was posted from an earlier file as %s; post this line too, or skip it',
-                    $charge->accession,
-                    implode(', ', $postedAs)
-                );
+                $postedAs[] = sprintf('%s%s x%d', $earlier->code, $earlier->modifiers === [] ? '' : '-' . implode(':', $earlier->modifiers), $earlier->units);
             }
             if ($duplicateOf !== null) {
                 $this->lines->markDuplicate($line->id, $duplicateOf, $now);
                 $result->duplicates++;
                 continue;
             }
+            if ($postedAs !== [] && !$line->released) {
+                $problems[] = sprintf(
+                    'corrected re-send? accession %s was posted from an earlier file as %s; post this line too, or skip it',
+                    $charge->accession,
+                    implode(', ', $postedAs)
+                );
+            }
+
+            // The same procedure again for the patient that day, posted or posting now: a
+            // repeat needs modifier 76 or 77, which only a person can tell from a duplicate.
+            $repeatOf = $this->repeatOf($line, $charge, $ready, self::patientOf($parsed)->mrn);
+            if ($repeatOf !== []) {
+                $problems[] = sprintf(
+                    'repeat procedure? %s %s is also on accession %s for this patient on %s; post it with modifier 76 (same physician) or 77 (another physician), or skip it if it is a duplicate',
+                    $charge->codeType,
+                    $charge->code,
+                    implode(', ', $repeatOf),
+                    $charge->dateOfService->format('Y-m-d')
+                );
+            }
+            if ($line->addedModifier !== '') {
+                $charge = new ChargeRecord(
+                    $charge->dateOfService,
+                    $charge->codeType,
+                    $charge->code,
+                    [...$charge->modifiers, $line->addedModifier],
+                    $charge->units,
+                    $charge->accession,
+                    $charge->department,
+                    $charge->clinicalNote,
+                    $charge->comment,
+                );
+            }
+
             $priced = null;
             try {
                 $priced = $this->prices->price($charge);
@@ -208,6 +233,35 @@ final readonly class ChargePoster
                 $result->posted++;
             }
         });
+    }
+
+    /**
+     * Accessions of the patient's other lines with this code on this date, posted (from
+     * this file, or from another file on another accession) or ready in this run. None
+     * when the line already says it is a repeat (76 or 77 from Gifford or a person).
+     *
+     * @param list<array{line: PendingLine, charge: ChargeRecord, priced: PricedCharge, providerId: int}> $ready
+     * @return list<string>
+     */
+    private function repeatOf(PendingLine $line, ChargeRecord $charge, array $ready, string $mrn): array
+    {
+        $modifiers = array_map(strtoupper(...), $charge->modifiers);
+        if ($line->addedModifier !== '' || array_intersect(['76', '77'], $modifiers) !== []) {
+            return [];
+        }
+        $accessions = [];
+        foreach ($this->lines->postedSameCode($mrn, $charge->dateOfService, $charge->code, $line->id) as $posted) {
+            if ($posted['batch_id'] === $line->batchId || $posted['accession'] !== $charge->accession) {
+                $accessions[] = $posted['accession'];
+            }
+        }
+        foreach ($ready as $r) {
+            if ($r['charge']->codeType === $charge->codeType && $r['charge']->code === $charge->code) {
+                $accessions[] = $r['charge']->accession;
+            }
+        }
+
+        return array_values(array_unique($accessions));
     }
 
     private static function sameCharge(ChargeRecord $a, ChargeRecord $b): bool

@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS `gifford_charge_line` (
     `raw_json` MEDIUMTEXT NOT NULL COMMENT 'the row as read: column name => value',
     `problems_json` TEXT NOT NULL COMMENT 'JSON list of problems; empty list when none',
     `status` VARCHAR(16) NOT NULL COMMENT 'staged: ready to post; held: has problems; posted; duplicate: already posted from an earlier file; skipped: a person chose not to post it',
-    `released` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1: a person chose to post a line held as a corrected re-send',
+    `released` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1: a person chose to post a line held as a corrected re-send or a repeat procedure',
+    `added_modifier` VARCHAR(2) NOT NULL DEFAULT '' COMMENT 'repeat procedure modifier (76 or 77) a person chose to post the line with',
     `pid` BIGINT NULL COMMENT 'patient_data.pid, once posted',
     `encounter` BIGINT NULL COMMENT 'form_encounter.encounter, once posted',
     `billing_id` INT NULL COMMENT 'billing.id of the procedure line, once posted',
@@ -42,6 +43,10 @@ CREATE TABLE IF NOT EXISTS `gifford_charge_line` (
     KEY `accession` (`accession`),
     KEY `status` (`status`)
 ) ENGINE=InnoDB;
+
+#IfMissingColumn gifford_charge_line added_modifier
+ALTER TABLE `gifford_charge_line` ADD COLUMN `added_modifier` VARCHAR(2) NOT NULL DEFAULT '' COMMENT 'repeat procedure modifier (76 or 77) a person chose to post the line with' AFTER `released`;
+#EndIf
 
 -- Which insurance company each Gifford payer mnemonic (ins1_mnemonic ...) is billed to.
 -- Filled by `bin/console gifford:payer-import` from the payer crosswalk CSV.

@@ -90,6 +90,7 @@ class ReviewRepositoryTest extends TestCase
         $this->assertCount(2, $held);
         $this->assertSame(['Testpatient, Ann', 'GH-' . $this->token, false], [$held[0]->patientName, $held[0]->visitNumber, $held[0]->correction]);
         $this->assertTrue($held[1]->correction);
+        $this->assertFalse($held[1]->repeat);
 
         $now = new \DateTimeImmutable('2026-10-22 11:00:00');
         $this->assertTrue($review->release($correction, $now));
@@ -103,6 +104,30 @@ class ReviewRepositoryTest extends TestCase
                 [$this->batchId]
             )
         );
+    }
+
+    public function testARepeatIsReleasedWithItsModifier(): void
+    {
+        [$repeat] = $this->stageHeld([
+            [$this->row('OLD' . $this->token, 'A3' . $this->token), [ReviewRepository::REPEAT_PREFIX . ' CPT4 93005 is also on accession A2 for this patient on 2026-08-20; post it with modifier 76 (same physician) or 77 (another physician), or skip it if it is a duplicate']],
+        ]);
+        $review = new ReviewRepository(new ChargeRowParser(), new PayerMap());
+        $held = array_values(array_filter($review->heldLines(), static fn (HeldLine $l): bool => $l->id === $repeat));
+        $this->assertCount(1, $held);
+        $this->assertSame([true, false], [$held[0]->repeat, $held[0]->correction]);
+
+        $this->assertTrue($review->release($repeat, new \DateTimeImmutable('2026-10-22 11:00:00'), '77'));
+        $this->assertSame(
+            ['held:1:77'],
+            QueryUtils::fetchTableColumn(
+                "SELECT CONCAT(`status`, ':', `released`, ':', `added_modifier`) AS s FROM `gifford_charge_line` WHERE `id` = ?",
+                's',
+                [$repeat]
+            )
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $review->release($repeat, new \DateTimeImmutable('2026-10-22 11:00:00'), '59');
     }
 
     /**

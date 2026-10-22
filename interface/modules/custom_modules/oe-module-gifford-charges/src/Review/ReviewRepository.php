@@ -25,6 +25,12 @@ final readonly class ReviewRepository
     /** The start of the problem posting gives a corrected re-send. */
     public const CORRECTION_PREFIX = 'corrected re-send?';
 
+    /** The start of the problem posting gives a possible repeat procedure. */
+    public const REPEAT_PREFIX = 'repeat procedure?';
+
+    /** Modifiers a repeat procedure can be posted with. */
+    public const REPEAT_MODIFIERS = ['76', '77'];
+
     public function __construct(
         private ChargeRowParser $parser,
         private PayerMap $payers,
@@ -40,7 +46,7 @@ final readonly class ReviewRepository
     {
         $rows = QueryUtils::fetchRecords(
             'SELECT l.`id`, l.`line_number`, l.`visit_number`, l.`mrn`, l.`accession`, l.`date_of_service`, l.`code`,'
-            . ' l.`raw_json`, l.`problems_json`, l.`released`, b.`file_name`, b.`received_at`'
+            . ' l.`raw_json`, l.`problems_json`, l.`released`, l.`added_modifier`, b.`file_name`, b.`received_at`'
             . ' FROM `gifford_charge_line` AS l JOIN `gifford_charge_batch` AS b ON b.`id` = l.`batch_id`'
             . ' WHERE l.`status` = ? ORDER BY l.`batch_id`, l.`line_number`',
             [LineStatus::Held->value]
@@ -69,7 +75,9 @@ final readonly class ReviewRepository
                 self::text($row['code'] ?? null),
                 $problems,
                 array_filter($problems, static fn (string $p): bool => str_starts_with($p, self::CORRECTION_PREFIX)) !== [],
+                array_filter($problems, static fn (string $p): bool => str_starts_with($p, self::REPEAT_PREFIX)) !== [],
                 self::int($row['released'] ?? null) === 1,
+                self::text($row['added_modifier'] ?? null),
             );
         }
 
@@ -151,14 +159,17 @@ final readonly class ReviewRepository
     }
 
     /**
-     * Let a line held as a corrected re-send post on the next run. Returns false when it
-     * isn't held.
+     * Let a line held as a corrected re-send, or as a repeat procedure with the modifier to
+     * add (76 or 77), post on the next run. Returns false when it isn't held.
      */
-    public function release(int $lineId, \DateTimeImmutable $at): bool
+    public function release(int $lineId, \DateTimeImmutable $at, string $addModifier = ''): bool
     {
+        if ($addModifier !== '' && !in_array($addModifier, self::REPEAT_MODIFIERS, true)) {
+            throw new \InvalidArgumentException('A repeat procedure is posted with modifier 76 or 77');
+        }
         QueryUtils::sqlStatementThrowException(
-            'UPDATE `gifford_charge_line` SET `released` = 1, `updated_at` = ? WHERE `id` = ? AND `status` = ?',
-            [$at->format('Y-m-d H:i:s'), $lineId, LineStatus::Held->value]
+            'UPDATE `gifford_charge_line` SET `released` = 1, `added_modifier` = ?, `updated_at` = ? WHERE `id` = ? AND `status` = ?',
+            [$addModifier, $at->format('Y-m-d H:i:s'), $lineId, LineStatus::Held->value]
         );
 
         return QueryUtils::affectedRows() > 0;

@@ -44,11 +44,13 @@ in one transaction:
 A line is **held**, with the reason in `gifford_charge_line.problems_json`, when the row
 has problems, a payer mnemonic is not mapped, the rendering NPI is not a provider on the
 site, the visit's lines (or its posted encounter) disagree on place of service, the code
-has no price, Gifford sent `TC`, or the line's accession was posted from an earlier file
-as a different charge (a corrected re-send, held until a person releases or skips it).
-A line identical to one already posted (from an earlier file or earlier in its own file), or
-to one posting in the same run, is marked `duplicate`; different codes on one accession in the
-same file are separate charges.
+has no price, Gifford sent `TC`, the line's accession was posted from an earlier file
+as a different charge (a corrected re-send, held until a person releases or skips it), or
+the patient already has the same code that day (posted from the same file, or from another
+file on another accession, or posting in the same run) and the line has no `76`/`77` (a
+possible repeat procedure, held until a person posts it with 76 or 77 or skips it).
+A line identical to a charge posted from an earlier file on the same accession (the file sent
+again) is marked `duplicate`.
 
 Posting needs Admin > Config > Gifford Charge Import > **Facility ID** (where the
 studies are read) and **Billing Facility ID**; while either is 0, lines are staged only.
@@ -64,7 +66,8 @@ For users with Accounting > Billing (write):
 - **Held lines:** file, line, patient, MRN, visit, date, code, accession and why each is
   held. **Skip** marks a line never to be posted; **Post it** releases a line held as a
   corrected re-send so it posts on the next run (fix or void the earlier charge in the
-  encounter's fee sheet as needed).
+  encounter's fee sheet as needed); **Post with 76** / **Post with 77** releases a possible
+  repeat procedure, which then posts with that modifier after the others (`26:76`).
 - **Post ready lines now** runs posting without waiting for the hour.
 
 ## Setting it up on a site

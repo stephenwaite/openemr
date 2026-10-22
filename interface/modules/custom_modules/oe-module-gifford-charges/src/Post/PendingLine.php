@@ -20,12 +20,15 @@ final readonly class PendingLine
 {
     /**
      * @param bool $released a person chose to post it although it looks like a corrected re-send
+     *                       or a repeat procedure
+     * @param string $addedModifier the repeat procedure modifier (76 or 77) chosen for it, or ''
      */
     public function __construct(
         public int $id,
         public int $batchId,
         public RawRow $row,
         public bool $released,
+        public string $addedModifier = '',
     ) {
     }
 }

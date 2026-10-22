@@ -19,7 +19,9 @@ final readonly class HeldLine
     /**
      * @param list<string> $problems
      * @param bool $correction held as a corrected re-send, which a person can release
+     * @param bool $repeat held as a possible repeat procedure, which a person can post with 76 or 77
      * @param bool $released released, waiting for the next posting run
+     * @param string $addedModifier the modifier it was released with (76 or 77), or ''
      */
     public function __construct(
         public int $id,
@@ -34,7 +36,9 @@ final readonly class HeldLine
         public string $code,
         public array $problems,
         public bool $correction,
+        public bool $repeat,
         public bool $released,
+        public string $addedModifier,
     ) {
     }
 }

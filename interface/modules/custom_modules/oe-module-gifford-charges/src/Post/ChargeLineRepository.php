@@ -30,7 +30,7 @@ final class ChargeLineRepository
     public function pendingLines(): array
     {
         $rows = QueryUtils::fetchRecords(
-            'SELECT `id`, `batch_id`, `line_number`, `raw_json`, `released` FROM `gifford_charge_line`'
+            'SELECT `id`, `batch_id`, `line_number`, `raw_json`, `released`, `added_modifier` FROM `gifford_charge_line`'
             . ' WHERE `status` IN (?, ?) ORDER BY `batch_id`, `line_number`',
             [LineStatus::Staged->value, LineStatus::Held->value]
         );
@@ -49,6 +49,7 @@ final class ChargeLineRepository
                 self::int($row['batch_id'] ?? null),
                 new RawRow(self::int($row['line_number'] ?? null), $values),
                 self::int($row['released'] ?? null) === 1,
+                self::text($row['added_modifier'] ?? null),
             );
         }
 
@@ -86,6 +87,28 @@ final class ChargeLineRepository
         }
 
         return $posted;
+    }
+
+    /**
+     * Accessions of the patient's posted lines with this code on this date, other than
+     * $lineId: lines that make this one a repeat of the same procedure.
+     *
+     * @return list<array{line_id: int, batch_id: int, accession: string}>
+     */
+    public function postedSameCode(string $mrn, \DateTimeImmutable $dateOfService, string $code, int $lineId): array
+    {
+        $rows = QueryUtils::fetchRecords(
+            'SELECT `id`, `batch_id`, `accession` FROM `gifford_charge_line`'
+            . ' WHERE `mrn` = ? AND `date_of_service` = ? AND `code` = ? AND `status` = ? AND `id` <> ?'
+            . ' ORDER BY `batch_id`, `line_number`',
+            [$mrn, $dateOfService->format('Y-m-d'), $code, LineStatus::Posted->value, $lineId]
+        );
+
+        return array_map(static fn (array $row): array => [
+            'line_id' => self::int($row['id'] ?? null),
+            'batch_id' => self::int($row['batch_id'] ?? null),
+            'accession' => self::text($row['accession'] ?? null),
+        ], $rows);
     }
 
     /**

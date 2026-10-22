@@ -86,8 +86,15 @@ if ($request->isMethod('POST')) {
                 : ['warning', xl('That line is no longer held.')];
             break;
         case 'release':
-            $messages[] = $review->release($lineId, $now)
-                ? ['success', xl('Line released; it posts on the next run.')]
+            $modifier = $form->getString('add_modifier');
+            if ($modifier !== '' && !in_array($modifier, ReviewRepository::REPEAT_MODIFIERS, true)) {
+                $messages[] = ['danger', xl('A repeat procedure is posted with modifier 76 or 77.')];
+                break;
+            }
+            $messages[] = $review->release($lineId, $now, $modifier)
+                ? ['success', $modifier === ''
+                    ? xl('Line released; it posts on the next run.')
+                    : sprintf(xl('Line released with modifier %s; it posts on the next run.'), $modifier)]
                 : ['warning', xl('That line is no longer held.')];
             break;
         case 'post':

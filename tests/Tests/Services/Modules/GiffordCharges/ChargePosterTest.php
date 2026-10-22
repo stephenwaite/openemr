@@ -260,19 +260,53 @@ class ChargePosterTest extends TestCase
         $this->assertSame('posted', $this->line($changed)['status']);
     }
 
-    public function testTheSameChargeTwiceInOneFilePostsOnce(): void
+    public function testTheSameCodeTwiceInOneFileIsHeldAsARepeatUntilPostedWith76(): void
     {
+        // Two chest x-rays the same day, sent without 76/77: a repeat, or a duplicate.
         [$first, $second] = $this->stage([$this->row(), $this->row()]);
 
         $result = $this->post();
 
-        $this->assertSame([1, 1], [$result->posted, $result->duplicates]);
-        $this->assertSame(['posted', 'duplicate'], [$this->line($first)['status'], $this->line($second)['status']]);
-        $this->assertSame(['same charge as line id ' . $first . ', which is posted'], $this->problems($second));
-        $this->assertCount(1, QueryUtils::fetchRecords(
-            "SELECT 1 FROM `billing` WHERE `encounter` = ? AND `code_type` = 'CPT4'",
-            [$this->line($first)['encounter']]
-        ));
+        $this->assertSame([1, 0], [$result->posted, $result->duplicates]);
+        $this->assertSame(['posted', 'held'], [$this->line($first)['status'], $this->line($second)['status']]);
+        $this->assertSame([$this->repeatProblem('A' . $this->token)], $this->problems($second));
+
+        // A person posts it as a repeat by the same physician.
+        QueryUtils::sqlStatementThrowException(
+            "UPDATE `gifford_charge_line` SET `released` = 1, `added_modifier` = '76' WHERE `id` = ?",
+            [$second]
+        );
+        $this->assertSame(1, $this->post()->posted);
+        $this->assertSame(
+            ['26:76', '125.50'],
+            self::text2(QueryUtils::querySingleRow('SELECT `modifier`, `fee` FROM `billing` WHERE `id` = ?', [$this->line($second)['billing_id']]))
+        );
+    }
+
+    public function testARepeatGiffordMarkedWith76Posts(): void
+    {
+        [$first, $second] = $this->stage([$this->row(), $this->row(['chg_mod1' => '76'])]);
+
+        $this->assertSame(2, $this->post()->posted);
+        $this->assertSame(
+            ['26', '26:76'],
+            [
+                self::text2(QueryUtils::querySingleRow('SELECT `modifier` FROM `billing` WHERE `id` = ?', [$this->line($first)['billing_id']]))[0] ?? '',
+                self::text2(QueryUtils::querySingleRow('SELECT `modifier` FROM `billing` WHERE `id` = ?', [$this->line($second)['billing_id']]))[0] ?? '',
+            ]
+        );
+    }
+
+    public function testTheSameCodeOnAnotherAccessionFromALaterFileIsHeldAsARepeat(): void
+    {
+        $this->stage([$this->row()]);
+        $this->post();
+        [$later] = $this->stage([$this->row(['chg_accession' => 'Z' . $this->token])]);
+
+        $this->post();
+
+        $this->assertSame('held', $this->line($later)['status']);
+        $this->assertSame([$this->repeatProblem('A' . $this->token)], $this->problems($later));
     }
 
     public function testTwoCodesOnOneAccessionInOneFileBothPost(): void
@@ -282,8 +316,8 @@ class ChargePosterTest extends TestCase
         $this->assertSame(2, $this->post()->posted);
         $this->assertSame(['posted', 'posted'], [$this->line($study)['status'], $this->line($other)['status']]);
 
-        // A line added to that file later with one of those codes again repeats it, and
-        // the file's other code is not taken for a corrected re-send.
+        // A line added to that file later with one of those codes again is a possible
+        // repeat, and the file's other code is not taken for a corrected re-send.
         $repeat = QueryUtils::sqlInsert(
             "INSERT INTO `gifford_charge_line` (`batch_id`, `line_number`, `visit_number`, `mrn`, `accession`, `date_of_service`,"
             . " `code`, `raw_json`, `problems_json`, `status`, `updated_at`)"
@@ -292,8 +326,12 @@ class ChargePosterTest extends TestCase
             [$other]
         );
         $this->post();
-        $this->assertSame('duplicate', $this->line($repeat)['status']);
-        $this->assertSame(['same charge as line id ' . $other . ', which is posted'], $this->problems($repeat));
+        $this->assertSame('held', $this->line($repeat)['status']);
+        $this->assertSame(
+            ['repeat procedure? CPT4 ' . $this->bareCode . ' is also on accession A' . $this->token . ' for this patient on 2026-08-20;'
+                . ' post it with modifier 76 (same physician) or 77 (another physician), or skip it if it is a duplicate'],
+            $this->problems($repeat)
+        );
     }
 
     public function testANewPayerStartsANewPolicyAndEndsTheOldOne(): void
@@ -316,6 +354,12 @@ class ChargePosterTest extends TestCase
             ['policy_number' => '38097', 'date' => '2026-08-20', 'date_end' => '2026-09-09'],
             ['policy_number' => 'NEWID', 'date' => '2026-09-10', 'date_end' => null],
         ], $policies);
+    }
+
+    private function repeatProblem(string $otherAccession): string
+    {
+        return 'repeat procedure? CPT4 ' . $this->code . ' is also on accession ' . $otherAccession . ' for this patient on 2026-08-20;'
+            . ' post it with modifier 76 (same physician) or 77 (another physician), or skip it if it is a duplicate';
     }
 
     private function post(): PostResult
