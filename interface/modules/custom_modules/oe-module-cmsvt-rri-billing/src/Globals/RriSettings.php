@@ -30,9 +30,6 @@ final readonly class RriSettings
     private const MINIMUM_AUTOSAVE_SECONDS = 5;
     private const DEFAULT_READING_DOCTOR_CODE = '01';
     private const DEFAULT_CHARGE_FILE_PREFIX = 'radb_eisemannbilling';
-    private const DEFAULT_READING_DOCTOR_USER = 5000;
-    private const DEFAULT_OUTPATIENT_FACILITY = 4;
-    private const DEFAULT_INPATIENT_FACILITY = 5;
 
     /** Under the site directory; the 7.0.2 module used the same folders. */
     private const DOCUMENT_FOLDER = 'documents/oe-module-cmsvt-rri-billing/';
@@ -94,22 +91,27 @@ final readonly class RriSettings
         return $code === '' ? self::DEFAULT_READING_DOCTOR_CODE : substr($code, 0, 2);
     }
 
-    /** The user the reading doctor code's charges are billed under (0: 5000). */
-    public function readingDoctorUser(): int
+    /**
+     * The user the reading doctor code's charges are billed under; null until
+     * set (each site has its own: eis's is 5000).
+     */
+    public function readingDoctorUser(): ?int
     {
         $user = $this->globals->getInt(RriGlobals::READING_DOCTOR_USER);
-        return $user > 0 ? $user : self::DEFAULT_READING_DOCTOR_USER;
+        return $user > 0 ? $user : null;
     }
 
-    /** Step 6's facility for a place of service (0: 4 outpatient and emergency, 5 inpatient). */
-    public function facility(PlaceOfService $place): int
+    /**
+     * Step 6's facility for a place of service (outpatient, also emergency
+     * room; or inpatient); null until set (eis's are 4 and 5).
+     */
+    public function facility(PlaceOfService $place): ?int
     {
-        [$key, $default] = match ($place) {
-            PlaceOfService::InpatientHospital => [RriGlobals::INPATIENT_FACILITY, self::DEFAULT_INPATIENT_FACILITY],
-            PlaceOfService::OutpatientHospital, PlaceOfService::EmergencyRoom => [RriGlobals::OUTPATIENT_FACILITY, self::DEFAULT_OUTPATIENT_FACILITY],
-        };
-        $facility = $this->globals->getInt($key);
-        return $facility > 0 ? $facility : $default;
+        $facility = $this->globals->getInt(match ($place) {
+            PlaceOfService::InpatientHospital => RriGlobals::INPATIENT_FACILITY,
+            PlaceOfService::OutpatientHospital, PlaceOfService::EmergencyRoom => RriGlobals::OUTPATIENT_FACILITY,
+        });
+        return $facility > 0 ? $facility : null;
     }
 
     public function autosaveMilliseconds(): int

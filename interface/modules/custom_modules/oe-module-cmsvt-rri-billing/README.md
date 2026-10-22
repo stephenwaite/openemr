@@ -123,9 +123,10 @@ The port is in progress. Done so far:
   page shows as Dx 1. A charge paired with its cancel in step 4 is not billed, nor is any
   cancel; charges it can't bill go to `errors/errfile240-<time>`. Running it
   again on the same ordfile bills only what wasn't.
-  Settings "Reading Doctor User ID" (blank: 5000) is the provider of the
-  reading doctor code's charges; "Outpatient Facility ID" (blank: 4, also
-  emergency room) and "Inpatient Facility ID" (blank: 5) the facilities.
+  Settings "Reading Doctor User ID" is the provider of the reading doctor
+  code's charges, "Outpatient Facility ID" (also emergency room) and
+  "Inpatient Facility ID" the facilities; step 6 won't run until all three
+  are set (eis: 5000, 4 and 5).
 
   ```sh
   php bin/console cmsvt:rri-250 --site=1600

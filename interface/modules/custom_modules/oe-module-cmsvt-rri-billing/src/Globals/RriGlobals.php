@@ -97,19 +97,19 @@ final class RriGlobals
             xl('Reading Doctor User ID'),
             GlobalSetting::DATA_TYPE_NUMBER,
             '0',
-            xl('Users id step 6 bills the reading doctor code\'s charges under, as their encounter provider. 0 means 5000.')
+            xl('Users id step 6 bills the reading doctor code\'s charges under, as their encounter provider. Step 6 won\'t run until it is set.')
         ));
         $service->appendToSection($section, self::OUTPATIENT_FACILITY, new GlobalSetting(
             xl('Outpatient Facility ID'),
             GlobalSetting::DATA_TYPE_NUMBER,
             '0',
-            xl('Facility id of step 6\'s outpatient and emergency room encounters. 0 means 4.')
+            xl('Facility id of step 6\'s outpatient and emergency room encounters. Step 6 won\'t run until it is set.')
         ));
         $service->appendToSection($section, self::INPATIENT_FACILITY, new GlobalSetting(
             xl('Inpatient Facility ID'),
             GlobalSetting::DATA_TYPE_NUMBER,
             '0',
-            xl('Facility id of step 6\'s inpatient encounters. 0 means 5.')
+            xl('Facility id of step 6\'s inpatient encounters. Step 6 won\'t run until it is set.')
         ));
         $service->appendToSection($section, self::AUTOSAVE_INTERVAL, new GlobalSetting(
             xl('Coding Page Auto-Save Seconds'),
