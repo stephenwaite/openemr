@@ -29,6 +29,19 @@ The port is in progress. Done so far:
   the patient's email. Dates are MMDDYY with the year in this century unless
   that is after today; a date that doesn't exist is read as none.
 
-Still to come: RRMC's charge rules and charge master checks (rrmc008), the
-other RRMC rules, the lookup-file install, the console steps (`cmsvt:qqq`,
-`cmsvt:rri-248`, `-245`, `-247`, `-250`) and the coding page.
+- Step 1's rules, with the 7.0.2 wording and layout for the error files:
+  - `Rules\ChargeRules` (rrmc008, errfile008): drops charges not in the charge
+    master (`cmsvt_procfile`) or with a $0 fee (except AUC lines, GL 0),
+    bills a few HCPCS codes as their CPT, removes RVOC's modifier 26, clears a
+    repeated modifier, and turns bilateral studies on certain CDMs into RT/LT
+    pairs (the pairing runs across the whole file).
+  - `Rules\VisitInsuranceCheck` (errfile008): one patient with different
+    primary payers on different visits in the same file. 7.0.2 meant to report
+    this but never did.
+  - `Rules\PayerCheck` (rrmc007, errfile007): payer codes not in the hospital
+    file (`cmsvt_hospfile`) or naming no insurance company (`XXX`), and
+    companies without a payer id (paper claims, self pay).
+
+Still to come: the account and insurance rules (rrmc006), the lookup-file
+install, the console steps (`cmsvt:qqq`, `cmsvt:rri-248`, `-245`, `-247`,
+`-250`) and the coding page.
