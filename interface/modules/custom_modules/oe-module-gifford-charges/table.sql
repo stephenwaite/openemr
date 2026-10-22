@@ -38,6 +38,15 @@ CREATE TABLE IF NOT EXISTS `gifford_charge_line` (
     KEY `status` (`status`)
 ) ENGINE=InnoDB;
 
+-- Which insurance company each Gifford payer mnemonic (ins1_mnemonic ...) is billed to.
+-- Filled by `bin/console gifford:payer-import` from the payer crosswalk CSV.
+CREATE TABLE IF NOT EXISTS `gifford_payer_map` (
+    `mnemonic` VARCHAR(32) NOT NULL COMMENT 'Gifford payer mnemonic, upper case',
+    `insurance_company_id` INT NOT NULL COMMENT 'insurance_companies.id',
+    `updated_at` DATETIME NOT NULL,
+    PRIMARY KEY (`mnemonic`)
+) ENGINE=InnoDB;
+
 -- The hourly import, run by the site's background services cron. Inactive until the
 -- module is enabled (ModuleManagerListener turns it on and off). The function is
 -- namespaced; CHAR(92) is the backslash, whatever the server's SQL mode.

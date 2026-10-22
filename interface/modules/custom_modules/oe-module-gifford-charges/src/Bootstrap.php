@@ -14,7 +14,9 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\GiffordCharges;
 
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Command\ImportPayersCommand;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Globals\GiffordGlobals;
+use OpenEMR\Events\Command\CommandRunnerFilterEvent;
 use OpenEMR\Events\Globals\GlobalsInitializedEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
@@ -29,6 +31,12 @@ final readonly class Bootstrap
         $this->eventDispatcher->addListener(
             GlobalsInitializedEvent::EVENT_HANDLE,
             (new GiffordGlobals())->register(...)
+        );
+        $this->eventDispatcher->addListener(
+            CommandRunnerFilterEvent::EVENT_NAME,
+            static function (CommandRunnerFilterEvent $event): void {
+                $event->setCommand(ImportPayersCommand::class, new ImportPayersCommand());
+            }
         );
     }
 }
