@@ -20,4 +20,10 @@ enum LineStatus: string
     case Staged = 'staged';
     /** Has problems: never posted until they are resolved. */
     case Held = 'held';
+    /** Billed: patient, encounter and billing line written. */
+    case Posted = 'posted';
+    /** The same charge was already posted from an earlier file; not posted again. */
+    case Duplicate = 'duplicate';
+    /** A person chose not to post it. */
+    case Skipped = 'skipped';
 }

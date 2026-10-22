@@ -1,0 +1,133 @@
+<?php
+
+/**
+ * Reads staged charge lines for posting and records what posting did with each.
+ *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @author    Stephen Waite <stephen.waite@cmsvt.com>
+ * @copyright Copyright (c) 2026 Stephen Waite <stephen.waite@cmsvt.com>
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ */
+
+declare(strict_types=1);
+
+namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Post;
+
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\RawRow;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\LineStatus;
+use OpenEMR\Common\Database\QueryUtils;
+
+final class ChargeLineRepository
+{
+    private const DATETIME = 'Y-m-d H:i:s';
+
+    /**
+     * Lines not yet finished (staged, or held for any reason), oldest file first.
+     *
+     * @return list<PendingLine>
+     */
+    public function pendingLines(): array
+    {
+        $rows = QueryUtils::fetchRecords(
+            'SELECT `id`, `batch_id`, `line_number`, `raw_json`, `released` FROM `gifford_charge_line`'
+            . ' WHERE `status` IN (?, ?) ORDER BY `batch_id`, `line_number`',
+            [LineStatus::Staged->value, LineStatus::Held->value]
+        );
+
+        $lines = [];
+        foreach ($rows as $row) {
+            $raw = json_decode(self::text($row['raw_json'] ?? null), true, 512, JSON_THROW_ON_ERROR);
+            $values = [];
+            foreach (is_array($raw) ? $raw : [] as $column => $value) {
+                if (is_string($column) && is_string($value)) {
+                    $values[$column] = $value;
+                }
+            }
+            $lines[] = new PendingLine(
+                self::int($row['id'] ?? null),
+                self::int($row['batch_id'] ?? null),
+                new RawRow(self::int($row['line_number'] ?? null), $values),
+                self::int($row['released'] ?? null) === 1,
+            );
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Charges already posted for this accession from files before $batchId.
+     *
+     * @return list<array{line_id: int, batch_id: int, raw: array<string, string>}>
+     */
+    public function postedEarlier(string $accession, int $batchId): array
+    {
+        $rows = QueryUtils::fetchRecords(
+            'SELECT `id`, `batch_id`, `raw_json` FROM `gifford_charge_line`'
+            . ' WHERE `accession` = ? AND `status` = ? AND `batch_id` < ? ORDER BY `batch_id`, `line_number`',
+            [$accession, LineStatus::Posted->value, $batchId]
+        );
+        $posted = [];
+        foreach ($rows as $row) {
+            $raw = json_decode(self::text($row['raw_json'] ?? null), true, 512, JSON_THROW_ON_ERROR);
+            $values = [];
+            foreach (is_array($raw) ? $raw : [] as $column => $value) {
+                if (is_string($column) && is_string($value)) {
+                    $values[$column] = $value;
+                }
+            }
+            $posted[] = ['line_id' => self::int($row['id'] ?? null), 'batch_id' => self::int($row['batch_id'] ?? null), 'raw' => $values];
+        }
+
+        return $posted;
+    }
+
+    /**
+     * @param list<string> $problems
+     */
+    public function hold(int $lineId, array $problems, \DateTimeImmutable $at): void
+    {
+        // Held lines are checked every run; updated_at only moves when the reasons change.
+        $json = json_encode($problems, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        QueryUtils::sqlStatementThrowException(
+            'UPDATE `gifford_charge_line` SET `status` = ?, `problems_json` = ?, `updated_at` = ?'
+            . ' WHERE `id` = ? AND NOT (`status` = ? AND `problems_json` = ?)',
+            [LineStatus::Held->value, $json, $at->format(self::DATETIME), $lineId, LineStatus::Held->value, $json]
+        );
+    }
+
+    public function markDuplicate(int $lineId, int $postedLineId, \DateTimeImmutable $at): void
+    {
+        $this->setStatus($lineId, LineStatus::Duplicate, ['same charge as line id ' . $postedLineId . ', already posted'], $at);
+    }
+
+    public function markPosted(int $lineId, int $pid, int $encounter, int $billingId, \DateTimeImmutable $at): void
+    {
+        QueryUtils::sqlStatementThrowException(
+            'UPDATE `gifford_charge_line` SET `status` = ?, `problems_json` = \'[]\', `pid` = ?, `encounter` = ?,'
+            . ' `billing_id` = ?, `posted_at` = ?, `updated_at` = ? WHERE `id` = ?',
+            [LineStatus::Posted->value, $pid, $encounter, $billingId, $at->format(self::DATETIME), $at->format(self::DATETIME), $lineId]
+        );
+    }
+
+    /**
+     * @param list<string> $problems
+     */
+    private function setStatus(int $lineId, LineStatus $status, array $problems, \DateTimeImmutable $at): void
+    {
+        QueryUtils::sqlStatementThrowException(
+            'UPDATE `gifford_charge_line` SET `status` = ?, `problems_json` = ?, `updated_at` = ? WHERE `id` = ?',
+            [$status->value, json_encode($problems, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), $at->format(self::DATETIME), $lineId]
+        );
+    }
+
+    private static function text(mixed $value): string
+    {
+        return is_string($value) ? $value : '';
+    }
+
+    private static function int(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
+    }
+}

@@ -17,6 +17,12 @@ namespace Cmsvt\OpenEMR\Modules\GiffordCharges;
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Globals\GiffordGlobals;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Parse\ChargeRowParser;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMap;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargeLineRepository;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargePoster;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PostSettings;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PriceBook;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\SiteWriter;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\ChargeFileReader;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\ChargeBatchRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\ChargeFileStager;
@@ -24,10 +30,12 @@ use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\FileOutcome;
 use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Core\ModulesClassLoader;
 use OpenEMR\Core\OEGlobalsBag;
+use Psr\Log\LoggerInterface;
 
 /**
- * Stage every new charge file in the configured directory. Logs one line per file with
- * counts only; a directory or move problem is thrown for the background runner to log.
+ * Stage every new charge file in the configured directory, then post the lines that are
+ * ready. Logs counts only; a directory, move or database problem is thrown for the
+ * background runner to log.
  * table.sql names it as Cmsvt\OpenEMR\Modules\GiffordCharges\runBackgroundService.
  */
 function runBackgroundService(): void
@@ -41,9 +49,15 @@ function runBackgroundService(): void
     );
     $logger = ServiceContainer::getLogger();
 
+    stageNewFiles($globals, $logger);
+    postReadyLines($globals, $logger);
+}
+
+function stageNewFiles(OEGlobalsBag $globals, LoggerInterface $logger): void
+{
     $dropDir = trim($globals->getString(GiffordGlobals::DROP_DIR));
     if ($dropDir === '') {
-        $logger->notice('Gifford charge import: no charge file directory is set; nothing to do');
+        $logger->notice('Gifford charge import: no charge file directory is set; no files read');
         return;
     }
 
@@ -69,4 +83,29 @@ function runBackgroundService(): void
             $logger->info('Gifford charge import: file handled', $context);
         }
     }
+}
+
+/**
+ * Held lines are tried again every run, so one held for an unmapped payer posts on the
+ * run after the payer is mapped.
+ */
+function postReadyLines(OEGlobalsBag $globals, LoggerInterface $logger): void
+{
+    $settings = PostSettings::load(
+        $globals->getInt(GiffordGlobals::FACILITY_ID),
+        $globals->getInt(GiffordGlobals::BILLING_FACILITY_ID)
+    );
+    if ($settings === null) {
+        $logger->notice('Gifford charge import: the facility or billing facility is not set; lines are staged but not posted');
+        return;
+    }
+    $poster = new ChargePoster(
+        new ChargeLineRepository(),
+        new ChargeRowParser(),
+        new PayerMap(),
+        new PriceBook(),
+        new SiteWriter(),
+        ServiceContainer::getClock(),
+    );
+    $logger->info('Gifford charge import: posting run', $poster->run($settings)->toArray());
 }

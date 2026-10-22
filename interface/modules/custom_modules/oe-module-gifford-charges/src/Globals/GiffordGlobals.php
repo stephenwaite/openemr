@@ -23,6 +23,10 @@ final class GiffordGlobals
 
     public const DROP_DIR = 'gifford_charges_drop_dir';
 
+    public const FACILITY_ID = 'gifford_charges_facility_id';
+
+    public const BILLING_FACILITY_ID = 'gifford_charges_billing_facility_id';
+
     public function register(GlobalsInitializedEvent $event): void
     {
         $service = $event->getGlobalsService();
@@ -34,6 +38,18 @@ final class GiffordGlobals
             GlobalSetting::DATA_TYPE_TEXT,
             '',
             xl('Directory, as the server sees it, where Gifford\'s charge files arrive. The hourly import reads new files there and moves each one into processed/ or failed/ beside it. Blank: the import does nothing.')
+        ));
+        $service->appendToSection($section, self::FACILITY_ID, new GlobalSetting(
+            xl('Facility ID'),
+            GlobalSetting::DATA_TYPE_NUMBER,
+            '0',
+            xl('Id of the facility where the studies are read; every Gifford encounter gets it. 0: charges are staged but not posted.')
+        ));
+        $service->appendToSection($section, self::BILLING_FACILITY_ID, new GlobalSetting(
+            xl('Billing Facility ID'),
+            GlobalSetting::DATA_TYPE_NUMBER,
+            '0',
+            xl('Id of the billing facility for Gifford encounters. 0: charges are staged but not posted.')
         ));
     }
 }

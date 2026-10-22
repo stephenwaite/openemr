@@ -30,6 +30,7 @@ final readonly class PayerImporter
     public function __construct(
         private InsuranceCompanyService $insuranceCompanies,
         private ClockInterface $clock,
+        private PayerMap $map = new PayerMap(),
     ) {
     }
 
@@ -80,7 +81,7 @@ final readonly class PayerImporter
      */
     public function apply(array $changes): array
     {
-        $at = $this->clock->now()->format('Y-m-d H:i:s');
+        $at = $this->clock->now();
 
         return QueryUtils::inTransaction(function () use ($changes, $at): array {
             $created = [];
@@ -89,11 +90,7 @@ final readonly class PayerImporter
                     continue;
                 }
                 $id = $this->createCompany($change->mapping);
-                QueryUtils::sqlStatementThrowException(
-                    'INSERT INTO `gifford_payer_map` (`mnemonic`, `insurance_company_id`, `updated_at`) VALUES (?, ?, ?)'
-                    . ' ON DUPLICATE KEY UPDATE `insurance_company_id` = VALUES(`insurance_company_id`), `updated_at` = VALUES(`updated_at`)',
-                    [$change->mapping->mnemonic, $id, $at]
-                );
+                $this->map->set($change->mapping->mnemonic, $id, $at);
                 $created[$change->mapping->mnemonic] = $id;
             }
 
