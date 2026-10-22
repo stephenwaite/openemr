@@ -56,16 +56,18 @@ final class ChargeLineRepository
     }
 
     /**
-     * Charges already posted for this accession from files before $batchId.
+     * Charges already posted for this accession: from earlier files, and from lines
+     * before $lineNumber in the same file.
      *
-     * @return list<array{line_id: int, batch_id: int, raw: array<string, string>}>
+     * @return list<array{line_id: int, same_file: bool, raw: array<string, string>}>
      */
-    public function postedEarlier(string $accession, int $batchId): array
+    public function postedEarlier(string $accession, int $batchId, int $lineNumber): array
     {
         $rows = QueryUtils::fetchRecords(
             'SELECT `id`, `batch_id`, `raw_json` FROM `gifford_charge_line`'
-            . ' WHERE `accession` = ? AND `status` = ? AND `batch_id` < ? ORDER BY `batch_id`, `line_number`',
-            [$accession, LineStatus::Posted->value, $batchId]
+            . ' WHERE `accession` = ? AND `status` = ? AND (`batch_id` < ? OR (`batch_id` = ? AND `line_number` < ?))'
+            . ' ORDER BY `batch_id`, `line_number`',
+            [$accession, LineStatus::Posted->value, $batchId, $batchId, $lineNumber]
         );
         $posted = [];
         foreach ($rows as $row) {
@@ -76,7 +78,11 @@ final class ChargeLineRepository
                     $values[$column] = $value;
                 }
             }
-            $posted[] = ['line_id' => self::int($row['id'] ?? null), 'batch_id' => self::int($row['batch_id'] ?? null), 'raw' => $values];
+            $posted[] = [
+                'line_id' => self::int($row['id'] ?? null),
+                'same_file' => self::int($row['batch_id'] ?? null) === $batchId,
+                'raw' => $values,
+            ];
         }
 
         return $posted;
@@ -96,9 +102,12 @@ final class ChargeLineRepository
         );
     }
 
-    public function markDuplicate(int $lineId, int $postedLineId, \DateTimeImmutable $at): void
+    /**
+     * @param int $originalLineId the line (id) this one repeats, posted or posting in this run
+     */
+    public function markDuplicate(int $lineId, int $originalLineId, \DateTimeImmutable $at): void
     {
-        $this->setStatus($lineId, LineStatus::Duplicate, ['same charge as line id ' . $postedLineId . ', already posted'], $at);
+        $this->setStatus($lineId, LineStatus::Duplicate, ['same charge as line id ' . $originalLineId . ', which is posted'], $at);
     }
 
     public function markPosted(int $lineId, int $pid, int $encounter, int $billingId, \DateTimeImmutable $at): void

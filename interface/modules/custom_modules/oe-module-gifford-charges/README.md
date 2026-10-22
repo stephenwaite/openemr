@@ -46,7 +46,9 @@ has problems, a payer mnemonic is not mapped, the rendering NPI is not a provide
 site, the visit's lines (or its posted encounter) disagree on place of service, the code
 has no price, Gifford sent `TC`, or the line's accession was posted from an earlier file
 as a different charge (a corrected re-send, held until a person releases or skips it).
-A line identical to one posted from an earlier file is marked `duplicate`.
+A line identical to one already posted (from an earlier file or earlier in its own file), or
+to one posting in the same run, is marked `duplicate`; different codes on one accession in the
+same file are separate charges.
 
 Posting needs Admin > Config > Gifford Charge Import > **Facility ID** (where the
 studies are read) and **Billing Facility ID**; while either is 0, lines are staged only.

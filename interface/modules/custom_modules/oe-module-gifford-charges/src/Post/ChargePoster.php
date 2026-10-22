@@ -39,7 +39,9 @@ use Psr\Clock\ClockInterface;
  * - it has no price, or Gifford sent TC;
  * - an earlier file already posted its accession as a different charge (a corrected
  *   re-send), until a person releases it.
- * A line identical to one posted from an earlier file is marked duplicate.
+ * A line identical to one already posted (from an earlier file or earlier in its own
+ * file), or to one posting in the same run, is marked duplicate. Different codes on one
+ * accession in the same file are separate charges.
  */
 final readonly class ChargePoster
 {
@@ -134,7 +136,7 @@ final readonly class ChargePoster
             }
             $duplicateOf = null;
             $postedAs = [];
-            foreach ($this->lines->postedEarlier($charge->accession, $line->batchId) as $posted) {
+            foreach ($this->lines->postedEarlier($charge->accession, $line->batchId, $line->row->line) as $posted) {
                 $earlier = $this->parser->parse(new RawRow(0, $posted['raw']))->charge;
                 if ($earlier === null) {
                     continue;
@@ -143,7 +145,16 @@ final readonly class ChargePoster
                     $duplicateOf = $posted['line_id'];
                     break;
                 }
-                $postedAs[] = sprintf('%s%s x%d', $earlier->code, $earlier->modifiers === [] ? '' : '-' . implode(':', $earlier->modifiers), $earlier->units);
+                // Other codes on the accession in the same file are the visit's other charges.
+                if (!$posted['same_file']) {
+                    $postedAs[] = sprintf('%s%s x%d', $earlier->code, $earlier->modifiers === [] ? '' : '-' . implode(':', $earlier->modifiers), $earlier->units);
+                }
+            }
+            // The same charge twice in this run: the first is posting, the second repeats it.
+            foreach ($ready as $r) {
+                if ($duplicateOf === null && self::sameCharge($r['charge'], $charge)) {
+                    $duplicateOf = $r['line']->id;
+                }
             }
             if ($duplicateOf === null && $postedAs !== [] && !$line->released) {
                 $problems[] = sprintf(

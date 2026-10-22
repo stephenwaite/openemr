@@ -260,6 +260,42 @@ class ChargePosterTest extends TestCase
         $this->assertSame('posted', $this->line($changed)['status']);
     }
 
+    public function testTheSameChargeTwiceInOneFilePostsOnce(): void
+    {
+        [$first, $second] = $this->stage([$this->row(), $this->row()]);
+
+        $result = $this->post();
+
+        $this->assertSame([1, 1], [$result->posted, $result->duplicates]);
+        $this->assertSame(['posted', 'duplicate'], [$this->line($first)['status'], $this->line($second)['status']]);
+        $this->assertSame(['same charge as line id ' . $first . ', which is posted'], $this->problems($second));
+        $this->assertCount(1, QueryUtils::fetchRecords(
+            "SELECT 1 FROM `billing` WHERE `encounter` = ? AND `code_type` = 'CPT4'",
+            [$this->line($first)['encounter']]
+        ));
+    }
+
+    public function testTwoCodesOnOneAccessionInOneFileBothPost(): void
+    {
+        [$study, $other] = $this->stage([$this->row(), $this->row(['chg_cpt' => $this->bareCode])]);
+
+        $this->assertSame(2, $this->post()->posted);
+        $this->assertSame(['posted', 'posted'], [$this->line($study)['status'], $this->line($other)['status']]);
+
+        // A line added to that file later with one of those codes again repeats it, and
+        // the file's other code is not taken for a corrected re-send.
+        $repeat = QueryUtils::sqlInsert(
+            "INSERT INTO `gifford_charge_line` (`batch_id`, `line_number`, `visit_number`, `mrn`, `accession`, `date_of_service`,"
+            . " `code`, `raw_json`, `problems_json`, `status`, `updated_at`)"
+            . " SELECT `batch_id`, 9, `visit_number`, `mrn`, `accession`, `date_of_service`, `code`, `raw_json`, '[]', 'staged', `updated_at`"
+            . " FROM `gifford_charge_line` WHERE `id` = ?",
+            [$other]
+        );
+        $this->post();
+        $this->assertSame('duplicate', $this->line($repeat)['status']);
+        $this->assertSame(['same charge as line id ' . $other . ', which is posted'], $this->problems($repeat));
+    }
+
     public function testANewPayerStartsANewPolicyAndEndsTheOldOne(): void
     {
         [$first] = $this->stage([$this->row()]);
