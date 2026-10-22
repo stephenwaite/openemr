@@ -18,6 +18,7 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\RriBilling\Globals;
 
+use Cmsvt\OpenEMR\Modules\RriBilling\Billing\PlaceOfService;
 use OpenEMR\Common\Crypto\CryptoGenException;
 use OpenEMR\Common\Crypto\CryptoInterface;
 use OpenEMR\Core\OEGlobalsBag;
@@ -28,6 +29,9 @@ final readonly class RriSettings
     private const DEFAULT_AUTOSAVE_SECONDS = 15;
     private const MINIMUM_AUTOSAVE_SECONDS = 5;
     private const DEFAULT_READING_DOCTOR_CODE = '01';
+    private const DEFAULT_READING_DOCTOR_USER = 5000;
+    private const DEFAULT_OUTPATIENT_FACILITY = 4;
+    private const DEFAULT_INPATIENT_FACILITY = 5;
 
     /** Under the site directory; the 7.0.2 module used the same folders. */
     private const DOCUMENT_FOLDER = 'documents/oe-module-cmsvt-rri-billing/';
@@ -80,6 +84,24 @@ final readonly class RriSettings
     {
         $code = trim($this->globals->getString(RriGlobals::READING_DOCTOR_CODE));
         return $code === '' ? self::DEFAULT_READING_DOCTOR_CODE : substr($code, 0, 2);
+    }
+
+    /** The user the reading doctor code's charges are billed under (0: 5000). */
+    public function readingDoctorUser(): int
+    {
+        $user = $this->globals->getInt(RriGlobals::READING_DOCTOR_USER);
+        return $user > 0 ? $user : self::DEFAULT_READING_DOCTOR_USER;
+    }
+
+    /** Step 6's facility for a place of service (0: 4 outpatient and emergency, 5 inpatient). */
+    public function facility(PlaceOfService $place): int
+    {
+        [$key, $default] = match ($place) {
+            PlaceOfService::InpatientHospital => [RriGlobals::INPATIENT_FACILITY, self::DEFAULT_INPATIENT_FACILITY],
+            PlaceOfService::OutpatientHospital, PlaceOfService::EmergencyRoom => [RriGlobals::OUTPATIENT_FACILITY, self::DEFAULT_OUTPATIENT_FACILITY],
+        };
+        $facility = $this->globals->getInt($key);
+        return $facility > 0 ? $facility : $default;
     }
 
     public function autosaveMilliseconds(): int
