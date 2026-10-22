@@ -175,14 +175,14 @@ class ChargePosterTest extends TestCase
         $this->assertCount(1, QueryUtils::fetchRecords("SELECT 1 FROM `forms` WHERE `encounter` = ? AND `formdir` = 'newpatient'", [$line['encounter']]));
 
         $billing = QueryUtils::fetchRecords(
-            'SELECT `code_type`, `code`, `modifier`, `units`, `fee`, `justify`, `billed`, `activity`, `provider_id`'
+            'SELECT `code_type`, `code`, `modifier`, `units`, `fee`, `justify`, `billed`, `activity`, `provider_id`, `ndc_info`'
             . ' FROM `billing` WHERE `encounter` = ? ORDER BY `id`',
             [$line['encounter']]
         );
         $this->assertSame([
-            ['ICD10', 'I50.20', '', '1', '0.00', '', '0', '1', (string) $this->providerId],
-            ['ICD10', 'Z95.811', '', '1', '0.00', '', '0', '1', (string) $this->providerId],
-            ['CPT4', $this->code, '26:RT', '2', '251.00', 'ICD10|I50.20:ICD10|Z95.811:', '0', '1', (string) $this->providerId],
+            ['ICD10', 'I50.20', '', '1', '0.00', '', '0', '1', (string) $this->providerId, ''],
+            ['ICD10', 'Z95.811', '', '1', '0.00', '', '0', '1', (string) $this->providerId, ''],
+            ['CPT4', $this->code, '26:RT', '2', '251.00', 'ICD10|I50.20:ICD10|Z95.811:', '0', '1', (string) $this->providerId, ''],
         ], array_map(static fn (array $r): array => array_values(array_map(self::text(...), $r)), $billing));
 
         $this->assertSame(0, $this->post()->posted, 'a posted line is not posted again');

@@ -325,9 +325,10 @@ final class SiteWriter
         string $justify,
     ): int {
         return QueryUtils::sqlInsert(
+            // ndc_info is '' as the fee sheet saves it; the fee sheet's justify popup fails on NULL.
             'INSERT INTO `billing` (`date`, `encounter`, `code_type`, `code`, `code_text`, `pid`, `authorized`, `user`,'
-            . ' `groupname`, `activity`, `billed`, `provider_id`, `modifier`, `units`, `fee`, `justify`, `pricelevel`)'
-            . ' VALUES (NOW(), ?, ?, ?, ?, ?, 1, NULL, \'Default\', 1, 0, ?, ?, ?, ?, ?, ?)',
+            . ' `groupname`, `activity`, `billed`, `provider_id`, `modifier`, `units`, `fee`, `ndc_info`, `justify`, `pricelevel`)'
+            . ' VALUES (NOW(), ?, ?, ?, ?, ?, 1, NULL, \'Default\', 1, 0, ?, ?, ?, ?, \'\', ?, ?)',
             [$encounter, $codeType, $code, $codeText, $pid, $providerId, $modifier, $units, $fee, $justify, PriceBook::PRICE_LEVEL]
         );
     }
