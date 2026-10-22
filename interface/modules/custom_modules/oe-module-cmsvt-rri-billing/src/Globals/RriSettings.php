@@ -27,6 +27,7 @@ final readonly class RriSettings
     private const DEFAULT_SFTP_PORT = 22;
     private const DEFAULT_AUTOSAVE_SECONDS = 15;
     private const MINIMUM_AUTOSAVE_SECONDS = 5;
+    private const DEFAULT_READING_DOCTOR_CODE = '01';
 
     /** Under the site directory; the 7.0.2 module used the same folders. */
     private const DOCUMENT_FOLDER = 'documents/oe-module-cmsvt-rri-billing/';
@@ -72,6 +73,13 @@ final readonly class RriSettings
     public function debug(): bool
     {
         return $this->globals->getBoolean(RriGlobals::DEBUG);
+    }
+
+    /** The ordfile's doctor code for every charge (blank: 01). */
+    public function readingDoctorCode(): string
+    {
+        $code = trim($this->globals->getString(RriGlobals::READING_DOCTOR_CODE));
+        return $code === '' ? self::DEFAULT_READING_DOCTOR_CODE : substr($code, 0, 2);
     }
 
     public function autosaveMilliseconds(): int

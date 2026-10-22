@@ -22,4 +22,7 @@ interface AccountFile
      * @param string $actno the account number zero-filled to eight characters
      */
     public function find(string $actno): ?AccountRecord;
+
+    /** Inserts or replaces the account (by actno). */
+    public function save(AccountRecord $account): void;
 }

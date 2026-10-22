@@ -61,6 +61,7 @@ final class RriSettingsTest extends TestCase
         $this->assertNull($settings->sftp());
         $this->assertFalse($settings->debug());
         $this->assertSame(15000, $settings->autosaveMilliseconds());
+        $this->assertSame('01', $settings->readingDoctorCode());
     }
 
     #[Test]
@@ -105,6 +106,13 @@ final class RriSettingsTest extends TestCase
     {
         $this->expectException(CryptoGenException::class);
         $this->settings(self::sftpValues(), false)->sftp();
+    }
+
+    #[Test]
+    public function theReadingDoctorCodeIs01UnlessSet(): void
+    {
+        $this->assertSame('01', $this->settings([])->readingDoctorCode());
+        $this->assertSame('06', $this->settings([RriGlobals::READING_DOCTOR_CODE => ' 06 '])->readingDoctorCode());
     }
 
     #[Test]
