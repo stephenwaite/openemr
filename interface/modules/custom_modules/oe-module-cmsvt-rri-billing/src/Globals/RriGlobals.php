@@ -31,6 +31,7 @@ final class RriGlobals
     public const SFTP_REMOTE_FOLDER = 'cmsvt_rri_sftp_remote_folder';
     public const SFTP_USERNAME = 'cmsvt_rri_sftp_username';
     public const SFTP_PASSWORD = 'cmsvt_rri_sftp_password';
+    public const CHARGE_FILE_PREFIX = 'cmsvt_rri_charge_file_prefix';
     public const DEBUG = 'cmsvt_rri_debug';
     public const AUTOSAVE_INTERVAL = 'cmsvt_rri_autosave_interval';
     public const READING_DOCTOR_CODE = 'cmsvt_rri_reading_doctor_code';
@@ -73,6 +74,12 @@ final class RriGlobals
             GlobalSetting::DATA_TYPE_ENCRYPTED,
             '',
             xl('SFTP password, stored encrypted.')
+        ));
+        $service->appendToSection($section, self::CHARGE_FILE_PREFIX, new GlobalSetting(
+            xl('Charge File Name Prefix'),
+            GlobalSetting::DATA_TYPE_TEXT,
+            '',
+            xl('Start of the daily charge file\'s name, before its YYMMDD date and .txt. Blank means radb_eisemannbilling.')
         ));
         $service->appendToSection($section, self::DEBUG, new GlobalSetting(
             xl('Debug Output'),
