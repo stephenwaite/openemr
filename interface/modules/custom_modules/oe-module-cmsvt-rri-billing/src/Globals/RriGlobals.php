@@ -34,6 +34,9 @@ final class RriGlobals
     public const DEBUG = 'cmsvt_rri_debug';
     public const AUTOSAVE_INTERVAL = 'cmsvt_rri_autosave_interval';
     public const READING_DOCTOR_CODE = 'cmsvt_rri_reading_doctor_code';
+    public const READING_DOCTOR_USER = 'cmsvt_rri_reading_doctor_user';
+    public const OUTPATIENT_FACILITY = 'cmsvt_rri_outpatient_facility';
+    public const INPATIENT_FACILITY = 'cmsvt_rri_inpatient_facility';
 
     public function register(GlobalsInitializedEvent $event): void
     {
@@ -82,6 +85,24 @@ final class RriGlobals
             GlobalSetting::DATA_TYPE_TEXT,
             '',
             xl('Two-character doctor code step 3 puts on every ordfile charge (docp). Blank means 01, the single reading doctor.')
+        ));
+        $service->appendToSection($section, self::READING_DOCTOR_USER, new GlobalSetting(
+            xl('Reading Doctor User ID'),
+            GlobalSetting::DATA_TYPE_NUMBER,
+            '0',
+            xl('Users id step 6 bills the reading doctor code\'s charges under, as their encounter provider. 0 means 5000.')
+        ));
+        $service->appendToSection($section, self::OUTPATIENT_FACILITY, new GlobalSetting(
+            xl('Outpatient Facility ID'),
+            GlobalSetting::DATA_TYPE_NUMBER,
+            '0',
+            xl('Facility id of step 6\'s outpatient and emergency room encounters. 0 means 4.')
+        ));
+        $service->appendToSection($section, self::INPATIENT_FACILITY, new GlobalSetting(
+            xl('Inpatient Facility ID'),
+            GlobalSetting::DATA_TYPE_NUMBER,
+            '0',
+            xl('Facility id of step 6\'s inpatient encounters. 0 means 5.')
         ));
         $service->appendToSection($section, self::AUTOSAVE_INTERVAL, new GlobalSetting(
             xl('Coding Page Auto-Save Seconds'),

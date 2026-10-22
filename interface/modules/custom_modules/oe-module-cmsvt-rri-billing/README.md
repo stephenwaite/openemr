@@ -100,5 +100,22 @@ The port is in progress. Done so far:
   php bin/console cmsvt:rri-247 --site=1600 --file=ordfile-10-21-26-09-15
   ```
 
-Still to come: step 6 (`cmsvt:rri-250`), step 1 as a command (`cmsvt:qqq`),
-the lookup-file install and the coding page.
+- Step 6, `cmsvt:rri-250` (rri249, 242, 240): a Medicare (003) primary with
+  a Medigap plan as secondary gets secondary 062 and the plan's Medigap id in
+  the account file (`errors/file242-<time>`; OpenEMR's insurance is not
+  changed). Then each charge gets an encounter of its own (place of service
+  from iopat, the patient's referring doctor) with a CPT4 line and, when RRMC
+  sent one in the accession field, the ICD10 diagnosis, ready for the coding
+  page. A charge paired with its cancel in step 4 is not billed, nor is any
+  cancel; charges it can't bill go to `errors/errfile240-<time>`. Running it
+  again on the same ordfile bills only what wasn't.
+  Settings "Reading Doctor User ID" (blank: 5000) is the provider of the
+  reading doctor code's charges; "Outpatient Facility ID" (blank: 4, also
+  emergency room) and "Inpatient Facility ID" (blank: 5) the facilities.
+
+  ```sh
+  php bin/console cmsvt:rri-250 --site=1600
+  ```
+
+Still to come: step 1 as a command (`cmsvt:qqq`), the lookup-file install and
+the coding page.
