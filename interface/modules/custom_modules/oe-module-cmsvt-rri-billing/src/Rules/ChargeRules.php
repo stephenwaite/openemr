@@ -10,8 +10,10 @@
  * - a $0 charge master fee drops the charge, unless it is an AUC line (GL 0);
  * - RVOC's professional component modifier 26 is removed, and a repeated
  *   modifier is cleared;
- * - bilateral studies on certain CDMs become an RT/LT pair. The pairing state
- *   runs across the file, not per account, as it always has.
+ * - bilateral studies on certain CDMs become an RT/LT pair: a 50 is billed RT
+ *   and opens a pair, the next 50 or the next one without a modifier is billed
+ *   LT. The pairing state runs across the file, not per account, as it always
+ *   has.
  *
  * Messages keep the 7.0.2 wording so billers see what they are used to.
  *
@@ -110,12 +112,14 @@ final class ChargeRules
             return null;
         }
 
-        [$modifier1, $modifier2, $professionalComponentRemoved] = self::modifiers($charge);
+        [$modifier1, $modifier2] = self::modifiers($charge);
 
         if (in_array($charge->cdm, self::BILATERAL_CDMS, true)) {
-            // 7.0.2 compared the first modifier with two spaces, which only the
-            // RVOC 26 removal above produced (fields are read trimmed).
-            if ($professionalComponentRemoved && $modifier1 === '' && $this->bilateralOpen) {
+            // 7.0.2 compared the first modifier with two spaces: in step 3, which
+            // read the file untrimmed and wrote the ordfile, that is any blank
+            // modifier (step 1 read it trimmed and only matched after the RVOC
+            // 26 removal). The ordfile is what gets billed, so step 3's reading.
+            if ($modifier1 === '' && $this->bilateralOpen) {
                 $this->messages[] = 'CHANGING BILAT STUDY TO RT LT, MEDREC ' . $account->mrn . ' CDM ' . $charge->cdm
                     . ' CPT ' . $cpt . ' MOD1    DOS ' . $charge->dateOfServiceRaw;
                 $this->bilateralOpen = false;
@@ -131,22 +135,19 @@ final class ChargeRules
     }
 
     /**
-     * @return array{string, string, bool} first and second modifier, and whether
-     *                                     RVOC's 26 was removed leaving no first modifier
+     * @return array{string, string} first and second modifier
      */
     private static function modifiers(ChargeLine $charge): array
     {
         $modifier1 = $charge->modifier1;
         $modifier2 = $charge->modifier2;
-        $removed = false;
         if ($charge->location === self::RVOC && $modifier1 === self::PROFESSIONAL_COMPONENT) {
             $modifier1 = $modifier2;
-            $removed = $modifier2 === '';
         }
         if ($modifier1 === $modifier2) {
             $modifier2 = '';
         }
-        return [$modifier1, $modifier2, $removed];
+        return [$modifier1, $modifier2];
     }
 
     private function undefinedProcedure(ChargeFileAccount $account, ChargeLine $charge): void
