@@ -28,4 +28,10 @@ interface ReferringDoctors
      * the first letter of the name (the COBOL P62).
      */
     public function add(PersonName $name, string $npi): ReferringDoctor;
+
+    /**
+     * The NPI cmsvt_refphy has for RRMC's key: null when the key isn't there,
+     * '' when it has no NPI.
+     */
+    public function npiForRefkey(string $refkey): ?string;
 }

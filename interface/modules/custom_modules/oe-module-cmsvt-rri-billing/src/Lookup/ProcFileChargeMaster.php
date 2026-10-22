@@ -28,6 +28,24 @@ final class ProcFileChargeMaster implements ChargeMaster
         return $this->row($cdm, $code, self::PROFESSIONAL_COMPONENT) ?? $this->row($cdm, $code, '');
     }
 
+    public function findAnyModifier(string $cdm, string $code): ?ChargeMasterEntry
+    {
+        $entry = $this->row($cdm, $code, self::PROFESSIONAL_COMPONENT);
+        if ($entry !== null) {
+            return $entry;
+        }
+        $row = QueryUtils::querySingleRow(
+            'SELECT `proc_mod`, `proc_amount` FROM `cmsvt_procfile` WHERE `proc_cdm` = ? AND `proc_cpt` = ? LIMIT 1',
+            [$cdm, $code],
+            false
+        );
+        if ($row === false) {
+            return null;
+        }
+        $modifier = $row['proc_mod'] ?? null;
+        return new ChargeMasterEntry($cdm, $code, is_string($modifier) ? $modifier : '', self::cents($row['proc_amount'] ?? null));
+    }
+
     private function row(string $cdm, string $code, string $modifier): ?ChargeMasterEntry
     {
         $row = QueryUtils::querySingleRow(

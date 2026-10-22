@@ -127,6 +127,11 @@ final class StepThreeTest extends TestCase
                     return [new ReferringDoctor(9, 'W00', 'WELBY', 'MARCUS', $npi)];
                 }
 
+                public function npiForRefkey(string $refkey): ?string
+                {
+                    return null;
+                }
+
                 public function add(PersonName $name, string $npi): ReferringDoctor
                 {
                     throw new \LogicException('not expected');

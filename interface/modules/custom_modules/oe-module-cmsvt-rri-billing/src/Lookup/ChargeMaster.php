@@ -21,4 +21,10 @@ interface ChargeMaster
      * the row without a modifier; null when neither exists.
      */
     public function find(string $cdm, string $code): ?ChargeMasterEntry;
+
+    /**
+     * The professional component row, or else any row for the CDM and code
+     * (step 4's lookup, which didn't require a blank modifier).
+     */
+    public function findAnyModifier(string $cdm, string $code): ?ChargeMasterEntry;
 }
