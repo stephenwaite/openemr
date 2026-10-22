@@ -14,7 +14,9 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\RriBilling;
 
+use Cmsvt\OpenEMR\Modules\RriBilling\Command\Rri248Command;
 use Cmsvt\OpenEMR\Modules\RriBilling\Globals\RriGlobals;
+use OpenEMR\Events\Command\CommandRunnerFilterEvent;
 use OpenEMR\Events\Globals\GlobalsInitializedEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
@@ -29,6 +31,12 @@ final readonly class Bootstrap
         $this->eventDispatcher->addListener(
             GlobalsInitializedEvent::EVENT_HANDLE,
             (new RriGlobals())->register(...)
+        );
+        $this->eventDispatcher->addListener(
+            CommandRunnerFilterEvent::EVENT_NAME,
+            static function (CommandRunnerFilterEvent $event): void {
+                $event->setCommand(Rri248Command::class, new Rri248Command());
+            }
         );
     }
 }
