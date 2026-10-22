@@ -22,6 +22,13 @@ The port is in progress. Done so far:
   on trisquel, where it was changed by hand). Unlike 7.0.2 it does not replace
   `x12_partners` or insert provider users.
 
-Still to come: the charge file parser and the RRMC rules, the lookup-file
-install, the console steps (`cmsvt:qqq`, `cmsvt:rri-248`, `-245`, `-247`,
-`-250`) and the coding page.
+- Reading the charge file (`ChargeFile\ChargeFileReader`) into accounts,
+  their four insurances and their charges, as RRMC sent them. Whitespace
+  between records is skipped; anything else out of place stops the read with
+  the byte position (never field contents). Every field is uppercased except
+  the patient's email. Dates are MMDDYY with the year in this century unless
+  that is after today; a date that doesn't exist is read as none.
+
+Still to come: RRMC's charge rules and charge master checks (rrmc008), the
+other RRMC rules, the lookup-file install, the console steps (`cmsvt:qqq`,
+`cmsvt:rri-248`, `-245`, `-247`, `-250`) and the coding page.
