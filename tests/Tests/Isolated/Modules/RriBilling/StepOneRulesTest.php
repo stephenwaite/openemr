@@ -255,7 +255,8 @@ final class StepOneRulesTest extends TestCase
     public function rvocsSecondStudyOfAPairBecomesLt(): void
     {
         // RVOC sends the second study of a bilateral pair with 26 only; once 26 is
-        // removed it is billed LT. Without an open pair it stays unmodified.
+        // removed it has no modifier and is billed LT. Without an open pair it
+        // stays unmodified.
         $result = self::rules()->apply([self::account([
             self::charge(cdm: '1285', cpt: '73562', modifier1: '26', location: 'RVOC'),
             self::charge(cdm: '1285', cpt: '73562', modifier1: '50', location: 'RVOC'),
@@ -264,6 +265,21 @@ final class StepOneRulesTest extends TestCase
         ])]);
 
         $this->assertSame([['73562', '73562 RT', '73562 LT', '73562 RT']], self::summary($result->accounts));
+        $this->assertSame(['CHANGING BILAT STUDY TO RT LT, MEDREC 123456 CDM 1285 CPT 73562 MOD1    DOS 102026'], $result->messages);
+    }
+
+    #[Test]
+    public function theStudyAfterAnRtWithoutAModifierIsLt(): void
+    {
+        // As step 3 billed it in 7.0.2: a blank first modifier on the next
+        // bilateral-CDM charge closes the pair, in any location.
+        $result = self::rules()->apply([self::account([
+            self::charge(cdm: '1285', cpt: '73562', modifier1: '50'),
+            self::charge(cdm: '1285', cpt: '73562'),
+            self::charge(cdm: '1285', cpt: '73562'),
+        ])]);
+
+        $this->assertSame([['73562 RT', '73562 LT', '73562']], self::summary($result->accounts));
         $this->assertSame(['CHANGING BILAT STUDY TO RT LT, MEDREC 123456 CDM 1285 CPT 73562 MOD1    DOS 102026'], $result->messages);
     }
 
