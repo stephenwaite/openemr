@@ -26,8 +26,8 @@ final readonly class ChargeFileVisit
      * @param string $referringIndicator R2-REFIND
      * @param string $doctorCode R2-DOC, RRMC's referring doctor code
      * @param string $authorization R1 authorization (after the secondary block)
-     * @param string $admitDateDuplicateRaw the ++ record's copy of the admit date, YYMMDD
-     * @param string $dischargeDateRaw YYMMDD as sent
+     * @param string $admitDateDuplicateRaw the ++ record's copy of the admit date, six digits as sent
+     * @param string $dischargeDateRaw six digits as sent
      */
     public function __construct(
         public string $admitDateRaw,

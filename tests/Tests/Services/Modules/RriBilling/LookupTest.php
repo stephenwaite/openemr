@@ -35,6 +35,9 @@ class LookupTest extends TestCase
     /** @var list<int> insurance companies this test added */
     private array $companyIds = [];
 
+    /** @var list<int> insurance file rows this test added */
+    private array $insfileIds = [];
+
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
@@ -47,7 +50,7 @@ class LookupTest extends TestCase
 
         // The tables exist only where the module is installed; table.sql is what
         // installing runs, and every statement in it is guarded.
-        if (!QueryUtils::existsTable('cmsvt_procfile') || !QueryUtils::existsTable('cmsvt_hospfile')) {
+        if (!QueryUtils::existsTable('cmsvt_procfile') || !QueryUtils::existsTable('cmsvt_hospfile') || !QueryUtils::existsTable('cmsvt_insfile')) {
             $install = new SQLUpgradeService();
             $install->setRenderOutputToScreen(false);
             $install->setThrowExceptionOnError(true);
@@ -67,6 +70,9 @@ class LookupTest extends TestCase
         QueryUtils::sqlStatementThrowException('DELETE FROM `cmsvt_hospfile` WHERE `insurancename` = ?', [$this->token]);
         foreach ($this->companyIds as $id) {
             QueryUtils::sqlStatementThrowException('DELETE FROM `insurance_companies` WHERE `id` = ?', [$id]);
+        }
+        foreach ($this->insfileIds as $id) {
+            QueryUtils::sqlStatementThrowException('DELETE FROM `cmsvt_insfile` WHERE `inskey` = ?', [$id]);
         }
         parent::tearDown();
     }
@@ -101,9 +107,19 @@ class LookupTest extends TestCase
         $this->hospitalRow('P' . $prefix, (string) $paperId);
         $this->hospitalRow('N' . $prefix, '');
 
+        QueryUtils::sqlStatementThrowException(
+            'INSERT INTO `cmsvt_insfile` (`inskey`, `insname`, `insassign`) VALUES (?, ?, ?)',
+            [$electronicId, $this->token, 'A']
+        );
+        $this->insfileIds[] = $electronicId;
+
         $payers = new HospFilePayerDirectory();
-        $this->assertEquals(new PayerCompany($electronicId, true), $payers->companyForRrmcCode('E' . $prefix));
-        $this->assertEquals(new PayerCompany($paperId, false), $payers->companyForRrmcCode('P' . $prefix));
+        $this->assertSame(str_pad((string) $electronicId, 3, '0', STR_PAD_LEFT), $payers->insuranceKeyForRrmcCode('E' . $prefix));
+        $this->assertSame('', $payers->insuranceKeyForRrmcCode('N' . $prefix));
+        $this->assertNull($payers->insuranceKeyForRrmcCode('U' . $prefix));
+        $this->assertEquals(new PayerCompany($electronicId, true, 'A', $this->token), $payers->companyForRrmcCode('E' . $prefix));
+        $this->assertEquals(new PayerCompany($paperId, false, '', $this->token), $payers->companyForRrmcCode('P' . $prefix));
+        $this->assertEquals(new PayerCompany($paperId, false, '', $this->token), $payers->companyById($paperId));
         $this->assertNull($payers->companyForRrmcCode('N' . $prefix), 'a blank key names no company');
         $this->assertNull($payers->companyForRrmcCode('U' . $prefix), 'not in the hospital file');
     }

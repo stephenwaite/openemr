@@ -3,7 +3,8 @@
 /**
  * Payer lookups through the site's hospital file: RRMC code → hospital file
  * insurance key → insurance_companies.id (the key read as a number, so '003'
- * is company 3), as the 7.0.2 rrmc007 did.
+ * is company 3), and the assignment flag from the old insurance file, as the
+ * 7.0.2 module's lookups did.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -21,7 +22,7 @@ use OpenEMR\Common\Database\QueryUtils;
 
 final class HospFilePayerDirectory implements PayerDirectory
 {
-    public function companyForRrmcCode(string $rrmcCode): ?PayerCompany
+    public function insuranceKeyForRrmcCode(string $rrmcCode): ?string
     {
         $hospital = QueryUtils::querySingleRow(
             'SELECT `insurancekey` FROM `cmsvt_hospfile` WHERE `hospkey` = ? LIMIT 1',
@@ -32,9 +33,15 @@ final class HospFilePayerDirectory implements PayerDirectory
             return null;
         }
         $key = $hospital['insurancekey'] ?? null;
-        $id = is_string($key) && ctype_digit(trim($key)) ? (int) trim($key) : 0;
+        return is_string($key) ? trim($key) : '';
+    }
+
+    public function companyById(int $id): ?PayerCompany
+    {
         $company = QueryUtils::querySingleRow(
-            'SELECT `cms_id` FROM `insurance_companies` WHERE `id` = ? LIMIT 1',
+            'SELECT c.`name`, c.`cms_id`, f.`insassign` FROM `insurance_companies` c
+                LEFT JOIN `cmsvt_insfile` f ON f.`inskey` = c.`id`
+                WHERE c.`id` = ? LIMIT 1',
             [$id],
             false
         );
@@ -42,6 +49,22 @@ final class HospFilePayerDirectory implements PayerDirectory
             return null;
         }
         $cmsId = $company['cms_id'] ?? null;
-        return new PayerCompany($id, is_string($cmsId) && trim($cmsId) !== '');
+        $assign = $company['insassign'] ?? null;
+        $name = $company['name'] ?? null;
+        return new PayerCompany(
+            $id,
+            is_string($cmsId) && trim($cmsId) !== '',
+            is_string($assign) ? $assign : '',
+            is_string($name) ? $name : ''
+        );
+    }
+
+    public function companyForRrmcCode(string $rrmcCode): ?PayerCompany
+    {
+        $key = $this->insuranceKeyForRrmcCode($rrmcCode);
+        if ($key === null) {
+            return null;
+        }
+        return $this->companyById(ctype_digit($key) ? (int) $key : 0);
     }
 }
