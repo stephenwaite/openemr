@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\RriBilling;
 
+use Cmsvt\OpenEMR\Modules\RriBilling\Command\Rri245Command;
+use Cmsvt\OpenEMR\Modules\RriBilling\Command\Rri247Command;
 use Cmsvt\OpenEMR\Modules\RriBilling\Command\Rri248Command;
 use Cmsvt\OpenEMR\Modules\RriBilling\Globals\RriGlobals;
 use OpenEMR\Events\Command\CommandRunnerFilterEvent;
@@ -36,6 +38,8 @@ final readonly class Bootstrap
             CommandRunnerFilterEvent::EVENT_NAME,
             static function (CommandRunnerFilterEvent $event): void {
                 $event->setCommand(Rri248Command::class, new Rri248Command());
+                $event->setCommand(Rri245Command::class, new Rri245Command());
+                $event->setCommand(Rri247Command::class, new Rri247Command());
             }
         );
     }

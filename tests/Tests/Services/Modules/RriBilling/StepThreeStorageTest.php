@@ -2,8 +2,8 @@
 
 /**
  * Database tests for what step 3 reads and saves: the account file, referring
- * doctors, the ordfile, work comp and email/authorization rows, and a
- * patient's current primary. Rows are invented and removed afterwards.
+ * doctors, the ordfile (and steps 4-6 reading it back), work comp and
+ * email/authorization rows, and a patient's current primary. Rows are invented and removed afterwards.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
@@ -24,11 +24,13 @@ use Cmsvt\OpenEMR\Modules\RriBilling\ChargeFile\PersonName;
 use Cmsvt\OpenEMR\Modules\RriBilling\Lookup\DatabaseAccountFile;
 use Cmsvt\OpenEMR\Modules\RriBilling\Lookup\DatabasePatientInsuranceHistory;
 use Cmsvt\OpenEMR\Modules\RriBilling\Lookup\DatabaseReferringDoctors;
+use Cmsvt\OpenEMR\Modules\RriBilling\Ordfile\DatabaseOrdfileSource;
 use Cmsvt\OpenEMR\Modules\RriBilling\Ordfile\DatabaseStepThreeFiles;
 use Cmsvt\OpenEMR\Modules\RriBilling\Ordfile\EmailAuthRecord;
 use Cmsvt\OpenEMR\Modules\RriBilling\Ordfile\OrdfileLine;
 use Cmsvt\OpenEMR\Modules\RriBilling\Ordfile\WorkCompRecord;
 use Composer\Autoload\ClassLoader;
+use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Uuid\UuidRegistry;
 use OpenEMR\Services\InsuranceService;
@@ -218,6 +220,52 @@ class StepThreeStorageTest extends TestCase
         $keys = QueryUtils::fetchTableColumn('SELECT `eakey` FROM `cmsvt_emailauthfile` WHERE `medrec` = ? ORDER BY `eakey`', 'eakey', [$medrec]);
         $this->assertCount(2, $keys);
         $this->assertSame(1, self::number($keys[1]) - self::number($keys[0]));
+    }
+
+    public function testStepsFourToSixReadTheOrdfileBack(): void
+    {
+        $medrec = substr($this->token, 0, 8);
+        $files = new DatabaseStepThreeFiles();
+        $charge = static fn(string $seq, string $ind, string $date): OrdfileLine => new OrdfileLine(
+            $medrec,
+            $seq,
+            '7000',
+            $ind,
+            'W00',
+            '5',
+            '00000000',
+            new \DateTimeImmutable($date),
+            '20261019',
+            '0001',
+            '',
+            '01',
+            '',
+            '10000001',
+            '',
+            '',
+            '',
+            '20261021',
+            '71046',
+            ''
+        );
+        $ordfileId = $files->createOrdfile($this->token);
+        $chargeId = $files->saveOrdfileLine($ordfileId, $charge('001', ' ', '2026-10-20'));
+        $cancelId = $files->saveOrdfileLine($ordfileId, $charge('002', '-', '2026-10-19'));
+        $source = new DatabaseOrdfileSource(ServiceContainer::getClock());
+
+        $ordfile = $source->byFileName($this->token);
+
+        $this->assertNotNull($ordfile);
+        $this->assertSame([$ordfileId, $this->token], [$ordfile->id, $ordfile->fileName]);
+        $this->assertSame([$chargeId, $cancelId], array_keys($ordfile->lines));
+        $this->assertSame(
+            [[$medrec . '001', ' ', '20261020', 'W00', '71046'], [$medrec . '002', '-', '20261019', 'W00', '71046']],
+            array_map(static fn(OrdfileLine $line): array => [$line->ord8 . $line->ord3, $line->ind, $line->dateT->format('Ymd'), $line->ref, $line->cpt], array_values($ordfile->lines))
+        );
+        $created = QueryUtils::fetchSingleValue('SELECT DATE(`date_created`) AS d FROM `cmsvt_ordfile` WHERE `ordfile_id` = ?', 'd', [$ordfileId]);
+        $this->assertIsString($created);
+        $this->assertSame($ordfileId, $source->byDate(new \DateTimeImmutable($created))?->id);
+        $this->assertNull($source->byFileName($this->token . 'X'));
     }
 
     public function testAPatientsCurrentPrimaryIsTheNewest(): void

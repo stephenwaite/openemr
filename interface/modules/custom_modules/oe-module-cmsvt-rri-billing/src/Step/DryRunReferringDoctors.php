@@ -30,6 +30,11 @@ final readonly class DryRunReferringDoctors implements ReferringDoctors
         return $this->doctors->findByNpi($npi);
     }
 
+    public function npiForRefkey(string $refkey): ?string
+    {
+        return $this->doctors->npiForRefkey($refkey);
+    }
+
     public function add(PersonName $name, string $npi): ReferringDoctor
     {
         return new ReferringDoctor(0, substr($name->full, 0, 1) . '??', $name->last, $name->first, $npi);

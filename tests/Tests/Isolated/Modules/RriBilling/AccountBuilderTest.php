@@ -172,6 +172,11 @@ final class AccountBuilderTest extends TestCase
                 return $this->test->doctorsWithNpi($npi);
             }
 
+            public function npiForRefkey(string $refkey): ?string
+            {
+                return null;
+            }
+
             public function add(PersonName $name, string $npi): ReferringDoctor
             {
                 return $this->test->addDoctor($name, $npi);

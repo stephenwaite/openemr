@@ -39,6 +39,16 @@ final class DatabaseReferringDoctors implements ReferringDoctors
         return $doctors;
     }
 
+    public function npiForRefkey(string $refkey): ?string
+    {
+        $row = QueryUtils::querySingleRow('SELECT `npi` FROM `cmsvt_refphy` WHERE `refkey` = ? LIMIT 1', [$refkey], false);
+        if ($row === false) {
+            return null;
+        }
+        $npi = $row['npi'] ?? null;
+        return is_string($npi) ? trim($npi) : '';
+    }
+
     public function add(PersonName $name, string $npi): ReferringDoctor
     {
         $initial = substr($name->full, 0, 1);

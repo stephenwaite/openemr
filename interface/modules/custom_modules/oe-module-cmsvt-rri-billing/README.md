@@ -80,7 +80,24 @@ The port is in progress. Done so far:
   otherwise; both are checked before the run). `--resume=<MRN>` starts at a
   patient.
 
-Still to come: steps 4-6 (`cmsvt:rri-245`, `-247`, `-250`), step 1 as a
-command (`cmsvt:qqq`), the lookup-file
-install, the console steps (`cmsvt:qqq`, `cmsvt:rri-248`, `-245`, `-247`,
-`-250`) and the coding page.
+- Step 4, `cmsvt:rri-245` (rri222, 224, 245): checks the ordfile and changes
+  nothing. Writes, when there is anything in them, `errors/file222-<time>`
+  (charges cancelled by an earlier credit, and credits with no charge),
+  `errors/file224-<time>` (the CDMs that used to be deleted) and
+  `errors/file245-<time>` (bad MRN, bad referring key, no NPI, not read,
+  undefined procedure, the same charge twice). An account missing from the
+  account file asks whether to go on.
+
+- Step 5, `cmsvt:rri-247` (rri247, 247x): shows each account's insurances and
+  relate codes, twenty to a page, sets a blank primary or secondary relate
+  to K, writes `errors/w2-<time>`, then shows the accounts whose subscriber
+  name or relate code doesn't match the guarantor.
+
+  ```sh
+  php bin/console cmsvt:rri-245 --site=1600                         # newest ordfile
+  php bin/console cmsvt:rri-245 --site=1600 --date=2026-10-21       # newest ordfile made that day
+  php bin/console cmsvt:rri-247 --site=1600 --file=ordfile-10-21-26-09-15
+  ```
+
+Still to come: step 6 (`cmsvt:rri-250`), step 1 as a command (`cmsvt:qqq`),
+the lookup-file install and the coding page.

@@ -56,6 +56,11 @@ final class StepOneRulesTest extends TestCase
                 $fee = $this->fees["$cdm $code"] ?? null;
                 return $fee === null ? null : new ChargeMasterEntry($cdm, $code, '', $fee);
             }
+
+            public function findAnyModifier(string $cdm, string $code): ?ChargeMasterEntry
+            {
+                return $this->find($cdm, $code);
+            }
         });
     }
 
