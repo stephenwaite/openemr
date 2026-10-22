@@ -51,6 +51,20 @@ A line identical to one posted from an earlier file is marked `duplicate`.
 Posting needs Admin > Config > Gifford Charge Import > **Facility ID** (where the
 studies are read) and **Billing Facility ID**; while either is 0, lines are staged only.
 
+## Review page (Fees > Gifford Charges)
+
+For users with Accounting > Billing (write):
+
+- **Unmapped payers:** each payer mnemonic on held lines with no insurance company,
+  with Gifford's name, how many lines it holds and when it was first seen. Map it to an
+  existing company, or create it as a paper payer (Gifford's name and an insurance
+  type; billers add the address and payer ID later). Its lines post on the next run.
+- **Held lines:** file, line, patient, MRN, visit, date, code, accession and why each is
+  held. **Skip** marks a line never to be posted; **Post it** releases a line held as a
+  corrected re-send so it posts on the next run (fix or void the earlier charge in the
+  encounter's fee sheet as needed).
+- **Post ready lines now** runs posting without waiting for the hour.
+
 ## Setting it up on a site
 
 1. Modules > Manage Modules: register, install and enable **Gifford Charge Import**.

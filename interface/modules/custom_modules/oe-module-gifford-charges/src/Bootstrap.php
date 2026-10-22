@@ -16,8 +16,10 @@ namespace Cmsvt\OpenEMR\Modules\GiffordCharges;
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Command\ImportPayersCommand;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Globals\GiffordGlobals;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Review\GiffordMenu;
 use OpenEMR\Events\Command\CommandRunnerFilterEvent;
 use OpenEMR\Events\Globals\GlobalsInitializedEvent;
+use OpenEMR\Menu\MenuEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final readonly class Bootstrap
@@ -31,6 +33,10 @@ final readonly class Bootstrap
         $this->eventDispatcher->addListener(
             GlobalsInitializedEvent::EVENT_HANDLE,
             (new GiffordGlobals())->register(...)
+        );
+        $this->eventDispatcher->addListener(
+            MenuEvent::MENU_UPDATE,
+            (new GiffordMenu())->apply(...)
         );
         $this->eventDispatcher->addListener(
             CommandRunnerFilterEvent::EVENT_NAME,

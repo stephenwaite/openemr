@@ -145,7 +145,9 @@ class ChargePosterTest extends TestCase
 
         $result = $this->post();
 
-        $this->assertSame(['posted' => 1, 'held' => 0, 'duplicates' => 0, 'encounters_created' => 1, 'patients_created' => 1], $result->toArray());
+        // Counts cover every pending line in the database; the assertions on this test's
+        // own lines are what matter.
+        $this->assertSame([1, 1, 1], [$result->posted, $result->encountersCreated, $result->patientsCreated]);
         $line = $this->line($lineId);
         $this->assertSame(['posted', '[]'], [$line['status'], $line['problems_json']]);
 
@@ -190,7 +192,7 @@ class ChargePosterTest extends TestCase
     {
         [$lineId] = $this->stage([$this->row(['ins1_mnemonic' => 'NEW' . $this->token, 'ins1_payer_name' => 'NEW PLAN'])]);
 
-        $this->assertSame(1, $this->post()->held);
+        $this->post();
         $this->assertSame('held', $this->line($lineId)['status']);
         $this->assertSame(['payer NEW' . $this->token . ' (NEW PLAN) is not mapped to an insurance company'], $this->problems($lineId));
 
@@ -207,9 +209,8 @@ class ChargePosterTest extends TestCase
             $this->row(['chg_mod1' => 'TC', 'chg_accession' => 'D' . $this->token]),
         ]);
 
-        $result = $this->post();
-
-        $this->assertSame([1, 2], [$result->posted, $result->held]);
+        $this->assertSame(1, $this->post()->posted);
+        $this->assertSame(['posted', 'held', 'held'], [$this->line($bare)['status'], $this->line($none)['status'], $this->line($tc)['status']]);
         $this->assertSame(['', '80.00'], self::text2(QueryUtils::querySingleRow('SELECT `modifier`, `fee` FROM `billing` WHERE `id` = ?', [$this->line($bare)['billing_id']])));
         $this->assertSame(['no price for CPT4 V' . substr($this->token, 0, 4)], $this->problems($none));
         $this->assertSame(['modifier TC: the technical component is Gifford\'s to bill'], $this->problems($tc));
@@ -223,7 +224,8 @@ class ChargePosterTest extends TestCase
             $this->row(['chg_pos' => '22', 'chg_accession' => 'F' . $this->token]),
         ]);
 
-        $this->assertSame(3, $this->post()->held);
+        $this->post();
+        $this->assertSame(['held', 'held', 'held'], [$this->line($stranger)['status'], $this->line($office)['status'], $this->line($hospital)['status']]);
         $this->assertSame(['rendering NPI 1111111112 is not a provider on this site'], $this->problems($stranger));
         $this->assertSame(['the visit\'s lines have different places of service: 11, 22'], $this->problems($office));
         $this->assertSame(['the visit\'s lines have different places of service: 11, 22'], $this->problems($hospital));
@@ -242,7 +244,8 @@ class ChargePosterTest extends TestCase
         ]);
         $result = $this->post();
 
-        $this->assertSame([1, 1, 1, 0], [$result->posted, $result->held, $result->duplicates, $result->encountersCreated]);
+        $this->assertSame([1, 1, 0], [$result->posted, $result->duplicates, $result->encountersCreated]);
+        $this->assertSame('held', $this->line($changed)['status']);
         $this->assertSame('duplicate', $this->line($same)['status']);
         $this->assertSame(
             ['corrected re-send? accession A' . $this->token . ' was posted from an earlier file as ' . $this->code . ' x1; post this line too, or skip it'],
