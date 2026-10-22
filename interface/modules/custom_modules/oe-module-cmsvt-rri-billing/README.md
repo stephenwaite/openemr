@@ -55,7 +55,14 @@ The port is in progress. Done so far:
   miscellaneous payers, then the insurance rules. The biller's questions go
   through `StepThreePrompts`; `--yes` answers them with the defaults.
 
-Still to come: saving step 3 (account file, ordfile, patient and insurance
-updates) and the database lookups it uses, the lookup-file
+- Step 3's storage: the account file (`Lookup\DatabaseAccountFile`, now
+  saving the real secondary policy and the ZIP), referring doctors
+  (`Lookup\DatabaseReferringDoctors`, with RRMC keys counting 0-9 then A-Z),
+  the ordfile lines (`Ordfile\OrdfileBuilder`, 7.0.2's text layout), work
+  comp addresses and email/authorization rows (`Ordfile\DatabaseStepThreeFiles`).
+  Setting "Reading Doctor Code" (blank: 01) is the ordfile's docp.
+
+Still to come: the patient and insurance updates and the `cmsvt:rri-248`
+command that runs step 3, the lookup-file
 install, the console steps (`cmsvt:qqq`, `cmsvt:rri-248`, `-245`, `-247`,
 `-250`) and the coding page.

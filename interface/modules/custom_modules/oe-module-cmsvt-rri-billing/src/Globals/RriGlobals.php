@@ -33,6 +33,7 @@ final class RriGlobals
     public const SFTP_PASSWORD = 'cmsvt_rri_sftp_password';
     public const DEBUG = 'cmsvt_rri_debug';
     public const AUTOSAVE_INTERVAL = 'cmsvt_rri_autosave_interval';
+    public const READING_DOCTOR_CODE = 'cmsvt_rri_reading_doctor_code';
 
     public function register(GlobalsInitializedEvent $event): void
     {
@@ -75,6 +76,12 @@ final class RriGlobals
             GlobalSetting::DATA_TYPE_BOOL,
             '0',
             xl('Show extra detail on the RRI billing page and in the console steps.')
+        ));
+        $service->appendToSection($section, self::READING_DOCTOR_CODE, new GlobalSetting(
+            xl('Reading Doctor Code'),
+            GlobalSetting::DATA_TYPE_TEXT,
+            '',
+            xl('Two-character doctor code step 3 puts on every ordfile charge (docp). Blank means 01, the single reading doctor.')
         ));
         $service->appendToSection($section, self::AUTOSAVE_INTERVAL, new GlobalSetting(
             xl('Coding Page Auto-Save Seconds'),

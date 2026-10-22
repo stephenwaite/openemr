@@ -147,6 +147,10 @@ final class AccountBuilderTest extends TestCase
             {
                 return $this->test->account($actno);
             }
+
+            public function save(AccountRecord $account): void
+            {
+            }
         };
         $history = new class ($test) implements PatientInsuranceHistory {
             public function __construct(private readonly AccountBuilderTest $test)
