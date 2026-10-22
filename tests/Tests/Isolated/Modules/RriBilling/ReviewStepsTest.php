@@ -195,18 +195,24 @@ final class ReviewStepsTest extends TestCase
             11 => self::line('00111111', '001', '7000', '2026-10-20'),
             12 => self::line('00111111', '002', '7001', '2026-10-20', '-'),
             21 => self::line('00222222', '001', '7000', '2026-10-19'),
-            22 => self::line('00222222', '002', '7000', '2026-10-18', '-'),
+            22 => self::line('00222222', '002', '7000', '2026-10-19', '-'),
+            23 => self::line('00222222', '003', '7000', '2026-10-20', '-'),
+            24 => self::line('00222222', '004', '7002', '2026-10-20'),
+            25 => self::line('00222222', '005', '7002', '2026-10-19', '-'),
             31 => self::line('00333333', '001', '7000', '2026-10-18', '-'),
         ]);
 
         $result = (new DanglingCredits($this->accountFile()))->check($ordfile);
 
+        // 22 cancels 21 the same day; 23 finds 21 taken; 25 is dated before 24.
         $this->assertSame([
             '00111111000 0001 7001- 20261020 DOE;JANE                 *** DANGLING CREDIT *** ',
             '00222222001 0001 7000  20261019 ROE;JOHN                                         ',
-            '00222222002 0001 7000- 20261018 ROE;JOHN                                         ',
+            '00222222002 0001 7000- 20261019 ROE;JOHN                                         ',
+            '00222222000 0001 7000- 20261020 ROE;JOHN                 *** DANGLING CREDIT *** ',
+            '00222222000 0001 7002- 20261019 ROE;JOHN                 *** DANGLING CREDIT *** ',
         ], $result->file222);
-        $this->assertSame([11, 12, 31], array_keys($result->remaining), 'the pair is left out of the other checks');
+        $this->assertSame([11, 12, 23, 24, 25, 31], array_keys($result->remaining), 'the pair is left out of the other checks');
         $this->assertSame(['00333333 NOT ON FILE???'], $result->warnings);
     }
 

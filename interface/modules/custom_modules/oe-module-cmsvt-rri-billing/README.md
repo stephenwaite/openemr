@@ -82,7 +82,8 @@ The port is in progress. Done so far:
 
 - Step 4, `cmsvt:rri-245` (rri222, 224, 245): checks the ordfile and changes
   nothing. Writes, when there is anything in them, `errors/file222-<time>`
-  (charges cancelled by an earlier credit, and credits with no charge),
+  (each charge with the cancel dated the same day or later, and cancels
+  with no charge),
   `errors/file224-<time>` (the CDMs that used to be deleted) and
   `errors/file245-<time>` (bad MRN, bad referring key, no NPI, not read,
   undefined procedure, the same charge twice). An account missing from the
