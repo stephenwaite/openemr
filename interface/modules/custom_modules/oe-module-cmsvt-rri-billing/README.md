@@ -131,4 +131,15 @@ The port is in progress. Done so far:
   php bin/console cmsvt:rri-250 --site=1600
   ```
 
-Still to come: the lookup-file install and the coding page.
+- The coding page, Fees > CMSVT Billing (`public/index.php`, needs Fees >
+  Billing access): the unbilled charges of one of the five newest ordfiles,
+  each with RRMC's details, its provider (a list when it has none) and two
+  diagnosis boxes (Dx 1 starts as RRMC's diagnosis; Space opens the ICD10
+  search). It saves every "Coding Page Auto-Save Seconds" (blank: 15) and
+  with its button: the boxes' ICD10 lines and the CPT line's justify, and a
+  chosen provider on the charge's lines and encounter. Lines already billed
+  are not changed. 7.0.2's quality measure items and its debug links that
+  ran steps 3 and 6 from the browser are gone.
+
+Still to come: the lookup-file install (for a new site such as 2400; eis's
+lookup tables move with its database).

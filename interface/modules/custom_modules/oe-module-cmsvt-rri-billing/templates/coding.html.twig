@@ -1,0 +1,220 @@
+{#
+ # The RRI coding page (7.0.2's default.html.twig): one row per unbilled
+ # charge of the chosen ordfile, with its provider and diagnosis boxes.
+ # Space in a diagnosis box opens the ICD10 search.
+ #
+ # @package   OpenEMR
+ # @link      https://www.open-emr.org
+ # @author    Stephen Nielson <snielson@discoverandchange.com>
+ # @author    Stephen Waite <stephen.waite@cmsvt.com>
+ # @copyright Copyright (c) 2024-2026 Care Management Solutions, Inc. <stephen.waite@cmsvt.com>
+ # @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
+ #}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ 'CMSVT Billing'|xlt }}</title>
+    {{ setupHeader(['common']) }}
+    <style>
+        body { margin-bottom: 60px; }
+        .rri-footer { position: fixed; bottom: 0; width: 100%; height: 60px; line-height: 60px; background-color: rgba(0, 0, 0, .1); }
+        .rri-line span { margin-right: .5rem; }
+    </style>
+</head>
+<body class="body_top">
+<div class="container-fluid p-2 pl-4">
+    <h1>{{ 'CMSVT Billing Management Page'|xlt }}</h1>
+    <h3>{{ 'Billing Records'|xlt }}</h3>
+    <form method="get" id="ordfileForm" onsubmit="return top.restoreSession()">
+        <div class="form-group">
+            <label for="ordfileFilter">{{ 'Most Recent Ord Files'|xlt }}</label>
+            <select id="ordfileFilter" name="ordfile" class="form-control">
+                {% for ordfile in ordfiles %}
+                    <option value="{{ ordfile.id|attr }}"{% if ordfile.id == selectedOrdfile %} selected{% endif %}>{{ ordfile.created|text }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+    <form method="post" id="billingSaveRecordsForm">
+        {{ csrfToken('default', 'csrf_token_form') }}
+        <div class="row font-weight-bold">
+            <div class="col-3">
+                <div class="row">
+                    <div class="col-4">{{ 'Provider'|xlt }}</div>
+                    <div class="col-4">{{ 'Diagnosis 1'|xlt }}</div>
+                    <div class="col-4">{{ 'Diagnosis 2'|xlt }}</div>
+                </div>
+            </div>
+            <div class="col-9">{{ 'Billing Summary'|xlt }}</div>
+        </div>
+        {% for row in rows %}
+        <div class="row mb-3">
+            <div class="col-3">
+                <div class="row">
+                    <div class="col-4">
+                        {% if row.providerId is null %}
+                            <select name="form_records[{{ row.recordId|attr }}][billing-provider]" class="form-control form-control-sm" title="{{ 'Billing Provider'|xla }}">
+                                <option value="">{{ 'Unassigned'|xlt }}</option>
+                                {% for provider in providers %}
+                                    <option value="{{ provider.id|attr }}">{{ provider.name|text }}</option>
+                                {% endfor %}
+                            </select>
+                        {% else %}
+                            {{ row.providerName|text }}
+                        {% endif %}
+                    </div>
+                    {% for box in [{field: 'billing-code-1', dx: row.dx1, label: 'Billing Code 1'}, {field: 'billing-code-2', dx: row.dx2, label: 'Billing Code 2'}] %}
+                    <div class="col-4">
+                        <div class="row no-gutters billing-code-container">
+                            <div class="col-11">
+                                <input type="text" class="form-control form-control-sm js-billing-code" name="form_records[{{ row.recordId|attr }}][{{ box.field|attr }}]"
+                                       value="{{ box.dx.code|attr }}" title="{{ box.label|xla }}" autocomplete="off" />
+                            </div>
+                            <div class="col-1 pt-2 pl-1"><i class="fa fa-info-circle billing-code-description" title="{{ box.dx.description|attr }}"></i></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="col-9 rri-line">
+                <span title="{{ 'Medical Record Number'|xla }}">{{ row.mrn|text }}</span>
+                <span title="{{ 'Date of Service (DOS)'|xla }}">{{ row.admitDate|text }}</span>
+                <span title="{{ 'Guarantor Number'|xla }}">{{ row.guarantorNumber|text }}</span>
+                <span title="{{ 'Charge Key'|xla }}">{{ row.procedureTitle|text }}</span>
+                <span title="{{ 'Charge Date (dateT)'|xla }}">{{ row.dateOfService|text }}</span>
+                <span title="{{ 'Procedure CPT and Procedure Mod (CD-PROC2) see db procfile'|xla }}">{{ row.procedureKey|text }}</span>
+                <span title="CD-MOD2">{{ row.mod2|text }}</span>
+                <span title="CD-MOD3">{{ row.mod3|text }}</span>
+                <span title="{{ 'Primary Insurance Provider Code'|xla }}">{{ row.payer|text }}</span>
+                <span title="CD-PLACE">{{ row.place|text }}</span>
+                <span title="{{ 'Primary Insurance Subscriber DOB'|xla }}">{{ row.subscriberDob|text }}</span>
+                <span title="{{ 'Patient Name'|xla }}">{{ row.patientName|text }}</span>
+                <span class="d-block" title="{{ 'Clinical information'|xla }}">{{ row.clinical|text }}</span>
+                <span class="d-block" title="{{ 'Admit Diag'|xla }}">{{ row.admitDiagnosis|text }}</span>
+                {% if debug %}
+                    <div class="small text-muted">
+                        <span title="pid">{{ row.pid|text }}</span>
+                        <span title="encounter">{{ row.encounter|text }}</span>
+                        <span title="external_id">{{ row.accession|text }}</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+            <p>{{ 'No charges to code in this ordfile.'|xlt }}</p>
+        {% endfor %}
+    </form>
+</div>
+<footer class="rri-footer p-0 m-0">
+    <div class="container-fluid billing-controls-container p-0 m-0">
+        <div class="row no-gutters">
+            <div class="col-10">
+                <div class="alert alert-info d-none alert-saving mt-0 pt-0 mr-2">{{ 'Saving records...'|xlt }}</div>
+                <div class="alert alert-success d-none alert-saved mt-0 pt-0 mr-2">{{ 'Records Saved'|xlt }}</div>
+                <div class="alert alert-danger d-none alert-save-failed mt-0 pt-0 mr-2">{{ 'Records failed to save'|xlt }}</div>
+            </div>
+            <div class="col-2">
+                <button type="button" class="btn btn-success btn-billing-save">{{ 'Save Billing Records'|xlt }}</button>
+                <button type="button" class="btn btn-success d-none btn-saving" disabled><span class="pr-2">{{ 'Save Billing Records'|xlt }}</span><i class="fa fa-spinner fa-spin"></i></button>
+            </div>
+        </div>
+    </div>
+</footer>
+<script>
+    (function () {
+        const SAVE_INTERVAL = {{ autoSaveInterval|json_encode }};
+        const SUCCESS_MESSAGE_TIME = 3000;
+        const FAILURE_MESSAGE_TIME = 5000;
+        const SAVE_MAX_WAIT_TIME = 60000;
+        const form = document.getElementById('billingSaveRecordsForm');
+        const controls = document.querySelector('.billing-controls-container');
+        let saving = false;
+        let timer = null;
+
+        function hide(selector) {
+            controls.querySelectorAll(selector).forEach(item => item.classList.add('d-none'));
+        }
+
+        function show(selector, hideSelector) {
+            hide(hideSelector);
+            controls.querySelectorAll(selector).forEach(item => item.classList.remove('d-none'));
+        }
+
+        function schedule(delay) {
+            clearTimeout(timer);
+            timer = setTimeout(save, delay);
+        }
+
+        function finish(ok) {
+            saving = false;
+            show(ok ? '.alert-saved' : '.alert-save-failed', '.alert');
+            show('.btn-billing-save', '.btn');
+            setTimeout(() => hide('.alert'), ok ? SUCCESS_MESSAGE_TIME : FAILURE_MESSAGE_TIME);
+            schedule(SAVE_INTERVAL);
+        }
+
+        function save() {
+            // Not while a save is running, and not while this tab is hidden.
+            if (saving || controls.getBoundingClientRect().height === 0) {
+                schedule(SAVE_INTERVAL);
+                return;
+            }
+            saving = true;
+            show('.btn-saving', '.btn');
+            show('.alert-saving', '.alert');
+            top.restoreSession();
+            const abort = new AbortController();
+            const giveUp = setTimeout(() => abort.abort(), SAVE_MAX_WAIT_TIME);
+            fetch(window.location.pathname, {method: 'POST', body: new FormData(form), signal: abort.signal})
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to save records');
+                    }
+                    finish(true);
+                })
+                .catch(error => {
+                    console.error(error);
+                    finish(false);
+                })
+                .finally(() => clearTimeout(giveUp));
+        }
+
+        function findCode(input) {
+            window.set_related = function (codetype, code, selector, codedesc) {
+                input.value = code;
+                const description = input.closest('.billing-code-container').querySelector('.billing-code-description');
+                if (description) {
+                    description.title = codedesc;
+                }
+                dlgclose();
+                window.set_related = null;
+                const inputs = Array.from(form.querySelectorAll('input:not([type=hidden]),select'));
+                (inputs[inputs.indexOf(input) + 1] || inputs[0]).focus();
+            };
+            window.del_related = function (value) {
+                input.value = value;
+                dlgclose();
+                window.del_related = null;
+            };
+            dlgopen(top.webroot_url + '/interface/patient_file/encounter/find_code_dynamic.php?codetype=ICD10', '_blank', 985, 750, '', top.xl('Select Diagnosis Codes'));
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            form.querySelectorAll('.js-billing-code').forEach(input => input.addEventListener('keypress', function (evt) {
+                if (evt.code === 'Space') {
+                    evt.preventDefault();
+                    findCode(evt.currentTarget);
+                }
+            }));
+            controls.querySelector('.btn-billing-save').addEventListener('click', () => schedule(0));
+            document.getElementById('ordfileFilter').addEventListener('change', function () {
+                top.restoreSession();
+                document.getElementById('ordfileForm').submit();
+            });
+            form.addEventListener('submit', evt => evt.preventDefault());
+            schedule(SAVE_INTERVAL);
+        });
+    })();
+</script>
+</body>
+</html>
