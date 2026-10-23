@@ -29,6 +29,7 @@ use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Billing\BillingManagerDefaultsFilterEvent;
 use OpenEMR\OeUI\OemrUI;
 
 require_once OEGlobalsBag::getInstance()->getSrcDir() . '/options.inc.php';
@@ -333,7 +334,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
             f.bn_process_ub04_support.disabled = !can_generate;
             <?php } ?>
             f.bn_hcfa_txt_file.disabled = !can_generate;
-            f.bn_reopen.disabled = !can_bill;
+            f.bn_reopen.disabled = !(can_bill || can_mark);
             <?php } ?>
             f.bn_mark.disabled = !can_mark;
             oeSyncClaimRowStates();
@@ -730,10 +731,24 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                         // It is labeled(Included for Insurance ajax criteria)(Line:-279-299).
                         $TPSCriteriaIncludeMaster[1] = "OpenEMR\Billing\BillingReport::insuranceCompanyDisplay";
                         if (!isset($_REQUEST['mode'])) {// default case
-                            $_REQUEST['final_this_page_criteria'][0] = "form_encounter.date|between|" . date("Y-m-d 00:00:00") . "|" . date("Y-m-d 23:59:59");
-                            $_REQUEST['final_this_page_criteria_text'][0] = xl("Date of Service = Today");
-                            $_REQUEST['final_this_page_criteria'][1] = "billing.billed|=|0";
-                            $_REQUEST['final_this_page_criteria_text'][1] = xl("Billing Status = Unbilled");
+                            $billingManagerDefaults = new BillingManagerDefaultsFilterEvent();
+                            OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()
+                                ->dispatch($billingManagerDefaults, BillingManagerDefaultsFilterEvent::EVENT_NAME);
+                            $dosMonths = $billingManagerDefaults->getDosMonths();
+                            $defaultCriteria = [];
+                            $defaultCriteriaText = [];
+                            if ($dosMonths === null) {
+                                $defaultCriteria[] = "form_encounter.date|between|" . date("Y-m-d 00:00:00") . "|" . date("Y-m-d 23:59:59");
+                                $defaultCriteriaText[] = xl("Date of Service = Today");
+                            } elseif ($dosMonths > 0) {
+                                $dosFrom = (new DateTimeImmutable('today'))->sub(new DateInterval('P' . $dosMonths . 'M'));
+                                $defaultCriteria[] = "form_encounter.date|between|" . $dosFrom->format('Y-m-d 00:00:00') . "|" . date("Y-m-d 23:59:59");
+                                $defaultCriteriaText[] = xl("Date of Service") . ' = ' . xl("Last") . ' ' . $dosMonths . ' ' . xl("months");
+                            }
+                            $defaultCriteria[] = "billing.billed|=|0";
+                            $defaultCriteriaText[] = xl("Billing Status = Unbilled");
+                            $_REQUEST['final_this_page_criteria'] = $defaultCriteria;
+                            $_REQUEST['final_this_page_criteria_text'] = $defaultCriteriaText;
                             $_REQUEST['date_master_criteria_form_encounter_date'] = "today";
                             $_REQUEST['master_from_date_form_encounter_date'] = date("Y-m-d");
                             $_REQUEST['master_to_date_form_encounter_date'] = date("Y-m-d");
@@ -1026,7 +1041,7 @@ $partners = $x->_utility_array($x->x12_partner_factory());
                                     }
                                 }
                                 // Is there a MBO
-                                $mboid = sqlQuery("SELECT forms.form_id FROM forms WHERE forms.encounter = ? AND forms.authorized = 1 AND forms.formdir = 'misc_billing_options' AND forms.deleted != 1 LIMIT 1", [$iter['enc_encounter']]);
+                                $mboid = sqlQuery("SELECT forms.form_id FROM forms WHERE forms.encounter = ? AND forms.formdir = 'misc_billing_options' AND forms.deleted != 1 LIMIT 1", [$iter['enc_encounter']]);
                                 $iter['mboid'] = $mboid ? attr($mboid['form_id']) : 0;
 
                                 $name = getPatientData($iter['enc_pid'], "fname, mname, lname, pubpid, billing_note, DATE_FORMAT(DOB,'%Y-%m-%d') as DOB_YMD");

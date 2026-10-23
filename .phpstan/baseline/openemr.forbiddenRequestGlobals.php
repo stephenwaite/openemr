@@ -393,7 +393,7 @@ $ignoreErrors[] = [
 ];
 $ignoreErrors[] = [
     'message' => '#^Direct access to \\$_REQUEST is forbidden\\. Use Symfony\'s Request object instead\\.$#',
-    'count' => 10,
+    'count' => 8,
     'path' => __DIR__ . '/../../interface/billing/billing_report.php',
 ];
 $ignoreErrors[] = [
@@ -558,7 +558,7 @@ $ignoreErrors[] = [
 ];
 $ignoreErrors[] = [
     'message' => '#^Direct access to \\$_REQUEST is forbidden\\. Use Symfony\'s Request object instead\\.$#',
-    'count' => 57,
+    'count' => 52,
     'path' => __DIR__ . '/../../interface/billing/sl_eob_search.php',
 ];
 $ignoreErrors[] = [
@@ -848,7 +848,7 @@ $ignoreErrors[] = [
 ];
 $ignoreErrors[] = [
     'message' => '#^Direct access to \\$_REQUEST is forbidden\\. Use Symfony\'s Request object instead\\.$#',
-    'count' => 155,
+    'count' => 140,
     'path' => __DIR__ . '/../../interface/forms/eye_mag/save.php',
 ];
 $ignoreErrors[] = [
@@ -2410,16 +2410,6 @@ $ignoreErrors[] = [
     'message' => '#^Direct access to \\$_GET is forbidden\\. Use Symfony\'s Request object instead\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../interface/patient_file/front_payment_terminal.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Direct access to \\$_GET is forbidden\\. Use Symfony\'s Request object instead\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../interface/patient_file/history/edit_billnote.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Direct access to \\$_POST is forbidden\\. Use Symfony\'s Request object instead\\.$#',
-    'count' => 4,
-    'path' => __DIR__ . '/../../interface/patient_file/history/edit_billnote.php',
 ];
 $ignoreErrors[] = [
     'message' => '#^Direct access to \\$_GET is forbidden\\. Use Symfony\'s Request object instead\\.$#',
