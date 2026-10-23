@@ -44,6 +44,9 @@ use Psr\Clock\ClockInterface;
  *   possible repeat procedure, until a person posts it with 76 or 77 or skips it.
  * A line identical to a charge posted from an earlier file on the same accession (the file
  * sent again) is marked duplicate.
+ *
+ * The patient's address, phone, email, guarantor and employer follow the file whose date of
+ * service is the newest posted for them (PatientDetailsWriter).
  */
 final readonly class ChargePoster
 {
@@ -57,6 +60,7 @@ final readonly class ChargePoster
         private PriceBook $prices,
         private SiteWriter $site,
         private ClockInterface $clock,
+        private PatientDetailsWriter $details = new PatientDetailsWriter(),
     ) {
     }
 
@@ -209,11 +213,18 @@ final readonly class ChargePoster
         if ($ready === []) {
             return;
         }
+        // Only the newest visit's file speaks for the patient's details; an older file
+        // arriving late doesn't undo them.
+        $latest = $pid === null ? null : $this->lines->latestPostedDate($patient->mrn);
+        $newest = $latest === null || $dateOfService >= $latest;
 
-        QueryUtils::inTransaction(function () use ($ready, $first, $patient, $visit, $dateOfService, $companies, $pid, $existing, $placeOfService, $settings, $now, $result): void {
+        QueryUtils::inTransaction(function () use ($ready, $first, $patient, $visit, $dateOfService, $companies, $pid, $existing, $placeOfService, $settings, $now, $result, $newest): void {
             if ($pid === null) {
                 $pid = $this->site->createPatient($patient);
                 $result->patientsCreated++;
+            }
+            if ($newest) {
+                $this->details->update($pid, $patient, $first->guarantor, $first->employer);
             }
             foreach ($first->policies as $policy) {
                 $this->site->ensurePolicy($pid, $policy, $companies[$policy->rank], $patient, $dateOfService);

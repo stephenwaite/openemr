@@ -25,7 +25,13 @@ Lines are posted per patient, visit (`encounter_num`) and date of service, each 
 in one transaction:
 
 - **Patient:** found by `pubpid` = `pat_mrn`, else created. Never matched by name or
-  date of birth.
+  date of birth. When the line's date of service is the newest posted for the patient, the
+  file's address, phone and email replace the patient's (blank values never erase); a
+  replaced address is kept as an inactive Additional Address (Old/Incorrect, reason Moved).
+- **Guarantor and employer:** a guarantor (`guar_*`) other than the patient goes in the
+  guardian fields, so statements are addressed to them; the patient as guarantor (first and
+  last name in either order) clears them. An employer (`emp_*`) different from the latest on
+  file is added as a new employer row. Both also only from the newest file.
 - **Policies:** each `ins*` policy goes to the insurance company its mnemonic is mapped
   to (`gifford_payer_map`, see Payers). When the policy in effect on the date of service
   has another payer or member id, a new one starts that day and an open-ended older one

@@ -90,6 +90,20 @@ final class ChargeLineRepository
     }
 
     /**
+     * The latest date of service posted for this MRN, or null when none is.
+     */
+    public function latestPostedDate(string $mrn): ?\DateTimeImmutable
+    {
+        $date = QueryUtils::fetchSingleValue(
+            'SELECT MAX(`date_of_service`) AS d FROM `gifford_charge_line` WHERE `mrn` = ? AND `status` = ?',
+            'd',
+            [$mrn, LineStatus::Posted->value]
+        );
+
+        return is_string($date) ? new \DateTimeImmutable($date) : null;
+    }
+
+    /**
      * Accessions of the patient's posted lines with this code on this date, other than
      * $lineId: lines that make this one a repeat of the same procedure.
      *

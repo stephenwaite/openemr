@@ -120,7 +120,20 @@ class ChargePosterTest extends TestCase
     {
         $pids = QueryUtils::fetchTableColumn('SELECT `pid` FROM `patient_data` WHERE `pubpid` LIKE ?', 'pid', ['MRT' . $this->token . '%']);
         foreach ($pids as $pid) {
-            foreach (['billing', 'forms', 'form_encounter', 'insurance_data', 'patient_data'] as $table) {
+            $contactIds = QueryUtils::fetchTableColumn(
+                "SELECT `id` FROM `contact` WHERE `foreign_table_name` = 'patient_data' AND `foreign_id` = ?",
+                'id',
+                [$pid]
+            );
+            foreach ($contactIds as $contactId) {
+                QueryUtils::sqlStatementThrowException(
+                    'DELETE FROM `addresses` WHERE `id` IN (SELECT `address_id` FROM `contact_address` WHERE `contact_id` = ?)',
+                    [$contactId]
+                );
+                QueryUtils::sqlStatementThrowException('DELETE FROM `contact_address` WHERE `contact_id` = ?', [$contactId]);
+                QueryUtils::sqlStatementThrowException('DELETE FROM `contact` WHERE `id` = ?', [$contactId]);
+            }
+            foreach (['billing', 'forms', 'form_encounter', 'insurance_data', 'employer_data', 'patient_data'] as $table) {
                 QueryUtils::sqlStatementThrowException('DELETE FROM `' . $table . '` WHERE `pid` = ?', [$pid]);
             }
         }
@@ -334,6 +347,88 @@ class ChargePosterTest extends TestCase
         );
     }
 
+    public function testANewPatientGetsTheGuarantorAndEmployer(): void
+    {
+        [$line] = $this->stage([$this->row(self::guarantorAndEmployer())]);
+
+        $this->post();
+
+        $pid = $this->line($line)['pid'];
+        $this->assertSame(
+            ['Pat Parent', '9 Elm St', 'Barre', 'VT', '05641'],
+            self::text2(QueryUtils::querySingleRow(
+                'SELECT `guardiansname`, `guardianaddress`, `guardiancity`, `guardianstate`, `guardianpostalcode` FROM `patient_data` WHERE `pid` = ?',
+                [$pid]
+            ))
+        );
+        $this->assertSame(
+            [['name' => 'Target', 'street' => '1 Store Rd', 'city' => 'Berlin']],
+            QueryUtils::fetchRecords('SELECT `name`, `street`, `city` FROM `employer_data` WHERE `pid` = ?', [$pid])
+        );
+    }
+
+    public function testANewerFileUpdatesThePatientAndKeepsTheOldAddress(): void
+    {
+        [$first] = $this->stage([$this->row(self::guarantorAndEmployer())]);
+        $this->post();
+        $pid = $this->line($first)['pid'];
+
+        $this->stage([$this->row([
+            'encounter_num' => 'GH-2' . $this->token,
+            'chg_dos' => '09/10/2026',
+            'enc_admit_date' => '09/10/2026',
+            'chg_accession' => 'N' . $this->token,
+            'pat_addr1' => '2 New Rd',
+            'pat_city' => 'Bethel',
+            'pat_zip' => '05032',
+            'pat_phone' => '802-555-0100',
+            // The patient as guarantor, first and last swapped as in some of Gifford's rows.
+            'guar_last' => 'Ann',
+            'guar_first' => 'Testpatient',
+            'emp_name' => 'Retired',
+        ])]);
+        $this->post();
+
+        $this->assertSame(
+            ['2 New Rd', 'Bethel', '05032', '802-555-0100', ''],
+            self::text2(QueryUtils::querySingleRow(
+                'SELECT `street`, `city`, `postal_code`, `phone_home`, `guardiansname` FROM `patient_data` WHERE `pid` = ?',
+                [$pid]
+            ))
+        );
+        $this->assertSame(
+            [['line1' => '1 Main St', 'city' => 'Randolph', 'zip' => '05060', 'use' => 'old', 'status' => 'I', 'inactivated_reason' => 'Moved']],
+            QueryUtils::fetchRecords(
+                'SELECT a.`line1`, a.`city`, a.`zip`, ca.`use`, ca.`status`, ca.`inactivated_reason` FROM `contact` AS c'
+                . ' JOIN `contact_address` AS ca ON ca.`contact_id` = c.`id` JOIN `addresses` AS a ON a.`id` = ca.`address_id`'
+                . " WHERE c.`foreign_table_name` = 'patient_data' AND c.`foreign_id` = ?",
+                [$pid]
+            )
+        );
+        $this->assertSame(
+            ['Target', 'Retired'],
+            QueryUtils::fetchTableColumn('SELECT `name` FROM `employer_data` WHERE `pid` = ? ORDER BY `id`', 'name', [$pid])
+        );
+    }
+
+    public function testAnOlderFileArrivingLateLeavesThePatientAlone(): void
+    {
+        [$newer] = $this->stage([$this->row([
+            'chg_dos' => '09/10/2026',
+            'enc_admit_date' => '09/10/2026',
+            'pat_addr1' => '2 New Rd',
+            'pat_city' => 'Bethel',
+        ])]);
+        $this->post();
+        $pid = $this->line($newer)['pid'];
+
+        $this->stage([$this->row(['encounter_num' => 'GH-0' . $this->token, 'chg_accession' => 'O' . $this->token])]);
+        $this->post();
+
+        $this->assertSame(['2 New Rd', 'Bethel'], self::text2(QueryUtils::querySingleRow('SELECT `street`, `city` FROM `patient_data` WHERE `pid` = ?', [$pid])));
+        $this->assertSame([], QueryUtils::fetchRecords("SELECT 1 FROM `contact` WHERE `foreign_table_name` = 'patient_data' AND `foreign_id` = ?", [$pid]));
+    }
+
     public function testANewPayerStartsANewPolicyAndEndsTheOldOne(): void
     {
         [$first] = $this->stage([$this->row()]);
@@ -354,6 +449,26 @@ class ChargePosterTest extends TestCase
             ['policy_number' => '38097', 'date' => '2026-08-20', 'date_end' => '2026-09-09'],
             ['policy_number' => 'NEWID', 'date' => '2026-09-10', 'date_end' => null],
         ], $policies);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function guarantorAndEmployer(): array
+    {
+        return [
+            'guar_last' => 'Parent',
+            'guar_first' => 'Pat',
+            'guar_addr1' => '9 Elm St',
+            'guar_city' => 'Barre',
+            'guar_state' => 'VT',
+            'guar_zip' => '05641',
+            'emp_name' => 'Target',
+            'emp_addr1' => '1 Store Rd',
+            'emp_city' => 'Berlin',
+            'emp_state' => 'VT',
+            'emp_zip' => '05602',
+        ];
     }
 
     private function repeatProblem(string $otherAccession): string
