@@ -278,12 +278,15 @@ final class SiteWriter
             if (in_array($code, $have, true)) {
                 continue;
             }
+            // By dx_code, without the dot: the loader keeps the order file's padding in it and
+            // so writes formatted_dx_code "I10.    " for a three-character code, and long_desc
+            // keeps the file's line ending.
             $text = QueryUtils::fetchSingleValue(
-                'SELECT `long_desc` FROM `icd10_dx_order_code` WHERE `formatted_dx_code` = ? AND `active` = 1 ORDER BY `revision` DESC LIMIT 1',
+                'SELECT `long_desc` FROM `icd10_dx_order_code` WHERE `dx_code` = ? AND `active` = 1 ORDER BY `revision` DESC LIMIT 1',
                 'long_desc',
-                [$code]
+                [str_replace('.', '', $code)]
             );
-            $this->insertBilling($pid, $encounter, 'ICD10', $code, is_string($text) ? $text : '', $providerId, '', 1, '0.00', '');
+            $this->insertBilling($pid, $encounter, 'ICD10', $code, is_string($text) ? trim($text) : '', $providerId, '', 1, '0.00', '');
             $have[] = $code;
         }
     }

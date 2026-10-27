@@ -150,6 +150,7 @@ class ChargePosterTest extends TestCase
         QueryUtils::sqlStatementThrowException('DELETE FROM `insurance_companies` WHERE `id` = ?', [$this->companyId]);
         QueryUtils::sqlStatementThrowException('DELETE FROM `gifford_payer_map` WHERE `mnemonic` LIKE ?', ['%' . $this->token]);
         QueryUtils::sqlStatementThrowException('DELETE FROM `facility` WHERE `id` = ?', [$this->facilityId]);
+        QueryUtils::sqlStatementThrowException('DELETE FROM `icd10_dx_order_code` WHERE `short_desc` = ?', ['Test ' . $this->token]);
         parent::tearDown();
     }
 
@@ -200,6 +201,41 @@ class ChargePosterTest extends TestCase
         ], array_map(static fn (array $r): array => array_values(array_map(self::text(...), $r)), $billing));
 
         $this->assertSame(0, $this->post()->posted, 'a posted line is not posted again');
+    }
+
+    public function testDiagnosesGetTheCodeSetsDescriptionAsTheLoaderStoresIt(): void
+    {
+        // Made-up codes, stored as core's ICD-10 loader stores them: dx_code padded to the
+        // order file's width (so a three-character code gets a dotted, padded
+        // formatted_dx_code) and long_desc with the file's line ending.
+        $three = 'U8' . $this->token[0];
+        $longer = $three . '.' . substr($this->token, 1, 2);
+        foreach ([[$three, 'Three character test'], [str_replace('.', '', $longer), 'Longer test']] as [$code, $text]) {
+            QueryUtils::sqlStatementThrowException(
+                'INSERT INTO `icd10_dx_order_code` (`dx_code`, `formatted_dx_code`, `valid_for_coding`, `short_desc`, `long_desc`, `active`, `revision`)'
+                . " VALUES (?, ?, '1', ?, ?, 1, 1)",
+                [
+                    str_pad($code, 7),
+                    str_pad(substr($code, 0, 3) . '.' . substr($code, 3), 10),
+                    'Test ' . $this->token,
+                    $text . "\r\n",
+                ]
+            );
+        }
+        [$lineId] = $this->stage([$this->row(['enc_dx_codes' => $three . ',' . $longer])]);
+
+        $this->post();
+
+        $this->assertSame(
+            [[$three, 'Three character test'], [$longer, 'Longer test']],
+            array_map(
+                static fn (array $r): array => array_values(array_map(self::text(...), $r)),
+                QueryUtils::fetchRecords(
+                    "SELECT `code`, `code_text` FROM `billing` WHERE `encounter` = ? AND `code_type` = 'ICD10' ORDER BY `id`",
+                    [$this->line($lineId)['encounter']]
+                )
+            )
+        );
     }
 
     public function testAnUnmappedPayerHoldsTheLineUntilItIsMapped(): void
@@ -382,10 +418,10 @@ class ChargePosterTest extends TestCase
     public function testAnAddOnWaitsForItsParent(): void
     {
         // The add-on ($bareCode) needs $code, which Gifford sends in a later file.
-        $addOns = new AddOnCodes([$this->bareCode => [$this->code]]);
+        $addOns = $this->addOns();
         [$addOn] = $this->stage([$this->row(['chg_cpt' => $this->bareCode])]);
 
-        $this->assertSame(0, $this->post($addOns)->posted);
+        $this->post($addOns);
         $this->assertSame('held', $this->line($addOn)['status']);
         $this->assertSame(
             ['add-on code ' . $this->bareCode . ' is billed with ' . $this->code . ', which is not billed for this patient on 2026-08-20;'
@@ -394,20 +430,20 @@ class ChargePosterTest extends TestCase
         );
 
         [$parent] = $this->stage([$this->row(['chg_accession' => 'Z' . $this->token])]);
-        $this->assertSame(2, $this->post($addOns)->posted);
+        $this->post($addOns);
         $this->assertSame(['posted', 'posted'], [$this->line($addOn)['status'], $this->line($parent)['status']]);
         $this->assertSame($this->line($parent)['encounter'], $this->line($addOn)['encounter']);
     }
 
     public function testAnAddOnPostsWithItsParentFromTheSameFileOrAlreadyPosted(): void
     {
-        $addOns = new AddOnCodes([$this->bareCode => [$this->code]]);
+        $addOns = $this->addOns();
         // The add-on comes first in the file.
         [$addOn, $parent] = $this->stage([
             $this->row(['chg_cpt' => $this->bareCode]),
             $this->row(['chg_accession' => 'Z' . $this->token]),
         ]);
-        $this->assertSame(2, $this->post($addOns)->posted);
+        $this->post($addOns);
         $this->assertSame(['posted', 'posted'], [$this->line($addOn)['status'], $this->line($parent)['status']]);
 
         // The parent's add-on sent again later, on another day's visit, waits for that day's parent.
@@ -544,6 +580,15 @@ class ChargePosterTest extends TestCase
     {
         return 'repeat procedure? CPT4 ' . $this->code . ' is also on accession ' . $otherAccession . ' for this patient on 2026-08-20;'
             . ' post it with modifier 76 (same physician) or 77 (another physician), or skip it if it is a duplicate';
+    }
+
+    /**
+     * The real add-ons plus $bareCode needing $code. Posting reads every pending line in
+     * the database, so the real rules must stay in force for lines that aren't this test's.
+     */
+    private function addOns(): AddOnCodes
+    {
+        return new AddOnCodes(AddOnCodes::PARENTS + [$this->bareCode => [$this->code]]);
     }
 
     private function post(AddOnCodes $addOns = new AddOnCodes()): PostResult
