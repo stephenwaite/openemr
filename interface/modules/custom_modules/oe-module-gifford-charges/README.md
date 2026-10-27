@@ -60,7 +60,14 @@ has no price, Gifford sent `TC`, the line's accession was posted from an earlier
 as a different charge (a corrected re-send, held until a person releases or skips it), or
 the patient already has the same code that day (posted from the same file, or from another
 file on another accession, or posting in the same run) and the line has no `76`/`77` (a
-possible repeat procedure, held until a person posts it with 76 or 77 or skips it).
+possible repeat procedure, held until a person posts it with 76 or 77 or skips it), or the
+line is an add-on code whose primary procedure isn't billed for the patient that day
+(`77063` needs `77067`; `G0279` needs `77065` or `77066`; the obstetric ultrasound add-ons
+need their first-gestation code; held until the parent posts, from this file or a later
+one, or a person skips it). The same code on different body sites (`RT` and `LT`, two
+fingers or toes, two eyelids or coronary branches) is two procedures, not a repeat; `50`
+counts as both sides, and a line without a site modifier can't be told apart, so it is
+still a possible repeat.
 A line identical to a charge posted from an earlier file on the same accession (the file sent
 again) is marked `duplicate`.
 

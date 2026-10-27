@@ -40,8 +40,11 @@ use Psr\Clock\ClockInterface;
  * - an earlier file already posted its accession as a different charge (a corrected
  *   re-send), until a person releases it;
  * - the patient already has the same code that day (posted from this file, or from another
- *   file on another accession, or posting in this run) and the line has no 76 or 77: a
- *   possible repeat procedure, until a person posts it with 76 or 77 or skips it.
+ *   file on another accession, or posting in this run) on the same body site, and the line
+ *   has no 76 or 77: a possible repeat procedure, until a person posts it with 76 or 77 or
+ *   skips it. The same code RT and LT (or on two fingers) is two procedures, not a repeat;
+ * - it is an add-on code (AddOnCodes) and none of its primary codes is billed for the
+ *   patient that day, posted or posting with it.
  * A line identical to a charge posted from an earlier file on the same accession (the file
  * sent again) is marked duplicate.
  *
@@ -53,6 +56,13 @@ final readonly class ChargePoster
     /** form_encounter.external_id's width. */
     private const VISIT_NUMBER_MAX = 20;
 
+    /** Modifiers that say where on the body a procedure was done (50, both sides, is RT + LT). */
+    private const SITE_MODIFIERS = [
+        'RT', 'LT', 'E1', 'E2', 'E3', 'E4', 'LC', 'LD', 'LM', 'RC', 'RI',
+        'FA', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9',
+        'TA', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9',
+    ];
+
     public function __construct(
         private ChargeLineRepository $lines,
         private ChargeRowParser $parser,
@@ -61,6 +71,7 @@ final readonly class ChargePoster
         private SiteWriter $site,
         private ClockInterface $clock,
         private PatientDetailsWriter $details = new PatientDetailsWriter(),
+        private AddOnCodes $addOns = new AddOnCodes(),
     ) {
     }
 
@@ -210,6 +221,25 @@ final readonly class ChargePoster
             }
             $ready[] = ['line' => $line, 'charge' => $charge, 'priced' => $priced, 'providerId' => $providerId];
         }
+
+        // An add-on is billed only beside its primary procedure: hold one until a parent is
+        // posted for the patient that day, or posts with it now.
+        $readyCodes = array_map(static fn (array $r): string => strtoupper($r['charge']->code), $ready);
+        foreach ($ready as $i => $r) {
+            $parents = $this->addOns->parentsOf($r['charge']->code);
+            if ($parents === [] || array_intersect($parents, $readyCodes) !== [] || $this->lines->hasPostedCode($patient->mrn, $dateOfService, $parents)) {
+                continue;
+            }
+            $this->lines->hold($r['line']->id, [sprintf(
+                'add-on code %s is billed with %s, which is not billed for this patient on %s; it posts once that is, or skip it',
+                $r['charge']->code,
+                implode(' or ', $parents),
+                $dateOfService->format('Y-m-d')
+            )], $now);
+            $result->held++;
+            unset($ready[$i]);
+        }
+        $ready = array_values($ready);
         if ($ready === []) {
             return;
         }
@@ -247,9 +277,9 @@ final readonly class ChargePoster
     }
 
     /**
-     * Accessions of the patient's other lines with this code on this date, posted (from
-     * this file, or from another file on another accession) or ready in this run. None
-     * when the line already says it is a repeat (76 or 77 from Gifford or a person).
+     * Accessions of the patient's other lines with this code on this date and body site,
+     * posted (from this file, or from another file on another accession) or ready in this
+     * run. None when the line already says it is a repeat (76 or 77 from Gifford or a person).
      *
      * @param list<array{line: PendingLine, charge: ChargeRecord, priced: PricedCharge, providerId: int}> $ready
      * @return list<string>
@@ -262,17 +292,47 @@ final readonly class ChargePoster
         }
         $accessions = [];
         foreach ($this->lines->postedSameCode($mrn, $charge->dateOfService, $charge->code, $line->id) as $posted) {
-            if ($posted['batch_id'] === $line->batchId || $posted['accession'] !== $charge->accession) {
-                $accessions[] = $posted['accession'];
+            if ($posted['batch_id'] !== $line->batchId && $posted['accession'] === $charge->accession) {
+                continue;
             }
+            $earlier = $this->parser->parse(new RawRow(0, $posted['raw']))->charge;
+            if ($earlier !== null && self::otherSite($earlier, $charge)) {
+                continue;
+            }
+            $accessions[] = $posted['accession'];
         }
         foreach ($ready as $r) {
-            if ($r['charge']->codeType === $charge->codeType && $r['charge']->code === $charge->code) {
+            if ($r['charge']->codeType === $charge->codeType && $r['charge']->code === $charge->code && !self::otherSite($r['charge'], $charge)) {
                 $accessions[] = $r['charge']->accession;
             }
         }
 
         return array_values(array_unique($accessions));
+    }
+
+    /**
+     * Whether the lines name body sites that don't overlap (RT and LT, two fingers): the
+     * same code done on two sites. A line without a site can't be told apart from the
+     * other, so it is not another site; 50 overlaps RT and LT.
+     */
+    private static function otherSite(ChargeRecord $a, ChargeRecord $b): bool
+    {
+        $sites = static function (ChargeRecord $c): array {
+            $found = [];
+            foreach ($c->modifiers as $modifier) {
+                $modifier = strtoupper($modifier);
+                if ($modifier === '50') {
+                    array_push($found, 'RT', 'LT');
+                } elseif (in_array($modifier, self::SITE_MODIFIERS, true)) {
+                    $found[] = $modifier;
+                }
+            }
+            return $found;
+        };
+        $sitesA = $sites($a);
+        $sitesB = $sites($b);
+
+        return $sitesA !== [] && $sitesB !== [] && array_intersect($sitesA, $sitesB) === [];
     }
 
     private static function sameCharge(ChargeRecord $a, ChargeRecord $b): bool

@@ -37,13 +37,7 @@ final class ChargeLineRepository
 
         $lines = [];
         foreach ($rows as $row) {
-            $raw = json_decode(self::text($row['raw_json'] ?? null), true, 512, JSON_THROW_ON_ERROR);
-            $values = [];
-            foreach (is_array($raw) ? $raw : [] as $column => $value) {
-                if (is_string($column) && is_string($value)) {
-                    $values[$column] = $value;
-                }
-            }
+            $values = self::rawValues($row['raw_json'] ?? null);
             $lines[] = new PendingLine(
                 self::int($row['id'] ?? null),
                 self::int($row['batch_id'] ?? null),
@@ -72,13 +66,7 @@ final class ChargeLineRepository
         );
         $posted = [];
         foreach ($rows as $row) {
-            $raw = json_decode(self::text($row['raw_json'] ?? null), true, 512, JSON_THROW_ON_ERROR);
-            $values = [];
-            foreach (is_array($raw) ? $raw : [] as $column => $value) {
-                if (is_string($column) && is_string($value)) {
-                    $values[$column] = $value;
-                }
-            }
+            $values = self::rawValues($row['raw_json'] ?? null);
             $posted[] = [
                 'line_id' => self::int($row['id'] ?? null),
                 'same_file' => self::int($row['batch_id'] ?? null) === $batchId,
@@ -104,15 +92,15 @@ final class ChargeLineRepository
     }
 
     /**
-     * Accessions of the patient's posted lines with this code on this date, other than
-     * $lineId: lines that make this one a repeat of the same procedure.
+     * The patient's posted lines with this code on this date, other than $lineId: lines
+     * that may make this one a repeat of the same procedure.
      *
-     * @return list<array{line_id: int, batch_id: int, accession: string}>
+     * @return list<array{line_id: int, batch_id: int, accession: string, raw: array<string, string>}>
      */
     public function postedSameCode(string $mrn, \DateTimeImmutable $dateOfService, string $code, int $lineId): array
     {
         $rows = QueryUtils::fetchRecords(
-            'SELECT `id`, `batch_id`, `accession` FROM `gifford_charge_line`'
+            'SELECT `id`, `batch_id`, `accession`, `raw_json` FROM `gifford_charge_line`'
             . ' WHERE `mrn` = ? AND `date_of_service` = ? AND `code` = ? AND `status` = ? AND `id` <> ?'
             . ' ORDER BY `batch_id`, `line_number`',
             [$mrn, $dateOfService->format('Y-m-d'), $code, LineStatus::Posted->value, $lineId]
@@ -122,7 +110,25 @@ final class ChargeLineRepository
             'line_id' => self::int($row['id'] ?? null),
             'batch_id' => self::int($row['batch_id'] ?? null),
             'accession' => self::text($row['accession'] ?? null),
+            'raw' => self::rawValues($row['raw_json'] ?? null),
         ], $rows);
+    }
+
+    /**
+     * Whether one of $codes is posted for the patient on this date.
+     *
+     * @param non-empty-list<string> $codes
+     */
+    public function hasPostedCode(string $mrn, \DateTimeImmutable $dateOfService, array $codes): bool
+    {
+        $found = QueryUtils::fetchSingleValue(
+            'SELECT COUNT(*) AS n FROM `gifford_charge_line` WHERE `mrn` = ? AND `date_of_service` = ? AND `status` = ?'
+            . ' AND `code` IN (' . implode(', ', array_fill(0, count($codes), '?')) . ')',
+            'n',
+            [$mrn, $dateOfService->format('Y-m-d'), LineStatus::Posted->value, ...$codes]
+        );
+
+        return self::int($found) > 0;
     }
 
     /**
@@ -165,6 +171,24 @@ final class ChargeLineRepository
             'UPDATE `gifford_charge_line` SET `status` = ?, `problems_json` = ?, `updated_at` = ? WHERE `id` = ?',
             [$status->value, json_encode($problems, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE), $at->format(self::DATETIME), $lineId]
         );
+    }
+
+    /**
+     * A line's saved row (raw_json) as column => value.
+     *
+     * @return array<string, string>
+     */
+    private static function rawValues(mixed $json): array
+    {
+        $raw = json_decode(self::text($json), true, 512, JSON_THROW_ON_ERROR);
+        $values = [];
+        foreach (is_array($raw) ? $raw : [] as $column => $value) {
+            if (is_string($column) && is_string($value)) {
+                $values[$column] = $value;
+            }
+        }
+
+        return $values;
     }
 
     private static function text(mixed $value): string

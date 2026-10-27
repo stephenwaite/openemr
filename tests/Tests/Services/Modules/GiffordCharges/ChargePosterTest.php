@@ -16,6 +16,7 @@ namespace OpenEMR\Tests\Services\Modules\GiffordCharges;
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Parse\ChargeRowParser;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMap;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\AddOnCodes;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargeLineRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargePoster;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PostResult;
@@ -347,6 +348,74 @@ class ChargePosterTest extends TestCase
         );
     }
 
+    public function testTheSameCodeOnTheRightAndLeftPostsBoth(): void
+    {
+        // A shoulder x-ray on each side: two procedures, not a repeat.
+        [$right, $left] = $this->stage([$this->row(['chg_mod1' => 'RT']), $this->row(['chg_mod1' => 'LT'])]);
+
+        $this->assertSame(2, $this->post()->posted);
+        $this->assertSame(
+            ['26:RT', '26:LT'],
+            [
+                self::text2(QueryUtils::querySingleRow('SELECT `modifier` FROM `billing` WHERE `id` = ?', [$this->line($right)['billing_id']]))[0] ?? '',
+                self::text2(QueryUtils::querySingleRow('SELECT `modifier` FROM `billing` WHERE `id` = ?', [$this->line($left)['billing_id']]))[0] ?? '',
+            ]
+        );
+
+        // The left side again from a later file is a possible repeat of the left one only.
+        [$again] = $this->stage([$this->row(['chg_mod1' => 'LT', 'chg_accession' => 'Z' . $this->token])]);
+        $this->post();
+        $this->assertSame('held', $this->line($again)['status']);
+        $this->assertSame([$this->repeatProblem('A' . $this->token)], $this->problems($again));
+    }
+
+    public function testBilateralAfterOneSideIsHeldAsARepeat(): void
+    {
+        [, $both] = $this->stage([$this->row(['chg_mod1' => 'RT']), $this->row(['chg_mod1' => '50'])]);
+
+        $this->post();
+
+        $this->assertSame('held', $this->line($both)['status']);
+        $this->assertSame([$this->repeatProblem('A' . $this->token)], $this->problems($both));
+    }
+
+    public function testAnAddOnWaitsForItsParent(): void
+    {
+        // The add-on ($bareCode) needs $code, which Gifford sends in a later file.
+        $addOns = new AddOnCodes([$this->bareCode => [$this->code]]);
+        [$addOn] = $this->stage([$this->row(['chg_cpt' => $this->bareCode])]);
+
+        $this->assertSame(0, $this->post($addOns)->posted);
+        $this->assertSame('held', $this->line($addOn)['status']);
+        $this->assertSame(
+            ['add-on code ' . $this->bareCode . ' is billed with ' . $this->code . ', which is not billed for this patient on 2026-08-20;'
+                . ' it posts once that is, or skip it'],
+            $this->problems($addOn)
+        );
+
+        [$parent] = $this->stage([$this->row(['chg_accession' => 'Z' . $this->token])]);
+        $this->assertSame(2, $this->post($addOns)->posted);
+        $this->assertSame(['posted', 'posted'], [$this->line($addOn)['status'], $this->line($parent)['status']]);
+        $this->assertSame($this->line($parent)['encounter'], $this->line($addOn)['encounter']);
+    }
+
+    public function testAnAddOnPostsWithItsParentFromTheSameFileOrAlreadyPosted(): void
+    {
+        $addOns = new AddOnCodes([$this->bareCode => [$this->code]]);
+        // The add-on comes first in the file.
+        [$addOn, $parent] = $this->stage([
+            $this->row(['chg_cpt' => $this->bareCode]),
+            $this->row(['chg_accession' => 'Z' . $this->token]),
+        ]);
+        $this->assertSame(2, $this->post($addOns)->posted);
+        $this->assertSame(['posted', 'posted'], [$this->line($addOn)['status'], $this->line($parent)['status']]);
+
+        // The parent's add-on sent again later, on another day's visit, waits for that day's parent.
+        [$otherDay] = $this->stage([$this->row(['chg_cpt' => $this->bareCode, 'chg_dos' => '08/21/2026', 'enc_admit_date' => '08/21/2026', 'chg_accession' => 'Y' . $this->token])]);
+        $this->post($addOns);
+        $this->assertSame('held', $this->line($otherDay)['status']);
+    }
+
     public function testANewPatientGetsTheGuarantorAndEmployer(): void
     {
         [$line] = $this->stage([$this->row(self::guarantorAndEmployer())]);
@@ -477,20 +546,28 @@ class ChargePosterTest extends TestCase
             . ' post it with modifier 76 (same physician) or 77 (another physician), or skip it if it is a duplicate';
     }
 
-    private function post(): PostResult
+    private function post(AddOnCodes $addOns = new AddOnCodes()): PostResult
     {
         $settings = PostSettings::load($this->facilityId, $this->facilityId);
         $this->assertNotNull($settings);
 
-        return $this->poster()->run($settings);
+        return $this->poster($addOns)->run($settings);
     }
 
-    private function poster(): ChargePoster
+    private function poster(AddOnCodes $addOns): ChargePoster
     {
         $clock = $this->createStub(ClockInterface::class);
         $clock->method('now')->willReturn(new \DateTimeImmutable(self::NOW));
 
-        return new ChargePoster(new ChargeLineRepository(), new ChargeRowParser(), new PayerMap(), new PriceBook(), new SiteWriter(), $clock);
+        return new ChargePoster(
+            new ChargeLineRepository(),
+            new ChargeRowParser(),
+            new PayerMap(),
+            new PriceBook(),
+            new SiteWriter(),
+            $clock,
+            addOns: $addOns,
+        );
     }
 
     /**
