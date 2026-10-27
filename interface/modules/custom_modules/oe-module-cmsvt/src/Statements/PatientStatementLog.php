@@ -2,7 +2,7 @@
 
 /**
  * Records statements sent in patient_statements (see table.sql) and flags
- * patients whose emailed statements keep going unpaid, so they get a printed
+ * invoices whose emailed statements keep going unpaid, so they get a printed
  * statement instead.
  *
  * @package   OpenEMR
@@ -26,7 +26,7 @@ final readonly class PatientStatementLog
     /** An emailed statement counts as unpaid once it is this old with no payment since. */
     private const UNPAID_AFTER_DAYS = 21;
 
-    /** This many unpaid emailed statements means email is not reaching the patient. */
+    /** This many unpaid emailed statements for one invoice means email is not reaching the patient. */
     private const PRINT_AFTER_UNPAID_EMAILS = 2;
 
     public function record(PatientStatementSavedEvent $event): void
@@ -49,10 +49,12 @@ final readonly class PatientStatementLog
 
     public function suggestPrint(StatementPrintSuggestionFilterEvent $event): void
     {
-        // One row per statement: an emailed statement is unpaid if no payment has
-        // been posted on its encounter with a check date on or after it was sent.
+        // One row per statement and encounter: an emailed statement is unpaid if no
+        // payment has been posted on its encounter with a check date on or after it
+        // was sent. Counted per invoice, by send date, so one email run covering
+        // several invoices, or a same-day resend, is one statement for each.
         $rows = QueryUtils::fetchRecords(
-            "SELECT ps.pid, COUNT(*) AS unpaid_count " .
+            "SELECT ps.pid, ps.encounter, COUNT(DISTINCT ps.statement_date) AS unpaid_count " .
             "FROM patient_statements ps " .
             "LEFT JOIN (" .
             "    SELECT ps2.id AS statement_id, SUM(ar.pay_amount) AS paid_amt " .
@@ -63,18 +65,19 @@ final readonly class PatientStatementLog
             "        AND ars.check_date >= ps2.statement_date " .
             "    GROUP BY ps2.id" .
             ") paid ON paid.statement_id = ps.id " .
-            "WHERE ps.method = ? " .
+            "WHERE ps.method = ? AND ps.encounter IS NOT NULL " .
             "AND ps.statement_date <= CURDATE() - INTERVAL " . self::UNPAID_AFTER_DAYS . " DAY " .
             "AND (paid.paid_amt IS NULL OR paid.paid_amt = 0) " .
-            "GROUP BY ps.pid " .
-            "HAVING COUNT(*) >= ?",
+            "GROUP BY ps.pid, ps.encounter " .
+            "HAVING COUNT(DISTINCT ps.statement_date) >= ?",
             [StatementDeliveryMethod::Email->value, self::PRINT_AFTER_UNPAID_EMAILS]
         );
         foreach ($rows as $row) {
             $pid = $row['pid'] ?? null;
+            $encounter = $row['encounter'] ?? null;
             $count = $row['unpaid_count'] ?? null;
-            if (is_numeric($pid) && is_numeric($count)) {
-                $event->suggestPrint((int) $pid, (int) $count);
+            if (is_numeric($pid) && is_numeric($encounter) && is_numeric($count)) {
+                $event->suggestPrint((int) $pid, (int) $encounter, (int) $count);
             }
         }
     }

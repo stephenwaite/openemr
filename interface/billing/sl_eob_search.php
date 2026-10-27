@@ -845,7 +845,7 @@ if ($searchRequest->getString('form_search') === 'Search') {
         }
 
         // Check exactly the rows that need a printed statement: patients who can't be
-        // emailed plus those marked PRINT, skipping collections. It replaces the whole
+        // emailed plus invoices marked PRINT, skipping collections. It replaces the whole
         // selection, so the print batch doesn't depend on Select All Not Email,
         // Invert Selection and hand-checking being done in the right order.
         function checkPrintRun() {
@@ -1305,7 +1305,7 @@ if ($searchRequest->getString('form_search') === 'Search') {
                             $t_res = sqlStatement($query, $searchBinds);
                             $num_invoices = sqlNumRows($t_res);
 
-                            // Patients whose statements should be printed rather than emailed start unchecked.
+                            // Invoices whose statements should be printed rather than emailed start unchecked.
                             $printSuggestions = new StatementPrintSuggestionFilterEvent();
                             if ($postedForm->getString('form_category') === 'Due Pt') {
                                 OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()
@@ -1381,7 +1381,8 @@ if ($searchRequest->getString('form_search') === 'Search') {
                                 // not waiting for insurance to pay.
                                 //
                                 $rowPid = is_numeric($row['pid']) ? (int) $row['pid'] : 0;
-                                $printInstead = $printSuggestions->shouldPrint($rowPid);
+                                $rowEncounter = is_numeric($row['encounter']) ? (int) $row['encounter'] : 0;
+                                $printInstead = $printSuggestions->shouldPrint($rowPid, $rowEncounter);
                                 $isduept = ($duncount >= 0 && $isdueany && !$in_collections && !$printInstead) ? " checked" : "";
 
                                 // Skip invoices not in the desired "Due..." category.
@@ -1454,7 +1455,7 @@ if ($searchRequest->getString('form_search') === 'Search') {
                                         echo $emailEligible ? xlt("YES") : xlt("NO");
                                         if ($printInstead) {
                                             echo " <span class='badge badge-warning' title='"
-                                                . attr($printSuggestions->getUnpaidEmailCount($rowPid) . ' ' . xl('unpaid email statements - print instead')) . "'>"
+                                                . attr($printSuggestions->getUnpaidEmailCount($rowPid, $rowEncounter) . ' ' . xl('unpaid email statements for this invoice - print instead')) . "'>"
                                                 . xlt('PRINT') . "</span>";
                                         }
                                         ?>

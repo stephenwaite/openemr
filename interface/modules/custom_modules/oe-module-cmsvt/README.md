@@ -112,9 +112,9 @@ Manager runs it on install; it is a no-op where the table already exists.
   statement is saved to the patient's documents) adds a row: `mail` for
   print, download and PDF runs, `email` only when the email went out.
 - `StatementPrintSuggestionFilterEvent` (dispatched when listing "Due Pt")
-  flags patients with two or more emailed statements that are 21+ days old
-  with no payment posted on the encounter since. Their Due Pt box starts
-  unchecked and the row shows a PRINT badge, so a biller can email the
+  flags invoices (patient and encounter) emailed a statement on two or more
+  days, each 21+ days ago with no payment posted on the encounter since. Their
+  Due Pt box starts unchecked and the row shows a PRINT badge, so a biller can email the
   checked set, then use Invert Selection to print the rest.
 
 ## Lab results

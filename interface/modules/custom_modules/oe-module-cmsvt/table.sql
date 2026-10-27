@@ -2,7 +2,7 @@
 -- Statements sent to patients, one row per statement and encounter.
 -- The statements screen (sl_eob_search.php, "Due Pt") counts email statements
 -- that went out 21+ days ago with no payment posted since, and suggests
--- printing instead for patients with two or more.
+-- printing instead for invoices (pid and encounter) with two or more.
 -- Same definition as rel-800-sunflower's sql/sunfower_migrations/001_patient_statements.sql
 -- (28104198ad), so installing the module where the table exists is a no-op.
 CREATE TABLE IF NOT EXISTS `patient_statements` (
