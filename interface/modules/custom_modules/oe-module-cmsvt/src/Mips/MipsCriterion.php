@@ -23,6 +23,8 @@ final readonly class MipsCriterion
      *                         encounter are flagged); false: the first status in
      *                         $statuses that the patient has a code for wins
      * @param bool $inverse lower performance rate is better
+     * @param ?MipsStatus $absent the status of a patient with none of the codes,
+     *                            when that counts (e.g. as Not Met); null: Not Reported
      */
     public function __construct(
         public string $key,
@@ -30,6 +32,7 @@ final readonly class MipsCriterion
         public array $statuses,
         public bool $mostRecent = false,
         public bool $inverse = false,
+        public ?MipsStatus $absent = null,
     ) {
     }
 
@@ -52,7 +55,7 @@ final readonly class MipsCriterion
         if ($this->mostRecent) {
             $all[] = MipsStatus::conflicting();
         }
-        $all[] = MipsStatus::notReported();
+        $all[] = $this->absent ?? MipsStatus::notReported();
         return $all;
     }
 
@@ -64,7 +67,7 @@ final readonly class MipsCriterion
         $codes = $this->codes();
         $mine = array_values(array_filter($entries, static fn(MipsCodeEntry $e): bool => in_array($e->code, $codes, true)));
         if ($mine === []) {
-            return MipsStatus::notReported();
+            return $this->absent ?? MipsStatus::notReported();
         }
         if ($this->mostRecent) {
             $last = $mine[count($mine) - 1];

@@ -20,13 +20,16 @@ final readonly class MipsData
      * @param list<array<mixed>> $patients pid, lname, fname, mname, sex, DOB, dx_history; in display order
      * @param list<array<mixed>> $encounters pid, encounter, date, age, visit_codes; newest first
      * @param list<array<mixed>> $codes pid, encounter, code, encounter_date; oldest first
-     * @param list<array<mixed>> $mentions pid, encounter_date: visits whose reason names a medication
+     * @param list<array<mixed>> $mentions pid, encounter_date: other visits the measure looks at
+     *                                      (410: reason names a medication; 178 and 180: RA visits the year before)
+     * @param list<array<mixed>> $ruleEntries pid, date, item, complete, result: clinical rule entries; oldest first
      */
     public function __construct(
         public array $patients,
         public array $encounters,
         public array $codes,
         public array $mentions = [],
+        public array $ruleEntries = [],
     ) {
     }
 }

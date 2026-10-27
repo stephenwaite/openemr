@@ -31,7 +31,8 @@ use Twig\Loader\FilesystemLoader;
 if (!AclMain::aclCheckCore('patients', 'med')) {
     AccessDeniedHelper::denyWithTemplate('ACL check failed for patients/med: MIPS Quality Measures', xl('MIPS Quality Measures'));
 }
-if (!OEGlobalsBag::getInstance()->getBoolean(CmsvtGlobals::MIPS_REPORTS)) {
+$globals = OEGlobalsBag::getInstance();
+if (!$globals->getBoolean(CmsvtGlobals::MIPS_REPORTS)) {
     AccessDeniedHelper::denyWithTemplate('MIPS quality measures report is not enabled for this site', xl('MIPS Quality Measures'));
 }
 
@@ -41,7 +42,8 @@ $year = $request->query->getInt('form_year', $currentYear);
 if ($year < 2020 || $year > $currentYear) {
     $year = $currentYear;
 }
-$measure = MipsMeasures::find($request->query->getString('form_measure'));
+$measures = MipsMeasures::enabled($globals->getString(CmsvtGlobals::MIPS_MEASURES));
+$measure = MipsMeasures::find($request->query->getString('form_measure'), $measures);
 $period = new MipsPeriod($year);
 $report = $measure->build($period, $measure->fetch($period, new MipsRepository()));
 
@@ -102,6 +104,6 @@ $loader->addPath(__DIR__ . '/../templates', 'cmsvt');
 echo $twig->render('@cmsvt/mips_report.html.twig', [
     'report' => $report,
     'measure' => $measure,
-    'measures' => MipsMeasures::all(),
+    'measures' => $measures,
     'years' => range($currentYear, 2020),
 ]);

@@ -15,6 +15,8 @@ declare(strict_types=1);
 namespace Cmsvt\OpenEMR\Modules\Customizations\Mips;
 
 use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure176;
+use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure178;
+use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure180;
 use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure410;
 use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure509;
 
@@ -25,18 +27,38 @@ final readonly class MipsMeasures
      */
     public static function all(): array
     {
-        return [new Measure176(), new Measure410(), new Measure509()];
+        return [new Measure176(), new Measure178(), new Measure180(), new Measure410(), new Measure509()];
     }
 
-    /** The measure with this number, or the first one. */
-    public static function find(string $id): MipsMeasure
+    /**
+     * The measures a site shows: those its setting lists ("176, 410, 509"), or
+     * all of them when it lists none the report has.
+     *
+     * @return non-empty-list<MipsMeasure> in menu order
+     */
+    public static function enabled(string $setting): array
     {
-        $all = self::all();
-        foreach ($all as $measure) {
+        $ids = array_map(trim(...), explode(',', $setting));
+        $enabled = array_values(array_filter(
+            self::all(),
+            static fn(MipsMeasure $measure): bool => in_array($measure->id(), $ids, true)
+        ));
+        return $enabled === [] ? self::all() : $enabled;
+    }
+
+    /**
+     * The measure with this number, or the first one.
+     *
+     * @param ?non-empty-list<MipsMeasure> $measures to pick from; null: all
+     */
+    public static function find(string $id, ?array $measures = null): MipsMeasure
+    {
+        $measures ??= self::all();
+        foreach ($measures as $measure) {
             if ($measure->id() === $id) {
                 return $measure;
             }
         }
-        return $all[0];
+        return $measures[0];
     }
 }

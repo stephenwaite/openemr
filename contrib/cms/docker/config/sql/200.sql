@@ -8,7 +8,9 @@ REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_billing_manage
 -- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_elig_provider_id', 0, '<users.id>');
 -- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_elig_receiver_name', 0, '<receiver name>');
 
--- MIPS quality measures report (Reports > Clinic): site 200 only (Stephen, 2026-10-15).
--- Replaces the 509-only switch that the 2026-10-15 hot-patch used.
+-- MIPS quality measures report (Reports > Clinic): sites 200 and 4800 (Stephen, 2026-10-15).
+-- Replaces the 509-only switch that the 2026-10-15 hot-patch used. Site 200 shows its
+-- dermatology measures; 4800's rheumatology measures are left out.
 REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_mips_reports', 0, '1');
+REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_mips_measures', 0, '176,410,509');
 DELETE FROM globals WHERE gl_name = 'cmsvt_mips_509_report';

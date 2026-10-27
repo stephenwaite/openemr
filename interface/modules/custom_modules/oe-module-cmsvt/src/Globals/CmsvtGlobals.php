@@ -44,8 +44,9 @@ final class CmsvtGlobals
     public const ERA_CONTRACTUAL_CO_BY_PROCEDURE = 'cmsvt_era_contractual_co_by_procedure';
     public const ADJUSTMENT_MEMO_USES_TITLE = 'cmsvt_adjustment_memo_uses_title';
     public const MENU_CHANGES_DISABLED = 'cmsvt_menu_changes_disabled';
-    // An on switch: only site 200 uses the MIPS quality measure report.
+    // An on switch: only sites 200 and 4800 use the MIPS quality measure report.
     public const MIPS_REPORTS = 'cmsvt_mips_reports';
+    public const MIPS_MEASURES = 'cmsvt_mips_measures';
     // Press Ganey keys keep their 7.0.1 names so existing site values carry over.
     public const PG_CLIENT_ID = 'pg_client_id';
     public const PG_SURVEY_DESIGNATOR = 'pg_survey_designator';
@@ -168,7 +169,13 @@ final class CmsvtGlobals
             xl('Show MIPS Quality Measures Report'),
             GlobalSetting::DATA_TYPE_BOOL,
             '0',
-            xl('Add Reports > Clinic > MIPS Quality Measures (measures 176, 410 and 509: eligible patients, their visits and quality data codes).')
+            xl('Add Reports > Clinic > MIPS Quality Measures (eligible patients, their visits and how each measure is met).')
+        ));
+        $service->appendToSection($section, self::MIPS_MEASURES, new GlobalSetting(
+            xl('MIPS Measures Shown'),
+            GlobalSetting::DATA_TYPE_TEXT,
+            '',
+            xl('Measure numbers the MIPS report offers (comma separated), e.g. 176,410,509 or 178,180. Blank shows all: 176, 178, 180, 410 and 509.')
         ));
         $service->appendToSection($section, self::PG_CLIENT_ID, new GlobalSetting(
             xl('Press Ganey Client ID'),

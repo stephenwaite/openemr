@@ -1,6 +1,11 @@
 -- Applied once to site 4800 by the prelaunch settings hook (20-cms-site-settings).
 REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_lab_results_per_lab', 0, '50');
 
+-- MIPS quality measures report (Reports > Clinic) with the rheumatology measures
+-- (Stephen, 2026-10-27; Margaret's DD-Reporting reports).
+REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_mips_reports', 0, '1');
+REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_mips_measures', 0, '178,180');
+
 -- Drugs and fee sheet list (after the upgrade, which adds billing_units,
 -- ndc_uom and ndc_quantity). Prices stay per unit, set in production
 -- (J1010 $1.00 per mg, J3301 $5.00 per 10 mg). Products are found by NDC.

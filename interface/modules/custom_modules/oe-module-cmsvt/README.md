@@ -78,21 +78,25 @@ layout is pinned by `tests/Tests/Isolated/Modules/Cmsvt/PressGaneyRecordFormatte
 
 `public/mips_report.php` (Reports → Clinic → MIPS Quality Measures,
 `patients/med` ACL) runs one measure for one performance year, picked on the
-page: 176 (TB screening before a first biologic), 410 (psoriasis clinical
-response to systemic medications) or 509 (melanoma tracking and evaluation of
-recurrence). For each it lists the eligible patients, their qualifying visits
-and the measure's quality data codes on their fee sheets, with each patient's
-status, data completeness and performance rate over the denominator, and flags
-to review. Both tables export to CSV. It's off unless the site turns on "Show
-MIPS Quality Measures Report" in Administration → Globals → CMS Vermont (site
-200 only).
+page: 176 (TB screening before a first biologic), 178 (rheumatoid arthritis
+functional status assessment), 180 (rheumatoid arthritis glucocorticoid
+management), 410 (psoriasis clinical response to systemic medications) or 509
+(melanoma tracking and evaluation of recurrence). For each it lists the
+eligible patients, their qualifying visits and how the measure is met (quality
+data codes on their fee sheets; for 178 and 180, the clinical rule entries
+`act_rafunc` and `act_glucocorticoid`), with each patient's status, data
+completeness and performance rate over the denominator, and flags to review.
+Both tables export to CSV. It's off unless the site turns on "Show MIPS Quality
+Measures Report" in Administration → Globals → CMS Vermont, and "MIPS Measures
+Shown" picks the measures (site 200: 176, 410, 509; site 4800: 178, 180).
 
 Each measure is a class in `src/Mips/Measures/` implementing `MipsMeasure`: its
 codes, how it finds its patients (`fetch()`, SQL) and how it turns their codes
 into statuses (`build()`, pure). The page, template, counts and CSV are shared;
-a new measure is one class registered in `MipsMeasures`. Started from Margaret
-Haywood's `interface/reports/mips_*_report.php` (margarethaywood/openemr,
-`Jones-Reporting`); the rules are pinned by
+a new measure is one class registered in `MipsMeasures`; 178 and 180 share
+`RheumatoidArthritisMeasure`. Started from Margaret Haywood's
+`interface/reports/mips_*_report.php` (margarethaywood/openemr,
+`Jones-Reporting`; 178 and 180 from `DD-Reporting`); the rules are pinned by
 `tests/Tests/Isolated/Modules/Cmsvt/MipsReportTest.php`.
 
 ## Menu

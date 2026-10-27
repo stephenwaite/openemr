@@ -106,6 +106,30 @@ final readonly class MipsRepository
     }
 
     /**
+     * Clinical rule entries (Patient Reminders > rule data) for these patients
+     * with any of $items, dated between $from and $to.
+     *
+     * @param list<int> $pids
+     * @param list<string> $items
+     * @return list<array<mixed>> pid, date, item, complete, result; oldest first
+     */
+    public function ruleEntries(array $pids, array $items, string $from, string $to): array
+    {
+        if ($pids === [] || $items === []) {
+            return [];
+        }
+        return $this->records(
+            "SELECT r.pid, r.date, r.item, r.complete, r.result
+               FROM rule_patient_data AS r
+              WHERE r.pid IN (" . self::placeholders($pids) . ")
+                AND r.item IN (" . self::placeholders($items) . ")
+                AND r.date BETWEEN ? AND ?
+           ORDER BY r.date, r.id",
+            [...$pids, ...$items, $from . ' 00:00:00', $to . ' 23:59:59']
+        );
+    }
+
+    /**
      * Each patient's diagnoses matching $dxCondition (on billing alias b) between
      * $from and $to, as "L40.0 (2026-02-11), ...", newest first.
      *
