@@ -26252,17 +26252,7 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../src/Billing/BillingProcessor/BillingLogger.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Parameter \\#1 \\$claim of method OpenEMR\\\\Billing\\\\BillingProcessor\\\\ProcessingTaskInterface\\:\\:execute\\(\\) expects OpenEMR\\\\Billing\\\\BillingProcessor\\\\BillingClaim, mixed given\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../src/Billing/BillingProcessor/BillingProcessor.php',
-];
-$ignoreErrors[] = [
     'message' => '#^Parameter \\#1 \\$constant of function xl expects literal\\-string, non\\-falsy\\-string given\\.$#',
-    'count' => 1,
-    'path' => __DIR__ . '/../../src/Billing/BillingProcessor/BillingProcessor.php',
-];
-$ignoreErrors[] = [
-    'message' => '#^Parameter \\#1 \\$logger of method OpenEMR\\\\Billing\\\\BillingProcessor\\\\Tasks\\\\GeneratorExternal\\:\\:setLogger\\(\\) expects OpenEMR\\\\Billing\\\\BillingProcessor\\\\BillingLogger, mixed given\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../src/Billing/BillingProcessor/BillingProcessor.php',
 ];
@@ -26272,7 +26262,7 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../src/Billing/BillingProcessor/BillingProcessor.php',
 ];
 $ignoreErrors[] = [
-    'message' => '#^Parameter \\#2 \\$claims of method OpenEMR\\\\Billing\\\\BillingProcessor\\\\BillingProcessor\\:\\:processClaims\\(\\) expects array, mixed given\\.$#',
+    'message' => '#^Parameter \\#2 \\$claims of method OpenEMR\\\\Billing\\\\BillingProcessor\\\\BillingProcessor\\:\\:processClaims\\(\\) expects array\\<OpenEMR\\\\Billing\\\\BillingProcessor\\\\BillingClaim\\>, mixed given\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../src/Billing/BillingProcessor/BillingProcessor.php',
 ];
