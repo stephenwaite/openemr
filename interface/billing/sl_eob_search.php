@@ -691,6 +691,16 @@ if (
 
     fclose($fhprint);
     sleep(1);
+    // A download doesn't reload the statements page, so the page can't tell from that
+    // when a download run has finished. It sends a token with the run and waits for
+    // this cookie to come back with the file.
+    $runToken = $postedForm->getString('form_run_token');
+    if (
+        ($postedForm->getString('form_download') !== '' || $postedForm->getString('form_pdf') !== '')
+        && preg_match('/^[0-9a-f]{32}$/', $runToken) === 1
+    ) {
+        setcookie('openemr_statement_run', $runToken, ['samesite' => 'Strict', 'secure' => CurrentRequest::get()->isSecure()]);
+    }
     // Download or print the file, as selected
     if (!empty($_REQUEST['form_download'])) {
         upload_file_to_client($STMT_TEMP_FILE);
@@ -818,22 +828,47 @@ if ($searchRequest->getString('form_search') === 'Search') {
 
         // A statement run can take minutes, and a second click would start a
         // second run (double counts, duplicate documents, duplicate emails).
+        // Print, email and portal runs reload the page when done. Downloads don't:
+        // a download run sends a token, the server returns it as a cookie with the
+        // file, and the run is over when the cookie arrives (or after 5 minutes).
         document.addEventListener('DOMContentLoaded', function () {
             const statementRuns = ['form_print', 'form_download', 'form_pdf', 'form_email', 'form_portalnotify'];
+            const downloadRuns = ['form_download', 'form_pdf'];
+            const runLimit = 5 * 60 * 1000;
+            const form = document.getElementById('formSearch');
             let statementRunStartedAt = 0;
-            document.getElementById('formSearch').addEventListener('submit', function (event) {
+            let downloadWatch = 0;
+            form.addEventListener('submit', function (event) {
                 const button = event.submitter ? event.submitter.name : '';
                 if (!statementRuns.includes(button)) {
                     return;
                 }
-                // Downloads don't reload the page, so the guard expires after 5 minutes.
-                if (Date.now() - statementRunStartedAt < 5 * 60 * 1000
+                if (Date.now() - statementRunStartedAt < runLimit
                     && !confirm(<?php echo xlj('A statement run is already in progress. Start another?'); ?>)) {
                     event.preventDefault();
                     return;
                 }
                 statementRunStartedAt = Date.now();
+                if (downloadRuns.includes(button)) {
+                    watchDownload();
+                }
             });
+
+            function watchDownload() {
+                const token = Array.from(crypto.getRandomValues(new Uint8Array(16)),
+                    b => b.toString(16).padStart(2, '0')).join('');
+                form.elements['form_run_token'].value = token;
+                clearInterval(downloadWatch);
+                downloadWatch = setInterval(function () {
+                    if (document.cookie.split('; ').includes('openemr_statement_run=' + token)) {
+                        document.cookie = 'openemr_statement_run=; Max-Age=0; SameSite=Strict';
+                        statementRunStartedAt = 0;
+                        clearInterval(downloadWatch);
+                    } else if (Date.now() - statementRunStartedAt >= runLimit) {
+                        clearInterval(downloadWatch);
+                    }
+                }, 500);
+            }
         });
 
         // Check only the rows that can't be emailed, to print them after an email run.
@@ -1006,6 +1041,7 @@ if ($searchRequest->getString('form_search') === 'Search') {
         <div class="col-lg">
             <form id="formSearch" action="" enctype='multipart/form-data' method='post'>
                 <input type="hidden" name="csrf_token_form" value="<?php echo CsrfUtils::collectCsrfToken(session: $session); ?>"/>
+                <input type="hidden" name="form_run_token" value=""/>
                 <fieldset id="payment-allocate" class="oe-show-hide px-2">
                     <legend>
                         &nbsp;<?php echo xlt('Post Item'); ?><i id="payment-info-do-not-remove"> </i>
