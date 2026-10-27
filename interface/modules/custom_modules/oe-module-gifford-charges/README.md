@@ -1,11 +1,11 @@
 # Gifford Charge Import
 
-Imports Gifford's radiology charge files (`RAD_*.xlsx`, one a day) into site 2400.
+Imports Gifford's radiology charge files (one a day) into site 2400.
 
 ## What it does now (staging)
 
-An hourly background service, `Gifford_Charge_Import`, reads each new `.xlsx` or
-`.csv` file in the charge file directory and:
+An hourly background service, `Gifford_Charge_Import`, reads each new `.xlsx`, `.csv`
+or `.txt` file in the charge file directory and:
 
 - skips a file whose bytes it has already seen, moving it to `processed/`;
 - saves a file it cannot read (wrong type, missing columns) as a failed batch in
@@ -16,6 +16,12 @@ An hourly background service, `Gifford_Charge_Import`, reads each new `.xlsx` or
 
 Moved files are renamed `<batch id>-<name>`. A file modified in the last two minutes
 is left for the next run, so one still arriving is not read half-written.
+
+A file's first row is its header (column names in any order). Gifford's export
+(`GIFFORD_CMSVT_RadiologyBilling_<from>_<to>.txt`) has no header: a file whose first
+row names none of the required columns is read in the sample's 113-column order, and
+is rejected unless every row has exactly 113 fields. A `.txt` file is tab-separated,
+UTF-8 or UTF-16 with a byte-order mark (Gifford's is UTF-16).
 
 ## Posting
 

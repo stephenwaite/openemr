@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Isolated tests for reading Gifford charge files (.xlsx and .csv).
+ * Isolated tests for reading Gifford charge files (.xlsx, .csv and .txt).
  *
  * The files are generated here from made-up rows shaped like Gifford's sample,
  * so no file from Gifford is kept in the repository.
@@ -95,11 +95,89 @@ final class ChargeFileReaderTest extends TestCase
     #[Test]
     public function otherFileTypesAreRejected(): void
     {
-        $path = $this->tempFile('txt', 'encounter_num');
+        $path = $this->tempFile('pdf', 'encounter_num');
 
         $this->expectException(ChargeFileException::class);
-        $this->expectExceptionMessage('.xlsx or .csv');
+        $this->expectExceptionMessage('.xlsx, .csv or .txt');
         (new ChargeFileReader())->read($path);
+    }
+
+    #[Test]
+    public function giffordsHeaderlessUtf16ExportIsReadInTheSampleLayout(): void
+    {
+        $first = $this->sampleRow(['pat_mrn' => 'MR0000000004', 'chg_cpt' => '73030', 'chg_mod1' => 'RT', 'chg_comment' => '2" lesion, recheck']);
+        $second = $this->sampleRow(['pat_mrn' => 'MR0000000005', 'chg_cpt' => '77067']);
+        $text = implode("\t", $first) . "\r\n\r\n" . implode("\t", $second) . "\r\n";
+        $path = $this->tempFile('txt', "\xFF\xFE" . mb_convert_encoding($text, 'UTF-16LE', 'UTF-8'));
+
+        $rows = (new ChargeFileReader())->read($path);
+
+        $this->assertCount(2, $rows, 'the blank line is skipped');
+        $this->assertSame([1, 3], [$rows[0]->line, $rows[1]->line], 'without a header the first row is line 1');
+        $this->assertSame('MR0000000004', $rows[0]->get('pat_mrn'));
+        $this->assertSame('RT', $rows[0]->get('chg_mod1'));
+        $this->assertSame('2" lesion, recheck', $rows[0]->get('chg_comment'), 'quotes and commas are part of a tab-separated value');
+        $this->assertSame('77067', $rows[1]->get('chg_cpt'));
+        $this->assertSame('18', $rows[1]->get('ins3_relate'), 'the last column');
+    }
+
+    #[Test]
+    public function aTabSeparatedTextFileWithAHeaderIsReadByName(): void
+    {
+        $path = $this->tempFile('txt', "\xEF\xBB\xBF" . implode("\n", [
+            "chg_cpt\tencounter_num\tpat_mrn\tpat_last\tpat_first\tpat_dob\tpat_sex\tenc_dx_codes\tprov_rend_npi\tchg_dos\tchg_units\tchg_accession\tchg_location",
+            "71046\tGH0000000006\tMR0000000006\tTestpatient\tDee\t03/25/1964\tF\tR05.9\t1234567893\t08/25/2026\t1\tA0000000006\tGMC.XRAY",
+        ]));
+
+        $rows = (new ChargeFileReader())->read($path);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame(2, $rows[0]->line);
+        $this->assertSame('71046', $rows[0]->get('chg_cpt'));
+        $this->assertSame('GMC.XRAY', $rows[0]->get('chg_location'));
+    }
+
+    #[Test]
+    public function aHeaderlessFileNotInTheSampleLayoutIsRejected(): void
+    {
+        $row = $this->sampleRow([]);
+        array_pop($row);
+        $path = $this->tempFile('txt', implode("\t", $this->sampleRow([])) . "\n" . implode("\t", $row) . "\n");
+
+        $this->expectException(ChargeFileException::class);
+        $this->expectExceptionMessage('line 2 has 112 fields, not the sample layout\'s 113');
+        (new ChargeFileReader())->read($path);
+    }
+
+    #[Test]
+    public function aTextFileInAnotherEncodingIsRejected(): void
+    {
+        // Latin-1 "é" with no byte-order mark.
+        $path = $this->tempFile('txt', "encounter_num\tpat_last\nGH1\tRen\xE9\n");
+
+        $this->expectException(ChargeFileException::class);
+        $this->expectExceptionMessage('not UTF-8, or UTF-16 with a byte-order mark');
+        (new ChargeFileReader())->read($path);
+    }
+
+    /**
+     * A row in the sample's column order, made-up values with $values over them.
+     *
+     * @param array<string, string> $values
+     * @return list<string>
+     */
+    private function sampleRow(array $values): array
+    {
+        $defaults = [
+            'encounter_num' => 'GH0000000004', 'pat_last' => 'Testpatient', 'pat_first' => 'Eve', 'pat_dob' => '03/25/1964',
+            'pat_sex' => 'F', 'enc_dx_codes' => 'R05.9', 'prov_rend_npi' => '1234567893', 'chg_dos' => '08/25/2026',
+            'chg_units' => '1', 'chg_pos' => '22', 'chg_accession' => 'A0000000004', 'chg_location' => 'GMC.XRAY',
+            'ins3_relate' => '18',
+        ];
+        return array_map(
+            static fn (string $column): string => $values[$column] ?? $defaults[$column] ?? '',
+            ChargeFileReader::SAMPLE_LAYOUT
+        );
     }
 
     /**

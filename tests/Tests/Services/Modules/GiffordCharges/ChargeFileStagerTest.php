@@ -221,13 +221,13 @@ class ChargeFileStagerTest extends TestCase
 
     public function testOnlyChargeFilesAreRead(): void
     {
-        $this->writeFile('notes.txt', 'not a charge file');
+        $this->writeFile('notes.pdf', 'not a charge file');
         $this->writeFile('.RAD_20260919.csv.part', $this->csv([$this->row()]));
         $this->writeFile('.hidden.csv', $this->csv([$this->row()]));
         mkdir($this->dropDir . '/sub.csv');
 
         $this->assertSame([], $this->stager()->run($this->dropDir));
-        $this->assertFileExists($this->dropDir . '/notes.txt');
+        $this->assertFileExists($this->dropDir . '/notes.pdf');
         $this->assertFileExists($this->dropDir . '/.hidden.csv');
     }
 

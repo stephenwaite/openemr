@@ -29,7 +29,7 @@ use Psr\Clock\ClockInterface;
  * - any other file is saved with its lines (held when they have problems) and moved to
  *   processed/.
  *
- * Moved files are renamed "<batch id>-<name>". Only .xlsx and .csv files are read, and
+ * Moved files are renamed "<batch id>-<name>". Only .xlsx, .csv and .txt files are read, and
  * none modified in the last $settleSeconds, so a file still arriving by SFTP waits for
  * the next run. Nothing here posts charges.
  */
@@ -103,7 +103,7 @@ final readonly class ChargeFileStager
     }
 
     /**
-     * Names of the .xlsx and .csv files in $dropDir that have stopped changing, sorted.
+     * Names of the .xlsx, .csv and .txt files in $dropDir that have stopped changing, sorted.
      *
      * @return list<string>
      */
@@ -117,7 +117,7 @@ final readonly class ChargeFileStager
 
         $names = [];
         foreach ($entries as $name) {
-            if (str_starts_with($name, '.') || preg_match('/\.(xlsx|csv)$/i', $name) !== 1) {
+            if (str_starts_with($name, '.') || preg_match('/\.(xlsx|csv|txt)$/i', $name) !== 1) {
                 continue;
             }
             $path = $dropDir . '/' . $name;
