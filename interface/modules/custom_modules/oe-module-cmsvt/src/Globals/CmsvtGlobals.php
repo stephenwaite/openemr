@@ -175,7 +175,7 @@ final class CmsvtGlobals
             xl('MIPS Measures Shown'),
             GlobalSetting::DATA_TYPE_TEXT,
             '',
-            xl('Measure numbers the MIPS report offers (comma separated), e.g. 176,410,509 or 178,180. Blank shows all: 176, 178, 180, 410 and 509.')
+            xl('Measure numbers the MIPS report offers (comma separated), e.g. 176,410,509 or 039,178,180. Blank shows all: 039, 176, 178, 180, 410 and 509.')
         ));
         $service->appendToSection($section, self::PG_CLIENT_ID, new GlobalSetting(
             xl('Press Ganey Client ID'),

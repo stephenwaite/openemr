@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\Customizations\Mips;
 
+use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure039;
 use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure176;
 use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure178;
 use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure180;
@@ -27,7 +28,7 @@ final readonly class MipsMeasures
      */
     public static function all(): array
     {
-        return [new Measure176(), new Measure178(), new Measure180(), new Measure410(), new Measure509()];
+        return [new Measure039(), new Measure176(), new Measure178(), new Measure180(), new Measure410(), new Measure509()];
     }
 
     /**

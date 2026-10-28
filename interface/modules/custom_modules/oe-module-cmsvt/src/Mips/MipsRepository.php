@@ -130,6 +130,30 @@ final readonly class MipsRepository
     }
 
     /**
+     * Procedure orders for these patients whose control ID contains $controlId,
+     * transmitted by the end of $to or not yet transmitted. Deleted orders don't count.
+     *
+     * @param list<int> $pids
+     * @return list<array<mixed>> pid, control_id, date_transmitted; oldest first, untransmitted last
+     */
+    public function procedureOrders(array $pids, string $controlId, string $to): array
+    {
+        if ($pids === []) {
+            return [];
+        }
+        return $this->records(
+            "SELECT o.patient_id AS pid, o.control_id, o.date_transmitted
+               FROM procedure_order AS o
+              WHERE o.patient_id IN (" . self::placeholders($pids) . ")
+                AND o.activity = 1
+                AND o.control_id LIKE ?
+                AND (o.date_transmitted IS NULL OR o.date_transmitted <= ?)
+           ORDER BY o.date_transmitted IS NULL, o.date_transmitted, o.procedure_order_id",
+            [...$pids, '%' . $controlId . '%', $to . ' 23:59:59']
+        );
+    }
+
+    /**
      * Each patient's diagnoses matching $dxCondition (on billing alias b) between
      * $from and $to, as "L40.0 (2026-02-11), ...", newest first.
      *

@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Isolated tests for the MIPS quality measures report: status rules, the 176, 178,
- * 180, 410 and 509 measures, the shared counts and rates, the site's measure list
+ * Isolated tests for the MIPS quality measures report: status rules, the 039, 176,
+ * 178, 180, 410 and 509 measures, the shared counts and rates, the site's measure list
  * and the site switch for the menu.
  *
  * @package   OpenEMR
@@ -35,6 +35,7 @@ namespace OpenEMR\Tests\Isolated\Modules\Cmsvt {
 
     use Cmsvt\OpenEMR\Modules\Customizations\Globals\CmsvtGlobals;
     use Cmsvt\OpenEMR\Modules\Customizations\Menu\CmsvtMenu;
+    use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure039;
     use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure176;
     use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure178;
     use Cmsvt\OpenEMR\Modules\Customizations\Mips\Measures\Measure180;
@@ -301,6 +302,64 @@ namespace OpenEMR\Tests\Isolated\Modules\Cmsvt {
         }
 
         #[Test]
+        public function measure039DxaAndExclusions(): void
+        {
+            $data = new MipsData(
+                [self::patient(40, 'Aos'), self::patient(41, 'Bos'), self::patient(42, 'Cos'), self::patient(43, 'Dos'), self::patient(44, 'Eos')],
+                [
+                    self::visit(40, 4000, '2026-03-01'),
+                    self::visit(41, 4100, '2026-04-01'),
+                    self::visit(42, 4200, '2026-05-01'),
+                    self::visit(43, 4300, '2026-06-01'),
+                    self::visit(44, 4400, '2026-07-01'),
+                ],
+                [
+                    // 42: osteoporosis on the visit, dotless; 43: hospice; 44: osteoporosis on another (non-qualifying) visit.
+                    self::code(42, 4200, 'M810', '2026-05-01'),
+                    self::code(43, 4399, 'G9690', '2026-08-01'),
+                    self::code(44, 4499, 'M81.0', '2026-08-01'),
+                    // 40 is Met, so its osteoporosis diagnosis doesn't take it out.
+                    self::code(40, 4000, 'M81.0', '2026-03-01'),
+                ],
+                [],
+                [
+                    ['pid' => '41', 'date' => '2026-04-01 10:00:00', 'item' => 'act_osteo', 'complete' => 'YES', 'result' => 'T-score -1.2'],
+                    ['pid' => '44', 'date' => '2026-07-01 10:00:00', 'item' => 'act_osteo', 'complete' => 'NO', 'result' => ''],
+                ],
+                [
+                    ['pid' => '40', 'control_id' => '12345BDENSE', 'date_transmitted' => '2019-06-01 08:00:00'],
+                ],
+            );
+            $report = (new Measure039())->build(new MipsPeriod(2026), $data);
+            [$a, $b, $c, $d, $e] = $report->patients;
+
+            $this->assertSame('Met (G8399)', $a->statuses['numerator']->label, 'A DXA ordered years ago counts: ever performed');
+            $this->assertSame(['12345BDENSE 2019-06-01'], $a->columns['DXA Orders (BDENSE)']);
+            $this->assertTrue($a->inDenominator);
+            $this->assertSame([Measure039::OSTEOPOROSIS], $a->flags);
+
+            $this->assertSame('Met (G8399)', $b->statuses['numerator']->label, 'A completed act_osteo entry in the year');
+            $this->assertTrue($b->inDenominator);
+
+            $this->assertFalse($c->inDenominator);
+            $this->assertSame('Not Met (G8400)', $c->statuses['numerator']->label);
+            $this->assertSame([Measure039::OSTEOPOROSIS], $c->flags);
+
+            $this->assertFalse($d->inDenominator);
+            $this->assertSame([Measure039::HOSPICE], $d->flags);
+
+            $this->assertTrue($e->inDenominator, 'Osteoporosis only on a visit that isn\'t a qualifying one');
+            $this->assertSame('Not Met (G8400)', $e->statuses['numerator']->label);
+            $this->assertSame([Measure039::NOT_COMPLETE], $e->flags);
+
+            $criterion = $report->criteria[0];
+            $this->assertSame(3, $report->denominatorCount());
+            $this->assertSame(100.0, $report->completeness($criterion));
+            $this->assertSame(66.67, $report->performanceRate($criterion));
+            $this->assertCount(316, Measure039::OSTEOPOROSIS_DX);
+        }
+
+        #[Test]
         public function rheumatoidArthritisDiagnoses(): void
         {
             $this->assertCount(310, RheumatoidArthritisMeasure::DX_CODES);
@@ -328,14 +387,15 @@ namespace OpenEMR\Tests\Isolated\Modules\Cmsvt {
         #[Test]
         public function measuresAreFoundByNumber(): void
         {
-            $this->assertSame(['176', '178', '180', '410', '509'], self::ids(MipsMeasures::all()));
+            $this->assertSame(['039', '176', '178', '180', '410', '509'], self::ids(MipsMeasures::all()));
             $this->assertSame('410', MipsMeasures::find('410')->id());
-            $this->assertSame('176', MipsMeasures::find('nope')->id());
+            $this->assertSame('039', MipsMeasures::find('nope')->id());
 
             $this->assertSame(['176', '410', '509'], self::ids(MipsMeasures::enabled('176,410,509')));
             $this->assertSame(['178', '180'], self::ids(MipsMeasures::enabled(' 180, 178 ')));
-            $this->assertSame(['176', '178', '180', '410', '509'], self::ids(MipsMeasures::enabled('')));
-            $this->assertSame(['176', '178', '180', '410', '509'], self::ids(MipsMeasures::enabled('999')));
+            $this->assertSame(['039', '176', '178', '180', '410', '509'], self::ids(MipsMeasures::enabled('')));
+            $this->assertSame(['039', '176', '178', '180', '410', '509'], self::ids(MipsMeasures::enabled('999')));
+            $this->assertSame(['039', '178', '180'], self::ids(MipsMeasures::enabled('039,178,180')));
 
             $rheum = MipsMeasures::enabled('178,180');
             $this->assertSame('178', MipsMeasures::find('410', $rheum)->id(), 'A measure the site does not show falls back to its first');

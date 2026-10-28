@@ -4,7 +4,7 @@ REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_lab_results_pe
 -- MIPS quality measures report (Reports > Clinic) with the rheumatology measures
 -- (Stephen, 2026-10-27; Margaret's DD-Reporting reports).
 REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_mips_reports', 0, '1');
-REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_mips_measures', 0, '178,180');
+REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_mips_measures', 0, '039,178,180');
 
 -- Drugs and fee sheet list (after the upgrade, which adds billing_units,
 -- ndc_uom and ndc_quantity). Prices stay per unit, set in production

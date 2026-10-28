@@ -23,6 +23,7 @@ final readonly class MipsData
      * @param list<array<mixed>> $mentions pid, encounter_date: other visits the measure looks at
      *                                      (410: reason names a medication; 178 and 180: RA visits the year before)
      * @param list<array<mixed>> $ruleEntries pid, date, item, complete, result: clinical rule entries; oldest first
+     * @param list<array<mixed>> $orders pid, control_id, date_transmitted: procedure orders; oldest first
      */
     public function __construct(
         public array $patients,
@@ -30,6 +31,7 @@ final readonly class MipsData
         public array $codes,
         public array $mentions = [],
         public array $ruleEntries = [],
+        public array $orders = [],
     ) {
     }
 }
