@@ -29,24 +29,47 @@
 
 
 use Mpdf\Mpdf;
-use OpenEMR\Billing\InvoiceSummary;
+use OpenEMR\Billing\InvoiceServiceDates;
 use OpenEMR\Billing\ParseERA;
 use OpenEMR\Billing\SLEOB;
+use OpenEMR\Billing\Statement\CustomPdfStatementPdf;
+use OpenEMR\Billing\Statement\PatientCreditEncounters;
+use OpenEMR\Billing\Statement\PatientNetDue;
+use OpenEMR\Billing\Statement\StatementLines;
+use OpenEMR\Billing\Statement\StatementRecipient;
+use OpenEMR\Billing\StatementDeliveryMethod;
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Database\QueryUtils;
+use OpenEMR\Common\Http\CurrentRequest;
 use OpenEMR\Common\Session\SessionUtil;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Common\Utils\FormatMoney;
 use OpenEMR\Common\Utils\ValidationUtils;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Billing\PatientStatementSavedEvent;
+use OpenEMR\Events\Billing\StatementPrintSuggestionFilterEvent;
 use OpenEMR\OeUI\OemrUI;
 use OpenEMR\Pdf\Config_Mpdf;
 use Symfony\Component\Process\Process;
 
 require_once("../globals.php");
+
+// Hold the whole page in one output buffer. Sessions are read-and-close: every
+// session read reopens the session, which throws once headers have been sent.
+// xl() and the query audit log both read the session, so without this the
+// statement list dies as soon as PHP's default 4 KB buffer flushes, partway
+// through the first row.
+ob_start();
+
+// The statement-run options this page reads as typed values; the form posts them.
+$postedForm = CurrentRequest::get()->request;
+$isEmailRun = $postedForm->getString('form_email') !== '';
+// "Without updating invoices" produces only the print/download file: no emails,
+// no copies in patient documents, no statement counts.
+$withoutUpdate = $postedForm->getString('form_without') !== '';
 
 $srcDir = OEGlobalsBag::getInstance()->getSrcDir();
 require_once($srcDir . '/appointments.inc.php');
@@ -203,7 +226,14 @@ function emailLogin(int $patient_id, string $message): void
     }
 
     $patientData = QueryUtils::querySingleRow("SELECT * FROM `patient_data` WHERE `pid`=?", [$patient_id]);
-    if ($patientData['hipaa_allowemail'] != "YES" || ($patientData['email'] ?? '') === '' || (OEGlobalsBag::getInstance()->getString('patient_reminder_sender_email') ?? '') === '') {
+    // The same consents the statement list shows in its Email column.
+    if (
+        $patientData['hipaa_allowemail'] != "YES"
+        || $patientData['allow_patient_portal'] != "YES"
+        || $patientData['hipaa_notice'] != "YES"
+        || ($patientData['email'] ?? '') === ''
+        || (OEGlobalsBag::getInstance()->getString('patient_reminder_sender_email') ?? '') === ''
+    ) {
         throw new RuntimeException(xl('Email is not allowed or not configured for this patient'));
     }
 
@@ -291,6 +321,17 @@ function upload_file_to_client_pdf($file_to_send, $aPatFirstName = '', $aPatID =
         $pdf2->WriteHTML($content);
         $temp_filename = $STMT_TEMP_FILE_PDF;
         $pdf2->Output($temp_filename, 'F');
+    } elseif (OEGlobalsBag::getInstance()->get('statement_appearance') == '2') {
+        $letterhead = convert_safe_file_dir_name(OEGlobalsBag::getInstance()->getString('statement_logo'));
+        $letterheadPng = is_string($letterhead) && $letterhead !== ''
+            ? OEGlobalsBag::getInstance()->getString('OE_SITE_DIR') . '/images/' . $letterhead
+            : '';
+        $statementText = is_string($file_to_send) ? file_get_contents($file_to_send) : false;
+        $fh = is_string($STMT_TEMP_FILE_PDF) ? @fopen($STMT_TEMP_FILE_PDF, 'w') : false;
+        if ($fh) {
+            fwrite($fh, (new CustomPdfStatementPdf($letterheadPng))->render($statementText === false ? '' : $statementText));
+            fclose($fh);
+        }
     } else {
         $pdf = new Cezpdf('LETTER');//pdf creation starts
         $pdf->ezSetMargins(45, 9, 36, 10);
@@ -370,14 +411,21 @@ if (
     if (!CsrfUtils::verifyCsrfToken($_REQUEST["csrf_token_form"], session: $session)) {
         CsrfUtils::csrfNotVerified();
     }
+    // Building and rendering a large batch of statements can take minutes.
+    set_time_limit(300);
 
     $fhprint = fopen($STMT_TEMP_FILE, 'w');
 
     $sqlBindArray = [];
     $where = "";
+    /** @var list<int> $checkedEncounterIds form_encounter.id of every checked invoice */
+    $checkedEncounterIds = [];
     foreach ($_REQUEST['form_cb'] as $key => $value) {
         $where .= " OR f.id = ?";
         array_push($sqlBindArray, $key);
+        if (is_numeric($key)) {
+            $checkedEncounterIds[] = (int) $key;
+        }
     }
 
     if (!empty($where)) {
@@ -387,7 +435,8 @@ if (
 
     $res = sqlStatement("SELECT " .
         "f.id, f.date, f.pid, f.encounter, f.stmt_count, f.last_stmt_date, f.last_level_closed, f.last_level_billed, f.billing_note as enc_billing_note, " .
-        "p.fname, p.mname, p.lname, p.street, p.city, p.state, p.postal_code, p.billing_note as pat_billing_note, f.provider_id " .
+        "p.fname, p.mname, p.lname, p.street, p.street_line_2, p.city, p.state, p.postal_code, p.billing_note as pat_billing_note, " .
+        "p.guardiansname, p.guardianaddress, p.guardiancity, p.guardianstate, p.guardianpostalcode, f.provider_id " .
         "FROM form_encounter AS f, patient_data AS p " .
         "WHERE $where " .
         "p.pid = f.pid " .
@@ -395,6 +444,10 @@ if (
 
     $stmt = [];
     $stmt_count = 0;
+    // Statements actually written, and the patients a Due Pt run skipped because
+    // their credits leave nothing due.
+    $statementsWritten = 0;
+    $skippedNothingDue = [];
 
     $flagT = true;
     $aPatientFirstName = '';
@@ -421,6 +474,19 @@ if (
         }
         $rcnt++;
     }
+    // Invoices whose statement count and date are bumped once their patient's
+    // statement is actually produced; a Due Pt run that nets to nothing leaves
+    // them untouched.
+    $pendingStatementUpdates = [];
+    $recordStatementRun = function (array $encounterIds) use ($today): void {
+        foreach ($encounterIds as $encounterId) {
+            QueryUtils::sqlStatementThrowException(
+                "UPDATE form_encounter SET last_stmt_date = ?, stmt_count = stmt_count + 1 WHERE id = ?",
+                [$today, $encounterId]
+            );
+        }
+    };
+
     // This loops once for each invoice/encounter.
     //
     for ($rcnt = 0; $row = $rows[$rcnt] ?? null; $rcnt++) {
@@ -477,16 +543,9 @@ if (
             $stmt['patient'] = $row['fname'] . ' ' . $row['lname'];
             $stmt['encounter'] = $row['encounter'];
             $stmt['provider_id'] = $row['provider_id'];
-            #If you use the field in demographics layout called
-            #guardiansname this will allow you to send statements to the parent
-            #of a child or a guardian etc
-            $stmt['to'] = empty($row['guardiansname']) ? [$row['fname'] . ' ' . $row['lname']] : [$row['guardiansname']];
-
-            if ($row['street']) {
-                $stmt['to'][] = $row['street'];
-            }
-
-            $stmt['to'][] = $row['city'] . ", " . $row['state'] . " " . $row['postal_code'];
+            // To the guardian (guarantor) in the patient's demographics when there is one,
+            // at their address when it is filled in; otherwise to the patient.
+            $stmt['to'] = StatementRecipient::lines(is_array($row) ? $row : []);
             $stmt['lines'] = [];
             $stmt['amount'] = '0.00';
             $stmt['ins_paid'] = 0;
@@ -501,37 +560,27 @@ if (
 
         // Recompute age at each invoice.
         $stmt['age'] = round((strtotime($today) - strtotime((string) $stmt['duedate'])) / (24 * 60 * 60));
-        // grab last bill date from billing
-        $bdrow = QueryUtils::querySingleRow("select bill_date from billing where pid = ? AND encounter = ? limit 1", [$row['pid'], $row['encounter']]);
 
-        $invlines = InvoiceSummary::arGetInvoiceSummary($row['pid'], $row['encounter'], true);
-        foreach ($invlines as $key => $value) {
-            $line = [];
-            $line['dos'] = $svcdate;
-            if (OEGlobalsBag::getInstance()->getBoolean('use_custom_statement')) {
-                $line['desc'] = ($key == 'CO-PAY') ? "Patient Payment" : $value['code_text'];
-            } else {
-                $line['desc'] = ($key == 'CO-PAY') ? "Patient Payment" : "Procedure $key";
-            }
+        $rowPid = is_numeric($row['pid']) ? (int) $row['pid'] : 0;
+        $rowEncounter = is_numeric($row['encounter']) ? (int) $row['encounter'] : 0;
+        StatementLines::append($stmt, $rowPid, $rowEncounter, $svcdate, (is_numeric($duncount) ? (int) $duncount : 0) + 1);
 
-            $line['amount'] = sprintf("%.2f", $value['chg']);
-            $line['adjust'] = sprintf("%.2f", ($value['adj'] ?? null));
-            $line['paid'] = sprintf("%.2f", $value['chg'] - $value['bal']);
-            $line['notice'] = $duncount + 1;
-            $line['detail'] = $value['dtl'];
-            $line['bill_date'] = $bdrow['bill_date'];
-            $stmt['lines'][] = $line;
-            $stmt['amount'] = sprintf("%.2f", $stmt['amount'] + $value['bal']);
-            $stmt['ins_paid'] += $value['ins'] ?? null;
-        }
-
-        // Record that this statement was run.
-        if (!$DEBUG && empty($_REQUEST['form_without'])) {
-            sqlStatement("UPDATE form_encounter SET " .
-                "last_stmt_date = ?, stmt_count = stmt_count + 1 " .
-                "WHERE id = ?", [$today, $row['id']]);
+        // Record that this statement was run, once it is produced below.
+        if (!$DEBUG && !$withoutUpdate) {
+            $pendingStatementUpdates[] = $row['id'];
         }
         $inv_count += 1;
+
+        if ($inv_pid[$inv_count] != ($inv_pid[$inv_count + 1] ?? null)) {
+            // This was the patient's last checked invoice. Bring in the patient's
+            // other encounters that hold a credit (overpaid, never listed as due, so
+            // never checked) as their own dated lines, so the amount due nets them
+            // instead of billing the open encounters in full and collecting the
+            // overpayment a second time. Their statement counts are left alone.
+            foreach (PatientCreditEncounters::find($rowPid, $checkedEncounterIds) as $credit) {
+                StatementLines::append($stmt, $rowPid, $credit['encounter'], substr($credit['date'], 0, 10), $credit['stmt_count'] + 1);
+            }
+        }
         if (!empty($_REQUEST['form_portalnotify'])) {
             if (!is_auth_portal($stmt['pid'])) {
                 $alertmsg = xlt('Notification FAILED: Not Portal Authorized');
@@ -545,6 +594,9 @@ if (
                     $alertmsg = xlt('Notification FAILED');
                     break;
                 }
+                // Count the invoices as statemented only once the portal has the statement.
+                $recordStatementRun($pendingStatementUpdates);
+                $pendingStatementUpdates = [];
 
                 $pvoice = [];
                 flush();
@@ -554,17 +606,30 @@ if (
             }
         } else {
             if ($inv_pid[$inv_count] != ($inv_pid[$inv_count + 1] ?? null)) {
-                if ($_REQUEST['form_category'] == 'Due Pt' && (get_patient_balance($stmt['pid']) < 0)) {
-                    // not printing statement if patient balance is less than zero even though
-                    // a single encounter may have a balance
-                    unset($stmt);
+                $amountDue = is_numeric($stmt['amount'] ?? null) ? (float) $stmt['amount'] : 0.0;
+                if ($_REQUEST['form_category'] == 'Due Pt' && $amountDue <= 0) {
+                    // Nothing is due once the patient's credits are netted against the
+                    // checked invoices, so no statement goes out and its invoices are
+                    // not counted as statemented.
+                    $skippedNothingDue[] = is_string($stmt['patient'] ?? null) ? $stmt['patient'] : '';
+                    $stmt = [];
+                    $pendingStatementUpdates = [];
                 } else {
-                    $tmp = make_statement($stmt);
-                    if (!empty($_REQUEST['form_email']) && $tmp !== '') {
+                    $recordStatementRun($pendingStatementUpdates);
+                    $pendingStatementUpdates = [];
+                    // Email bodies are always HTML: the other layouts are fixed-width text for printing.
+                    $tmp = $isEmailRun ? create_HTML_statement($stmt) : make_statement($stmt);
+                    $statementRow = $stmt;
+                    $emailSent = false;
+                    if ($isEmailRun && !$withoutUpdate && $tmp !== '') {
                         try {
                             emailLogin($inv_pid[$inv_count], $tmp);
-                        } catch (RuntimeException $e) {
-                            $alertmsg = $e->getMessage();
+                            $emailSent = true;
+                            usleep(100000); // 0.1s between sends, to stay under SMTP rate limits
+                        } catch (RuntimeException | InvalidArgumentException $e) {
+                            // Keep going and report every patient that could not be emailed.
+                            $patientName = is_string($statementRow['patient'] ?? null) ? $statementRow['patient'] : '';
+                            $alertmsg .= ($alertmsg ? '; ' : '') . $patientName . ': ' . $e->getMessage();
                         }
                     }
                     if (empty($tmp)) {
@@ -572,36 +637,57 @@ if (
                         $tmp .= "<br />\n\014<br /><br />";
                     }
                     fwrite($fhprint, (string) $tmp);
-                    // now save it to pt documents
-                    $d = new Document();
-                    $doc_pid = $inv_pid[$inv_count];
-                    $invoice_category_id = 0;
-                    $catrow = QueryUtils::querySingleRow("SELECT id FROM categories WHERE name = ?", ['Invoices']);
-                    if (!empty($catrow['id'])) {
-                        $invoice_category_id = $catrow['id'];
-                    }
-                    // even if click download pdf the file content in $tmp is text
-                    // set mimetype and fileext based on statement appearance
-                    $isPdf = (OEGlobalsBag::getInstance()->get('statement_appearance') == 1);
-                    $fileext = $isPdf ? '.pdf' : '.txt';
-                    $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . $fileext;
-                    $mimetype = $isPdf ? 'pdf' : 'text/plain';
-                    if ($isPdf) {
-                        $pdf2 = new mPDF(Config_Mpdf::getConfigMpdf());
-                        $session = SessionWrapperFactory::getInstance()->getActiveSession();
-                        if ($session->get('language_direction') === 'rtl') {
-                            $pdf2->SetDirectionality('rtl');
+                    $statementsWritten++;
+                    if (!$withoutUpdate) {
+                        // now save it to pt documents
+                        $d = new Document();
+                        $doc_pid = $inv_pid[$inv_count];
+                        $invoice_category_id = 0;
+                        $catrow = QueryUtils::querySingleRow("SELECT id FROM categories WHERE name = ?", ['Invoices']);
+                        if (!empty($catrow['id'])) {
+                            $invoice_category_id = $catrow['id'];
                         }
-                        $pdf2->WriteHTML($tmp);
-                        $tmp = $pdf2->Output('', 'S');
+                        // even if click download pdf the file content in $tmp is text
+                        // set mimetype and fileext based on statement appearance
+                        $isPdf = (OEGlobalsBag::getInstance()->get('statement_appearance') == 1);
+                        $fileext = $isPdf ? '.pdf' : '.txt';
+                        $inv_filename = 'Invoice-' . date('Y-m-d-H:i:s') . $fileext;
+                        $mimetype = $isPdf ? 'pdf' : 'text/plain';
+                        if ($isPdf) {
+                            $pdf2 = new mPDF(Config_Mpdf::getConfigMpdf());
+                            $session = SessionWrapperFactory::getInstance()->getActiveSession();
+                            if ($session->get('language_direction') === 'rtl') {
+                                $pdf2->SetDirectionality('rtl');
+                            }
+                            $pdf2->WriteHTML($tmp);
+                            $tmp = $pdf2->Output('', 'S');
+                        }
+                        $invoice = $d->createDocument(
+                            $doc_pid,
+                            $invoice_category_id, // TBD: Make sure not 0
+                            $inv_filename,
+                            $mimetype,
+                            $tmp
+                        );
+                        // createDocument() returns '' on success and an error message otherwise; the id is the real signal.
+                        $documentId = $d->get_id();
+                        $userId = $session->get('authUserID');
+                        // Record the statement as sent, unless this was an email run and the email didn't go out.
+                        if (is_numeric($documentId) && (!$isEmailRun || $emailSent)) {
+                            OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()->dispatch(
+                                new PatientStatementSavedEvent(
+                                    pid: is_numeric($doc_pid) ? (int) $doc_pid : 0,
+                                    encounter: is_numeric($statementRow['encounter'] ?? null) ? (int) $statementRow['encounter'] : 0,
+                                    statementDate: new DateTimeImmutable($today),
+                                    method: $isEmailRun ? StatementDeliveryMethod::Email : StatementDeliveryMethod::Mail,
+                                    amount: is_numeric($statementRow['amount'] ?? null) ? (float) $statementRow['amount'] : 0.0,
+                                    documentId: (int) $documentId,
+                                    userId: is_numeric($userId) ? (int) $userId : 0,
+                                ),
+                                PatientStatementSavedEvent::EVENT_NAME
+                            );
+                        }
                     }
-                    $invoice = $d->createDocument(
-                        $doc_pid,
-                        $invoice_category_id, // TBD: Make sure not 0
-                        $inv_filename,
-                        $mimetype,
-                        $tmp
-                    );
                 }
             }
         }
@@ -613,24 +699,52 @@ if (
 
     fclose($fhprint);
     sleep(1);
+    // A download doesn't reload the statements page, so the page can't tell from that
+    // when a download run has finished. It sends a token with the run and waits for
+    // this cookie to come back with the file.
+    $runToken = $postedForm->getString('form_run_token');
+    if (
+        ($postedForm->getString('form_download') !== '' || $postedForm->getString('form_pdf') !== '')
+        && preg_match('/^[0-9a-f]{32}$/', $runToken) === 1
+    ) {
+        setcookie('openemr_statement_run', $runToken, ['samesite' => 'Strict', 'secure' => CurrentRequest::get()->isSecure()]);
+    }
+    $nothingDueMessage = $skippedNothingDue === [] ? '' : xl('No statement for') . ' ' . implode(', ', $skippedNothingDue)
+        . ': ' . xl('nothing is due after their credits.');
     // Download or print the file, as selected
-    if (!empty($_REQUEST['form_download'])) {
+    if ($statementsWritten === 0 && $skippedNothingDue !== [] && CurrentRequest::get()->request->getString('form_portalnotify') === '') {
+        // Every checked patient was skipped: say so rather than hand back an empty file.
+        $alertmsg = $nothingDueMessage;
+    } elseif (!empty($_REQUEST['form_download'])) {
         upload_file_to_client($STMT_TEMP_FILE);
-    } elseif ($_REQUEST['form_pdf']) {
+    } elseif ($postedForm->getString('form_pdf') !== '') {
         upload_file_to_client_pdf($STMT_TEMP_FILE, $aPatientFirstName, $aPatientID, $usePatientNamePdf);
-    } elseif ($_REQUEST['form_portalnotify']) {
+    } elseif ($postedForm->getString('form_portalnotify') !== '') {
         if ($alertmsg == "") {
             $alertmsg = xl('Sending Invoice to Patient Portal Completed');
+        }
+    } elseif ($isEmailRun) {
+        // The statements were emailed one by one above; don't also print them.
+        if ($withoutUpdate) {
+            $alertmsg = xl('Nothing was emailed because Without Update is checked.');
+        } elseif ($alertmsg == "") {
+            $alertmsg = xl('Emailed') . ' ' . $statementsWritten . ' ' . xl('statements and updating invoices.');
+        }
+        if (!$withoutUpdate && $nothingDueMessage !== '') {
+            $alertmsg .= ($alertmsg ? ' ' : '') . $nothingDueMessage;
         }
     } else { // Must be print!
         if ($DEBUG) {
             $alertmsg = xl("Printing skipped; see test output in") . ' ' . $STMT_TEMP_FILE;
         } else {
             (new Process([OPENEMR_PRINT_COMMAND, (string) $STMT_TEMP_FILE]))->run();
-            if ($_REQUEST['form_without']) {
-                $alertmsg = xl('Now printing') . ' ' . $stmt_count . ' ' . xl('statements; invoices will not be updated.');
+            if ($withoutUpdate) {
+                $alertmsg = xl('Now printing') . ' ' . $statementsWritten . ' ' . xl('statements; invoices will not be updated.');
             } else {
-                $alertmsg = xl('Now printing') . ' ' . $stmt_count . ' ' . xl('statements and updating invoices.');
+                $alertmsg = xl('Now printing') . ' ' . $statementsWritten . ' ' . xl('statements and updating invoices.');
+            }
+            if ($nothingDueMessage !== '') {
+                $alertmsg .= ' ' . $nothingDueMessage;
             }
         } // end not debug
     } // end not form_download
@@ -652,6 +766,49 @@ if (
 
 $session = SessionWrapperFactory::getInstance()->getActiveSession();
 $language_direction = $session->get('language_direction'); // fetch before the <html> output begins
+
+// Last Statement Before: the search lists only invoices last sent a statement before
+// this date, or never sent one.
+$searchRequest = CurrentRequest::get()->request;
+$lastStatementBeforeInput = $searchRequest->getString('form_last_stmt_before');
+$lastStatementBefore = fixDate($lastStatementBeforeInput, '');
+$serviceDates = new InvoiceServiceDates(
+    fixDate($searchRequest->getString('form_date'), ''),
+    fixDate($searchRequest->getString('form_to_date'), '')
+);
+
+// What an invoice search was limited to, shown with its results: the search
+// fields are hidden once results are shown.
+$searchFilters = [];
+$shortDate = static function (string $date): string {
+    $formatted = oeFormatShortDate($date);
+    return is_string($formatted) ? $formatted : $date;
+};
+if ($searchRequest->getString('form_search') === 'Search') {
+    $category = $searchRequest->getString('form_category');
+    if ($category !== '') {
+        $searchFilters[] = $category;
+    }
+    foreach (['form_name' => xl('Name'), 'form_pid' => xl('Chart ID'), 'form_encounter' => xl('Encounter')] as $field => $label) {
+        $value = trim($searchRequest->getString($field));
+        if ($value !== '') {
+            $searchFilters[] = $label . ': ' . $value;
+        }
+    }
+    if ($serviceDates->from !== '' && $serviceDates->to !== '') {
+        $searchFilters[] = xl('Service dates') . ': ' . $shortDate($serviceDates->from) . ' - ' . $shortDate($serviceDates->to);
+    } elseif ($serviceDates->from !== '') {
+        $searchFilters[] = xl('Service dates from') . ' ' . $shortDate($serviceDates->from);
+    } elseif ($serviceDates->to !== '') {
+        $searchFilters[] = xl('Service dates through') . ' ' . $shortDate($serviceDates->to);
+    }
+    if ($lastStatementBefore !== '') {
+        $searchFilters[] = xl('Last statement before') . ' ' . $shortDate($lastStatementBefore);
+    }
+    if ($searchRequest->getString('form_show_nothing_due') !== '') {
+        $searchFilters[] = xl('Showing patients with nothing due after credits');
+    }
+}
 ?>
 <html>
 <head>
@@ -693,6 +850,99 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                 onClosed: ''
             });
             <?php } ?>
+        }
+
+        // A statement run can take minutes, and a second click would start a
+        // second run (double counts, duplicate documents, duplicate emails).
+        // Print, email and portal runs reload the page when done. Downloads don't:
+        // a download run sends a token, the server returns it as a cookie with the
+        // file, and the run is over when the cookie arrives (or after 5 minutes).
+        document.addEventListener('DOMContentLoaded', function () {
+            const statementRuns = ['form_print', 'form_download', 'form_pdf', 'form_email', 'form_portalnotify'];
+            const downloadRuns = ['form_download', 'form_pdf'];
+            const runLimit = 5 * 60 * 1000;
+            const form = document.getElementById('formSearch');
+            let statementRunStartedAt = 0;
+            let downloadWatch = 0;
+            form.addEventListener('submit', function (event) {
+                const button = event.submitter ? event.submitter.name : '';
+                if (!statementRuns.includes(button)) {
+                    return;
+                }
+                if (Date.now() - statementRunStartedAt < runLimit
+                    && !confirm(<?php echo xlj('A statement run is already in progress. Start another?'); ?>)) {
+                    event.preventDefault();
+                    return;
+                }
+                statementRunStartedAt = Date.now();
+                if (downloadRuns.includes(button)) {
+                    watchDownload();
+                }
+            });
+
+            function watchDownload() {
+                const token = Array.from(crypto.getRandomValues(new Uint8Array(16)),
+                    b => b.toString(16).padStart(2, '0')).join('');
+                form.elements['form_run_token'].value = token;
+                clearInterval(downloadWatch);
+                downloadWatch = setInterval(function () {
+                    if (document.cookie.split('; ').includes('openemr_statement_run=' + token)) {
+                        document.cookie = 'openemr_statement_run=; Max-Age=0; SameSite=Strict';
+                        statementRunStartedAt = 0;
+                        clearInterval(downloadWatch);
+                    } else if (Date.now() - statementRunStartedAt >= runLimit) {
+                        clearInterval(downloadWatch);
+                    }
+                }, 500);
+            }
+        });
+
+        // Check only the rows that can't be emailed, to print them after an email run.
+        function checkAllNotEmail() {
+            document.querySelectorAll("input[type='checkbox'][name^='form_cb']").forEach(box => {
+                const td = box.closest('tr')?.querySelector('td[data-email-eligible]');
+                box.checked = !!td && td.dataset.emailEligible === '0';
+            });
+        }
+
+        // Check exactly the rows that need a printed statement: patients who can't be
+        // emailed plus invoices marked PRINT, skipping collections. It replaces the whole
+        // selection, so the print batch doesn't depend on Select All Not Email,
+        // Invert Selection and hand-checking being done in the right order.
+        function checkPrintRun() {
+            let count = 0;
+            document.querySelectorAll("input[type='checkbox'][name^='form_cb']").forEach(box => {
+                const td = box.closest('tr')?.querySelector('td[data-print-run]');
+                box.checked = !!td && td.dataset.printRun === '1';
+                if (box.checked) {
+                    count++;
+                }
+            });
+            if (count === 0) {
+                alert(<?php echo xlj('No patients in this list need a printed statement.'); ?>);
+            }
+        }
+
+        function invertStatementSelection() {
+            document.querySelectorAll("input[type='checkbox'][name^='form_cb']").forEach(box => {
+                box.checked = !box.checked;
+            });
+        }
+
+        // Emailing can't be undone, so confirm the count first.
+        function confirmEmail(form) {
+            // Without Update sends no email, so don't ask to send any.
+            const without = form.elements['form_without'];
+            if (without && without.checked) {
+                alert(<?php echo xlj('Uncheck Without Update to email statements.'); ?>);
+                return false;
+            }
+            const count = form.querySelectorAll("input[type='checkbox'][name^='form_cb']:checked").length;
+            if (count === 0) {
+                alert(<?php echo xlj('No statements selected.'); ?>);
+                return false;
+            }
+            return confirm(<?php echo xlj('Email'); ?> + ' ' + count + ' ' + <?php echo xlj('statement(s)?'); ?>);
         }
 
         function checkAll(checked) {
@@ -763,6 +1013,14 @@ $language_direction = $session->get('language_direction'); // fetch before the <
             }
         }
 
+        #invoice-list th[aria-sort="ascending"] button::after {
+            content: " \25B2";
+        }
+
+        #invoice-list th[aria-sort="descending"] button::after {
+            content: " \25BC";
+        }
+
         @media print {
             body * {
                 visibility: hidden;
@@ -809,6 +1067,7 @@ $language_direction = $session->get('language_direction'); // fetch before the <
         <div class="col-lg">
             <form id="formSearch" action="" enctype='multipart/form-data' method='post'>
                 <input type="hidden" name="csrf_token_form" value="<?php echo CsrfUtils::collectCsrfToken(session: $session); ?>"/>
+                <input type="hidden" name="form_run_token" value=""/>
                 <fieldset id="payment-allocate" class="oe-show-hide px-2">
                     <legend>
                         &nbsp;<?php echo xlt('Post Item'); ?><i id="payment-info-do-not-remove"> </i>
@@ -852,6 +1111,10 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                             <label class="control-label oe-small" for="only_with_debt"><?php echo xlt('Debt'); ?>:</label>
                             <input <?php echo (!empty($_REQUEST['only_with_debt'])) ? 'checked=checked' : ''; ?> type="checkbox" name="only_with_debt" id="only_with_debt" />
                         </div>
+                        <div class="form-group col-lg">
+                            <label class="control-label" for="form_show_nothing_due" title="<?php echo xla('Due Pt: also list patients whose credits on other visits cover what they owe (no statement goes out for them)'); ?>"><?php echo xlt('Show Nothing Due'); ?>:</label>
+                            <input <?php echo $searchRequest->getString('form_show_nothing_due') !== '' ? 'checked=checked' : ''; ?> type="checkbox" name="form_show_nothing_due" id="form_show_nothing_due" value="1" />
+                        </div>
                     </div>
                 </fieldset>
 
@@ -890,11 +1153,15 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                             <div class="form-group col-lg">
                                 <label class="control-label oe-large" for="form_date"><?php echo xlt('Service Date From'); ?>:</label>
                                 <label class="control-label oe-small" for="form_date"><?php echo xlt('Svc Date'); ?>:</label>
-                                <input type='text' name='form_date' id='form_date' class='form-control datepicker' value='<?php echo attr($_REQUEST['form_date'] ?? ''); ?>' title='<?php echo xla("Date of service mm/dd/yyyy"); ?>' />
+                                <input type='text' name='form_date' id='form_date' class='form-control datepicker' value='<?php echo attr($_REQUEST['form_date'] ?? ''); ?>' title='<?php echo xla("List invoices with a service date on or after this date"); ?>' />
                             </div>
                             <div class="form-group col-lg">
                                 <label class="control-label" for="form_to_date"><?php echo xlt('Service Date To'); ?>:</label>
-                                <input type='text' name='form_to_date' id='form_to_date' class='form-control datepicker' value='<?php echo attr($_REQUEST['form_to_date'] ?? ''); ?>' title='<?php echo xla("Ending DOS mm/dd/yyyy if you wish to enter a range"); ?>' />
+                                <input type='text' name='form_to_date' id='form_to_date' class='form-control datepicker' value='<?php echo attr($_REQUEST['form_to_date'] ?? ''); ?>' title='<?php echo xla("List invoices with a service date on or before this date"); ?>' />
+                            </div>
+                            <div class="form-group col-lg">
+                                <label class="control-label" for="form_last_stmt_before"><?php echo xlt('Last Statement Before'); ?>:</label>
+                                <input type='text' name='form_last_stmt_before' id='form_last_stmt_before' class='form-control datepicker' value='<?php echo attr($lastStatementBeforeInput); ?>' title='<?php echo xla("List only invoices last sent a statement before this date, or never sent one"); ?>' />
                             </div>
                             <div class="form-group col-lg" style="padding-right:0px">
                                 <label class="control-label" for="type_name"><?php echo xlt('Type'); ?>:</label>
@@ -935,6 +1202,9 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                 </div>
                 <fieldset id="search-results" class="oe-show-hide px-2">
                     <legend><span><?php echo xlt('Search Results'); ?></span>
+                        <?php if ($searchFilters !== []) { ?>
+                            <small id="search-filters" class="text-muted ml-2"><?php echo text(implode(' · ', $searchFilters)); ?></small>
+                        <?php } ?>
                         <div class="oe-pull-away oe-legend-radio">
                             <label class="checkbox-inline">
                                 <input type="checkbox" id="posting_adj_disable" name="posting_adj_disable" onchange='persistCriteria(this, event)' title="<?php echo xlt("Disable automatically calculating balance adjustments for invoice posting") ?>" value="<?php echo attr($posting_adj_disable); ?>" <?php echo ' ' . attr($posting_adj_disable); ?> /><?php echo xlt('Disable Auto Adjustments'); ?>
@@ -951,10 +1221,9 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                             $form_name = trim((string) $_REQUEST['form_name']);
                             $form_pid = trim((string) $_REQUEST['form_pid']);
                             $form_encounter = trim((string) $_REQUEST['form_encounter']);
-                            $form_date = fixDate($_REQUEST['form_date'], "");
-                            $form_to_date = fixDate($_REQUEST['form_to_date'], "");
 
                             $where = "";
+                            $searchBinds = [];
 
                             // Handle X12 835 file upload.
                             //
@@ -1044,15 +1313,20 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                     }
                                     $where .= "f.encounter = '" . add_escape_custom($form_encounter) . "'";
                                 }
-                                if ($form_date) {
+                                if ($serviceDates->isSet()) {
                                     if ($where) {
                                         $where .= " AND ";
                                     }
-                                    if ($form_to_date) {
-                                        $where .= "f.date >= '" . add_escape_custom($form_date) . "' AND f.date <= '" . add_escape_custom($form_to_date) . "'";
-                                    } else {
-                                        $where .= "f.date = '" . add_escape_custom($form_date) . "'";
+                                    [$serviceDateCondition, $serviceDateBinds] = $serviceDates->condition('f.date');
+                                    $where .= $serviceDateCondition;
+                                    array_push($searchBinds, ...$serviceDateBinds);
+                                }
+                                if ($lastStatementBefore !== '') {
+                                    if ($where) {
+                                        $where .= " AND ";
                                     }
+                                    $where .= "(f.last_stmt_date IS NULL OR f.last_stmt_date < ?)";
+                                    $searchBinds[] = $lastStatementBefore;
                                 }
                                 if (!$where) {
                                     if ($_REQUEST['form_category'] == 'All') {
@@ -1068,6 +1342,7 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                             $query = "SELECT f.id, f.pid, f.encounter, f.date, " .
                             "f.last_level_billed, f.last_level_closed, f.last_stmt_date, f.stmt_count, f.in_collection, " .
                             "p.fname, p.mname, p.lname, p.pubpid, p.billing_note, " .
+                            "p.hipaa_allowemail, p.hipaa_notice, p.allow_patient_portal, p.email, " .
                             "( SELECT SUM(b.fee) FROM billing AS b WHERE " .
                             "b.pid = f.pid AND b.encounter = f.encounter AND " .
                             "b.activity = 1 AND b.code_type != 'COPAY' ) AS charges, " .
@@ -1089,38 +1364,50 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                             $num_invoices = 0;
 
                             // removed if condition on alert message so biller can see what's in the era
-                            $t_res = sqlStatement($query);
+                            $t_res = sqlStatement($query, $searchBinds);
                             $num_invoices = sqlNumRows($t_res);
+
+                            // Invoices whose statements should be printed rather than emailed start unchecked.
+                            $printSuggestions = new StatementPrintSuggestionFilterEvent();
+                            if ($postedForm->getString('form_category') === 'Due Pt') {
+                                OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()
+                                    ->dispatch($printSuggestions, StatementPrintSuggestionFilterEvent::EVENT_NAME);
+                            }
 
                             if ($eracount && $num_invoices != $eracount) {
                                 $alertmsg .= "Of $eracount remittances, there are $num_invoices " .
                                     "matching encounters in OpenEMR. ";
                             }
                             ?>
-                        <table class="table table-striped table-sm">
+                        <table id="invoice-list" class="table table-striped table-sm">
                             <thead>
                             <tr>
-                                <th class="id dehead"><?php echo xlt('Billing Note'); ?></th>
-                                <th class="dehead">&nbsp;<?php echo xlt('Patient'); ?></th>
-                                <th class="dehead">&nbsp;<?php echo xlt('Invoice'); ?></th>
-                                <th class="dehead">&nbsp;<?php echo xlt('Svc Date'); ?></th>
-                                <th class="dehead">&nbsp;<?php echo xlt('Last Stmt'); ?></th>
-                                <th class="dehead text-right"><?php echo xlt('Charge'); ?>&nbsp;</th>
-                                <th class="dehead text-right"><?php echo xlt('Adjust'); ?>&nbsp;</th>
-                                <th class="dehead text-right"><?php echo xlt('Paid'); ?>&nbsp;</th>
-                                <th class="dehead text-right"><?php echo xlt('Balance'); ?>&nbsp;</th>
-                                <th class="dehead text-center"><?php echo xlt('Prv'); ?></th>
+                                <th class="id dehead" data-sort="number"><?php echo xlt('Billing Note'); ?></th>
+                                <th class="dehead" data-sort="text">&nbsp;<?php echo xlt('Patient'); ?></th>
+                                <th class="dehead" data-sort="text">&nbsp;<?php echo xlt('Invoice'); ?></th>
+                                <th class="dehead" data-sort="date">&nbsp;<?php echo xlt('Svc Date'); ?></th>
+                                <th class="dehead" data-sort="date">&nbsp;<?php echo xlt('Last Stmt'); ?></th>
+                                <th class="dehead text-right" data-sort="number"><?php echo xlt('Charge'); ?>&nbsp;</th>
+                                <th class="dehead text-right" data-sort="number"><?php echo xlt('Adjust'); ?>&nbsp;</th>
+                                <th class="dehead text-right" data-sort="number"><?php echo xlt('Paid'); ?>&nbsp;</th>
+                                <th class="dehead text-right" data-sort="number"><?php echo xlt('Balance'); ?>&nbsp;</th>
+                                <th class="dehead text-center" data-sort="number" title="<?php echo xla('Statements sent, or minus the insurance levels still open'); ?>"><?php echo xlt('Prv'); ?></th>
                                 <?php
                                 if (!$eracount) { ?>
                                     <th class="dehead text-left"><?php echo xlt('Sel'); ?></th>
-                                    <th class="dehead text-center"><?php echo xlt('Email'); ?></th>
+                                    <th class="dehead text-center" data-sort="text"><?php echo xlt('Email'); ?></th>
                                     <?php
                                 } ?>
                             </tr>
                             </thead>
                             <?php
                             $orow = -1;
+                            // Sort values for the column headers (sl_eob_search_sort.js): raw, not display-formatted.
+                            $sortValue = static fn(mixed $value): string => is_scalar($value) ? (string) $value : '';
 
+                            // First pass: the invoices to list. The second pass draws them once
+                            // each patient's net is known.
+                            $listRows = [];
                             while ($row = sqlFetchArray($t_res)) {
                                 $balance = sprintf("%.2f", $row['charges'] + $row['copays'] - $row['payments'] - $row['adjustments']);
                                 //new filter only patients with debt.
@@ -1139,29 +1426,29 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                 $in_collections = stristr((string) $billnote, 'IN COLLECTIONS') !== false
                                     || $row['in_collection'] == 1;
 
-                                // $duncount was originally supposed to be the number of times that
-                                // the patient was sent a statement for this invoice.
+                                // $duncount is the number of statements the patient has been sent for
+                                // this invoice, or, while insurance is still open, minus the number of
+                                // insurance levels not yet closed.
                                 //
-                                $duncount = $row['stmt_count'];
-
-                                // But if we have not yet billed the patient, then compute $duncount as a
-                                // negative count of the number of insurance plans for which we have not
-                                // yet closed out insurance.
-                                //
-                                if (!$duncount) {
-                                    $i = 1;
-                                    while ($i <= 3 && SLEOB::arGetPayerID($row['pid'], $row['date'], $i)) {
-                                        ++$i;
-                                    }
-                                    $duncount = $row['last_level_closed'] + 1 - $i;
+                                $payerCount = 0;
+                                while ($payerCount < 3 && SLEOB::arGetPayerID($row['pid'], $row['date'], $payerCount + 1)) {
+                                    ++$payerCount;
                                 }
+                                $duncount = SLEOB::dunningCount(
+                                    is_numeric($row['stmt_count']) ? (int) $row['stmt_count'] : 0,
+                                    is_numeric($row['last_level_closed']) ? (int) $row['last_level_closed'] : 0,
+                                    $payerCount
+                                );
 
                                 $isdueany = ($balance > 0);
 
                                 // An invoice is now due from the patient if money is owed and we are
                                 // not waiting for insurance to pay.
                                 //
-                                $isduept = ($duncount >= 0 && $isdueany && !$in_collections) ? " checked" : "";
+                                $rowPid = is_numeric($row['pid']) ? (int) $row['pid'] : 0;
+                                $rowEncounter = is_numeric($row['encounter']) ? (int) $row['encounter'] : 0;
+                                $printInstead = $printSuggestions->shouldPrint($rowPid, $rowEncounter);
+                                $isduept = ($duncount >= 0 && $isdueany && !$in_collections && !$printInstead) ? " checked" : "";
 
                                 // Skip invoices not in the desired "Due..." category.
                                 //
@@ -1175,10 +1462,58 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                     continue;
                                 }
 
+                                $listRows[] = [
+                                    'row' => $row,
+                                    'balance' => $balance,
+                                    'in_collections' => $in_collections,
+                                    'duncount' => $duncount,
+                                    'isduept' => $isduept,
+                                    'printInstead' => $printInstead,
+                                    // Due from the patient and not in collections: what a default run
+                                    // (pre-checked) or a print run (PRINT, unchecked) would include.
+                                    'statementDue' => $duncount >= 0 && $isdueany && !$in_collections,
+                                ];
+                            }
+
+                            // A Due Pt run nets each patient's credits on other visits against
+                            // the checked invoices and sends nothing when that leaves nothing
+                            // due, so those patients are hidden unless asked for, and unchecked.
+                            // Only the invoices the list pre-checks count, as in a default run.
+                            $nothingDue = [];
+                            if ($searchRequest->getString('form_category') === 'Due Pt') {
+                                $checkedIds = [];
+                                foreach ($listRows as $listRow) {
+                                    $listPid = $listRow['row']['pid'] ?? null;
+                                    $listId = $listRow['row']['id'] ?? null;
+                                    if ($listRow['statementDue'] && is_numeric($listPid) && is_numeric($listId)) {
+                                        $checkedIds[(int) $listPid][] = (int) $listId;
+                                    }
+                                }
+                                $nothingDue = PatientNetDue::nothingDue($checkedIds);
+                            }
+                            $showNothingDue = $searchRequest->getString('form_show_nothing_due') !== '';
+                            $hiddenNothingDue = [];
+
+                            foreach ($listRows as ['row' => $row, 'balance' => $balance, 'in_collections' => $in_collections, 'duncount' => $duncount, 'isduept' => $isduept, 'printInstead' => $printInstead, 'statementDue' => $statementDue]) {
+                                $listPid = is_numeric($row['pid']) ? (int) $row['pid'] : 0;
+                                $rowPid = $listPid;
+                                $rowEncounter = is_numeric($row['encounter']) ? (int) $row['encounter'] : 0;
+                                // Only the invoices a run would include are covered; one in
+                                // collections stays listed as before.
+                                $netDue = $statementDue ? ($nothingDue[$listPid] ?? null) : null;
+                                if ($netDue !== null) {
+                                    if (!$showNothingDue) {
+                                        $hiddenNothingDue[$listPid] = true;
+                                        continue;
+                                    }
+                                    $isduept = '';
+                                }
+
                                 $bgcolor = ((++$orow & 1) ? "#ffdddd" : "#ddddff");
 
                                 $svcdate = substr((string) $row['date'], 0, 10);
                                 $last_stmt_date = empty($row['last_stmt_date']) ? '' : $row['last_stmt_date'];
+                                $paid = $row['payments'] - $row['copays'];
 
                                 ?>
                                 <tr>
@@ -1188,22 +1523,22 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                     <td class="detail">&nbsp;
                                         <a href="#" class="btn btn-secondary btn-sm" onclick="toEncSummary(event, <?php echo attr_js($row['pid']); ?>)"><?php echo text($row['lname']) . ', ' . text($row['fname']); ?></a>
                                     </td>
-                                    <td class="detail">&nbsp;
+                                    <td class="detail" data-sort-value="<?php echo attr($sortValue($row['pid']) . ':' . $sortValue($row['encounter'])); ?>" data-encounter="<?php echo attr($sortValue($row['encounter'])); ?>">&nbsp;
                                         <a href="#" class="btn btn-secondary btn-sm" onclick="editInvoice(event,<?php echo attr_js($row['id']); ?>)"><?php echo text($row['pid']) . '.' . text($row['encounter']); ?></a>
                                     </td>
-                                    <td class="detail">&nbsp;<?php echo text(oeFormatShortDate($svcdate)); ?></td>
-                                    <td class="detail">
+                                    <td class="detail" data-sort-value="<?php echo attr($svcdate); ?>">&nbsp;<?php echo text(oeFormatShortDate($svcdate)); ?></td>
+                                    <td class="detail" data-sort-value="<?php echo attr($sortValue($last_stmt_date)); ?>">
                                         &nbsp;<?php echo text(oeFormatShortDate($last_stmt_date)); ?></td>
-                                    <td class="detail text-right"><?php echo text(FormatMoney::getBucks($row['charges'])); ?>&nbsp;
+                                    <td class="detail text-right" data-sort-value="<?php echo attr($sortValue($row['charges'])); ?>"><?php echo text(FormatMoney::getBucks($row['charges'])); ?>&nbsp;
                                     </td>
-                                    <td class="detail text-right"><?php echo text(FormatMoney::getBucks($row['adjustments'])); ?>
+                                    <td class="detail text-right" data-sort-value="<?php echo attr($sortValue($row['adjustments'])); ?>"><?php echo text(FormatMoney::getBucks($row['adjustments'])); ?>
                                         &nbsp;
                                     </td>
-                                    <td class="detail text-right"><?php echo text(FormatMoney::getBucks($row['payments'] - $row['copays'])); ?>
+                                    <td class="detail text-right" data-sort-value="<?php echo attr($sortValue($paid)); ?>"><?php echo text(FormatMoney::getBucks($paid)); ?>
                                         &nbsp;
                                     </td>
-                                    <td class="detail text-right"><?php echo text(FormatMoney::getBucks($balance)); ?>&nbsp;</td>
-                                    <td class="detail text-center"><?php echo $duncount ? text($duncount) : "&nbsp;" ?></td>
+                                    <td class="detail text-right" data-sort-value="<?php echo attr($balance); ?>"><?php echo text(FormatMoney::getBucks($balance)); ?>&nbsp;</td>
+                                    <td class="detail text-center" data-sort-value="<?php echo attr((string) $duncount); ?>"><?php echo $duncount ? text((string) $duncount) : "&nbsp;" ?></td>
                                     <?php if (!$eracount) { ?>
                                         <td class="detail text-left">
                                             <input type='checkbox'
@@ -1211,6 +1546,10 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                             <?php
                                             if ($in_collections) {
                                                 echo "<span class='font-weight-bold text-danger'>IC</span>";
+                                            }
+                                            if ($netDue !== null) {
+                                                echo " <span class='badge badge-info' title='" . xla('Credits on other visits cover what is owed; no statement goes out') . "'>"
+                                                    . xlt('credit') . ' ' . text(FormatMoney::getBucks($netDue)) . "</span>";
                                             } ?>
                                             <?php
                                             if (function_exists('is_auth_portal') ? is_auth_portal($row['pid']) : false) {
@@ -1220,19 +1559,34 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                             } ?>
                                         </td>
                                     <?php } ?>
-                                    <td class="detail text-left">
+                                    <?php
+                                    $emailEligible = $row['hipaa_allowemail'] == "YES"
+                                        && $row['allow_patient_portal'] == "YES"
+                                        && $row['hipaa_notice'] == "YES"
+                                        && ValidationUtils::isValidEmail($row['email'] ?? '');
+                                    // Nothing due after credits: no statement, so not part of a print run either.
+                                    $printRun = !$in_collections && $netDue === null && (!$emailEligible || $printInstead);
+                                    ?>
+                                    <td class="detail text-left" data-email-eligible="<?php echo $emailEligible ? '1' : '0'; ?>" data-print-run="<?php echo $printRun ? '1' : '0'; ?>">
                                         <?php
-                                        $patientData = QueryUtils::querySingleRow("SELECT * FROM `patient_data` WHERE `pid`=?", [$row['pid']]);
-                                        if ($patientData['hipaa_allowemail'] == "YES" && $patientData['allow_patient_portal'] == "YES" && $patientData['hipaa_notice'] == "YES" && ValidationUtils::isValidEmail($patientData['email'])) {
-                                            echo xlt("YES");
-                                        } else {
-                                            echo xlt("NO");
+                                        echo $emailEligible ? xlt("YES") : xlt("NO");
+                                        if ($printInstead) {
+                                            echo " <span class='badge badge-warning' title='"
+                                                . attr($printSuggestions->getUnpaidEmailCount($rowPid, $rowEncounter) . ' ' . xl('unpaid email statements for this invoice - print instead')) . "'>"
+                                                . xlt('PRINT') . "</span>";
                                         }
                                         ?>
                                     </td>
                                 </tr>
                                 <?php
-                            } // end while
+                            } // end foreach
+                            if ($hiddenNothingDue !== []) { ?>
+                                <tr id="nothing-due-hidden">
+                                    <td colspan="12" class="text-muted">
+                                        <?php echo xlt('Hidden, nothing due after credits') . ': ' . text((string) count($hiddenNothingDue)) . ' ' . xlt('patient(s). Their credits on other visits cover what they owe, so no statement goes out. Tick Show Nothing Due to list them.'); ?>
+                                    </td>
+                                </tr>
+                            <?php }
                         } // end search/print logic
                         ?>
                         </table>
@@ -1255,7 +1609,10 @@ $language_direction = $session->get('language_direction'); // fetch before the <
                                     <button type="submit" class="btn btn-secondary btn-download" name='form_download' value="<?php echo xla('Download Selected Statements'); ?>"><?php echo xlt('Download Selected'); ?></button>
                                 <?php } ?>
                                 <button type="submit" class="btn btn-secondary btn-download" name='form_pdf' value="<?php echo xla('PDF Download Selected Statements'); ?>"><?php echo xlt('PDF Download Selected'); ?></button>
-                                <button type="submit" class="btn btn-secondary btn-mail" name='form_email' value="<?php echo xla('Email Selected Statements'); ?>"><?php echo xlt('Email Selected'); ?></button>
+                                <button type="button" class="btn btn-secondary" onclick='checkAllNotEmail()'><?php echo xlt('Select All Not Email'); ?></button>
+                                <button type="button" class="btn btn-secondary" onclick='checkPrintRun()' title="<?php echo xla('Select patients who cannot be emailed and patients marked PRINT, skipping those in collections'); ?>"><?php echo xlt('Select for Print Run'); ?></button>
+                                <button type="submit" class="btn btn-secondary btn-mail" name='form_email' value="<?php echo xla('Email Selected Statements'); ?>" onclick="return confirmEmail(this.form);"><?php echo xlt('Email Selected'); ?></button>
+                                <button type="button" class="btn btn-secondary" onclick='invertStatementSelection()' title="<?php echo xla('Select the statements not selected now. For the print batch, use Select for Print Run instead'); ?>"><?php echo xlt('Invert Selection'); ?></button>
                                 <?php
                                 if (!empty($is_portal)) { ?>
                                     <button type="submit" class="btn btn-secondary btn-save" name='form_portalnotify' value="<?php echo xla('Notify via Patient Portal'); ?>"><?php echo xlt('Notify Patients Portal'); ?></button>
@@ -1398,7 +1755,7 @@ if (!empty($_REQUEST['form_search']) && ($_REQUEST['form_search'] == "Upload")) 
     <?php
 }
 ?>
-
+<script src="<?php echo attr(OEGlobalsBag::getInstance()->getString('webroot')); ?>/interface/billing/sl_eob_search_sort.js?v=<?php echo attr_url(OEGlobalsBag::getInstance()->getString('v_js_includes')); ?>"></script>
 
 </body>
 </html>

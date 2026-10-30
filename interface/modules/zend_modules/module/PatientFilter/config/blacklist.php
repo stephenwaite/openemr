@@ -23,4 +23,9 @@ return [
         'username' => 'doctor99',
         'blacklist' => [2, 3]
     ],
+    // Use 'whitelist' instead of 'blacklist' to allow ONLY the listed pids (e.g. a chart review):
+    // [
+    //     'username' => 'reviewer',
+    //     'whitelist' => [4, 5]
+    // ],
 ];

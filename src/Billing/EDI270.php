@@ -31,6 +31,7 @@ use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Billing\BillingProcessor\BillingClaimBatchControlNumber;
 use OpenEMR\Common\Utils\RandomGenUtils;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Billing\EligibilityRequestFilterEvent;
 
 require_once(__DIR__ . "/../../library/edihistory/codes/edih_271_code_class.php");
 
@@ -436,6 +437,20 @@ class EDI270
         return true;
     }
 
+    /**
+     * Give modules a chance to adjust a request row (e.g. a fixed billing provider) before validation.
+     *
+     * @param array<mixed> $row
+     * @return array<mixed>
+     */
+    private static function filterRequestRow(array $row): array
+    {
+        $event = new EligibilityRequestFilterEvent($row);
+        OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()
+            ->dispatch($event, EligibilityRequestFilterEvent::EVENT_NAME);
+        return $event->getRow();
+    }
+
 // EDI-270 RealTime Request & Response
 // RealTime requires one transaction per request.
 //
@@ -449,6 +464,7 @@ class EDI270
         }
         $down_accum = $log = $error_accum = '';
         foreach ($res as $row) {
+            $row = is_array($row) ? self::filterRequestRow($row) : $row;
             if (!$X12info) {
                 $X12info = self::getX12Partner($row['partner']);
             }
