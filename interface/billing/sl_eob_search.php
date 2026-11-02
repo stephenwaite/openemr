@@ -29,6 +29,7 @@
 
 
 use Mpdf\Mpdf;
+use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Billing\InvoiceServiceDates;
 use OpenEMR\Billing\ParseERA;
 use OpenEMR\Billing\SLEOB;
@@ -448,6 +449,7 @@ if (
     // their credits leave nothing due.
     $statementsWritten = 0;
     $skippedNothingDue = [];
+    $skippedBelowMinimum = [];
 
     $flagT = true;
     $aPatientFirstName = '';
@@ -607,21 +609,35 @@ if (
         } else {
             if ($inv_pid[$inv_count] != ($inv_pid[$inv_count + 1] ?? null)) {
                 $amountDue = is_numeric($stmt['amount'] ?? null) ? (float) $stmt['amount'] : 0.0;
-                if ($_REQUEST['form_category'] == 'Due Pt' && $amountDue <= 0) {
+                $nothingDue = $_REQUEST['form_category'] == 'Due Pt' && $amountDue <= 0;
+                // Email bodies are always HTML: the other layouts are fixed-width text for printing.
+                $tmp = $nothingDue ? '' : ($isEmailRun ? create_HTML_statement($stmt) : make_statement($stmt));
+                if ($nothingDue) {
                     // Nothing is due once the patient's credits are netted against the
                     // checked invoices, so no statement goes out and its invoices are
                     // not counted as statemented.
                     $skippedNothingDue[] = is_string($stmt['patient'] ?? null) ? $stmt['patient'] : '';
                     $stmt = [];
                     $pendingStatementUpdates = [];
+                } elseif ($tmp === '') {
+                    // The site's print rules leave this statement out (its total is at or
+                    // under the minimum amount to print). Nothing goes in the batch or the
+                    // patient's documents, and the invoices aren't counted as statemented.
+                    $skippedBelowMinimum[] = is_string($stmt['patient'] ?? null) ? $stmt['patient'] : '';
+                    ServiceContainer::getLogger()->warning('Statement not sent: the print rules leave it empty', [
+                        'pid' => $inv_pid[$inv_count],
+                        'encounters' => $pendingStatementUpdates,
+                        'amount' => $amountDue,
+                        'delivery' => $isEmailRun ? StatementDeliveryMethod::Email->name : StatementDeliveryMethod::Mail->name,
+                    ]);
+                    $stmt = [];
+                    $pendingStatementUpdates = [];
                 } else {
                     $recordStatementRun($pendingStatementUpdates);
                     $pendingStatementUpdates = [];
-                    // Email bodies are always HTML: the other layouts are fixed-width text for printing.
-                    $tmp = $isEmailRun ? create_HTML_statement($stmt) : make_statement($stmt);
                     $statementRow = $stmt;
                     $emailSent = false;
-                    if ($isEmailRun && !$withoutUpdate && $tmp !== '') {
+                    if ($isEmailRun && !$withoutUpdate) {
                         try {
                             emailLogin($inv_pid[$inv_count], $tmp);
                             $emailSent = true;
@@ -631,10 +647,6 @@ if (
                             $patientName = is_string($statementRow['patient'] ?? null) ? $statementRow['patient'] : '';
                             $alertmsg .= ($alertmsg ? '; ' : '') . $patientName . ': ' . $e->getMessage();
                         }
-                    }
-                    if (empty($tmp)) {
-                        $tmp = xlt("This EOB item does not meet minimum print requirements setup in Globals or there is an unknown error.") . " " . xlt("EOB Id") . ":" . text($inv_pid[$inv_count]) . " " . xlt("Encounter") . ":" . text($stmt['encounter']) . "\n";
-                        $tmp .= "<br />\n\014<br /><br />";
                     }
                     fwrite($fhprint, (string) $tmp);
                     $statementsWritten++;
@@ -709,12 +721,16 @@ if (
     ) {
         setcookie('openemr_statement_run', $runToken, ['samesite' => 'Strict', 'secure' => CurrentRequest::get()->isSecure()]);
     }
-    $nothingDueMessage = $skippedNothingDue === [] ? '' : xl('No statement for') . ' ' . implode(', ', $skippedNothingDue)
+    $skippedMessage = $skippedNothingDue === [] ? '' : xl('No statement for') . ' ' . implode(', ', $skippedNothingDue)
         . ': ' . xl('nothing is due after their credits.');
+    if ($skippedBelowMinimum !== []) {
+        $skippedMessage = trim($skippedMessage . ' ' . xl('No statement for') . ' ' . implode(', ', $skippedBelowMinimum)
+            . ': ' . xl('the amount due does not meet the minimum amount to print set in Globals.'));
+    }
     // Download or print the file, as selected
-    if ($statementsWritten === 0 && $skippedNothingDue !== [] && CurrentRequest::get()->request->getString('form_portalnotify') === '') {
+    if ($statementsWritten === 0 && $skippedMessage !== '' && CurrentRequest::get()->request->getString('form_portalnotify') === '') {
         // Every checked patient was skipped: say so rather than hand back an empty file.
-        $alertmsg = $nothingDueMessage;
+        $alertmsg = $skippedMessage;
     } elseif (!empty($_REQUEST['form_download'])) {
         upload_file_to_client($STMT_TEMP_FILE);
     } elseif ($postedForm->getString('form_pdf') !== '') {
@@ -730,8 +746,8 @@ if (
         } elseif ($alertmsg == "") {
             $alertmsg = xl('Emailed') . ' ' . $statementsWritten . ' ' . xl('statements and updating invoices.');
         }
-        if (!$withoutUpdate && $nothingDueMessage !== '') {
-            $alertmsg .= ($alertmsg ? ' ' : '') . $nothingDueMessage;
+        if (!$withoutUpdate && $skippedMessage !== '') {
+            $alertmsg .= ($alertmsg ? ' ' : '') . $skippedMessage;
         }
     } else { // Must be print!
         if ($DEBUG) {
@@ -743,8 +759,8 @@ if (
             } else {
                 $alertmsg = xl('Now printing') . ' ' . $statementsWritten . ' ' . xl('statements and updating invoices.');
             }
-            if ($nothingDueMessage !== '') {
-                $alertmsg .= ' ' . $nothingDueMessage;
+            if ($skippedMessage !== '') {
+                $alertmsg .= ' ' . $skippedMessage;
             }
         } // end not debug
     } // end not form_download
