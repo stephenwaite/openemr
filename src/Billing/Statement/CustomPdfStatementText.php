@@ -5,7 +5,8 @@
  * CMS layout production printed from library/statement.inc.php (cms-rel-701).
  *
  * Lines are positioned to print over a full-page letterhead image (see
- * CustomPdfStatementPdf). Each statement starts with a 5-line address block,
+ * CustomPdfStatementPdf). Each statement starts with a 5-line address block
+ * (to a guardian: the patient's name, then "C/O" the guardian),
  * then one line per charge, payment and adjustment, then a single aging line.
  * Long statements are split every 34 detail lines with a "CONTINUED PAGE n"
  * footer and a form feed; each statement ends with a form feed.
@@ -155,7 +156,7 @@ final readonly class CustomPdfStatementText
     {
         // 'to' is the addressee name, the street lines present, then city/state/zip.
         $to = is_array($stmt['to'] ?? null) ? array_values(array_map(self::str(...), $stmt['to'])) : [];
-        $name = $to[0] ?? '';
+        $name = self::addressLine($to[0] ?? '');
         $cityStateZip = count($to) > 1 ? $to[count($to) - 1] : '';
         $streets = array_slice($to, 1, max(0, count($to) - 2));
         $street1 = self::addressLine($streets[0] ?? '');
@@ -163,9 +164,16 @@ final readonly class CustomPdfStatementText
         if ($street1 === '' && $street2 === '') {
             $street1 = self::BAD_ADDRESS;
         }
+        // To a guardian, the statement names the patient, in care of the guardian, so
+        // whose charges they are is on it; the street lines are joined to keep the
+        // four address lines.
+        $patient = self::addressLine(self::str($stmt['patient'] ?? ''));
+        if ($name !== '' && $patient !== '' && $name !== $patient) {
+            [$name, $street1, $street2] = [$patient, 'C/O ' . $name, trim($street1 . ' ' . $street2)];
+        }
         $date = $this->today->format('m d y');
 
-        $out = sprintf('%-9s %-55s %6s ', '', strtoupper(trim($name)), self::str($stmt['pid'] ?? '')) . self::EOL;
+        $out = sprintf('%-9s %-55s %6s ', '', $name, self::str($stmt['pid'] ?? '')) . self::EOL;
         $out .= sprintf('%-9s %-43s %-8s ', '', $street1, $date) . self::EOL;
         $out .= ($street2 !== '' ? sprintf('%-9s %-43s ', '', $street2) : '') . self::EOL;
         $out .= sprintf('%-9s %-43s %-8s %9s', '', strtoupper($cityStateZip), $date, $amount) . self::EOL;

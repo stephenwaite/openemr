@@ -101,6 +101,37 @@ class CustomPdfStatementTextTest extends TestCase
         $this->assertSame(sprintf('%-9s %-55s %6s ', '', 'JANE DOE', '42'), $lines[0]);
     }
 
+    public function testGuardianStatementNamesThePatientInCareOfTheGuardian(): void
+    {
+        $stmt = self::statement(['Ann Doe', '1 Main St', 'Apt 2', 'Burlington, VT 05401'], patient: 'Jane Doe');
+        $lines = explode("\r\n", $this->render($stmt));
+
+        $this->assertSame(sprintf('%-9s %-55s %6s ', '', 'JANE DOE', '42'), $lines[0]);
+        $this->assertSame(sprintf('%-9s %-43s %-8s ', '', 'C/O ANN DOE', '09 28 26'), $lines[1]);
+        $this->assertSame(sprintf('%-9s %-43s ', '', '1 MAIN ST APT 2'), $lines[2]);
+        $this->assertSame(sprintf('%-9s %-43s %-8s %9s', '', 'BURLINGTON, VT 05401', '09 28 26', '60.00'), $lines[3]);
+        $this->assertSame('', $lines[4]);
+        $this->assertSame('', $lines[5]);
+        $this->assertStringStartsWith('06 01 26', $lines[6]);
+    }
+
+    public function testGuardianStatementWithoutAStreetIsFlagged(): void
+    {
+        $lines = explode("\r\n", $this->render(self::statement(['Ann Doe', 'Burlington, VT 05401'], patient: 'Jane Doe')));
+
+        $this->assertSame(sprintf('%-9s %-43s %-8s ', '', 'C/O ANN DOE', '09 28 26'), $lines[1]);
+        $this->assertSame(sprintf('%-9s %-43s ', '', '***BAD ADDRESS***'), $lines[2]);
+    }
+
+    public function testStatementToThePatientHasNoCareOfLine(): void
+    {
+        $lines = explode("\r\n", $this->render(self::statement(['Jane  Doe', '1 Main St', 'Burlington, VT 05401'], patient: ' Jane Doe')));
+
+        $this->assertSame(sprintf('%-9s %-55s %6s ', '', 'JANE DOE', '42'), $lines[0]);
+        $this->assertSame(sprintf('%-9s %-43s %-8s ', '', '1 MAIN ST', '09 28 26'), $lines[1]);
+        $this->assertSame(sprintf('%-9s %-43s %-8s %9s', '', 'BURLINGTON, VT 05401', '09 28 26', '60.00'), $lines[3]);
+    }
+
     public function testAdjustmentCodeShowsReasonDescription(): void
     {
         $lines = $this->detailLines([
@@ -160,10 +191,11 @@ class CustomPdfStatementTextTest extends TestCase
      * @param ?array<string, array<string, int|string>> $detail
      * @return array<string, mixed>
      */
-    private static function statement(array $to, int $dunCount = 0, ?array $detail = null): array
+    private static function statement(array $to, int $dunCount = 0, ?array $detail = null, string $patient = ''): array
     {
         return [
             'pid' => 42,
+            'patient' => $patient,
             'amount' => '60.00',
             'dun_count' => $dunCount,
             'to' => $to,
