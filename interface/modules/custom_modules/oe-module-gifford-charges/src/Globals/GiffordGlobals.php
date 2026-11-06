@@ -26,6 +26,7 @@ final class GiffordGlobals
     public const FACILITY_ID = 'gifford_charges_facility_id';
 
     public const BILLING_FACILITY_ID = 'gifford_charges_billing_facility_id';
+    public const ACR_PRACTICE_ID = 'gifford_charges_acr_practice_id';
 
     public function register(GlobalsInitializedEvent $event): void
     {
@@ -50,6 +51,12 @@ final class GiffordGlobals
             GlobalSetting::DATA_TYPE_NUMBER,
             '0',
             xl('Id of the billing facility for Gifford encounters. 0: charges are staged but not posted.')
+        ));
+        $service->appendToSection($section, self::ACR_PRACTICE_ID, new GlobalSetting(
+            xl('ACR Practice ID'),
+            GlobalSetting::DATA_TYPE_TEXT,
+            '',
+            xl('The practice id on the ACR registry (NRDR) rows the Quality Measures page exports; the TIN comes from the billing facility.')
         ));
     }
 }

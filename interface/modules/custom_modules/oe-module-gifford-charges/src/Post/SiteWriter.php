@@ -15,6 +15,8 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Post;
 
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\Measure;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureRules;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\ChargeRecord;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\EncounterRecord;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\PatientRecord;
@@ -291,6 +293,14 @@ final class SiteWriter
         }
     }
 
+    /** Whether the insurance company is Medicare (Part B), the payer the claims measures apply to. */
+    public function isMedicare(int $insuranceCompanyId): bool
+    {
+        $type = QueryUtils::fetchSingleValue('SELECT `ins_type_code` FROM `insurance_companies` WHERE `id` = ?', 'ins_type_code', [$insuranceCompanyId]);
+
+        return is_numeric($type) && (int) $type === MeasureRules::MEDICARE_TYPE;
+    }
+
     /**
      * The procedure line, unbilled, so it shows in the Billing Manager.
      *
@@ -315,6 +325,18 @@ final class SiteWriter
         );
     }
 
+    /**
+     * A quality measure G-code beside the charge: no fee, the coder as the user.
+     *
+     * @param list<string> $diagnoses the charge's, at most four
+     */
+    public function addMeasureCode(int $pid, int $encounter, string $code, int $providerId, array $diagnoses, int $userId): int
+    {
+        $justify = implode('', array_map(static fn (string $dx): string => 'ICD10|' . $dx . ':', array_slice($diagnoses, 0, 4)));
+
+        return $this->insertBilling($pid, $encounter, 'HCPCS', $code, Measure::codeText($code), $providerId, '', 1, '0.00', $justify, $userId > 0 ? $userId : null);
+    }
+
     private function insertBilling(
         int $pid,
         int $encounter,
@@ -326,13 +348,14 @@ final class SiteWriter
         int $units,
         string $fee,
         string $justify,
+        ?int $userId = null,
     ): int {
         return QueryUtils::sqlInsert(
             // ndc_info is '' as the fee sheet saves it; the fee sheet's justify popup fails on NULL.
             'INSERT INTO `billing` (`date`, `encounter`, `code_type`, `code`, `code_text`, `pid`, `authorized`, `user`,'
             . ' `groupname`, `activity`, `billed`, `provider_id`, `modifier`, `units`, `fee`, `ndc_info`, `justify`, `pricelevel`)'
-            . ' VALUES (NOW(), ?, ?, ?, ?, ?, 1, NULL, \'Default\', 1, 0, ?, ?, ?, ?, \'\', ?, ?)',
-            [$encounter, $codeType, $code, $codeText, $pid, $providerId, $modifier, $units, $fee, $justify, PriceBook::PRICE_LEVEL]
+            . ' VALUES (NOW(), ?, ?, ?, ?, ?, 1, ?, \'Default\', 1, 0, ?, ?, ?, ?, \'\', ?, ?)',
+            [$encounter, $codeType, $code, $codeText, $pid, $userId, $providerId, $modifier, $units, $fee, $justify, PriceBook::PRICE_LEVEL]
         );
     }
 }

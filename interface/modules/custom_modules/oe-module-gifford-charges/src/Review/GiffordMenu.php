@@ -20,6 +20,7 @@ use stdClass;
 final class GiffordMenu
 {
     public const URL = '/interface/modules/custom_modules/oe-module-gifford-charges/public/review.php';
+    public const MEASURES_URL = '/interface/modules/custom_modules/oe-module-gifford-charges/public/measures.php';
 
     public function apply(MenuEvent $event): void
     {
@@ -35,11 +36,13 @@ final class GiffordMenu
                 $result[] = $child;
                 if ($child instanceof stdClass && ($child->menu_id ?? null) === 'bil0') {
                     $result[] = self::entry();
+                    $result[] = self::measuresEntry();
                     $added = true;
                 }
             }
             if (!$added) {
                 $result[] = self::entry();
+                $result[] = self::measuresEntry();
             }
             $item->children = $result;
         }
@@ -53,6 +56,20 @@ final class GiffordMenu
         $entry->menu_id = 'gif0';
         $entry->target = 'gif';
         $entry->url = self::URL;
+        $entry->children = [];
+        $entry->requirement = 0;
+        $entry->acl_req = ['acct', 'bill', 'write'];
+
+        return $entry;
+    }
+
+    private static function measuresEntry(): stdClass
+    {
+        $entry = new stdClass();
+        $entry->label = xl('Quality Measures');
+        $entry->menu_id = 'gif1';
+        $entry->target = 'gifqm';
+        $entry->url = self::MEASURES_URL;
         $entry->children = [];
         $entry->requirement = 0;
         $entry->acl_req = ['acct', 'bill', 'write'];

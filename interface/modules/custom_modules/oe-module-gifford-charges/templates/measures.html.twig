@@ -1,0 +1,103 @@
+<html>
+<head>
+    <title>{{ 'Quality Measures'|xlt }}</title>
+    {{ setupHeader() }}
+</head>
+<body class="body_top">
+<div class="container-fluid">
+<h4 class="mt-2">{{ 'Quality Measures'|xlt }}</h4>
+
+{% for message in messages %}
+    <div class="alert alert-{{ message[0]|attr }}">{{ message[1]|text }}</div>
+{% endfor %}
+
+<p class="text-muted">{{ 'Each read below is held until its measure questions are answered from the report. Save lets it post on the next run with the G-codes of the claims measures beside it; the answers for the registry measures go to the ACR export. Release lets it post with no measure codes.'|xlt }}</p>
+<form method="post" class="mb-3" onsubmit="return top.restoreSession()">
+    {{ csrfToken('default', 'csrf_token_form') }}
+    <input type="hidden" name="form_action" value="post" />
+    <button type="submit" class="btn btn-primary btn-sm"{% if not postingOn %} disabled{% endif %}>{{ 'Post ready lines now'|xlt }}</button>
+</form>
+
+<h5>{{ 'Waiting for an answer'|xlt }}: {{ pendingCount|text }}</h5>
+{% if pending is empty %}
+    <p>{{ 'None.'|xlt }}</p>
+{% else %}
+    <table class="table table-sm table-bordered">
+        <thead class="thead-light">
+        <tr>
+            <th>{{ 'File'|xlt }}</th>
+            <th>{{ 'Line'|xlt }}</th>
+            <th>{{ 'DOS'|xlt }}</th>
+            <th>{{ 'Patient'|xlt }}</th>
+            <th>{{ 'MRN'|xlt }}</th>
+            <th>{{ 'Code'|xlt }}</th>
+            <th>{{ 'Accession'|xlt }}</th>
+            <th>{{ 'Reader'|xlt }}</th>
+            <th>{{ 'Dx'|xlt }}</th>
+            <th>{{ 'Measures'|xlt }}</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in pending %}
+            <tr>
+                <td>{{ item.fileName|text }}</td>
+                <td>{{ item.lineNumber|text }}</td>
+                <td class="text-nowrap">{{ item.dateOfService|text }}</td>
+                <td class="text-nowrap">{{ item.patientName|text }}</td>
+                <td>{{ item.mrn|text }}</td>
+                <td class="text-nowrap">{{ item.code|text }}{% if item.modifiers %}-{{ item.modifiers|text }}{% endif %}</td>
+                <td>{{ item.accession|text }}</td>
+                <td class="text-nowrap">{{ item.reader|text }}</td>
+                <td>{{ item.diagnoses|join(', ')|text }}{% for problem in item.otherProblems %}<div class="text-danger small">{{ 'Also held:'|xlt }} {{ problem|text }}</div>{% endfor %}</td>
+                <td>
+                    <form method="post" id="answer-{{ item.id|attr }}" onsubmit="return top.restoreSession()">
+                        {{ csrfToken('default', 'csrf_token_form') }}
+                        <input type="hidden" name="form_action" value="answer" />
+                        <input type="hidden" name="measure_id" value="{{ item.id|attr }}" />
+                        {% for measure in item.measures %}
+                            {% set m = measureOptions[measure.value] %}
+                            <div class="mb-1">
+                                <label class="mb-0 small font-weight-bold" for="answer-{{ item.id|attr }}-{{ measure.value|attr }}" title="{{ m.question|attr }}">{{ m.label|text }}{% if not m.onClaim %} ({{ 'registry'|xlt }}){% endif %}</label>
+                                <select class="form-control form-control-sm" id="answer-{{ item.id|attr }}-{{ measure.value|attr }}" name="answer[{{ measure.value|attr }}]" required>
+                                    <option value="">{{ 'Choose...'|xlt }}</option>
+                                    {% for option in m.options %}
+                                        <option value="{{ option.value|attr }}">{{ option.label|text }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% endfor %}
+                    </form>
+                </td>
+                <td>
+                    <button type="submit" form="answer-{{ item.id|attr }}" class="btn btn-sm btn-primary mb-1">{{ 'Save'|xlt }}</button>
+                    <form method="post" onsubmit="return top.restoreSession() && confirm({{ 'Release this charge without answering? No measure codes will be added.'|xlj }})">
+                        {{ csrfToken('default', 'csrf_token_form') }}
+                        <input type="hidden" name="form_action" value="release" />
+                        <input type="hidden" name="measure_id" value="{{ item.id|attr }}" />
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">{{ 'Release'|xlt }}</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+<h5 class="mt-4">{{ 'ACR registry export'|xlt }}</h5>
+{% if not acrConfigured %}
+    <div class="alert alert-warning">{{ 'Set the ACR Practice ID in Admin > Config > Gifford Charge Import before exporting.'|xlt }}</div>
+{% endif %}
+<form method="post" class="form-inline" onsubmit="return top.restoreSession()">
+    {{ csrfToken('default', 'csrf_token_form') }}
+    <input type="hidden" name="form_action" value="acr" />
+    <label class="mr-1" for="acr-from">{{ 'Dates of service from'|xlt }}</label>
+    <input type="date" id="acr-from" name="from" class="form-control form-control-sm mr-2" value="{{ monthStart|attr }}" required />
+    <label class="mr-1" for="acr-to">{{ 'to'|xlt }}</label>
+    <input type="date" id="acr-to" name="to" class="form-control form-control-sm mr-2" value="{{ today|attr }}" required />
+    <button type="submit" class="btn btn-sm btn-secondary"{% if not acrConfigured %} disabled{% endif %}>{{ 'Download CSV'|xlt }}</button>
+</form>
+<p class="text-muted small mt-1">{{ 'One row per answered and posted 364 and QMM26 measure with a date of service in the range, in the layout the billing system sends the ACR.'|xlt }}</p>
+</div>
+</body>
+</html>

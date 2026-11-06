@@ -21,6 +21,8 @@ final class PostResult
     public int $duplicates = 0;
     public int $encountersCreated = 0;
     public int $patientsCreated = 0;
+    /** Lines held for quality measure answers (counted in held too). */
+    public int $measures = 0;
 
     /** @return array<string, int> */
     public function toArray(): array
@@ -31,6 +33,7 @@ final class PostResult
             'duplicates' => $this->duplicates,
             'encounters_created' => $this->encountersCreated,
             'patients_created' => $this->patientsCreated,
+            'measures' => $this->measures,
         ];
     }
 }

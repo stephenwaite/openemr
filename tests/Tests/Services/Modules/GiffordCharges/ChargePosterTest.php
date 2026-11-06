@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace OpenEMR\Tests\Services\Modules\GiffordCharges;
 
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\Measure;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Parse\ChargeRowParser;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMap;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\AddOnCodes;
@@ -77,7 +79,7 @@ class ChargePosterTest extends TestCase
         }
         $loader->addPsr4('Cmsvt\\OpenEMR\\Modules\\GiffordCharges\\', self::root() . self::MODULE_DIR . '/src/');
 
-        if (!QueryUtils::existsTable('gifford_payer_map')) {
+        if (!QueryUtils::existsTable('gifford_measure')) {
             $install = new SQLUpgradeService();
             $install->setRenderOutputToScreen(false);
             $install->setThrowExceptionOnError(true);
@@ -139,6 +141,10 @@ class ChargePosterTest extends TestCase
             }
         }
         foreach ($this->batchIds as $id) {
+            QueryUtils::sqlStatementThrowException(
+                'DELETE FROM `gifford_measure` WHERE `line_id` IN (SELECT `id` FROM `gifford_charge_line` WHERE `batch_id` = ?)',
+                [$id]
+            );
             QueryUtils::sqlStatementThrowException('DELETE FROM `gifford_charge_line` WHERE `batch_id` = ?', [$id]);
             QueryUtils::sqlStatementThrowException('DELETE FROM `gifford_charge_batch` WHERE `id` = ?', [$id]);
         }
@@ -556,6 +562,101 @@ class ChargePosterTest extends TestCase
         ], $policies);
     }
 
+    public function testAMedicareChestCtIsHeldForItsMeasureAnswersAndPostsWithTheGCodes(): void
+    {
+        QueryUtils::sqlStatementThrowException('UPDATE `insurance_companies` SET `ins_type_code` = 2 WHERE `id` = ?', [$this->companyId]);
+        $this->price('71250', '26', '90.00');
+        [$lineId, $other] = $this->stage([
+            $this->row(['chg_cpt' => '71250']),
+            $this->row(['chg_cpt' => $this->bareCode, 'chg_accession' => 'B' . $this->token]),
+        ]);
+        $result = $this->post();
+        // held and measures count every pending line in the database, this test's and others'.
+        $this->assertSame(1, $result->posted, 'the CT waits, the other line of the visit posts');
+        $this->assertGreaterThanOrEqual(1, $result->measures);
+        $this->assertSame(['held', 'posted'], [$this->line($lineId)['status'], $this->line($other)['status']]);
+        $this->assertSame([MeasureRepository::PROBLEM], $this->problems($lineId));
+        $measure = QueryUtils::querySingleRow('SELECT * FROM `gifford_measure` WHERE `line_id` = ?', [$lineId]);
+        $this->assertIsArray($measure);
+        $this->assertSame(['364,405,406', 'pending', ''], [$measure['measures'], $measure['status'], self::text($measure['billing_id'])]);
+
+        $repository = new MeasureRepository();
+        $pending = array_values(array_filter($repository->pending(), fn ($p): bool => $p->mrn === $this->mrn));
+        $this->assertCount(1, $pending);
+        $this->assertSame(
+            ['71250', '', 'A' . $this->token, ['I50.20', 'Z95.811'], [Measure::M364, Measure::M405, Measure::M406], 'Reader, Ray', 'Testpatient, Ann', []],
+            [$pending[0]->code, $pending[0]->modifiers, $pending[0]->accession, $pending[0]->diagnoses, $pending[0]->measures, $pending[0]->reader, $pending[0]->patientName, $pending[0]->otherProblems]
+        );
+        $this->assertSame(0, $this->post()->posted, 'still held on the next run');
+
+        $measureId = self::int($measure['id']);
+        $now = new \DateTimeImmutable(self::NOW);
+        $this->assertFalse($repository->answer($measureId, ['364' => 1, '405' => 0], 7, $now), 'every measure needs an answer');
+        $this->assertFalse($repository->answer($measureId, ['364' => 1, '405' => 9, '406' => 2], 7, $now), 'an unknown answer is refused');
+        $this->assertTrue($repository->answer($measureId, ['364' => 1, '405' => 0, '406' => 2], 7, $now));
+        $this->assertFalse($repository->answer($measureId, ['364' => 1, '405' => 0, '406' => 2], 7, $now), 'answered once');
+        $this->assertSame([], array_filter($repository->pending(), fn ($p): bool => $p->mrn === $this->mrn));
+
+        $this->assertSame(1, $this->post()->posted);
+        $line = $this->line($lineId);
+        $this->assertSame(['posted', self::text($this->line($other)['encounter'])], [$line['status'], self::text($line['encounter'])], 'into the visit\'s encounter');
+        $billing = QueryUtils::fetchRecords(
+            // The site may price 71250 itself, so its text and fee aren't this test's.
+            'SELECT `code_type`, `code`, IF(`code_type` = \'HCPCS\', `code_text`, \'\') AS `text`, `modifier`, `fee` <> 0 AS `priced`,'
+            . ' `authorized`, `justify`, `provider_id`, `user` FROM `billing`'
+            . ' WHERE `encounter` = ? AND `code_type` <> \'ICD10\' AND `id` >= ? ORDER BY `id`',
+            [$line['encounter'], $line['billing_id']]
+        );
+        $this->assertSame([
+            ['CPT4', '71250', '', '26', '1', '1', 'ICD10|I50.20:ICD10|Z95.811:', (string) $this->providerId, ''],
+            ['HCPCS', 'G9551', 'Final report: no incidentally found lesion noted', '', '0', '1', 'ICD10|I50.20:ICD10|Z95.811:', (string) $this->providerId, '7'],
+            ['HCPCS', 'G9555', 'Follow-up imaging recommended for a documented medical reason', '', '0', '1', 'ICD10|I50.20:ICD10|Z95.811:', (string) $this->providerId, '7'],
+            ['HCPCS', 'G9552', 'Incidental thyroid nodule under 1.0 cm noted', '', '0', '1', 'ICD10|I50.20:ICD10|Z95.811:', (string) $this->providerId, '7'],
+        ], array_map(static fn (array $r): array => array_values(array_map(self::text(...), $r)), $billing));
+        $posted = QueryUtils::querySingleRow('SELECT * FROM `gifford_measure` WHERE `id` = ?', [$measureId]);
+        $this->assertIsArray($posted);
+        $this->assertSame(
+            ['{"364":1,"405":0,"406":2}', 'answered', self::NOW, '7', self::text($line['billing_id']), self::text($line['pid']), self::text($line['encounter'])],
+            [$posted['answers_json'], $posted['status'], $posted['answered_at'], self::text($posted['answered_by']), self::text($posted['billing_id']), self::text($posted['pid']), self::text($posted['encounter'])]
+        );
+
+        $rows = array_values(array_filter(
+            $repository->acrRows(new \DateTimeImmutable('2026-08-01'), new \DateTimeImmutable('2026-08-20')),
+            fn ($r): bool => $r->patientId === $this->mrn
+        ));
+        $this->assertCount(1, $rows, 'only the registry measure, 364, makes an ACR row');
+        $this->assertSame(
+            '1.1,107816,08/20/2026,,' . $this->renderingNpi . ',' . $this->mrn . ',62,F,364,71250,I5020,G9345,A' . $this->token,
+            $rows[0]->line('107816', '')
+        );
+        $this->assertSame([], array_filter($repository->acrRows(new \DateTimeImmutable('2026-08-21'), new \DateTimeImmutable('2026-08-31')), fn ($r): bool => $r->patientId === $this->mrn));
+    }
+
+    public function testAChargeWithNoMeasurePostsAndAHeldOneCanBeReleased(): void
+    {
+        $this->price('71250', '26', '90.00');
+        [$commercial, $young] = $this->stage([
+            $this->row(['chg_cpt' => '71250', 'pat_dob' => '03/25/1964']),
+            $this->row(['chg_cpt' => '76706', 'pat_dob' => '03/25/1994', 'pat_mrn' => $this->mrn . 'Y', 'encounter_num' => 'GH-Y' . $this->token, 'chg_accession' => 'Y' . $this->token]),
+        ]);
+        $result = $this->post();
+        $this->assertSame(1, $result->posted, 'the 71250 line gets 364 (age) but not 405/406 (not Medicare); 76706 under 50 gets nothing');
+        $this->assertGreaterThanOrEqual(1, $result->measures);
+        $this->assertSame(['held', 'posted'], [$this->line($commercial)['status'], $this->line($young)['status']]);
+        $measureId = self::int(QueryUtils::fetchSingleValue('SELECT `id` FROM `gifford_measure` WHERE `line_id` = ?', 'id', [$commercial]));
+        $this->assertSame('364', self::text(QueryUtils::fetchSingleValue('SELECT `measures` FROM `gifford_measure` WHERE `id` = ?', 'measures', [$measureId])));
+
+        $repository = new MeasureRepository();
+        $this->assertTrue($repository->release($measureId, 7, new \DateTimeImmutable(self::NOW)));
+        $this->assertFalse($repository->release($measureId, 7, new \DateTimeImmutable(self::NOW)));
+        $this->assertSame(1, $this->post()->posted);
+        $line = $this->line($commercial);
+        $this->assertSame('posted', $line['status']);
+        $this->assertSame('released', self::text(QueryUtils::fetchSingleValue('SELECT `status` FROM `gifford_measure` WHERE `id` = ?', 'status', [$measureId])));
+        $this->assertCount(0, QueryUtils::fetchRecords("SELECT 1 FROM `billing` WHERE `encounter` = ? AND `code_type` = 'HCPCS'", [$line['encounter']]));
+        $this->assertSame([], array_filter($repository->acrRows(new \DateTimeImmutable('2026-08-01'), new \DateTimeImmutable('2026-08-31')), fn ($r): bool => $r->patientId === $this->mrn), 'released: nothing for the registry');
+    }
+
     /**
      * @return array<string, string>
      */
@@ -721,6 +822,11 @@ class ChargePosterTest extends TestCase
     private static function text2(mixed $row): array
     {
         return is_array($row) ? array_values(array_map(self::text(...), $row)) : [];
+    }
+
+    private static function int(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
     }
 
     private static function text(mixed $value): string

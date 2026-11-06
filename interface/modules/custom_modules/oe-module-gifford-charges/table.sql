@@ -66,3 +66,24 @@ INSERT INTO `background_services` (`name`, `title`, `active`, `running`, `next_r
  CONCAT_WS(CHAR(92 USING utf8mb4), 'Cmsvt', 'OpenEMR', 'Modules', 'GiffordCharges', 'runBackgroundService'),
  '/interface/modules/custom_modules/oe-module-gifford-charges/public/background_service.php', 100);
 #EndIf
+
+-- A charge line that needs the coder's quality measure answers (Fees > Quality Measures)
+-- before it posts. The line is held until answered or released; the answers go with it
+-- when it posts (G-codes on the claim, registry answers to the ACR export).
+CREATE TABLE IF NOT EXISTS `gifford_measure` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `line_id` INT NOT NULL COMMENT 'gifford_charge_line.id',
+    `measures` VARCHAR(32) NOT NULL COMMENT 'comma list: QMM26, 364, 405, 406',
+    `answers_json` TEXT NOT NULL COMMENT 'measure => the option chosen',
+    `status` VARCHAR(16) NOT NULL COMMENT 'pending; answered; released: let go with no answer',
+    `created_at` DATETIME NOT NULL,
+    `answered_at` DATETIME NULL,
+    `answered_by` INT NULL COMMENT 'users.id',
+    `pid` BIGINT NULL COMMENT 'once posted',
+    `encounter` BIGINT NULL COMMENT 'once posted',
+    `billing_id` INT NULL COMMENT 'billing.id of the charge, once posted',
+    `posted_at` DATETIME NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `line_id` (`line_id`),
+    KEY `status` (`status`)
+) ENGINE=InnoDB;

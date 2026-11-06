@@ -15,6 +15,10 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Post;
 
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\Measure;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureAnswers;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureRepository;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureRules;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\ChargeRecord;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\EncounterRecord;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\ParsedRow;
@@ -48,6 +52,10 @@ use Psr\Clock\ClockInterface;
  * A line identical to a charge posted from an earlier file on the same accession (the file
  * sent again) is marked duplicate.
  *
+ * A charge that needs quality measure answers (MeasureRules) is held until the coder
+ * answers, or releases it, on Fees > Quality Measures; it then posts with the claims
+ * measures' G-codes beside it. The visit's other lines post meanwhile.
+ *
  * The patient's address, phone, email, guarantor and employer follow the file whose date of
  * service is the newest posted for them (PatientDetailsWriter).
  */
@@ -72,6 +80,8 @@ final readonly class ChargePoster
         private ClockInterface $clock,
         private PatientDetailsWriter $details = new PatientDetailsWriter(),
         private AddOnCodes $addOns = new AddOnCodes(),
+        private MeasureRules $rules = new MeasureRules(),
+        private MeasureRepository $measures = new MeasureRepository(),
     ) {
     }
 
@@ -143,6 +153,8 @@ final readonly class ChargePoster
         }
 
         // Each line's own checks.
+        $medicare = isset($companies[1]) && $this->site->isMedicare($companies[1]);
+        $age = MeasureRules::ageOn($patient->dateOfBirth, $dateOfService);
         $ready = [];
         foreach ($group as ['line' => $line, 'parsed' => $parsed]) {
             $charge = self::chargeOf($parsed);
@@ -214,12 +226,19 @@ final readonly class ChargePoster
             } catch (PostProblem $e) {
                 $problems[] = $e->getMessage();
             }
+            // Quality measures: held until the coder answers from the report.
+            $needed = $charge->codeType === 'CPT4' ? $this->rules->measuresFor(strtoupper($charge->code), $age, $medicare) : [];
+            $answers = $needed === [] ? null : $this->measures->ensurePending($line->id, $needed, $now);
+            if ($answers?->pending() === true) {
+                $problems[] = MeasureRepository::PROBLEM;
+                $result->measures++;
+            }
             if ($problems !== [] || $priced === null || $providerId === null) {
                 $this->lines->hold($line->id, $problems, $now);
                 $result->held++;
                 continue;
             }
-            $ready[] = ['line' => $line, 'charge' => $charge, 'priced' => $priced, 'providerId' => $providerId];
+            $ready[] = ['line' => $line, 'charge' => $charge, 'priced' => $priced, 'providerId' => $providerId, 'measures' => $needed, 'answers' => $answers];
         }
 
         // An add-on is billed only beside its primary procedure: hold one until a parent is
@@ -272,6 +291,12 @@ final readonly class ChargePoster
                 $billingId = $this->site->addCharge($pid, $encounter, $r['charge'], $r['priced'], $r['providerId'], $visit->diagnoses);
                 $this->lines->markPosted($r['line']->id, $pid, $encounter, $billingId, $now);
                 $result->posted++;
+                if ($r['answers'] !== null) {
+                    foreach ($r['answers']->claimCodes($r['measures']) as $code) {
+                        $this->site->addMeasureCode($pid, $encounter, $code, $r['providerId'], $visit->diagnoses, $r['answers']->userId);
+                    }
+                    $this->measures->markPosted($r['line']->id, $pid, $encounter, $billingId, $now);
+                }
             }
         });
     }
@@ -281,7 +306,7 @@ final readonly class ChargePoster
      * posted (from this file, or from another file on another accession) or ready in this
      * run. None when the line already says it is a repeat (76 or 77 from Gifford or a person).
      *
-     * @param list<array{line: PendingLine, charge: ChargeRecord, priced: PricedCharge, providerId: int}> $ready
+     * @param list<array{line: PendingLine, charge: ChargeRecord, priced: PricedCharge, providerId: int, measures: list<Measure>, answers: ?MeasureAnswers}> $ready
      * @return list<string>
      */
     private function repeatOf(PendingLine $line, ChargeRecord $charge, array $ready, string $mrn): array
