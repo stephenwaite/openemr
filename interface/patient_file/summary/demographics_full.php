@@ -307,6 +307,26 @@ $CPR = 4; // cells per row
             return false;
         }
 
+        // CMS: copy the patient's contact details to the guardian (a minor's guardian
+        // usually shares them). Fields the layout doesn't show are skipped.
+        function address_copy() {
+            top.restoreSession();
+            const f = document.demographics_form;
+            const val = name => f[name] ? f[name].value : '';
+            const set = (name, value) => {
+                if (f[name]) {
+                    f[name].value = value;
+                }
+            };
+            set('form_guardianaddress', [val('form_street'), val('form_street_line_2')].filter(Boolean).join(' '));
+            set('form_guardiancity', val('form_city'));
+            set('form_guardianstate', val('form_state'));
+            set('form_guardianpostalcode', val('form_postal_code'));
+            set('form_guardianemail', val('form_email'));
+            set('form_guardianphone', val('form_phone_cell'));
+            return false;
+        }
+
         // This capitalizes the first letter of each word in the passed input
         // element.  It also strips out extraneous spaces.
         function capitalizeMe(elem) {
@@ -645,6 +665,9 @@ $constraints = LBF_Validation::generate_validate_constraints("DEM");
                     "<input type='button' class='btn btn-sm btn-secondary mb-1' onclick='address_verify()' value='<?php echo xla('Verify Address') ?>' />");
             }
             <?php } ?>
+
+            $("#value_id_text_guardianaddress").append(
+                "<input type='button' class='btn btn-sm btn-secondary mb-1' onclick='address_copy()' value='<?php echo xla('Copy Contact Address') ?>' />");
         })
     </script>
 

@@ -1087,6 +1087,11 @@ $ignoreErrors[] = [
     'path' => __DIR__ . '/../../portal/patient/libs/Controller/PortalPatientController.php',
 ];
 $ignoreErrors[] = [
+    'message' => '#^Property OpenEMR\\\\Billing\\\\BillingProcessor\\\\Tasks\\\\GeneratorX12Direct\\:\\:\\$prior_self_of_insured \\(array\\<int\\|string, bool\\>\\) does not accept array\\<int\\|string, mixed\\>\\.$#',
+    'count' => 1,
+    'path' => __DIR__ . '/../../src/Billing/BillingProcessor/Tasks/GeneratorX12Direct.php',
+];
+$ignoreErrors[] = [
     'message' => '#^Property OpenEMR\\\\ClinicalDecisionRules\\\\Interface\\\\RuleLibrary\\\\Rule\\:\\:\\$bibliographic_citation \\(string\\) does not accept mixed\\.$#',
     'count' => 1,
     'path' => __DIR__ . '/../../src/ClinicalDecisionRules/Interface/RuleLibrary/Rule.php',

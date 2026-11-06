@@ -1,0 +1,79 @@
+#!/bin/bash
+# Prelaunch hook (every start, after the image has upgraded each site's
+# database and before Apache starts).
+#
+# Applies the CMS database settings to every configured site:
+#   1. oe-module-cmsvt's table.sql (CREATE TABLE IF NOT EXISTS)
+#   2. ${CMS_CONFIG_ROOT}/sql/all-sites.sql
+#   3. ${CMS_CONFIG_ROOT}/sql/<site>.sql
+# Each file is applied to a site once; a checksum in sites/<site>/cms-applied/
+# records it, so later starts don't overwrite changes made in OpenEMR. Edit a
+# file and it is applied again at the next start.
+#
+# It runs at prelaunch rather than postupgrade because the release image
+# upgrades each site's schema on its own (check_schema_upgrade), and the
+# postupgrade hook only fires on the docker-version path, which a new image
+# doesn't take. It can also be run by hand at any time:
+#   docker compose exec openemr /root/hooks/prelaunch/20-cms-site-settings
+set -euo pipefail
+
+config_root="${CMS_CONFIG_ROOT:-/cms-config}"
+oe_root="${OE_ROOT:-/var/www/localhost/htdocs/openemr}"
+helper="$(dirname "$0")/cms-apply-sql.php"
+module_sql="${oe_root}/interface/modules/custom_modules/oe-module-cmsvt/table.sql"
+
+apply_once() {
+    local site="$1" site_dir="$2" sql_file="$3" name="$4" marker sum applied=""
+    [[ -f "${sql_file}" ]] || return 0
+    marker="${site_dir}/cms-applied/${name}.sha256"
+    sum="$(sha256sum "${sql_file}")"
+    sum="${sum%% *}"
+    if [[ -f "${marker}" ]]; then
+        read -r applied < "${marker}" || true
+    fi
+    if [[ "${applied}" = "${sum}" ]]; then
+        echo "cms settings: ${site}: ${name} already applied"
+        return 0
+    fi
+    if ! CMS_SQLCONF="${site_dir}/sqlconf.php" CMS_SQL_FILE="${sql_file}" php -f "${helper}"; then
+        echo "cms settings: ${site}: ${name} FAILED" >&2
+        return 1
+    fi
+    mkdir -p "${site_dir}/cms-applied"
+    echo "${sum}" > "${marker}"
+    chown -R apache:apache "${site_dir}/cms-applied"
+    echo "cms settings: ${site}: ${name} applied"
+}
+
+# EDI control numbers (ISA13, GS06) come from each site's own edi_sequences,
+# which starts at 1, but the sites send to the same X12 partners under the
+# same sender ID, so a partner saw "000000001" from more than one site and
+# rejected it as a repeat. Give each numbered site its own block of 100,000:
+# site 200 counts from 20000000, site 4800 from 480000000 (ISA13 is 9 digits,
+# so up to site 9998). GREATEST only moves a counter forward, so this runs at
+# every start and is a no-op once a site is in its block.
+edi_control_range() {
+    local site="$1" site_dir="$2" sql_file
+    [[ "${site}" =~ ^[1-9][0-9]{0,3}$ ]] && (( site <= 9998 )) || return 0
+    sql_file="$(mktemp)"
+    echo "UPDATE edi_sequences SET id = GREATEST(id, ${site} * 100000);" > "${sql_file}"
+    if ! CMS_SQLCONF="${site_dir}/sqlconf.php" CMS_SQL_FILE="${sql_file}" php -f "${helper}"; then
+        rm -f "${sql_file}"
+        echo "cms settings: ${site}: EDI control number range FAILED" >&2
+        return 1
+    fi
+    rm -f "${sql_file}"
+    echo "cms settings: ${site}: EDI control numbers from $(( site * 100000 ))"
+}
+
+for site_dir in "${oe_root}"/sites/*/; do
+    site_dir="${site_dir%/}"
+    site="$(basename "${site_dir}")"
+    [[ -f "${site_dir}/sqlconf.php" ]] || continue
+    apply_once "${site}" "${site_dir}" "${module_sql}" module-table
+    apply_once "${site}" "${site_dir}" "${config_root}/sql/all-sites.sql" all-sites
+    apply_once "${site}" "${site_dir}" "${config_root}/sql/${site}.sql" "site-${site}"
+    edi_control_range "${site}" "${site_dir}"
+done
+
+echo "cms settings: done"

@@ -1,0 +1,149 @@
+<html>
+<head>
+    <title>{{ 'Gifford Charges'|xlt }}</title>
+    {{ setupHeader() }}
+</head>
+<body class="body_top">
+<div class="container-fluid">
+<h4 class="mt-2">{{ 'Gifford Charges'|xlt }}</h4>
+
+{% for message in messages %}
+    <div class="alert alert-{{ message[0]|attr }}">{{ message[1]|text }}</div>
+{% endfor %}
+
+{% if not postingOn %}
+    <div class="alert alert-warning">{{ 'Posting is off: set the Facility ID and Billing Facility ID in Admin > Config > Gifford Charge Import. Lines are staged until then.'|xlt }}</div>
+{% endif %}
+
+<p class="text-muted">{{ 'Charges post every hour. Held lines are tried again each time, so a line held for an unmapped payer posts on the run after the payer is mapped.'|xlt }}</p>
+<form method="post" class="mb-3" onsubmit="return top.restoreSession()">
+    {{ csrfToken('default', 'csrf_token_form') }}
+    <input type="hidden" name="form_action" value="post" />
+    <button type="submit" class="btn btn-primary btn-sm"{% if not postingOn %} disabled{% endif %}>{{ 'Post ready lines now'|xlt }}</button>
+</form>
+
+<h5>{{ 'Unmapped payers'|xlt }}</h5>
+{% if unmappedPayers is empty %}
+    <p>{{ 'None.'|xlt }}</p>
+{% else %}
+    <p class="text-muted">{{ 'Choose the insurance company each new Gifford payer is billed to, or create it as a paper payer.'|xlt }}</p>
+    <table class="table table-sm table-bordered">
+        <thead class="thead-light">
+        <tr>
+            <th>{{ 'Mnemonic'|xlt }}</th>
+            <th>{{ 'Gifford name'|xlt }}</th>
+            <th>{{ 'Held lines'|xlt }}</th>
+            <th>{{ 'First seen'|xlt }}</th>
+            <th>{{ 'Map to an insurance company'|xlt }}</th>
+            <th>{{ 'Or create as a paper payer'|xlt }}</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for payer in unmappedPayers %}
+            <tr>
+                <td>{{ payer.mnemonic|text }}</td>
+                <td>{{ payer.giffordName|text }}</td>
+                <td>{{ payer.heldLines|text }}</td>
+                <td>{{ payer.firstSeen|text }}</td>
+                <td>
+                    <form method="post" class="form-inline" onsubmit="return top.restoreSession()">
+                        {{ csrfToken('default', 'csrf_token_form') }}
+                        <input type="hidden" name="form_action" value="map" />
+                        <input type="hidden" name="mnemonic" value="{{ payer.mnemonic|attr }}" />
+                        <select name="insurance_company_id" class="form-control form-control-sm mr-1" required>
+                            <option value="">{{ 'Choose...'|xlt }}</option>
+                            {% for company in companies %}
+                                <option value="{{ company.id|attr }}">{{ company.label|text }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-secondary">{{ 'Map'|xlt }}</button>
+                    </form>
+                </td>
+                <td>
+                    <form method="post" class="form-inline" onsubmit="return top.restoreSession()">
+                        {{ csrfToken('default', 'csrf_token_form') }}
+                        <input type="hidden" name="form_action" value="paper" />
+                        <input type="hidden" name="mnemonic" value="{{ payer.mnemonic|attr }}" />
+                        <input type="text" name="gifford_name" class="form-control form-control-sm mr-1" value="{{ payer.giffordName|attr }}" required />
+                        <select name="ins_type_code" class="form-control form-control-sm mr-1">
+                            {% for type in insuranceTypes %}
+                                <option value="{{ type.id|attr }}"{% if type.id == 17 %} selected{% endif %}>{{ type.label|text }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-secondary">{{ 'Create'|xlt }}</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+<h5 class="mt-4">{{ 'Held lines'|xlt }}</h5>
+{% if heldLines is empty %}
+    <p>{{ 'None.'|xlt }}</p>
+{% else %}
+    <table class="table table-sm table-bordered">
+        <thead class="thead-light">
+        <tr>
+            <th>{{ 'File'|xlt }}</th>
+            <th>{{ 'Line'|xlt }}</th>
+            <th>{{ 'Patient'|xlt }}</th>
+            <th>{{ 'MRN'|xlt }}</th>
+            <th>{{ 'Visit'|xlt }}</th>
+            <th>{{ 'DOS'|xlt }}</th>
+            <th>{{ 'Code'|xlt }}</th>
+            <th>{{ 'Accession'|xlt }}</th>
+            <th>{{ 'Why it is held'|xlt }}</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for line in heldLines %}
+            <tr>
+                <td>{{ line.fileName|text }}</td>
+                <td>{{ line.lineNumber|text }}</td>
+                <td>{{ line.patientName|text }}</td>
+                <td>{{ line.mrn|text }}</td>
+                <td>{{ line.visitNumber|text }}</td>
+                <td>{{ line.dateOfService|text }}</td>
+                <td>{{ line.code|text }}</td>
+                <td>{{ line.accession|text }}</td>
+                <td>
+                    {% for problem in line.problems %}<div>{{ problem|text }}</div>{% endfor %}
+                    {% if line.released %}<div class="text-success">{% if line.addedModifier %}{{ 'Released with modifier'|xlt }} {{ line.addedModifier|text }}: {% else %}{{ 'Released'|xlt }}: {% endif %}{{ 'posts on the next run.'|xlt }}</div>{% endif %}
+                </td>
+                <td>
+                    {% if line.repeat and not line.released %}
+                        {% for modifier in ['76', '77'] %}
+                        <form method="post" class="mb-1" onsubmit="return top.restoreSession()">
+                            {{ csrfToken('default', 'csrf_token_form') }}
+                            <input type="hidden" name="form_action" value="release" />
+                            <input type="hidden" name="line_id" value="{{ line.id|attr }}" />
+                            <input type="hidden" name="add_modifier" value="{{ modifier|attr }}" />
+                            <button type="submit" class="btn btn-sm btn-secondary text-nowrap" title="{{ (modifier == '76' ? 'Repeat procedure by the same physician' : 'Repeat procedure by another physician')|xla }}">{{ 'Post with'|xlt }} {{ modifier|text }}</button>
+                        </form>
+                        {% endfor %}
+                    {% elseif line.correction and not line.released %}
+                        <form method="post" class="mb-1" onsubmit="return top.restoreSession()">
+                            {{ csrfToken('default', 'csrf_token_form') }}
+                            <input type="hidden" name="form_action" value="release" />
+                            <input type="hidden" name="line_id" value="{{ line.id|attr }}" />
+                            <button type="submit" class="btn btn-sm btn-secondary">{{ 'Post it'|xlt }}</button>
+                        </form>
+                    {% endif %}
+                    <form method="post" class="mb-1" onsubmit="return top.restoreSession() && confirm({{ 'Skip this line? It will not be posted.'|xlj }})">
+                        {{ csrfToken('default', 'csrf_token_form') }}
+                        <input type="hidden" name="form_action" value="skip" />
+                        <input type="hidden" name="line_id" value="{{ line.id|attr }}" />
+                        <button type="submit" class="btn btn-sm btn-outline-danger">{{ 'Skip'|xlt }}</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+</div>
+</body>
+</html>

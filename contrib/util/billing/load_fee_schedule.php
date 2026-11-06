@@ -30,6 +30,7 @@ $ignoreAuth = true;
 require_once __DIR__ . "/../../../interface/globals.php";
 
 use League\Csv\Reader;
+use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Core\OEGlobalsBag;
 
 // setup a csv file with a header consisting of type, code and modifier
@@ -37,7 +38,11 @@ use OpenEMR\Core\OEGlobalsBag;
 $filename = DIRECTORY_SEPARATOR . $argv[2];
 $filepath = OEGlobalsBag::getInstance()->getString('temporary_files_dir');
 $reader = Reader::createFromPath($filepath . $filename);
-$reader->setDelimiter("\t");
+// OPENEMR_LOAD_FEE_SCHEDULE_DELIMITER=comma reads a comma-separated file (default: tab)
+$reader->setDelimiter(getenv('OPENEMR_LOAD_FEE_SCHEDULE_DELIMITER') === 'comma' ? ',' : "\t");
+// OPENEMR_LOAD_FEE_SCHEDULE_UPDATE_PRICES=1 raises our prices to the schedule's fee, rounded up
+// (all price levels of the code); by default the differences are only reported
+$updatePrices = getenv('OPENEMR_LOAD_FEE_SCHEDULE_UPDATE_PRICES') === '1';
 
 $start_record = $argv[3];
 $reader->setHeaderOffset($start_record);
@@ -75,11 +80,10 @@ foreach ($records as $record) {
                 $ceil_fee = number_format(ceil($sched_fee), 2, '.', '');
                 echo "*** existing fee " . sprintf("%7.2f", $our_fee) . " for $our_code:$our_mod " .
                     "is less than their fee of " . sprintf("%7.2f", $sched_fee) . "\n";
-                // uncomment below 3 lines to update prices accordingly
-                /*echo "update prices table for code $our_code:$our_mod from " . $our_fee .
-                    " to ". $ceil_fee . " with price id " . $price_id . "\n";
-                $update_prices = sqlQuery("UPDATE `prices` SET `pr_price` = ? WHERE `pr_id` = ?", [$ceil_fee, $price_id]);
-                */
+                if ($updatePrices) {
+                    QueryUtils::sqlStatementThrowException("UPDATE `prices` SET `pr_price` = ? WHERE `pr_id` = ?", [$ceil_fee, $price_id]);
+                    echo "    price updated to " . $ceil_fee . "\n";
+                }
             }
         }
     }

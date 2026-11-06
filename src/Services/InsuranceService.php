@@ -68,10 +68,22 @@ class InsuranceService extends BaseService
         return $this->coverageValidator->validate($data);
     }
 
-    public function getOneByPid($id, $type)
+    public function getOneByPid($id, $type, ?string $date = null)
     {
-        $sql = "SELECT * FROM insurance_data WHERE pid=? AND type=?";
-        return sqlQuery($sql, [$id, $type]);
+        if ($date === null) {
+            $sql = "SELECT * FROM insurance_data WHERE pid=? AND type=?";
+            return sqlQuery($sql, [$id, $type]);
+        }
+
+        // The policy of that type in effect on $date; ties prefer a policy that is still active.
+        return QueryUtils::querySingleRow(
+            "SELECT * FROM insurance_data WHERE pid = ? AND type = ?"
+            . " AND (`date` <= ? OR `date` IS NULL) AND (`date_end` >= ? OR `date_end` IS NULL)"
+            . " ORDER BY (`date_end` IS NULL OR `date_end` > NOW()) DESC,"
+            . " (`date_end` IS NOT NULL AND `date_end` > NOW()) DESC,"
+            . " `date` DESC, `date_end` DESC, `policy_number` ASC",
+            [$id, $type, $date, $date]
+        );
     }
 
     public function search(array $search, $isAndCondition = true)

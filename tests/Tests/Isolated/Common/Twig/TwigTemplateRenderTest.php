@@ -489,6 +489,46 @@ class TwigTemplateRenderTest extends TestCase
             $fixtureDir . '/appointments-with-future.html',
         ];
 
+        // The appointment reason is shown as the comment icon's tooltip; it is free
+        // text, so it must be attribute-escaped.
+        yield 'patient/card/appointments with reason tooltip' => [
+            'patient/card/appointments.html.twig',
+            [
+                'title'               => 'Appointments',
+                'id'                  => 'appointments_ps_expand',
+                'initiallyCollapsed'  => false,
+                'btnLabel'            => 'Add',
+                'btnLink'             => 'return newEvt()',
+                'linkMethod'          => 'javascript',
+                'appts'               => [
+                    [
+                        'pc_catid'      => 5,
+                        'pc_catname'    => 'Office Visit',
+                        'pc_hometext'   => 'Recheck "left" eye <b>&</b> pressure',
+                        'pc_recurrtype' => 0,
+                        'jsEvent'       => '123,456',
+                        'dayName'       => 'Monday',
+                        'pc_eventDate'  => '2026-03-15',
+                        'pc_eventTime'  => '10:00',
+                        'displayMeridiem' => 'AM',
+                        'uname'         => 'Dr. Smith',
+                        'pc_status'     => '-',
+                        'bgColor'       => '#ffffff',
+                    ],
+                ],
+                'recurrAppts'         => [],
+                'pastAppts'           => [],
+                'displayAppts'        => true,
+                'displayRecurrAppts'  => false,
+                'displayPastAppts'    => false,
+                'extraApptDate'       => '',
+                'therapyGroupCategories' => [],
+                'auth'                => true,
+                'resNotNull'          => true,
+            ],
+            $fixtureDir . '/appointments-with-reason-tooltip.html',
+        ];
+
         // Install Code Set page. The first case covers the post-upload render (messages of both
         // types, a selected code type, the replace checkbox reflecting an unchecked submission and
         // the RXCUI help paragraph); the second covers a module-only install where core's own
