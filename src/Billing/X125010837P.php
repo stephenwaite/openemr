@@ -20,6 +20,7 @@ namespace OpenEMR\Billing;
 
 use OpenEMR\Billing\BillingProcessor\BillingClaimBatchControlNumber;
 use OpenEMR\Billing\Claim;
+use OpenEMR\Billing\X12\X12Amount;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\Billing\Claim837PRulesEvent;
 
@@ -1620,10 +1621,10 @@ class X125010837P
                 }
 
                 ++$edicount;
-                // X12 amounts are sent without leading zeros.
+                // X12 amounts are sent without leading zeros; zero is "0".
                 $out .= "SVD" . // Service line adjudication. Page 554.
                     "*" . ($rules->otherPayerIdentifier($claim, $ins) ?? $claim->payerID($ins)) .
-                    "*" . ltrim(is_string($payerpaid[1]) ? $payerpaid[1] : '', '0') .
+                    "*" . X12Amount::format(is_string($payerpaid[1]) ? $payerpaid[1] : '') .
                     "*" . "HC:" . $claim->cptKey($prockey) .
                     "*" .
                     "*" . $claim->cptUnits($prockey) .
@@ -1637,7 +1638,7 @@ class X125010837P
                     $out .= "CAS" .
                         "*" . $extra['group'] .
                         "*" . $extra['reason'] .
-                        "*" . ltrim(sprintf('%.2f', $extra['amount']), '0') .
+                        "*" . X12Amount::format($extra['amount']) .
                         "~\n";
                 }
 
@@ -1666,7 +1667,7 @@ class X125010837P
                             is_scalar($k) ? (string) $k : ''
                         ) .
                             "*" .
-                            ltrim(is_scalar($v) ? (string) $v : '', '0');
+                            X12Amount::format(is_scalar($v) ? (string) $v : '');
                         if ($cntr < $size) {
                             $out .= "*" .
                                 "*";
