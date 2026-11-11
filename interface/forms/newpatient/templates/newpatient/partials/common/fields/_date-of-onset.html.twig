@@ -2,7 +2,7 @@
 <div class="col-sm {{ globals.gbl_visit_onset_date ? '' : 'd-none' }}">
     <div class="form-group">
         <label for="form_onset_date" class="text-right">
-            {{ "Onset/hosp. date:"|xlt }}
+            {% if onsetDateLastSeen|default(false) %}{{ "Date Last Seen:"|xlt }}{% else %}{{ "Onset/hosp. date:"|xlt }}{% endif %}
             <i id="onset-tooltip" class="fa fa-info-circle text-primary" aria-hidden="true"></i>
         </label>
         <input type="text"

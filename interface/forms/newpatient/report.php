@@ -19,6 +19,7 @@ use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Twig\TwigContainer;
 use OpenEMR\Common\Uuid\UuidRegistry;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Encounter\EncounterReportFilterEvent;
 use OpenEMR\Services\AppointmentService;
 use OpenEMR\Services\FHIR\MedicationDispense\FhirMedicationDispenseLocalDispensaryService;
 use OpenEMR\Services\Globals\GlobalFeaturesEnum;
@@ -32,6 +33,10 @@ function newpatient_report($pid, $encounter, $cols, $id): void
     $t = $twig->getTwig();
     $encounters = [];
     $userService = new UserService();
+    $reportOptions = new EncounterReportFilterEvent();
+    OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()
+        ->dispatch($reportOptions, EncounterReportFilterEvent::EVENT_NAME);
+    $showVisitDetails = $reportOptions->showVisitDetails();
     while ($result = sqlFetchArray($res)) {
         $hasAccess = (empty($result['sensitivity']) || AclMain::aclCheckCore('sensitivities', $result['sensitivity']));
         $calendar_category = (new AppointmentService())->getOneCalendarCategory($result['pc_catid']);
@@ -60,9 +65,13 @@ function newpatient_report($pid, $encounter, $cols, $id): void
             $posCode = false;
             $facility_name = false;
         }
+        if (!$showVisitDetails) {
+            // The facility stays visible; everything else about the visit is withheld.
+            $reason = $provider = $referringProvider = $posCode = false;
+        }
 
         $encounterRecord = [
-            'category' => xl_appt_category($calendar_category[0]['pc_catname']),
+            'category' => $showVisitDetails ? xl_appt_category($calendar_category[0]['pc_catname']) : '',
             'reason' => $reason,
             'provider' => $provider,
             'referringProvider' => $referringProvider,

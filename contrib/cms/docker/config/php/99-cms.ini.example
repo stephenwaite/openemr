@@ -1,0 +1,5 @@
+; Copy to 99-cms.ini to override the image's PHP settings (the prelaunch hook
+; copies config/php/*.ini into PHP's conf.d). The image sets memory_limit =
+; 512M; large statement or PDF runs may need more. Statement runs raise their
+; own time limit to 300 seconds.
+memory_limit = 1024M

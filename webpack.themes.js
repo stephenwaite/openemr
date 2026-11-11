@@ -176,18 +176,31 @@ module.exports = (env, argv) => {
     // ── color variant themes (LTR) ───────────────────────────────────────────
     style_cobalt_blue:  entry("colors/style_cobalt_blue.scss"),
     style_forest_green: entry("colors/style_forest_green.scss"),
+    // CMS: themes upstream removed in #6537 that CMS users still pick.
+    style_cadmium_yellow: entry("colors/style_cadmium_yellow.scss"),
+    style_mauve:          entry("colors/style_mauve.scss"),
+    style_red:            entry("colors/style_red.scss"),
 
     // ── color variant themes (compact) ───────────────────────────────────────
     compact_style_cobalt_blue:  entry("colors/style_cobalt_blue.scss",  "compact"),
     compact_style_forest_green: entry("colors/style_forest_green.scss", "compact"),
+    compact_style_cadmium_yellow: entry("colors/style_cadmium_yellow.scss", "compact"),
+    compact_style_mauve:          entry("colors/style_mauve.scss",          "compact"),
+    compact_style_red:            entry("colors/style_red.scss",            "compact"),
 
     // ── color variant themes (RTL) ───────────────────────────────────────────
     rtl_style_cobalt_blue:  entry("colors/style_cobalt_blue.scss",  "rtl"),
     rtl_style_forest_green: entry("colors/style_forest_green.scss", "rtl"),
+    rtl_style_cadmium_yellow: entry("colors/style_cadmium_yellow.scss", "rtl"),
+    rtl_style_mauve:          entry("colors/style_mauve.scss",          "rtl"),
+    rtl_style_red:            entry("colors/style_red.scss",            "rtl"),
 
     // ── color variant themes (RTL compact) ───────────────────────────────────
     rtl_compact_style_cobalt_blue:  entry("colors/style_cobalt_blue.scss",  "rtl_compact"),
     rtl_compact_style_forest_green: entry("colors/style_forest_green.scss", "rtl_compact"),
+    rtl_compact_style_cadmium_yellow: entry("colors/style_cadmium_yellow.scss", "rtl_compact"),
+    rtl_compact_style_mauve:          entry("colors/style_mauve.scss",          "rtl_compact"),
+    rtl_compact_style_red:            entry("colors/style_red.scss",            "rtl_compact"),
 
     // ── tabs themes (LTR) ────────────────────────────────────────────────────
     tabs_style_full:    entry("tabs_style_full.scss"),

@@ -118,12 +118,17 @@ class InvoiceSummary
                 $codes[$code]['dtl'][$tmpkey] = $tmp;
             }
         }
-        // Get insurance data for stuff
+        // Get insurance data for stuff, using the policies in effect on the encounter date
+        // so older invoices show the payer that was billed, not the current one.
         $ins_data = [];
         $res = sqlStatement("SELECT insurance_data.type as type, insurance_companies.name as name " .
             "FROM insurance_data " .
             "INNER JOIN insurance_companies ON insurance_data.provider = insurance_companies.id " .
-            "WHERE insurance_data.pid = ?", [$patient_id]);
+            "INNER JOIN form_encounter AS fe ON fe.pid = insurance_data.pid AND fe.encounter = ? " .
+            "WHERE insurance_data.pid = ? " .
+            "AND (insurance_data.date IS NULL OR insurance_data.date <= DATE(fe.date)) " .
+            "AND (insurance_data.date_end IS NULL OR insurance_data.date_end >= DATE(fe.date)) " .
+            "ORDER BY insurance_data.date", [$encounter_id, $patient_id]);
         while ($row = sqlFetchArray($res)) {
             $ins_data[$row['type']] = $row['name'];
         }

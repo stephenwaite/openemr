@@ -651,15 +651,18 @@ if (!empty($_POST['form_refresh'])) {
 
           // Compute reporting key: insurance company name or payment method.
             $rowmethod = '';
+            $rowreference = '';
+            // Name the insurer that covered the patient on the payment date, not today's.
+            $paymentDate = is_string($row['date']) ? $row['date'] : null;
             if ($form_report_by == '1') {
                 if (empty($row['payer_id'])) {
                     // 'ar_session' is not capturing payer_id when entering payments through invoice or era posting
                     if ($row['payer_type'] == '1') {
-                        $insurance_id = (new InsuranceService())->getOneByPid($row['pid'], "primary");
+                        $insurance_id = (new InsuranceService())->getOneByPid($row['pid'], "primary", $paymentDate);
                     } elseif ($row['payer_type'] == '2') {
-                        $insurance_id = (new InsuranceService())->getOneByPid($row['pid'], "secondary");
+                        $insurance_id = (new InsuranceService())->getOneByPid($row['pid'], "secondary", $paymentDate);
                     } elseif ($row['payer_type'] == '3') {
-                        $insurance_id = (new InsuranceService())->getOneByPid($row['pid'], "tertiary");
+                        $insurance_id = (new InsuranceService())->getOneByPid($row['pid'], "tertiary", $paymentDate);
                     } elseif ($row['payer_type'] == '0') {
                         $rowmethod = xl('Personal pay');
                         $rowreference = trim((string) $row['reference']);
@@ -698,7 +701,7 @@ if (!empty($_POST['form_refresh'])) {
             receiptsByMethodLineItem(
                 $row['pid'],
                 $row['encounter'],
-                ($rowreference ?? ''),
+                $rowreference,
                 $thedate,
                 $rowmethod,
                 $row['pay_amount'],
