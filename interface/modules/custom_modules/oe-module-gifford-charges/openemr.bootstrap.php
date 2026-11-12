@@ -27,4 +27,4 @@ $classLoader->registerNamespaceIfNotExists(
     __DIR__ . DIRECTORY_SEPARATOR . 'src'
 );
 
-(new Bootstrap($globalsBag->getKernel()->getEventDispatcher()))->subscribeToEvents();
+(new Bootstrap($globalsBag->getKernel()->getEventDispatcher(), $globalsBag))->subscribeToEvents();

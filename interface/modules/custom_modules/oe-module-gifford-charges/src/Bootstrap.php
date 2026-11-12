@@ -14,9 +14,12 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\GiffordCharges;
 
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Billing\GiffordClaimRules;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Command\ImportPayersCommand;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Globals\GiffordGlobals;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Review\GiffordMenu;
+use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Billing\Claim837PRulesEvent;
 use OpenEMR\Events\Command\CommandRunnerFilterEvent;
 use OpenEMR\Events\Globals\GlobalsInitializedEvent;
 use OpenEMR\Menu\MenuEvent;
@@ -24,7 +27,10 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final readonly class Bootstrap
 {
-    public function __construct(private EventDispatcherInterface $eventDispatcher)
+    /** After the site's own claim rules (the CMS module's listen at 0), so this wraps them. */
+    private const CLAIM_RULES_PRIORITY = -10;
+
+    public function __construct(private EventDispatcherInterface $eventDispatcher, private OEGlobalsBag $globals)
     {
     }
 
@@ -43,6 +49,17 @@ final readonly class Bootstrap
             static function (CommandRunnerFilterEvent $event): void {
                 $event->setCommand(ImportPayersCommand::class, new ImportPayersCommand());
             }
+        );
+        $globals = $this->globals;
+        $this->eventDispatcher->addListener(
+            Claim837PRulesEvent::EVENT_NAME,
+            static function (Claim837PRulesEvent $event) use ($globals): void {
+                $facilityId = $globals->getInt(GiffordGlobals::FACILITY_ID);
+                if (GiffordClaimRules::isGiffordEncounter($event->claim, $facilityId)) {
+                    $event->setRules(new GiffordClaimRules($event->getRules(), $facilityId));
+                }
+            },
+            self::CLAIM_RULES_PRIORITY
         );
     }
 }

@@ -76,6 +76,15 @@ facility where the studies are done, Gifford: the claim's service location, loop
 and **Billing Facility ID** (the reading practice); while either is 0, lines are staged
 only. The rendering providers keep their own default facility (where they read).
 
+**Service location on the 837P.** Commercial claims for a Gifford encounter send the
+Facility ID facility (Gifford, where the image was done) as the service location, loop
+2310C (BCBSVT's guidance). Medicare (claim filing code MA/MB) and Medicaid (MC) claims
+leave 2310C out, so their service location is the billing provider, where the
+radiologist reads. The check is on the payer the claim goes to, so a secondary claim
+follows its own payer. Medicare Advantage plans are commercial here (their insurance
+type is commercial). The module wraps the site's claim rules (e.g. the CMS ones) and
+changes only this decision. Paper claims (box 32) are not affected.
+
 ## Review page (Fees > Gifford Charges)
 
 For users with Accounting > Billing (write):
