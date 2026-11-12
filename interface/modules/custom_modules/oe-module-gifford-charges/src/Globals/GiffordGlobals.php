@@ -44,7 +44,7 @@ final class GiffordGlobals
             xl('Facility ID'),
             GlobalSetting::DATA_TYPE_NUMBER,
             '0',
-            xl('Id of the facility where the studies are read; every Gifford encounter gets it. 0: charges are staged but not posted.')
+            xl('Id of the service facility where the studies are done (Gifford), sent on the claim as the service location; every Gifford encounter gets it. 0: charges are staged but not posted.')
         ));
         $service->appendToSection($section, self::BILLING_FACILITY_ID, new GlobalSetting(
             xl('Billing Facility ID'),

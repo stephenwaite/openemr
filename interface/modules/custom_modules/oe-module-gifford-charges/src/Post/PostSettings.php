@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Where posted Gifford encounters are placed: reading facility, billing facility, visit category.
+ * Where posted Gifford encounters are placed: service facility (where the study was done), billing facility, visit category.
  *
  * @package   OpenEMR
  * @link      https://www.open-emr.org

@@ -71,8 +71,10 @@ still a possible repeat.
 A line identical to a charge posted from an earlier file on the same accession (the file sent
 again) is marked `duplicate`.
 
-Posting needs Admin > Config > Gifford Charge Import > **Facility ID** (where the
-studies are read) and **Billing Facility ID**; while either is 0, lines are staged only.
+Posting needs Admin > Config > Gifford Charge Import > **Facility ID** (the service
+facility where the studies are done, Gifford: the claim's service location, loop 2310C)
+and **Billing Facility ID** (the reading practice); while either is 0, lines are staged
+only. The rendering providers keep their own default facility (where they read).
 
 ## Review page (Fees > Gifford Charges)
 
