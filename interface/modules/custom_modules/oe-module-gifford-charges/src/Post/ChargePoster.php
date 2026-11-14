@@ -222,7 +222,7 @@ final readonly class ChargePoster
 
             $priced = null;
             try {
-                $priced = $this->prices->price($charge);
+                $priced = $this->prices->price($charge, $line->released);
             } catch (PostProblem $e) {
                 $problems[] = $e->getMessage();
             }

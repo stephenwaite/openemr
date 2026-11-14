@@ -131,6 +131,13 @@
                             <input type="hidden" name="line_id" value="{{ line.id|attr }}" />
                             <button type="submit" class="btn btn-sm btn-secondary">{{ 'Post it'|xlt }}</button>
                         </form>
+                    {% elseif line.expectedDenial and not line.released %}
+                        <form method="post" class="mb-1" onsubmit="return top.restoreSession() && confirm({{ 'Post this line with modifier GZ? The payer is expected to deny it.'|xlj }})">
+                            {{ csrfToken('default', 'csrf_token_form') }}
+                            <input type="hidden" name="form_action" value="release" />
+                            <input type="hidden" name="line_id" value="{{ line.id|attr }}" />
+                            <button type="submit" class="btn btn-sm btn-secondary text-nowrap" title="{{ 'Bill the read with GZ kept on the claim'|xla }}">{{ 'Post with GZ'|xlt }}</button>
+                        </form>
                     {% endif %}
                     <form method="post" class="mb-1" onsubmit="return top.restoreSession() && confirm({{ 'Skip this line? It will not be posted.'|xlj }})">
                         {{ csrfToken('default', 'csrf_token_form') }}
