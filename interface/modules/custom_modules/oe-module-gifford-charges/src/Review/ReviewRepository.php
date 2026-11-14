@@ -16,6 +16,7 @@ namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Review;
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Parse\ChargeRowParser;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMap;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PriceBook;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\RawRow;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\LineStatus;
 use OpenEMR\Common\Database\QueryUtils;
@@ -79,6 +80,7 @@ final readonly class ReviewRepository
                 self::int($row['released'] ?? null) === 1,
                 self::text($row['added_modifier'] ?? null),
                 ReportView::fromRaw($raw),
+                array_filter($problems, static fn (string $p): bool => str_starts_with($p, PriceBook::EXPECTED_DENIAL_PREFIX)) !== [],
             );
         }
 
@@ -160,8 +162,9 @@ final readonly class ReviewRepository
     }
 
     /**
-     * Let a line held as a corrected re-send, or as a repeat procedure with the modifier to
-     * add (76 or 77), post on the next run. Returns false when it isn't held.
+     * Let a line held as a corrected re-send, for Gifford's GZ modifier, or as a repeat
+     * procedure with the modifier to add (76 or 77), post on the next run. Returns false
+     * when it isn't held.
      */
     public function release(int $lineId, \DateTimeImmutable $at, string $addModifier = ''): bool
     {

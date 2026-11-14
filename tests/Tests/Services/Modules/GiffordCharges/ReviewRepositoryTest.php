@@ -16,6 +16,7 @@ namespace OpenEMR\Tests\Services\Modules\GiffordCharges;
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Parse\ChargeRowParser;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMap;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PriceBook;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\RawRow;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Review\HeldLine;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Review\ReviewRepository;
@@ -91,6 +92,7 @@ class ReviewRepositoryTest extends TestCase
         $this->assertSame(['Testpatient, Ann', 'GH-' . $this->token, false], [$held[0]->patientName, $held[0]->visitNumber, $held[0]->correction]);
         $this->assertTrue($held[1]->correction);
         $this->assertFalse($held[1]->repeat);
+        $this->assertFalse($held[1]->expectedDenial);
 
         $now = new \DateTimeImmutable('2026-10-22 11:00:00');
         $this->assertTrue($review->release($correction, $now));
@@ -110,7 +112,7 @@ class ReviewRepositoryTest extends TestCase
     {
         $report = ['report_signed' => '10/14/2026 09:31', 'report_status' => 'Addendum', 'report_text' => 'EXAM: Chest\\n\\nFINDINGS:\\tClear'];
         [$with, $without] = $this->stageHeld([
-            [$this->row('NEW' . $this->token, 'A3' . $this->token) + $report, ['enc_dx_codes has no ICD-10 codes']],
+            [$this->row('NEW' . $this->token, 'A3' . $this->token) + $report, [PriceBook::EXPECTED_DENIAL_PREFIX . ' Gifford expects a denial']],
             [$this->row('NEW' . $this->token, 'A4' . $this->token), ['enc_dx_codes has no ICD-10 codes']],
         ]);
         $review = new ReviewRepository(new ChargeRowParser(), new PayerMap());
@@ -122,6 +124,7 @@ class ReviewRepositoryTest extends TestCase
             [$held[0]->report?->status, $held[0]->report?->signed, $held[0]->report?->text]
         );
         $this->assertNull($held[1]->report, 'a line from a file without report columns');
+        $this->assertSame([true, false], [$held[0]->expectedDenial, $held[1]->expectedDenial], 'a GZ line can be released');
     }
 
     public function testARepeatIsReleasedWithItsModifier(): void

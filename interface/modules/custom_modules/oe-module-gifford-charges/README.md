@@ -68,7 +68,7 @@ in one transaction:
 A line is **held**, with the reason in `gifford_charge_line.problems_json`, when the row
 has problems, a payer mnemonic is not mapped, the rendering NPI is not a provider on the
 site, the visit's lines (or its posted encounter) disagree on place of service, the code
-has no price, Gifford sent `TC` or `GZ` (expected denial, no ABN), the line's accession was posted from an earlier file
+has no price, Gifford sent `TC`, or `GZ` (expected denial, no ABN; held until a person releases or skips it), the line's accession was posted from an earlier file
 as a different charge (a corrected re-send, held until a person releases or skips it), or
 the patient already has the same code that day (posted from the same file, or from another
 file on another accession, or posting in the same run) and the line has no `76`/`77` (a
@@ -109,7 +109,9 @@ For users with Accounting > Billing (write):
   held. **Skip** marks a line never to be posted; **Post it** releases a line held as a
   corrected re-send so it posts on the next run (fix or void the earlier charge in the
   encounter's fee sheet as needed); **Post with 76** / **Post with 77** releases a possible
-  repeat procedure, which then posts with that modifier after the others (`26:76`).
+  repeat procedure, which then posts with that modifier after the others (`26:76`);
+  **Post with GZ** releases a line Gifford sent with `GZ` (it expected a denial as not
+  medically necessary, with no ABN), which then posts with the `GZ` kept (`26:GZ`).
 - **Post ready lines now** runs posting without waiting for the hour.
 
 ## Setting it up on a site

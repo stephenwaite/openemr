@@ -25,27 +25,31 @@ use OpenEMR\Common\Database\QueryUtils;
  * and anything else is held. Modifiers Gifford does send follow the 26 (26:RT); a TC
  * from Gifford is held, since that component is Gifford's, and so is a GZ: Gifford
  * expected its own claim to be denied as not medically necessary with no ABN on file,
- * so a person decides whether the read is billed.
+ * so a person decides whether the read is billed: released, it posts with the GZ kept.
  */
 final class PriceBook
 {
     public const PRICE_LEVEL = 'standard';
     public const PROFESSIONAL = '26';
 
+    /** The start of the problem a GZ line is held with. */
+    public const EXPECTED_DENIAL_PREFIX = 'modifier GZ:';
+
     /** @var array<string, ?int> code_types key => ct_id */
     private array $codeTypeIds = [];
 
     /**
+     * @param bool $released a person chose to post the line, so a GZ no longer holds it
      * @throws PostProblem when the charge can't be priced
      */
-    public function price(ChargeRecord $charge): PricedCharge
+    public function price(ChargeRecord $charge, bool $released = false): PricedCharge
     {
         $modifiers = array_map(strtoupper(...), $charge->modifiers);
         if (in_array('TC', $modifiers, true)) {
             throw new PostProblem('modifier TC: the technical component is Gifford\'s to bill');
         }
-        if (in_array('GZ', $modifiers, true)) {
-            throw new PostProblem('modifier GZ: Gifford expects a denial as not medically necessary, with no ABN; skip it or bill it by hand');
+        if (in_array('GZ', $modifiers, true) && !$released) {
+            throw new PostProblem(self::EXPECTED_DENIAL_PREFIX . ' Gifford expects a denial as not medically necessary, with no ABN; post it with GZ, or skip it');
         }
         $modifiers = array_values(array_filter($modifiers, static fn (string $m): bool => $m !== self::PROFESSIONAL));
 

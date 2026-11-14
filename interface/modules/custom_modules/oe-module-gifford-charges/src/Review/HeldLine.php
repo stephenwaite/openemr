@@ -23,6 +23,7 @@ final readonly class HeldLine
      * @param bool $released released, waiting for the next posting run
      * @param string $addedModifier the modifier it was released with (76 or 77), or ''
      * @param ?ReportView $report the line's report, when the file sent one
+     * @param bool $expectedDenial held for Gifford's GZ modifier, which a person can release to post with GZ
      */
     public function __construct(
         public int $id,
@@ -41,6 +42,7 @@ final readonly class HeldLine
         public bool $released,
         public string $addedModifier,
         public ?ReportView $report = null,
+        public bool $expectedDenial = false,
     ) {
     }
 }

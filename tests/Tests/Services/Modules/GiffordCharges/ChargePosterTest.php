@@ -268,7 +268,16 @@ class ChargePosterTest extends TestCase
 
         $this->assertSame(1, $this->post()->posted);
         $this->assertSame(['posted', 'held', 'held', 'held'], [$this->line($bare)['status'], $this->line($none)['status'], $this->line($tc)['status'], $this->line($gz)['status']]);
-        $this->assertSame(['modifier GZ: Gifford expects a denial as not medically necessary, with no ABN; skip it or bill it by hand'], $this->problems($gz));
+        $this->assertSame(['modifier GZ: Gifford expects a denial as not medically necessary, with no ABN; post it with GZ, or skip it'], $this->problems($gz));
+
+        // A person releases the GZ line: it posts with the GZ kept, after the 26 and the side.
+        QueryUtils::sqlStatementThrowException('UPDATE `gifford_charge_line` SET `released` = 1 WHERE `id` IN (?, ?)', [$gz, $tc]);
+        $this->assertSame(1, $this->post()->posted);
+        $this->assertSame(['posted', 'held'], [$this->line($gz)['status'], $this->line($tc)['status']], 'releasing does not post a TC line');
+        $this->assertSame(
+            '26:RT:GZ',
+            self::text(QueryUtils::fetchSingleValue('SELECT `modifier` FROM `billing` WHERE `id` = ?', 'modifier', [$this->line($gz)['billing_id']]))
+        );
         $this->assertSame(['', '80.00'], self::text2(QueryUtils::querySingleRow('SELECT `modifier`, `fee` FROM `billing` WHERE `id` = ?', [$this->line($bare)['billing_id']])));
         $this->assertSame(['no price for CPT4 V' . substr($this->token, 0, 4)], $this->problems($none));
         $this->assertSame(['modifier TC: the technical component is Gifford\'s to bill'], $this->problems($tc));

@@ -20,7 +20,7 @@ final readonly class PendingLine
 {
     /**
      * @param bool $released a person chose to post it although it looks like a corrected re-send
-     *                       or a repeat procedure
+     *                       or a repeat procedure, or Gifford sent it with GZ
      * @param string $addedModifier the repeat procedure modifier (76 or 77) chosen for it, or ''
      */
     public function __construct(
