@@ -23,7 +23,9 @@ use OpenEMR\Common\Database\QueryUtils;
  * the professional one. So a code priced with 26 is billed as code-26 (even when a bare
  * price exists too), a code priced only bare (most type 1 procedures) is billed bare,
  * and anything else is held. Modifiers Gifford does send follow the 26 (26:RT); a TC
- * from Gifford is held, since that component is Gifford's.
+ * from Gifford is held, since that component is Gifford's, and so is a GZ: Gifford
+ * expected its own claim to be denied as not medically necessary with no ABN on file,
+ * so a person decides whether the read is billed.
  */
 final class PriceBook
 {
@@ -41,6 +43,9 @@ final class PriceBook
         $modifiers = array_map(strtoupper(...), $charge->modifiers);
         if (in_array('TC', $modifiers, true)) {
             throw new PostProblem('modifier TC: the technical component is Gifford\'s to bill');
+        }
+        if (in_array('GZ', $modifiers, true)) {
+            throw new PostProblem('modifier GZ: Gifford expects a denial as not medically necessary, with no ABN; skip it or bill it by hand');
         }
         $modifiers = array_values(array_filter($modifiers, static fn (string $m): bool => $m !== self::PROFESSIONAL));
 

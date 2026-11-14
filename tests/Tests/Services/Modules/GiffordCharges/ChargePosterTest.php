@@ -259,14 +259,16 @@ class ChargePosterTest extends TestCase
 
     public function testPricesPickTheProfessionalComponentOrTheBareCodeOrHold(): void
     {
-        [$bare, $none, $tc] = $this->stage([
+        [$bare, $none, $tc, $gz] = $this->stage([
             $this->row(['chg_cpt' => $this->bareCode, 'chg_accession' => 'B' . $this->token]),
             $this->row(['chg_cpt' => 'V' . substr($this->token, 0, 4), 'chg_accession' => 'C' . $this->token]),
             $this->row(['chg_mod1' => 'TC', 'chg_accession' => 'D' . $this->token]),
+            $this->row(['chg_mod1' => 'RT', 'chg_mod2' => 'gz', 'chg_accession' => 'E' . $this->token]),
         ]);
 
         $this->assertSame(1, $this->post()->posted);
-        $this->assertSame(['posted', 'held', 'held'], [$this->line($bare)['status'], $this->line($none)['status'], $this->line($tc)['status']]);
+        $this->assertSame(['posted', 'held', 'held', 'held'], [$this->line($bare)['status'], $this->line($none)['status'], $this->line($tc)['status'], $this->line($gz)['status']]);
+        $this->assertSame(['modifier GZ: Gifford expects a denial as not medically necessary, with no ABN; skip it or bill it by hand'], $this->problems($gz));
         $this->assertSame(['', '80.00'], self::text2(QueryUtils::querySingleRow('SELECT `modifier`, `fee` FROM `billing` WHERE `id` = ?', [$this->line($bare)['billing_id']])));
         $this->assertSame(['no price for CPT4 V' . substr($this->token, 0, 4)], $this->problems($none));
         $this->assertSame(['modifier TC: the technical component is Gifford\'s to bill'], $this->problems($tc));
