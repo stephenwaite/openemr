@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Measure;
 
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Review\ReportView;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\LineStatus;
 use OpenEMR\Common\Database\QueryUtils;
 
@@ -98,6 +99,7 @@ final readonly class MeasureRepository
                 $diagnoses,
                 self::measures(self::text($row['measures'] ?? null)),
                 $problems,
+                ReportView::fromRaw($raw),
             );
         }
 

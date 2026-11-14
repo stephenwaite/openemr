@@ -22,6 +22,7 @@ final readonly class ParsedRow
      *
      * @param list<PolicyRecord> $policies by rank; self-pay ranks are left out
      * @param list<string> $problems
+     * @param ?ReportRecord $report null when the file has no report columns, or the report has a problem
      */
     public function __construct(
         public int $line,
@@ -32,6 +33,7 @@ final readonly class ParsedRow
         public ?PartyRecord $employer,
         public array $policies,
         public array $problems,
+        public ?ReportRecord $report = null,
     ) {
     }
 

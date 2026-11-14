@@ -22,6 +22,7 @@ final readonly class HeldLine
      * @param bool $repeat held as a possible repeat procedure, which a person can post with 76 or 77
      * @param bool $released released, waiting for the next posting run
      * @param string $addedModifier the modifier it was released with (76 or 77), or ''
+     * @param ?ReportView $report the line's report, when the file sent one
      */
     public function __construct(
         public int $id,
@@ -39,6 +40,7 @@ final readonly class HeldLine
         public bool $repeat,
         public bool $released,
         public string $addedModifier,
+        public ?ReportView $report = null,
     ) {
     }
 }

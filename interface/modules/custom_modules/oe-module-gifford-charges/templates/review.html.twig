@@ -140,6 +140,11 @@
                     </form>
                 </td>
             </tr>
+            {% if line.report %}
+            <tr>
+                <td colspan="10" class="border-top-0 pt-0">{{ include('@gifford/report.html.twig', {report: line.report}, with_context = false) }}</td>
+            </tr>
+            {% endif %}
         {% endfor %}
         </tbody>
     </table>
