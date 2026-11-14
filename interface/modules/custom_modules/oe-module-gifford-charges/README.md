@@ -97,6 +97,27 @@ follows its own payer. Medicare Advantage plans are commercial here (their insur
 type is commercial). The module wraps the site's claim rules (e.g. the CMS ones) and
 changes only this decision. Paper claims (box 32) are not affected.
 
+## NCCI edits and modifier 59
+
+`bin/console gifford:cci-import --site=<site> --file=<path>` loads the billing system's
+unloaded CCIFILE into `gifford_cci_edit`, replacing what was there (`--dry-run` reads
+and counts only). Each line is the column 1 code, the column 2 code and the modifier
+indicator, 11 characters with nothing between them. Until the table is loaded nothing
+is checked.
+
+When a line posts, its code is looked up against the patient's other codes for that day
+(pending in any visit, or posted and still billed), as the billing system's `cci005`
+did:
+
+- **Indicator 1:** the column 2 code posts with `59` after its other modifiers
+  (`26:RT:59`), unless it already has `59`, `XE`, `XS`, `XP` or `XU` (Gifford's own are
+  kept). If the column 2 code was posted earlier without one, the new line is held
+  until `59` is added to that charge in the fee sheet, or a person posts or skips it.
+- **Indicator 0:** the column 2 line is held (the pair is not billed together); the
+  column 1 line posts, unless the column 2 code is already posted, which holds it too.
+  **Post it** posts a held line as it is.
+- **Indicator 9:** the edit was deleted; nothing happens.
+
 ## Review page (Fees > Gifford Charges)
 
 For users with Accounting > Billing (write):
@@ -110,6 +131,7 @@ For users with Accounting > Billing (write):
   corrected re-send so it posts on the next run (fix or void the earlier charge in the
   encounter's fee sheet as needed); **Post with 76** / **Post with 77** releases a possible
   repeat procedure, which then posts with that modifier after the others (`26:76`);
+  **Post it** also releases a line an NCCI edit holds;
   **Post with GZ** releases a line Gifford sent with `GZ` (it expected a denial as not
   medically necessary, with no ABN), which then posts with the `GZ` kept (`26:GZ`).
 - **Post ready lines now** runs posting without waiting for the hour.
