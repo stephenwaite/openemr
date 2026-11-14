@@ -1,0 +1,8 @@
+{# The radiology report sent with a charge line, folded until asked for. `report` is a ReportView or null. #}
+{% if report %}
+    <details class="gifford-report">
+        <summary class="small text-nowrap">{{ 'Report'|xlt }}{% if report.status %} ({{ report.status|text }}){% endif %}</summary>
+        {% if report.signed %}<div class="small text-muted">{{ 'Signed'|xlt }} {{ report.signed|text }}</div>{% endif %}
+        <pre class="small border rounded p-2 mb-0" style="white-space: pre-wrap; max-width: 70em;">{{ report.text|text }}</pre>
+    </details>
+{% endif %}

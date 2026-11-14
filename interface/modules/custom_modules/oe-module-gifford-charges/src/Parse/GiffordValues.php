@@ -67,6 +67,42 @@ final class GiffordValues
     }
 
     /**
+     * A date and time given as mm/dd/yyyy hh:mm or yyyy-mm-dd hh:mm, with or without
+     * seconds, or a date alone in one of date()'s forms (taken as midnight).
+     */
+    public static function dateTime(string $value): ?\DateTimeImmutable
+    {
+        if (preg_match('#^(\S+)[ T](\d{1,2}):(\d{2})(?::(\d{2}))?$#', $value, $m) !== 1) {
+            return self::date($value);
+        }
+        $date = self::date($m[1]);
+        $hour = (int) $m[2];
+        $minute = (int) $m[3];
+        $second = (int) ($m[4] ?? '0');
+        if ($date === null || ctype_digit($m[1]) || $hour > 23 || $minute > 59 || $second > 59) {
+            return null;
+        }
+        return $date->setTime($hour, $minute, $second);
+    }
+
+    /**
+     * Text sent as a JSON string body (\n, \t, \", \\, \uXXXX ...), with or without the
+     * quotes around it, decoded; null when it is not one. Line endings come back as "\n".
+     */
+    public static function jsonText(string $value): ?string
+    {
+        $quoted = strlen($value) >= 2 && str_starts_with($value, '"') && str_ends_with($value, '"');
+        $text = json_decode($quoted ? $value : '"' . $value . '"');
+        if (!is_string($text) && $quoted) {
+            $text = json_decode('"' . $value . '"');
+        }
+        if (!is_string($text)) {
+            return null;
+        }
+        return str_replace(["\r\n", "\r"], "\n", $text);
+    }
+
+    /**
      * "Last, First Middle" as [last, first middle]. A name without a comma is
      * taken as the last name only.
      *

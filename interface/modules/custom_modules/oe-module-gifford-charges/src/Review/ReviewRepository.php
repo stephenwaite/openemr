@@ -78,6 +78,7 @@ final readonly class ReviewRepository
                 array_filter($problems, static fn (string $p): bool => str_starts_with($p, self::REPEAT_PREFIX)) !== [],
                 self::int($row['released'] ?? null) === 1,
                 self::text($row['added_modifier'] ?? null),
+                ReportView::fromRaw($raw),
             );
         }
 

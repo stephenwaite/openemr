@@ -106,6 +106,24 @@ class ReviewRepositoryTest extends TestCase
         );
     }
 
+    public function testAHeldLineCarriesItsReport(): void
+    {
+        $report = ['report_signed' => '10/14/2026 09:31', 'report_status' => 'Addendum', 'report_text' => 'EXAM: Chest\\n\\nFINDINGS:\\tClear'];
+        [$with, $without] = $this->stageHeld([
+            [$this->row('NEW' . $this->token, 'A3' . $this->token) + $report, ['enc_dx_codes has no ICD-10 codes']],
+            [$this->row('NEW' . $this->token, 'A4' . $this->token), ['enc_dx_codes has no ICD-10 codes']],
+        ]);
+        $review = new ReviewRepository(new ChargeRowParser(), new PayerMap());
+
+        $held = array_values(array_filter($review->heldLines(), static fn (HeldLine $l): bool => in_array($l->id, [$with, $without], true)));
+        $this->assertCount(2, $held);
+        $this->assertSame(
+            ['Addendum', '10/14/2026 09:31', "EXAM: Chest\n\nFINDINGS:\tClear"],
+            [$held[0]->report?->status, $held[0]->report?->signed, $held[0]->report?->text]
+        );
+        $this->assertNull($held[1]->report, 'a line from a file without report columns');
+    }
+
     public function testARepeatIsReleasedWithItsModifier(): void
     {
         [$repeat] = $this->stageHeld([

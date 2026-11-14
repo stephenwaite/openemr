@@ -21,7 +21,19 @@ A file's first row is its header (column names in any order). Gifford's export
 (`GIFFORD_CMSVT_RadiologyBilling_<from>_<to>.txt`) has no header: a file whose first
 row names none of the required columns is read in the sample's 113-column order, and
 is rejected unless every row has exactly 113 fields. A `.txt` file is tab-separated,
-UTF-8 or UTF-16 with a byte-order mark (Gifford's is UTF-16).
+UTF-8 or UTF-16 with a byte-order mark. A text file sent under an `.xlsx` name
+(Gifford's SFTP script only sends `.xlsx`) is read as text.
+
+The billing-system feed (November 2026) adds three columns after the sample's 113, so
+a headerless file may also have 116 fields on every row: `report_signed` (mm/dd/yyyy
+hh:mm), `report_status` and `report_text`. The report text is a JSON string body: `\n`
+for a line break, `\t`, `\"`, `\\`, `\uXXXX`. When a file has these columns every line
+needs a report that reads: status `Signed` or `ISigned` (final) or `Addendum` (added to
+or corrected), a signed date and time, and text that decodes. A `Draft` or `Cancelled`
+report, an unknown status, a missing signed time or text that does not decode holds
+the line with that reason. A file without the report columns is read as before. The
+report is saved with the line and shown, folded, beside it on the review page and on
+Fees > Quality Measures, where the coder answers the measure questions from it.
 
 ## Posting
 

@@ -145,7 +145,38 @@ final class ChargeFileReaderTest extends TestCase
         $path = $this->tempFile('txt', implode("\t", $this->sampleRow([])) . "\n" . implode("\t", $row) . "\n");
 
         $this->expectException(ChargeFileException::class);
-        $this->expectExceptionMessage('line 2 has 112 fields, not the sample layout\'s 113');
+        $this->expectExceptionMessage('line 2 has 112 fields, not the sample layout\'s 113 or 116 with the report columns');
+        (new ChargeFileReader())->read($path);
+    }
+
+    #[Test]
+    public function theHeaderlessBillingFeedIsReadWithItsReportColumns(): void
+    {
+        $report = 'EXAM: Chest, 2 views\\n\\nFINDINGS:\\tClear. \\"No change\\"';
+        $first = [...$this->sampleRow(['pat_mrn' => 'MR0000000007', 'chg_cpt' => '71046']), '10/14/2026 09:31', 'Signed', $report];
+        $second = [...$this->sampleRow(['pat_mrn' => 'MR0000000008', 'chg_cpt' => '73030']), '10/15/2026 16:02', 'Addendum', 'EXAM: Shoulder'];
+        // As Gifford sends it: UTF-8 with a byte-order mark, under an .xlsx name.
+        $path = $this->tempFile('xlsx', "\xEF\xBB\xBF" . implode("\t", $first) . "\r\n" . implode("\t", $second) . "\r\n");
+
+        $rows = (new ChargeFileReader())->read($path);
+
+        $this->assertCount(2, $rows);
+        $this->assertSame('MR0000000007', $rows[0]->get('pat_mrn'));
+        $this->assertSame('18', $rows[0]->get('ins3_relate'), 'the last sample column');
+        $this->assertSame('10/14/2026 09:31', $rows[0]->get('report_signed'));
+        $this->assertSame('Signed', $rows[0]->get('report_status'));
+        $this->assertSame($report, $rows[0]->get('report_text'), 'the report is kept as sent, still escaped');
+        $this->assertSame('Addendum', $rows[1]->get('report_status'));
+    }
+
+    #[Test]
+    public function aHeaderlessFileMixingTheTwoLayoutsIsRejected(): void
+    {
+        $withReport = [...$this->sampleRow([]), '10/14/2026 09:31', 'Signed', 'EXAM: Chest'];
+        $path = $this->tempFile('txt', implode("\t", $withReport) . "\n" . implode("\t", $this->sampleRow([])) . "\n");
+
+        $this->expectException(ChargeFileException::class);
+        $this->expectExceptionMessage('line 2 has 113 fields');
         (new ChargeFileReader())->read($path);
     }
 

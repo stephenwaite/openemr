@@ -25,6 +25,9 @@ use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\ParsedRow;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\PartyRecord;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\PatientRecord;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\PolicyRecord;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\ReportRecord;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\ReportStatus;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\ChargeFileReader;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\RawRow;
 
 final class ChargeRowParser
@@ -40,6 +43,7 @@ final class ChargeRowParser
         $encounter = $this->encounter($row, $problems);
         $charge = $this->charge($row, $problems);
         $policies = $this->policies($row, $problems);
+        $report = $this->report($row, $problems);
 
         return new ParsedRow(
             $row->line,
@@ -50,7 +54,50 @@ final class ChargeRowParser
             $this->employer($row),
             $policies,
             $problems,
+            $report,
         );
+    }
+
+    /**
+     * The report columns of the billing-system feed. A file without them has no report
+     * and no problem; a file with them must give every line a final report that reads.
+     * The problems never quote the report text.
+     *
+     * @param list<string> $problems
+     */
+    private function report(RawRow $row, array &$problems): ?ReportRecord
+    {
+        if (array_filter(ChargeFileReader::REPORT_COLUMNS, $row->has(...)) === []) {
+            return null;
+        }
+
+        $statusText = $row->get('report_status');
+        $status = ReportStatus::fromFile($statusText);
+        if ($statusText === '') {
+            $problems[] = 'report_status is empty';
+        } elseif ($status === null) {
+            $problems[] = "report_status '" . $statusText . "' is not a report status we know";
+        } elseif (!$status->isFinal()) {
+            $problems[] = "report_status '" . $statusText . "': the report is not final";
+        }
+
+        $signedAt = GiffordValues::dateTime($row->get('report_signed'));
+        if ($signedAt === null) {
+            $problems[] = "report_signed '" . $row->get('report_signed') . "' is not a date and time";
+        }
+
+        $text = $row->get('report_text') === '' ? null : GiffordValues::jsonText($row->get('report_text'));
+        if ($row->get('report_text') === '') {
+            $problems[] = 'report_text is empty';
+        } elseif ($text === null || trim($text) === '') {
+            $problems[] = 'report_text is not JSON-escaped text';
+            $text = null;
+        }
+
+        if ($status === null || !$status->isFinal() || $signedAt === null || $text === null) {
+            return null;
+        }
+        return new ReportRecord($signedAt, $status, $text);
     }
 
     /**

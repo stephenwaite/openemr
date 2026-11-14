@@ -14,12 +14,15 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Measure;
 
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Review\ReportView;
+
 final readonly class PendingMeasure
 {
     /**
      * @param list<string> $diagnoses
      * @param list<Measure> $measures
      * @param list<string> $otherProblems what else holds the line, if anything
+     * @param ?ReportView $report the report the answers are read from, when the file sent one
      */
     public function __construct(
         public int $id,
@@ -36,6 +39,7 @@ final readonly class PendingMeasure
         public array $diagnoses,
         public array $measures,
         public array $otherProblems,
+        public ?ReportView $report = null,
     ) {
     }
 }

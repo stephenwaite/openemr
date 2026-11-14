@@ -16,8 +16,10 @@ namespace OpenEMR\Tests\Isolated\Modules\GiffordCharges;
 
 require_once __DIR__ . '/autoload.php';
 
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\ReportStatus;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Parse\ChargeRowParser;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\RawRow;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -168,6 +170,89 @@ final class ChargeRowParserTest extends TestCase
         $this->assertSame('HCPCS', $charge->codeType);
         $this->assertSame('G0279', $charge->code);
         $this->assertSame(['26', 'RT'], $charge->modifiers);
+    }
+
+    #[Test]
+    public function aRowWithoutReportColumnsHasNoReportAndNoProblem(): void
+    {
+        $parsed = (new ChargeRowParser())->parse(self::row());
+
+        $this->assertNull($parsed->report);
+        $this->assertTrue($parsed->isImportable());
+    }
+
+    #[Test]
+    public function theReportIsDecodedWithItsSignedTimeAndStatus(): void
+    {
+        $parsed = (new ChargeRowParser())->parse(self::row([
+            'report_signed' => '10/14/2026 09:31',
+            'report_status' => 'ISigned',
+            'report_text' => 'EXAM: Chest\\r\\n\\nFINDINGS:\\tClear, \\"no change\\" 5\\/10 at 45\\u00b0',
+        ]));
+
+        $this->assertTrue($parsed->isImportable(), implode('; ', $parsed->problems));
+        $report = $parsed->report;
+        $this->assertNotNull($report);
+        $this->assertSame(ReportStatus::Signed, $report->status);
+        $this->assertSame('2026-10-14 09:31:00', $report->signedAt->format('Y-m-d H:i:s'));
+        $this->assertSame("EXAM: Chest\n\nFINDINGS:\tClear, \"no change\" 5/10 at 45°", $report->text);
+    }
+
+    #[Test]
+    public function anAddendumIsAFinalReport(): void
+    {
+        $parsed = (new ChargeRowParser())->parse(self::row([
+            'report_signed' => '2026-10-15 16:02:07',
+            'report_status' => 'addendum',
+            'report_text' => '"ADDENDUM: left, not right"',
+        ]));
+
+        $this->assertTrue($parsed->isImportable(), implode('; ', $parsed->problems));
+        $report = $parsed->report;
+        $this->assertNotNull($report);
+        $this->assertSame(ReportStatus::Addendum, $report->status);
+        $this->assertSame('ADDENDUM: left, not right', $report->text, 'the quotes around a JSON string are dropped');
+    }
+
+    /**
+     * @return array<string, array{array<string, string>, list<string>}>
+     *
+     * @codeCoverageIgnore Data providers run before coverage instrumentation starts.
+     */
+    public static function reportProblemProvider(): array
+    {
+        $good = ['report_signed' => '10/14/2026 09:31', 'report_status' => 'Signed', 'report_text' => 'EXAM: Chest'];
+        return [
+            'a draft' => [['report_status' => 'Draft'] + $good, ["report_status 'Draft': the report is not final"]],
+            'canceled, either spelling' => [['report_status' => 'Cancelled'] + $good, ["report_status 'Cancelled': the report is not final"]],
+            'an unknown status' => [['report_status' => 'Pending'] + $good, ["report_status 'Pending' is not a report status we know"]],
+            'no status' => [['report_status' => ''] + $good, ['report_status is empty']],
+            'no signed time' => [['report_signed' => ''] + $good, ["report_signed '' is not a date and time"]],
+            'an impossible time' => [['report_signed' => '10/14/2026 25:00'] + $good, ["report_signed '10/14/2026 25:00' is not a date and time"]],
+            'no text' => [['report_text' => ''] + $good, ['report_text is empty']],
+            'text that is not escaped' => [['report_text' => 'a "quoted" word'] + $good, ['report_text is not JSON-escaped text']],
+            'a bad escape' => [['report_text' => 'bad \\q escape'] + $good, ['report_text is not JSON-escaped text']],
+            'only white space' => [['report_text' => '\\n \\n'] + $good, ['report_text is not JSON-escaped text']],
+            'everything wrong' => [
+                ['report_signed' => 'soon', 'report_status' => 'Draft', 'report_text' => ''],
+                ["report_status 'Draft': the report is not final", "report_signed 'soon' is not a date and time", 'report_text is empty'],
+            ],
+        ];
+    }
+
+    /**
+     * @param array<string, string> $columns
+     * @param list<string> $problems
+     */
+    #[Test]
+    #[DataProvider('reportProblemProvider')]
+    public function aReportThatCannotBeUsedHoldsTheLine(array $columns, array $problems): void
+    {
+        $parsed = (new ChargeRowParser())->parse(self::row($columns));
+
+        $this->assertNull($parsed->report);
+        $this->assertFalse($parsed->isImportable());
+        $this->assertSame($problems, $parsed->problems);
     }
 
     #[Test]

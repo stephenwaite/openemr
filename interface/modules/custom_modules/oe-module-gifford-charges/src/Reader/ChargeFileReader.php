@@ -7,9 +7,11 @@
  * The first row is normally the header. Column names are matched case-insensitively and
  * the columns may come in any order; extra columns are kept and ignored later. A file
  * whose first row names none of the required columns is read without a header, in the
- * sample's column order (SAMPLE_LAYOUT), as Gifford's live export comes, but only when
- * every row has exactly that many fields. A .txt file is UTF-8, or UTF-16 with a
- * byte-order mark. Fully blank rows are skipped. Values are returned as trimmed strings:
+ * sample's column order (SAMPLE_LAYOUT), as Gifford's live export comes, or in that
+ * order followed by the three report columns (REPORT_COLUMNS) the billing-system feed
+ * adds, but only when every row has exactly that many fields. A .txt file is UTF-8, or
+ * UTF-16 with a byte-order mark; a text file sent with an .xlsx name (Gifford's SFTP
+ * script only sends .xlsx) is read as text. Fully blank rows are skipped. Values are returned as trimmed strings:
  * an .xlsx number cell becomes its plain decimal form ("25917", not "25917.0"), so Excel
  * serial dates reach the parser unchanged.
  *
@@ -74,6 +76,12 @@ final class ChargeFileReader
     ];
 
     /**
+     * What the billing-system (BAR) feed adds after the sample's columns: when the report
+     * was signed, its status, and its text as a JSON string body (\n for a line break).
+     */
+    public const REPORT_COLUMNS = ['report_signed', 'report_status', 'report_text'];
+
+    /**
      * @return list<RawRow>
      */
     public function read(string $path): array
@@ -84,7 +92,7 @@ final class ChargeFileReader
 
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         $table = match ($extension) {
-            'xlsx' => $this->xlsxTable($path),
+            'xlsx' => self::isZip($path) ? $this->xlsxTable($path) : $this->textTable($path),
             'csv' => $this->csvTable($path),
             'txt' => $this->textTable($path),
             default => throw new ChargeFileException('Charge file must be .xlsx, .csv or .txt'),
@@ -99,16 +107,18 @@ final class ChargeFileReader
             $table[0]
         );
         if (array_intersect(self::REQUIRED_COLUMNS, $firstRow) === []) {
-            $header = self::SAMPLE_LAYOUT;
+            $withReport = [...self::SAMPLE_LAYOUT, ...self::REPORT_COLUMNS];
+            $header = count($table[0]) === count($withReport) ? $withReport : self::SAMPLE_LAYOUT;
             // No header: the first data row is line 1.
             $firstLine = 1;
             foreach ($table as $index => $cells) {
                 if (count($cells) !== count($header) && trim(implode('', $cells)) !== '') {
                     throw new ChargeFileException(sprintf(
-                        'Charge file has no header line and line %d has %d fields, not the sample layout\'s %d',
+                        'Charge file has no header line and line %d has %d fields, not the sample layout\'s %d or %d with the report columns',
                         $index + 1,
                         count($cells),
-                        count($header)
+                        count(self::SAMPLE_LAYOUT),
+                        count($withReport)
                     ));
                 }
             }
@@ -209,6 +219,12 @@ final class ChargeFileReader
             array_pop($table);
         }
         return $table;
+    }
+
+    /** An .xlsx file is a zip archive; anything else under that name is taken as text. */
+    private static function isZip(string $path): bool
+    {
+        return file_get_contents($path, false, null, 0, 2) === 'PK';
     }
 
     private static function cellText(mixed $value): string
