@@ -115,6 +115,28 @@ final class ChargeLineRepository
     }
 
     /**
+     * The patient's charges posted for this date and still billed, other than $lineId's:
+     * each code with the modifiers on its billing line now (a person may have changed them
+     * in the fee sheet since it posted).
+     *
+     * @return list<array{code: string, modifiers: list<string>}>
+     */
+    public function postedThatDay(string $mrn, \DateTimeImmutable $dateOfService, int $lineId): array
+    {
+        $rows = QueryUtils::fetchRecords(
+            'SELECT l.`code`, b.`modifier` FROM `gifford_charge_line` AS l JOIN `billing` AS b ON b.`id` = l.`billing_id`'
+            . ' WHERE l.`mrn` = ? AND l.`date_of_service` = ? AND l.`status` = ? AND l.`id` <> ? AND b.`activity` = 1'
+            . ' ORDER BY l.`id`',
+            [$mrn, $dateOfService->format('Y-m-d'), LineStatus::Posted->value, $lineId]
+        );
+
+        return array_map(static fn (array $row): array => [
+            'code' => strtoupper(self::text($row['code'] ?? null)),
+            'modifiers' => array_values(array_filter(explode(':', strtoupper(self::text($row['modifier'] ?? null))), static fn (string $m): bool => $m !== '')),
+        ], $rows);
+    }
+
+    /**
      * Whether one of $codes is posted for the patient on this date.
      *
      * @param non-empty-list<string> $codes

@@ -79,7 +79,7 @@ class ChargePosterTest extends TestCase
         }
         $loader->addPsr4('Cmsvt\\OpenEMR\\Modules\\GiffordCharges\\', self::root() . self::MODULE_DIR . '/src/');
 
-        if (!QueryUtils::existsTable('gifford_measure')) {
+        if (!QueryUtils::existsTable('gifford_cci_edit')) {
             $install = new SQLUpgradeService();
             $install->setRenderOutputToScreen(false);
             $install->setThrowExceptionOnError(true);
@@ -157,6 +157,7 @@ class ChargePosterTest extends TestCase
         QueryUtils::sqlStatementThrowException('DELETE FROM `gifford_payer_map` WHERE `mnemonic` LIKE ?', ['%' . $this->token]);
         QueryUtils::sqlStatementThrowException('DELETE FROM `facility` WHERE `id` = ?', [$this->facilityId]);
         QueryUtils::sqlStatementThrowException('DELETE FROM `icd10_dx_order_code` WHERE `short_desc` = ?', ['Test ' . $this->token]);
+        QueryUtils::sqlStatementThrowException('DELETE FROM `gifford_cci_edit` WHERE `column1` IN (?, ?)', [$this->code, $this->bareCode]);
         parent::tearDown();
     }
 
@@ -325,6 +326,70 @@ class ChargePosterTest extends TestCase
         QueryUtils::sqlStatementThrowException('UPDATE `gifford_charge_line` SET `released` = 1 WHERE `id` = ?', [$changed]);
         $this->assertSame(1, $this->post()->posted);
         $this->assertSame('posted', $this->line($changed)['status']);
+    }
+
+    public function testTheColumn2CodeOfAnNcciPairPostsWith59(): void
+    {
+        $this->cciEdit($this->code, $this->bareCode, '1');
+        [$column1, $column2, $otherDay, $distinct] = $this->stage([
+            $this->row(),
+            $this->row(['chg_cpt' => $this->bareCode, 'chg_mod1' => 'RT', 'chg_accession' => 'H' . $this->token]),
+            // The same pair on another day, the column 2 code alone that day: no 59.
+            $this->row(['chg_cpt' => $this->bareCode, 'chg_dos' => '08/21/2026', 'enc_admit_date' => '08/21/2026', 'chg_accession' => 'I' . $this->token]),
+            // Gifford's own XU is kept and nothing is added.
+            $this->row(['chg_dos' => '08/22/2026', 'enc_admit_date' => '08/22/2026', 'chg_accession' => 'J' . $this->token]),
+        ]);
+        [$withXu] = $this->stage([
+            $this->row(['chg_cpt' => $this->bareCode, 'chg_mod1' => 'XU', 'chg_dos' => '08/22/2026', 'enc_admit_date' => '08/22/2026', 'chg_accession' => 'K' . $this->token]),
+        ]);
+
+        $this->assertSame(5, $this->post()->posted);
+        $this->assertSame(
+            ['26', 'RT:59', '', '26', 'XU'],
+            array_map($this->billedModifier(...), [$column1, $column2, $otherDay, $distinct, $withXu])
+        );
+    }
+
+    public function testAnNcciPairThatAllowsNoModifierHoldsTheColumn2Line(): void
+    {
+        $this->cciEdit($this->code, $this->bareCode, '0');
+        [$column1, $column2] = $this->stage([
+            $this->row(),
+            $this->row(['chg_cpt' => $this->bareCode, 'chg_accession' => 'H' . $this->token]),
+        ]);
+
+        $this->assertSame(1, $this->post()->posted);
+        $this->assertSame(['posted', 'held'], [$this->line($column1)['status'], $this->line($column2)['status']]);
+        $this->assertSame(
+            ['NCCI: ' . $this->bareCode . ' is not billed with ' . $this->code . ' for this patient on 2026-08-20 (no modifier allowed); post it anyway, or skip it'],
+            $this->problems($column2)
+        );
+
+        // A person posts it anyway: as sent, no 59.
+        QueryUtils::sqlStatementThrowException('UPDATE `gifford_charge_line` SET `released` = 1 WHERE `id` = ?', [$column2]);
+        $this->assertSame(1, $this->post()->posted);
+        $this->assertSame('', $this->billedModifier($column2));
+    }
+
+    public function testAPostedColumn2CodeMissingIts59HoldsTheNewLineUntilItIsAdded(): void
+    {
+        $this->cciEdit($this->code, $this->bareCode, '1');
+        [$column2] = $this->stage([$this->row(['chg_cpt' => $this->bareCode, 'chg_accession' => 'H' . $this->token])]);
+        $this->assertSame(1, $this->post()->posted);
+        $this->assertSame('', $this->billedModifier($column2), 'alone that day, it posted without 59');
+
+        [$column1] = $this->stage([$this->row()]);
+        $this->assertSame(0, $this->post()->posted);
+        $this->assertSame(
+            ['NCCI: ' . $this->bareCode . ', already posted for this patient on 2026-08-20, needs modifier 59 to be billed with ' . $this->code
+                . '; add it in the fee sheet and this line posts on the next run, or post it anyway, or skip it'],
+            $this->problems($column1)
+        );
+
+        // A person adds 59 to the earlier charge in the fee sheet.
+        QueryUtils::sqlStatementThrowException("UPDATE `billing` SET `modifier` = '59' WHERE `id` = ?", [$this->line($column2)['billing_id']]);
+        $this->assertSame(1, $this->post()->posted);
+        $this->assertSame('26', $this->billedModifier($column1));
     }
 
     public function testTheSameCodeTwiceInOneFileIsHeldAsARepeatUntilPostedWith76(): void
@@ -686,6 +751,19 @@ class ChargePosterTest extends TestCase
             'emp_state' => 'VT',
             'emp_zip' => '05602',
         ];
+    }
+
+    private function cciEdit(string $column1, string $column2, string $indicator): void
+    {
+        QueryUtils::sqlStatementThrowException(
+            'INSERT INTO `gifford_cci_edit` (`column1`, `column2`, `indicator`) VALUES (?, ?, ?)',
+            [$column1, $column2, $indicator]
+        );
+    }
+
+    private function billedModifier(int $lineId): string
+    {
+        return self::text(QueryUtils::fetchSingleValue('SELECT `modifier` FROM `billing` WHERE `id` = ?', 'modifier', [$this->line($lineId)['billing_id']]));
     }
 
     private function repeatProblem(string $otherAccession): string

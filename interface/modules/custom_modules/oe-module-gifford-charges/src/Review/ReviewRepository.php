@@ -16,6 +16,7 @@ namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Review;
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Parse\ChargeRowParser;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMap;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargePoster;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PriceBook;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\RawRow;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\LineStatus;
@@ -81,6 +82,7 @@ final readonly class ReviewRepository
                 self::text($row['added_modifier'] ?? null),
                 ReportView::fromRaw($raw),
                 array_filter($problems, static fn (string $p): bool => str_starts_with($p, PriceBook::EXPECTED_DENIAL_PREFIX)) !== [],
+                array_filter($problems, static fn (string $p): bool => str_starts_with($p, ChargePoster::CCI_PREFIX)) !== [],
             );
         }
 
@@ -162,7 +164,7 @@ final readonly class ReviewRepository
     }
 
     /**
-     * Let a line held as a corrected re-send, for Gifford's GZ modifier, or as a repeat
+     * Let a line held as a corrected re-send, for Gifford's GZ modifier, by an NCCI edit, or as a repeat
      * procedure with the modifier to add (76 or 77), post on the next run. Returns false
      * when it isn't held.
      */

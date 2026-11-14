@@ -87,3 +87,14 @@ CREATE TABLE IF NOT EXISTS `gifford_measure` (
     UNIQUE KEY `line_id` (`line_id`),
     KEY `status` (`status`)
 ) ENGINE=InnoDB;
+
+-- NCCI procedure-to-procedure edits, loaded by `bin/console gifford:cci-import` from the
+-- billing system's unloaded CCIFILE. Posting adds modifier 59 to the column 2 code of a
+-- pair billed for one patient on one day when the indicator allows it.
+CREATE TABLE IF NOT EXISTS `gifford_cci_edit` (
+    `column1` CHAR(5) NOT NULL COMMENT 'the comprehensive code',
+    `column2` CHAR(5) NOT NULL COMMENT 'the component code, which carries the modifier',
+    `indicator` CHAR(1) NOT NULL COMMENT '0: not billed together; 1: billed together with modifier 59; 9: edit deleted',
+    PRIMARY KEY (`column1`, `column2`),
+    KEY `column2` (`column2`)
+) ENGINE=InnoDB;

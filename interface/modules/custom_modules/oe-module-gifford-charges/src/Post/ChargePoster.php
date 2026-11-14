@@ -15,6 +15,8 @@ declare(strict_types=1);
 
 namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Post;
 
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Cci\CciEdits;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Cci\CciIndicator;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\Measure;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureAnswers;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureRepository;
@@ -64,6 +66,18 @@ final readonly class ChargePoster
     /** form_encounter.external_id's width. */
     private const VISIT_NUMBER_MAX = 20;
 
+    /** The start of the problem an NCCI edit holds a line with. */
+    public const CCI_PREFIX = 'NCCI:';
+
+    /** The modifier added to the column 2 code of an NCCI pair that allows one. */
+    private const DISTINCT_SERVICE = '59';
+
+    /** Modifiers that already say a service was distinct: 59 and its four subsets. */
+    private const DISTINCT_MODIFIERS = ['59', 'XE', 'XS', 'XP', 'XU'];
+
+    /** billing.modifier holds this many characters. */
+    private const MODIFIER_MAX = 12;
+
     /** Modifiers that say where on the body a procedure was done (50, both sides, is RT + LT). */
     private const SITE_MODIFIERS = [
         'RT', 'LT', 'E1', 'E2', 'E3', 'E4', 'LC', 'LD', 'LM', 'RC', 'RI',
@@ -82,6 +96,7 @@ final readonly class ChargePoster
         private AddOnCodes $addOns = new AddOnCodes(),
         private MeasureRules $rules = new MeasureRules(),
         private MeasureRepository $measures = new MeasureRepository(),
+        private CciEdits $cci = new CciEdits(),
     ) {
     }
 
@@ -92,6 +107,10 @@ final readonly class ChargePoster
 
         /** @var array<string, list<array{line: PendingLine, parsed: ParsedRow}>> $groups */
         $groups = [];
+        // Every pending line's code by patient and day, whatever the visit: an NCCI pair
+        // counts even while its other code waits (for measure answers, say).
+        /** @var array<string, array<int, string>> $pendingCodes line id => code */
+        $pendingCodes = [];
         foreach ($this->lines->pendingLines() as $line) {
             $parsed = $this->parser->parse($line->row);
             if (!$parsed->isImportable() || $parsed->charge === null || $parsed->patient === null || $parsed->encounter === null) {
@@ -101,10 +120,14 @@ final readonly class ChargePoster
             }
             $key = implode("\x1F", [$parsed->patient->mrn, $parsed->encounter->visitNumber, $parsed->charge->dateOfService->format('Y-m-d')]);
             $groups[$key][] = ['line' => $line, 'parsed' => $parsed];
+            $pendingCodes[self::dayKey($parsed->patient->mrn, $parsed->charge->dateOfService)][$line->id] = strtoupper($parsed->charge->code);
         }
 
+        $checkCci = $this->cci->count() > 0;
         foreach ($groups as $group) {
-            $this->postGroup($group, $settings, $now, $result);
+            $first = $group[0]['parsed'];
+            $day = $first->patient === null || $first->charge === null ? '' : self::dayKey($first->patient->mrn, $first->charge->dateOfService);
+            $this->postGroup($group, $settings, $now, $result, $checkCci ? ($pendingCodes[$day] ?? []) : null);
         }
 
         return $result;
@@ -112,8 +135,9 @@ final readonly class ChargePoster
 
     /**
      * @param list<array{line: PendingLine, parsed: ParsedRow}> $group
+     * @param ?array<int, string> $pendingCodes the patient's pending codes that day by line id; null: no NCCI check
      */
-    private function postGroup(array $group, PostSettings $settings, \DateTimeImmutable $now, PostResult $result): void
+    private function postGroup(array $group, PostSettings $settings, \DateTimeImmutable $now, PostResult $result, ?array $pendingCodes = null): void
     {
         if ($group === []) {
             return;
@@ -259,6 +283,27 @@ final readonly class ChargePoster
             unset($ready[$i]);
         }
         $ready = array_values($ready);
+
+        // NCCI: the column 2 code of a pair billed that day takes 59 when the edit allows a
+        // modifier; a pair that allows none, or a posted column 2 code missing its 59, holds
+        // the line for a person.
+        $checked = [];
+        foreach ($ready as $r) {
+            if ($pendingCodes === null) {
+                $checked[] = $r;
+                continue;
+            }
+            $others = $pendingCodes;
+            unset($others[$r['line']->id]);
+            [$priced, $cciProblems] = $this->cciCheck($r['line'], $r['charge'], $r['priced'], array_values($others), $patient->mrn);
+            if ($cciProblems !== []) {
+                $this->lines->hold($r['line']->id, $cciProblems, $now);
+                $result->held++;
+                continue;
+            }
+            $checked[] = ['line' => $r['line'], 'charge' => $r['charge'], 'priced' => $priced, 'providerId' => $r['providerId'], 'measures' => $r['measures'], 'answers' => $r['answers']];
+        }
+        $ready = $checked;
         if ($ready === []) {
             return;
         }
@@ -299,6 +344,84 @@ final readonly class ChargePoster
                 }
             }
         });
+    }
+
+    /**
+     * The NCCI edits between this charge and the patient's other codes that day, pending
+     * or posted. Returns the price to post with (59 added when this is the column 2 code of
+     * a pair that allows a modifier and it has none of 59, XE, XS, XP, XU) and the problems
+     * that hold the line instead. A released line is never held here.
+     *
+     * @param list<string> $pendingCodes the patient's other pending codes that day
+     * @return array{PricedCharge, list<string>}
+     */
+    private function cciCheck(PendingLine $line, ChargeRecord $charge, PricedCharge $priced, array $pendingCodes, string $mrn): array
+    {
+        $code = strtoupper($charge->code);
+        $date = $charge->dateOfService->format('Y-m-d');
+        $modifiers = array_values(array_filter(explode(':', strtoupper($priced->modifier)), static fn (string $m): bool => $m !== ''));
+        $distinct = array_intersect(self::DISTINCT_MODIFIERS, $modifiers) !== [];
+        $needs59 = false;
+        $problems = [];
+
+        $others = [];
+        foreach ($pendingCodes as $other) {
+            $others[$other] ??= null;
+        }
+        foreach ($this->lines->postedThatDay($mrn, $charge->dateOfService, $line->id) as $posted) {
+            // Posted wins over pending for the same code: its modifiers are on a claim line.
+            $others[$posted['code']] = array_merge($others[$posted['code']] ?? [], $posted['modifiers']);
+        }
+        unset($others[$code]);
+
+        foreach ($others as $other => $postedModifiers) {
+            $other = (string) $other;
+            $edit = $this->cci->between($code, $other);
+            if ($edit === null || $edit->indicator === CciIndicator::NotApplicable) {
+                continue;
+            }
+            $isColumn2 = $edit->column2 === $code;
+            if ($edit->indicator === CciIndicator::NotAllowed) {
+                // Column 1 is the code that is paid: it posts while the other is only pending,
+                // and the column 2 line is the one held.
+                if ($isColumn2) {
+                    $problems[] = sprintf('%s %s is not billed with %s for this patient on %s (no modifier allowed); post it anyway, or skip it', self::CCI_PREFIX, $code, $other, $date);
+                } elseif ($postedModifiers !== null) {
+                    $problems[] = sprintf('%s %s, already posted for this patient on %s, is not billed with %s (no modifier allowed); post this line anyway, or skip it', self::CCI_PREFIX, $other, $date, $code);
+                }
+                continue;
+            }
+            if ($isColumn2) {
+                $needs59 = true;
+            } elseif ($postedModifiers !== null && array_intersect(self::DISTINCT_MODIFIERS, $postedModifiers) === []) {
+                $problems[] = sprintf(
+                    '%s %s, already posted for this patient on %s, needs modifier 59 to be billed with %s; add it in the fee sheet and this line posts on the next run, or post it anyway, or skip it',
+                    self::CCI_PREFIX,
+                    $other,
+                    $date,
+                    $code
+                );
+            }
+        }
+
+        if ($line->released) {
+            $problems = [];
+        }
+        if ($needs59 && !$distinct) {
+            $modifier = $priced->modifier === '' ? self::DISTINCT_SERVICE : $priced->modifier . ':' . self::DISTINCT_SERVICE;
+            if (strlen($modifier) > self::MODIFIER_MAX) {
+                $problems[] = 'too many modifiers: ' . $modifier;
+            } else {
+                $priced = new PricedCharge($modifier, $priced->unitFeeCents, $priced->codeText);
+            }
+        }
+
+        return [$priced, $problems];
+    }
+
+    private static function dayKey(string $mrn, \DateTimeImmutable $dateOfService): string
+    {
+        return $mrn . "\x1F" . $dateOfService->format('Y-m-d');
     }
 
     /**
