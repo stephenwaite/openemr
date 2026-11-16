@@ -247,6 +247,20 @@ class ChargePosterTest extends TestCase
         );
     }
 
+    public function testAChargeTakesTheVisitsFirstTwoDiagnoses(): void
+    {
+        [$first, $second, $third] = $this->diagnosisCodes(3);
+        [$lineId] = $this->stage([$this->row(['enc_dx_codes' => "$first,$second,$third"])]);
+
+        $this->post();
+
+        $this->assertSame('posted', $this->line($lineId)['status']);
+        $this->assertSame(
+            [['ICD10', $first, ''], ['ICD10', $second, ''], ['CPT4', $this->code, "ICD10|$first:ICD10|$second:"]],
+            $this->billed($lineId)
+        );
+    }
+
     public function testAnUnmappedPayerHoldsTheLineUntilItIsMapped(): void
     {
         [$lineId] = $this->stage([$this->row(['ins1_mnemonic' => 'NEW' . $this->token, 'ins1_payer_name' => 'NEW PLAN'])]);

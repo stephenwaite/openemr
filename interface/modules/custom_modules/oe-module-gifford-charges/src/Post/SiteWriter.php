@@ -304,12 +304,12 @@ final class SiteWriter
     /**
      * The procedure line, unbilled, so it shows in the Billing Manager.
      *
-     * @param list<string> $diagnoses pointed to by the line, at most four
+     * @param list<string> $diagnoses pointed to by the line, already cut to the two a charge takes
      * @return int billing.id
      */
     public function addCharge(int $pid, int $encounter, ChargeRecord $charge, PricedCharge $priced, int $providerId, array $diagnoses): int
     {
-        $justify = implode('', array_map(static fn (string $dx): string => 'ICD10|' . $dx . ':', array_slice($diagnoses, 0, 4)));
+        $justify = implode('', array_map(static fn (string $dx): string => 'ICD10|' . $dx . ':', $diagnoses));
 
         return $this->insertBilling(
             $pid,
@@ -328,11 +328,11 @@ final class SiteWriter
     /**
      * A quality measure G-code beside the charge: no fee, the coder as the user.
      *
-     * @param list<string> $diagnoses the charge's, at most four
+     * @param list<string> $diagnoses the charge's, already cut to two
      */
     public function addMeasureCode(int $pid, int $encounter, string $code, int $providerId, array $diagnoses, int $userId): int
     {
-        $justify = implode('', array_map(static fn (string $dx): string => 'ICD10|' . $dx . ':', array_slice($diagnoses, 0, 4)));
+        $justify = implode('', array_map(static fn (string $dx): string => 'ICD10|' . $dx . ':', $diagnoses));
 
         return $this->insertBilling($pid, $encounter, 'HCPCS', $code, Measure::codeText($code), $providerId, '', 1, '0.00', $justify, $userId > 0 ? $userId : null);
     }

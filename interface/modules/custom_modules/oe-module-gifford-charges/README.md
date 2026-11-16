@@ -59,11 +59,12 @@ in one transaction:
   place of service (`pos_code`), the rendering provider (the active, authorized user
   with `prov_rend_npi`) and the referring provider (any user with `prov_ref_npi`, else a
   new address book entry, External Provider, with the file's name and NPI).
-- **Billing:** the encounter's diagnoses (`enc_dx_codes`) it does not have yet, then the
+- **Billing:** the visit's first two diagnoses (`enc_dx_codes`) the encounter does not have yet, then the
   charge, unbilled, so it is in the Billing Manager. A code priced on the site with
   modifier 26 (standard price level) is billed as code-26, Gifford's modifiers after it
   (`26:RT`); a code priced only without a modifier is billed bare. Fee = price x units;
-  the line points to the visit's first four diagnoses.
+  the line points to the visit's first two diagnoses, and only those two go on the
+  encounter (the coders put two on a charge at most).
 
 A line is **held**, with the reason in `gifford_charge_line.problems_json`, when the row
 has problems, a payer mnemonic is not mapped, the rendering NPI is not a provider on the
