@@ -285,7 +285,8 @@ final readonly class ChargePoster
                 $result->measures++;
             }
             // The diagnoses: Gifford's for the visit, or the accession's own once settled.
-            $diagnoses = $visit->diagnoses;
+            // The coders put two on a charge at most, so the visit's stop there as well.
+            $diagnoses = array_slice($visit->diagnoses, 0, DxRepository::MAX_CODES);
             if ($this->dx !== null) {
                 $diagnoses = $this->dx->codesFor($charge->accession);
                 if ($diagnoses === null) {
