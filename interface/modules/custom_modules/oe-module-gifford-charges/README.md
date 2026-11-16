@@ -137,7 +137,7 @@ problem.
   the Medicare list for the exam when Medicare or Medicare Advantage is primary), and its
   first code is among the codes Gifford sent (`Dx\DxRule`).
 - Every other accession waits on Fees > Gifford Diagnoses, where the coder sees the report,
-  Gifford's indication and codes, the suggestion and why it waits, and saves up to four
+  Gifford's indication and codes, the suggestion and why it waits, and saves up to two
   codes in claim order. An accession with no suggestion loaded can be coded there too.
   Accessions nothing else holds are listed first. The page counts how often the coders kept
   the suggestion, kept its first code, or changed it.

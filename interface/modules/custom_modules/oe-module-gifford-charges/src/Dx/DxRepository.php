@@ -31,8 +31,8 @@ final readonly class DxRepository
     /** The problem a held line carries while its accession's diagnoses are not settled. */
     public const PROBLEM = 'diagnosis: confirm it on Fees > Gifford Diagnoses';
 
-    /** A claim line points to this many diagnoses. */
-    public const MAX_CODES = 4;
+    /** The coders put at most this many diagnoses on a charge (a claim line could point to four). */
+    public const MAX_CODES = 2;
 
     public const STATUS_PENDING = 'pending';
     public const STATUS_AGREED = 'agreed';
@@ -176,7 +176,7 @@ final readonly class DxRepository
             $errors[] = 'enter at least one code';
         }
         if (count($codes) > self::MAX_CODES) {
-            $errors[] = sprintf('a claim line points to %d diagnoses at most', self::MAX_CODES);
+            $errors[] = sprintf('a charge takes %d diagnoses at most', self::MAX_CODES);
         }
         $invalid = $this->invalidCodes($codes);
         if ($invalid !== []) {

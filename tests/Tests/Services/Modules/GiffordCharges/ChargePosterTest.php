@@ -792,23 +792,27 @@ class ChargePosterTest extends TestCase
         $this->assertSame(['enter at least one code'], $dx->confirm($accession, ' ', 7, $now));
         $this->assertSame(['71046 is not an ICD-10 code', 'not valid for coding: Q99.9Z'], $dx->confirm($accession, '71046 Q999Z', 7, $now));
         $this->assertSame(
-            ['a claim line points to 4 diagnoses at most', 'not valid for coding: Q99.9Y, Q99.9Z'],
+            ['a charge takes 2 diagnoses at most', 'not valid for coding: Q99.9Y, Q99.9Z'],
             $dx->confirm($accession, "$first $second $third Q999Y Q999Z", 7, $now)
         );
         $this->assertNull($dx->codesFor($accession));
 
-        // The coder changes the order and adds one: without dots, commas or spaces.
-        $this->assertSame([], $dx->confirm($accession, str_replace('.', '', $second) . ', ' . strtolower($first) . ' ' . $third, 7, $now));
-        $this->assertSame([$second, $first, $third], $dx->codesFor($accession));
+        // Three valid codes are one too many.
+        $this->assertSame(['a charge takes 2 diagnoses at most'], $dx->confirm($accession, "$first $second $third", 7, $now));
+        $this->assertNull($dx->codesFor($accession));
+
+        // The coder changes the order: without dots, with a comma, in lower case.
+        $this->assertSame([], $dx->confirm($accession, str_replace('.', '', $second) . ', ' . strtolower($first), 7, $now));
+        $this->assertSame([$second, $first], $dx->codesFor($accession));
         // A later suggestion doesn't undo the coder.
         $this->assertFalse($dx->saveSuggestion($accession, $suggested, [], 'run-2', $now));
 
         $this->post(dx: $dx);
 
         $this->assertSame('posted', $this->line($lineId)['status']);
-        $justify = "ICD10|$second:ICD10|$first:ICD10|$third:";
+        $justify = "ICD10|$second:ICD10|$first:";
         $this->assertSame(
-            [['ICD10', $second, ''], ['ICD10', $first, ''], ['ICD10', $third, ''], ['CPT4', $this->code, $justify]],
+            [['ICD10', $second, ''], ['ICD10', $first, ''], ['CPT4', $this->code, $justify]],
             $this->billed($lineId)
         );
         $this->assertSame([], array_filter($dx->pending(), static fn ($p): bool => $p->accession === $accession));
