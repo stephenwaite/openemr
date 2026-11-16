@@ -17,6 +17,7 @@ namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Post;
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Cci\CciEdits;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Cci\CciIndicator;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\Measure;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureAnswers;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureRepository;
@@ -58,6 +59,11 @@ use Psr\Clock\ClockInterface;
  * answers, or releases it, on Fees > Quality Measures; it then posts with the claims
  * measures' G-codes beside it. The visit's other lines post meanwhile.
  *
+ * With a DxRepository (the Code Diagnoses From the Report setting), a charge posts with its
+ * accession's diagnoses, read from the report and agreed or confirmed (DxRule), not with
+ * the visit's diagnoses Gifford sent; it is held until they are settled on Fees > Gifford
+ * Diagnoses, and a line Gifford sent with no diagnosis is no longer a problem.
+ *
  * The patient's address, phone, email, guarantor and employer follow the file whose date of
  * service is the newest posted for them (PatientDetailsWriter).
  */
@@ -97,7 +103,25 @@ final readonly class ChargePoster
         private MeasureRules $rules = new MeasureRules(),
         private MeasureRepository $measures = new MeasureRepository(),
         private CciEdits $cci = new CciEdits(),
+        private ?DxRepository $dx = null,
     ) {
+    }
+
+    /**
+     * The poster as the site is set up: with the diagnoses read from the report when
+     * $confirmDiagnoses (the Code Diagnoses From the Report setting) is on.
+     */
+    public static function forSite(ClockInterface $clock, bool $confirmDiagnoses): self
+    {
+        return new self(
+            new ChargeLineRepository(),
+            new ChargeRowParser(),
+            new PayerMap(),
+            new PriceBook(),
+            new SiteWriter(),
+            $clock,
+            dx: $confirmDiagnoses ? new DxRepository() : null,
+        );
     }
 
     public function run(PostSettings $settings): PostResult
@@ -113,6 +137,9 @@ final readonly class ChargePoster
         $pendingCodes = [];
         foreach ($this->lines->pendingLines() as $line) {
             $parsed = $this->parser->parse($line->row);
+            if ($this->dx !== null) {
+                $parsed = $parsed->without(ChargeRowParser::NO_DIAGNOSES);
+            }
             if (!$parsed->isImportable() || $parsed->charge === null || $parsed->patient === null || $parsed->encounter === null) {
                 $this->lines->hold($line->id, $parsed->problems, $now);
                 $result->held++;
@@ -257,12 +284,21 @@ final readonly class ChargePoster
                 $problems[] = MeasureRepository::PROBLEM;
                 $result->measures++;
             }
-            if ($problems !== [] || $priced === null || $providerId === null) {
+            // The diagnoses: Gifford's for the visit, or the accession's own once settled.
+            $diagnoses = $visit->diagnoses;
+            if ($this->dx !== null) {
+                $diagnoses = $this->dx->codesFor($charge->accession);
+                if ($diagnoses === null) {
+                    $problems[] = DxRepository::PROBLEM;
+                    $result->diagnoses++;
+                }
+            }
+            if ($problems !== [] || $priced === null || $providerId === null || $diagnoses === null) {
                 $this->lines->hold($line->id, $problems, $now);
                 $result->held++;
                 continue;
             }
-            $ready[] = ['line' => $line, 'charge' => $charge, 'priced' => $priced, 'providerId' => $providerId, 'measures' => $needed, 'answers' => $answers];
+            $ready[] = ['line' => $line, 'charge' => $charge, 'priced' => $priced, 'providerId' => $providerId, 'measures' => $needed, 'answers' => $answers, 'diagnoses' => $diagnoses];
         }
 
         // An add-on is billed only beside its primary procedure: hold one until a parent is
@@ -301,7 +337,7 @@ final readonly class ChargePoster
                 $result->held++;
                 continue;
             }
-            $checked[] = ['line' => $r['line'], 'charge' => $r['charge'], 'priced' => $priced, 'providerId' => $r['providerId'], 'measures' => $r['measures'], 'answers' => $r['answers']];
+            $checked[] = ['line' => $r['line'], 'charge' => $r['charge'], 'priced' => $priced, 'providerId' => $r['providerId'], 'measures' => $r['measures'], 'answers' => $r['answers'], 'diagnoses' => $r['diagnoses']];
         }
         $ready = $checked;
         if ($ready === []) {
@@ -331,14 +367,14 @@ final readonly class ChargePoster
                 $encounter = $this->site->createEncounter($pid, $visit, $dateOfService, $ready[0]['providerId'], $referrer, $placeOfService, $settings);
                 $result->encountersCreated++;
             }
-            $this->site->addDiagnoses($pid, $encounter, $visit->diagnoses, $ready[0]['providerId']);
             foreach ($ready as $r) {
-                $billingId = $this->site->addCharge($pid, $encounter, $r['charge'], $r['priced'], $r['providerId'], $visit->diagnoses);
+                $this->site->addDiagnoses($pid, $encounter, $r['diagnoses'], $r['providerId']);
+                $billingId = $this->site->addCharge($pid, $encounter, $r['charge'], $r['priced'], $r['providerId'], $r['diagnoses']);
                 $this->lines->markPosted($r['line']->id, $pid, $encounter, $billingId, $now);
                 $result->posted++;
                 if ($r['answers'] !== null) {
                     foreach ($r['answers']->claimCodes($r['measures']) as $code) {
-                        $this->site->addMeasureCode($pid, $encounter, $code, $r['providerId'], $visit->diagnoses, $r['answers']->userId);
+                        $this->site->addMeasureCode($pid, $encounter, $code, $r['providerId'], $r['diagnoses'], $r['answers']->userId);
                     }
                     $this->measures->markPosted($r['line']->id, $pid, $encounter, $billingId, $now);
                 }
@@ -429,7 +465,7 @@ final readonly class ChargePoster
      * posted (from this file, or from another file on another accession) or ready in this
      * run. None when the line already says it is a repeat (76 or 77 from Gifford or a person).
      *
-     * @param list<array{line: PendingLine, charge: ChargeRecord, priced: PricedCharge, providerId: int, measures: list<Measure>, answers: ?MeasureAnswers}> $ready
+     * @param list<array{line: PendingLine, charge: ChargeRecord, priced: PricedCharge, providerId: int, measures: list<Measure>, answers: ?MeasureAnswers, diagnoses: list<string>}> $ready
      * @return list<string>
      */
     private function repeatOf(PendingLine $line, ChargeRecord $charge, array $ready, string $mrn): array

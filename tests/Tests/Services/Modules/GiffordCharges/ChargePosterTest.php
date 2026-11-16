@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace OpenEMR\Tests\Services\Modules\GiffordCharges;
 
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\Measure;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Parse\ChargeRowParser;
@@ -79,7 +80,7 @@ class ChargePosterTest extends TestCase
         }
         $loader->addPsr4('Cmsvt\\OpenEMR\\Modules\\GiffordCharges\\', self::root() . self::MODULE_DIR . '/src/');
 
-        if (!QueryUtils::existsTable('gifford_cci_edit')) {
+        if (!QueryUtils::existsTable('gifford_dx')) {
             $install = new SQLUpgradeService();
             $install->setRenderOutputToScreen(false);
             $install->setThrowExceptionOnError(true);
@@ -158,6 +159,7 @@ class ChargePosterTest extends TestCase
         QueryUtils::sqlStatementThrowException('DELETE FROM `facility` WHERE `id` = ?', [$this->facilityId]);
         QueryUtils::sqlStatementThrowException('DELETE FROM `icd10_dx_order_code` WHERE `short_desc` = ?', ['Test ' . $this->token]);
         QueryUtils::sqlStatementThrowException('DELETE FROM `gifford_cci_edit` WHERE `column1` IN (?, ?)', [$this->code, $this->bareCode]);
+        QueryUtils::sqlStatementThrowException('DELETE FROM `gifford_dx` WHERE `accession` LIKE ?', ['%' . $this->token]);
         parent::tearDown();
     }
 
@@ -753,6 +755,114 @@ class ChargePosterTest extends TestCase
         ];
     }
 
+    public function testCodingFromTheReportHoldsALineUntilACoderConfirmsItsDiagnoses(): void
+    {
+        [$first, $second, $third] = $this->diagnosisCodes(3);
+        $dx = new DxRepository();
+        $now = new \DateTimeImmutable(self::NOW);
+        $accession = 'A' . $this->token;
+        // Gifford sent no diagnosis: no longer a problem of the row.
+        [$lineId] = $this->stage([$this->row(['enc_dx_codes' => '', 'chg_clinical' => 'Cough', 'report_text' => 'FINDINGS: clear.', 'report_status' => 'Signed', 'report_signed' => '08/21/2026 09:15'])]);
+
+        $result = $this->post(dx: $dx);
+
+        $this->assertGreaterThanOrEqual(1, $result->diagnoses);
+        $this->assertSame(['held', [DxRepository::PROBLEM]], [$this->line($lineId)['status'], $this->problems($lineId)]);
+        $waiting = array_values(array_filter($dx->pending(), static fn ($p): bool => $p->accession === $accession));
+        $this->assertCount(1, $waiting);
+        $this->assertSame(
+            ['Testpatient, Ann', [$this->code], 'Cough', [], false, 'FINDINGS: clear.'],
+            [$waiting[0]->patientName, $waiting[0]->charges, $waiting[0]->indication, $waiting[0]->gifford, $waiting[0]->hasSuggestion, $waiting[0]->report?->text]
+        );
+
+        // A suggestion with a reason to look waits; the coder sees it with the code set's text.
+        $suggested = [
+            ['code' => $first, 'confidence' => 'high', 'rationale' => 'The finding.'],
+            ['code' => $second, 'confidence' => 'medium', 'rationale' => ''],
+        ];
+        $this->assertTrue($dx->saveSuggestion($accession, $suggested, ['Gifford sent no diagnosis'], 'run-1', $now));
+        $this->assertNull($dx->codesFor($accession));
+        $waiting = array_values(array_filter($dx->pending(), static fn ($p): bool => $p->accession === $accession));
+        $this->assertSame(
+            [$first . ' ' . $second, 'Test diagnosis 0', ['Gifford sent no diagnosis'], true],
+            [$waiting[0]->suggestedCodes(), $waiting[0]->suggested[0]['text'], $waiting[0]->reasons, $waiting[0]->hasSuggestion]
+        );
+
+        // Codes that are not codes, not in the code set, or too many are refused.
+        $this->assertSame(['enter at least one code'], $dx->confirm($accession, ' ', 7, $now));
+        $this->assertSame(['71046 is not an ICD-10 code', 'not valid for coding: Q99.9Z'], $dx->confirm($accession, '71046 Q999Z', 7, $now));
+        $this->assertSame(
+            ['a claim line points to 4 diagnoses at most', 'not valid for coding: Q99.9Y, Q99.9Z'],
+            $dx->confirm($accession, "$first $second $third Q999Y Q999Z", 7, $now)
+        );
+        $this->assertNull($dx->codesFor($accession));
+
+        // The coder changes the order and adds one: without dots, commas or spaces.
+        $this->assertSame([], $dx->confirm($accession, str_replace('.', '', $second) . ', ' . strtolower($first) . ' ' . $third, 7, $now));
+        $this->assertSame([$second, $first, $third], $dx->codesFor($accession));
+        // A later suggestion doesn't undo the coder.
+        $this->assertFalse($dx->saveSuggestion($accession, $suggested, [], 'run-2', $now));
+
+        $this->post(dx: $dx);
+
+        $this->assertSame('posted', $this->line($lineId)['status']);
+        $justify = "ICD10|$second:ICD10|$first:ICD10|$third:";
+        $this->assertSame(
+            [['ICD10', $second, ''], ['ICD10', $first, ''], ['ICD10', $third, ''], ['CPT4', $this->code, $justify]],
+            $this->billed($lineId)
+        );
+        $this->assertSame([], array_filter($dx->pending(), static fn ($p): bool => $p->accession === $accession));
+    }
+
+    public function testAnAgreedSuggestionPostsWithItsOwnCodesNotTheVisits(): void
+    {
+        [$first, $second] = $this->diagnosisCodes(2);
+        $dx = new DxRepository();
+        $now = new \DateTimeImmutable(self::NOW);
+        // Two accessions on one visit; Gifford sent the visit's diagnoses on both.
+        [$one, $two] = $this->stage([
+            $this->row(['enc_dx_codes' => "$second,$first"]),
+            $this->row(['enc_dx_codes' => "$second,$first", 'chg_cpt' => $this->bareCode, 'chg_accession' => 'B' . $this->token]),
+        ]);
+        $this->assertSame(
+            ['gifford' => [$second, $first], 'cpts' => [$this->code], 'payer' => $this->payer],
+            $dx->staged('A' . $this->token)
+        );
+        $this->assertNull($dx->staged('Z' . $this->token));
+        $this->assertSame(['Q99.9Z'], $dx->invalidCodes([$first, 'Q99.9Z']));
+        $before = $dx->tally();
+
+        // No reason for a coder: agreed, and the first accession posts while the other waits.
+        $this->assertTrue($dx->saveSuggestion('A' . $this->token, [['code' => $first, 'confidence' => 'high', 'rationale' => '']], [], 'run-1', $now));
+        $this->post(dx: $dx);
+
+        $this->assertSame(['posted', 'held'], [$this->line($one)['status'], $this->line($two)['status']]);
+        $this->assertSame([['ICD10', $first, ''], ['CPT4', $this->code, "ICD10|$first:"]], $this->billed($one));
+
+        // The coder gives the second accession its own code: the encounter gains it.
+        $this->assertSame([], $dx->confirm('B' . $this->token, $second, 7, $now));
+        $this->post(dx: $dx);
+
+        $this->assertSame(
+            [['ICD10', $first, ''], ['CPT4', $this->code, "ICD10|$first:"], ['ICD10', $second, ''], ['CPT4', $this->bareCode, "ICD10|$second:"]],
+            $this->billed($two)
+        );
+        $after = $dx->tally();
+        $this->assertSame(
+            [1, 1, 1],
+            [$after['agreed'] - $before['agreed'], $after['confirmed'] - $before['confirmed'], $after['no_suggestion'] - $before['no_suggestion']]
+        );
+    }
+
+    public function testWithoutCodingFromTheReportALineWithNoDiagnosisIsStillHeld(): void
+    {
+        [$lineId] = $this->stage([$this->row(['enc_dx_codes' => ''])]);
+
+        $this->post();
+
+        $this->assertSame(['held', [ChargeRowParser::NO_DIAGNOSES]], [$this->line($lineId)['status'], $this->problems($lineId)]);
+    }
+
     private function cciEdit(string $column1, string $column2, string $indicator): void
     {
         QueryUtils::sqlStatementThrowException(
@@ -781,15 +891,47 @@ class ChargePosterTest extends TestCase
         return new AddOnCodes(AddOnCodes::PARENTS + [$this->bareCode => [$this->code]]);
     }
 
-    private function post(AddOnCodes $addOns = new AddOnCodes()): PostResult
+    private function post(AddOnCodes $addOns = new AddOnCodes(), ?DxRepository $dx = null): PostResult
     {
         $settings = PostSettings::load($this->facilityId, $this->facilityId);
         $this->assertNotNull($settings);
 
-        return $this->poster($addOns)->run($settings);
+        return $this->poster($addOns, $dx)->run($settings);
     }
 
-    private function poster(AddOnCodes $addOns): ChargePoster
+    /**
+     * Made-up diagnosis codes in the site's code set, valid for coding.
+     *
+     * @return list<string> with the dot
+     */
+    private function diagnosisCodes(int $count): array
+    {
+        $codes = [];
+        for ($i = 0; $i < $count; $i++) {
+            $code = 'U' . (7 - $i) . $this->token[0] . '.' . substr($this->token, 1, 2);
+            QueryUtils::sqlStatementThrowException(
+                'INSERT INTO `icd10_dx_order_code` (`dx_code`, `formatted_dx_code`, `valid_for_coding`, `short_desc`, `long_desc`, `active`, `revision`)'
+                . " VALUES (?, ?, '1', ?, ?, 1, 1)",
+                [str_pad(str_replace('.', '', $code), 7), str_pad($code, 10), 'Test ' . $this->token, 'Test diagnosis ' . $i . "\r\n"]
+            );
+            $codes[] = $code;
+        }
+
+        return $codes;
+    }
+
+    /**
+     * @return list<list<string>> [code type, code, justify] of the encounter's billing rows, in order
+     */
+    private function billed(int $lineId): array
+    {
+        return array_map(
+            static fn (array $r): array => array_values(array_map(self::text(...), $r)),
+            QueryUtils::fetchRecords('SELECT `code_type`, `code`, `justify` FROM `billing` WHERE `encounter` = ? ORDER BY `id`', [$this->line($lineId)['encounter']])
+        );
+    }
+
+    private function poster(AddOnCodes $addOns, ?DxRepository $dx = null): ChargePoster
     {
         $clock = $this->createStub(ClockInterface::class);
         $clock->method('now')->willReturn(new \DateTimeImmutable(self::NOW));
@@ -802,6 +944,7 @@ class ChargePosterTest extends TestCase
             new SiteWriter(),
             $clock,
             addOns: $addOns,
+            dx: $dx,
         );
     }
 

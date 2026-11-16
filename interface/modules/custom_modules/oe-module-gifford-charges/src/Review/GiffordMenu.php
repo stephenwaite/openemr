@@ -20,6 +20,7 @@ use stdClass;
 final class GiffordMenu
 {
     public const URL = '/interface/modules/custom_modules/oe-module-gifford-charges/public/review.php';
+    public const DX_URL = '/interface/modules/custom_modules/oe-module-gifford-charges/public/dx.php';
     public const MEASURES_URL = '/interface/modules/custom_modules/oe-module-gifford-charges/public/measures.php';
 
     public function apply(MenuEvent $event): void
@@ -36,12 +37,14 @@ final class GiffordMenu
                 $result[] = $child;
                 if ($child instanceof stdClass && ($child->menu_id ?? null) === 'bil0') {
                     $result[] = self::entry();
+                    $result[] = self::dxEntry();
                     $result[] = self::measuresEntry();
                     $added = true;
                 }
             }
             if (!$added) {
                 $result[] = self::entry();
+                $result[] = self::dxEntry();
                 $result[] = self::measuresEntry();
             }
             $item->children = $result;
@@ -56,6 +59,20 @@ final class GiffordMenu
         $entry->menu_id = 'gif0';
         $entry->target = 'gif';
         $entry->url = self::URL;
+        $entry->children = [];
+        $entry->requirement = 0;
+        $entry->acl_req = ['acct', 'bill', 'write'];
+
+        return $entry;
+    }
+
+    private static function dxEntry(): stdClass
+    {
+        $entry = new stdClass();
+        $entry->label = xl('Gifford Diagnoses');
+        $entry->menu_id = 'gif2';
+        $entry->target = 'gifdx';
+        $entry->url = self::DX_URL;
         $entry->children = [];
         $entry->requirement = 0;
         $entry->acl_req = ['acct', 'bill', 'write'];

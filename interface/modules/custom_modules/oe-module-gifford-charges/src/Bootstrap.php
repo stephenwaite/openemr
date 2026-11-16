@@ -16,6 +16,7 @@ namespace Cmsvt\OpenEMR\Modules\GiffordCharges;
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Billing\GiffordClaimRules;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Command\ImportCciCommand;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Command\ImportDxCommand;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Command\ImportPayersCommand;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Globals\GiffordGlobals;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Review\GiffordMenu;
@@ -50,6 +51,7 @@ final readonly class Bootstrap
             static function (CommandRunnerFilterEvent $event): void {
                 $event->setCommand(ImportPayersCommand::class, new ImportPayersCommand());
                 $event->setCommand(ImportCciCommand::class, new ImportCciCommand());
+                $event->setCommand(ImportDxCommand::class, new ImportDxCommand());
             }
         );
         $globals = $this->globals;

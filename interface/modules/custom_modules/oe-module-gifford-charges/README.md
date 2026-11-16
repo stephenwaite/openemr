@@ -118,6 +118,33 @@ did:
   **Post it** posts a held line as it is.
 - **Indicator 9:** the edit was deleted; nothing happens.
 
+## Diagnoses from the report (Fees > Gifford Diagnoses)
+
+Off by default: charges post with the diagnoses Gifford sent for the visit. With **Code
+Diagnoses From the Report** on (Admin > Config > Gifford Charge Import), each charge posts
+with its own accession's diagnoses, coded from the radiologist's report, finding first, and
+is held until they are settled. A line Gifford sent with no diagnosis is then no longer a
+problem.
+
+- A suggestion read from the report is loaded per accession with
+  `bin/console gifford:dx-import --site=2400 --run=<run>.json --lists=gifford-dx-lists.json`
+  (`--dry-run` to count without writing). The run is the pair of files `dx_compare.php`
+  writes (cms repo); they hold patient data and stay on the server. Stage the charge file
+  first. The command prints counts only.
+- The suggestion posts without a coder only when its first code is high confidence, every
+  code is valid for coding on the site, it passes the coders' workbook checks (first code
+  not on the cannot-be-primary list; not unspecified when Medicaid is primary; a code on
+  the Medicare list for the exam when Medicare or Medicare Advantage is primary), and its
+  first code is among the codes Gifford sent (`Dx\DxRule`).
+- Every other accession waits on Fees > Gifford Diagnoses, where the coder sees the report,
+  Gifford's indication and codes, the suggestion and why it waits, and saves up to four
+  codes in claim order. An accession with no suggestion loaded can be coded there too.
+  Accessions nothing else holds are listed first. The page counts how often the coders kept
+  the suggestion, kept its first code, or changed it.
+
+Go-live needs the module's `table.sql` run again (table `gifford_dx`) and the site's
+ICD-10 code set loaded: a code is valid when it is active and valid for coding there.
+
 ## Review page (Fees > Gifford Charges)
 
 For users with Accounting > Billing (write):
