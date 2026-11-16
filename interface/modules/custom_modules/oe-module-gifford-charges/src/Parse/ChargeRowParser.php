@@ -32,6 +32,9 @@ use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\RawRow;
 
 final class ChargeRowParser
 {
+    /** The problem of a row Gifford sent with no diagnosis. */
+    public const NO_DIAGNOSES = 'enc_dx_codes has no ICD-10 codes';
+
     /** Payer mnemonics that mean the patient pays: no policy is created. */
     private const SELF_PAY_MNEMONICS = ['SP'];
 
@@ -155,7 +158,7 @@ final class ChargeRowParser
             $problems[] = "enc_admit_date '" . $admitText . "' is not a date";
         }
         if ($diagnoses === []) {
-            $problems[] = 'enc_dx_codes has no ICD-10 codes';
+            $problems[] = self::NO_DIAGNOSES;
         }
         if ($rejected !== []) {
             $problems[] = 'enc_dx_codes has codes that are not ICD-10: ' . implode(', ', $rejected);

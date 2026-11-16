@@ -37,6 +37,22 @@ final readonly class ParsedRow
     ) {
     }
 
+    /** The row without one of its problems. */
+    public function without(string $problem): self
+    {
+        return new self(
+            $this->line,
+            $this->patient,
+            $this->encounter,
+            $this->charge,
+            $this->guarantor,
+            $this->employer,
+            $this->policies,
+            array_values(array_filter($this->problems, static fn (string $p): bool => $p !== $problem)),
+            $this->report,
+        );
+    }
+
     public function isImportable(): bool
     {
         return $this->problems === [] && $this->patient !== null && $this->encounter !== null && $this->charge !== null;

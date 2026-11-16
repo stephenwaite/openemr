@@ -1,0 +1,104 @@
+<html>
+<head>
+    <title>{{ 'Gifford Diagnoses'|xlt }}</title>
+    {{ setupHeader() }}
+</head>
+<body class="body_top">
+<div class="container-fluid">
+<h4 class="mt-2">{{ 'Gifford Diagnoses'|xlt }}</h4>
+
+{% for message in messages %}
+    <div class="alert alert-{{ message[0]|attr }}">{{ message[1]|text }}</div>
+{% endfor %}
+
+{% if not confirmOn %}
+    <div class="alert alert-warning">{{ 'Code Diagnoses From the Report is off in Admin > Config > Gifford Charge Import: charges post with the diagnoses Gifford sent, and nothing waits here.'|xlt }}</div>
+{% endif %}
+
+<p class="text-muted">{{ 'Each read below is held until its diagnoses are confirmed from the report: the finding first, or the sign or symptom when the study is normal. The suggestion was read from the report; change it where it is wrong. Save lets the charge post on the next run with the codes in the order entered.'|xlt }}</p>
+<form method="post" class="mb-3" onsubmit="return top.restoreSession()">
+    {{ csrfToken('default', 'csrf_token_form') }}
+    <input type="hidden" name="form_action" value="post" />
+    <button type="submit" class="btn btn-primary btn-sm"{% if not postingOn %} disabled{% endif %}>{{ 'Post ready lines now'|xlt }}</button>
+</form>
+
+<p class="small">
+    {{ 'Posted or posting as suggested, no coder'|xlt }}: {{ tally.agreed|text }}.
+    {{ 'Confirmed by a coder'|xlt }}: {{ tally.confirmed|text }}
+    ({{ 'as suggested'|xlt }} {{ tally.as_suggested|text }},
+    {{ 'first code kept, others changed'|xlt }} {{ tally.first_kept|text }},
+    {{ 'first code changed'|xlt }} {{ tally.first_changed|text }},
+    {{ 'had no suggestion'|xlt }} {{ tally.no_suggestion|text }}).
+</p>
+
+<h5>{{ 'Waiting for a coder'|xlt }}: {{ pendingCount|text }}{% if pendingCount > pageSize %} <small class="text-muted">({{ 'the first'|xlt }} {{ pageSize|text }} {{ 'shown'|xlt }})</small>{% endif %}</h5>
+{% if pending is empty %}
+    <p>{{ 'None.'|xlt }}</p>
+{% endif %}
+{% for item in pending %}
+    <div class="card mb-3">
+        <div class="card-header py-1">
+            <strong>{{ item.patientName|text }}</strong>
+            <span class="ml-2">{{ 'MRN'|xlt }} {{ item.mrn|text }}</span>
+            <span class="ml-2">{{ 'DOS'|xlt }} {{ item.dateOfService|text }}</span>
+            <span class="ml-2">{{ 'Accession'|xlt }} {{ item.accession|text }}</span>
+            <span class="ml-2">{{ item.charges|join(', ')|text }}</span>
+            <span class="ml-2 text-muted">{{ item.location|text }}</span>
+        </div>
+        <div class="card-body py-2">
+            <div class="row">
+                <div class="col-lg-7">
+                    {% if item.indication %}<div class="small mb-1"><strong>{{ 'Indication from Gifford'|xlt }}:</strong> {{ item.indication|text }}</div>{% endif %}
+                    {% if item.report %}
+                        <div class="small text-muted">{{ 'Report'|xlt }}{% if item.report.status %} ({{ item.report.status|text }}){% endif %}{% if item.report.signed %}, {{ 'signed'|xlt }} {{ item.report.signed|text }}{% endif %}</div>
+                        <pre class="small border rounded p-2 mb-0" style="white-space: pre-wrap; max-height: 28em; overflow-y: auto;">{{ item.report.text|text }}</pre>
+                    {% else %}
+                        <div class="text-danger small">{{ 'The file sent no report for this line.'|xlt }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-lg-5">
+                    <div class="small font-weight-bold">{{ 'Suggested from the report'|xlt }}</div>
+                    {% if not item.hasSuggestion %}
+                        <div class="small text-muted mb-2">{{ 'None loaded yet for this accession.'|xlt }}</div>
+                    {% elseif item.suggested is empty %}
+                        <div class="small text-muted mb-2">{{ 'The report gave nothing to code.'|xlt }}</div>
+                    {% else %}
+                        <ol class="small pl-3 mb-2">
+                        {% for s in item.suggested %}
+                            <li><strong>{{ s.code|text }}</strong> {{ s.text|text }} <span class="text-muted">({{ s.confidence|text }})</span>{% if s.rationale %}<div class="text-muted">{{ s.rationale|text }}</div>{% endif %}</li>
+                        {% endfor %}
+                        </ol>
+                    {% endif %}
+                    {% if item.reasons is not empty %}
+                        <div class="small mb-2"><strong>{{ 'Why it waits'|xlt }}:</strong> {{ item.reasons|join('; ')|text }}</div>
+                    {% endif %}
+                    <div class="small font-weight-bold">{{ 'Sent by Gifford for the visit'|xlt }}</div>
+                    {% if item.gifford is empty %}
+                        <div class="small text-muted mb-2">{{ 'None.'|xlt }}</div>
+                    {% else %}
+                        <ol class="small pl-3 mb-2">
+                        {% for g in item.gifford %}
+                            <li><strong>{{ g.code|text }}</strong> {{ g.text|text }}</li>
+                        {% endfor %}
+                        </ol>
+                    {% endif %}
+                    {% for problem in item.otherProblems %}<div class="text-danger small">{{ 'Also held:'|xlt }} {{ problem|text }}</div>{% endfor %}
+                    <form method="post" class="mt-2" onsubmit="return top.restoreSession()">
+                        {{ csrfToken('default', 'csrf_token_form') }}
+                        <input type="hidden" name="form_action" value="confirm" />
+                        <input type="hidden" name="accession" value="{{ item.accession|attr }}" />
+                        <label class="small font-weight-bold mb-0" for="codes-{{ loop.index|attr }}">{{ 'Diagnoses to post, in claim order'|xlt }} ({{ 'at most'|xlt }} {{ maxCodes|text }})</label>
+                        <input type="text" class="form-control form-control-sm mb-1" id="codes-{{ loop.index|attr }}" name="codes" value="{{ (entered[item.accession] ?? item.suggestedCodes())|attr }}" autocomplete="off" />
+                        <button type="submit" class="btn btn-sm btn-primary">{{ 'Save'|xlt }}</button>
+                        {% if item.gifford is not empty %}
+                            <button type="submit" name="use_codes" value="{{ item.giffordCodes()|attr }}" class="btn btn-sm btn-outline-secondary" title="{{ item.giffordCodes()|attr }}">{{ 'Use Gifford codes'|xlt }}</button>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+</div>
+</body>
+</html>

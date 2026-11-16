@@ -28,6 +28,8 @@ final class GiffordGlobals
     public const BILLING_FACILITY_ID = 'gifford_charges_billing_facility_id';
     public const ACR_PRACTICE_ID = 'gifford_charges_acr_practice_id';
 
+    public const CONFIRM_DX = 'gifford_charges_confirm_dx';
+
     public function register(GlobalsInitializedEvent $event): void
     {
         $service = $event->getGlobalsService();
@@ -57,6 +59,12 @@ final class GiffordGlobals
             GlobalSetting::DATA_TYPE_TEXT,
             '',
             xl('The practice id on the ACR registry (NRDR) rows the Quality Measures page exports; the TIN comes from the billing facility.')
+        ));
+        $service->appendToSection($section, self::CONFIRM_DX, new GlobalSetting(
+            xl('Code Diagnoses From the Report'),
+            GlobalSetting::DATA_TYPE_BOOL,
+            '0',
+            xl('On: a charge posts with the diagnoses read from its report, once the suggestion agrees with a code Gifford sent or a coder confirms it on Fees > Gifford Diagnoses; it is held until then. Off: charges post with the diagnoses Gifford sent.')
         ));
     }
 }

@@ -23,6 +23,8 @@ final class PostResult
     public int $patientsCreated = 0;
     /** Lines held for quality measure answers (counted in held too). */
     public int $measures = 0;
+    /** Lines held for their diagnoses to be confirmed (counted in held too). */
+    public int $diagnoses = 0;
 
     /** @return array<string, int> */
     public function toArray(): array
@@ -34,6 +36,7 @@ final class PostResult
             'encounters_created' => $this->encountersCreated,
             'patients_created' => $this->patientsCreated,
             'measures' => $this->measures,
+            'diagnoses' => $this->diagnoses,
         ];
     }
 }

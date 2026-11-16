@@ -98,3 +98,23 @@ CREATE TABLE IF NOT EXISTS `gifford_cci_edit` (
     PRIMARY KEY (`column1`, `column2`),
     KEY `column2` (`column2`)
 ) ENGINE=InnoDB;
+
+-- The diagnoses each accession posts with (Dx\DxRepository). The suggestion is read from the
+-- radiologist's report; it posts as it is when DxRule finds no reason for a coder to look
+-- (agreed), and otherwise waits for the coder on Fees > Gifford Diagnoses (pending, then
+-- confirmed). A coder can confirm an accession that has no suggestion.
+CREATE TABLE IF NOT EXISTS `gifford_dx` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `accession` VARCHAR(64) NOT NULL COMMENT 'chg_accession',
+    `suggested_json` MEDIUMTEXT NOT NULL COMMENT 'JSON list in claim order: code, confidence, rationale',
+    `reasons_json` TEXT NOT NULL COMMENT 'JSON list: why a coder confirms; empty when agreed',
+    `status` VARCHAR(16) NOT NULL COMMENT 'pending: waits for a coder; agreed: the suggestion posts as it is; confirmed: a coder chose the codes',
+    `codes` VARCHAR(64) NOT NULL DEFAULT '' COMMENT 'comma list in claim order, once agreed or confirmed',
+    `source` VARCHAR(64) NOT NULL DEFAULT '' COMMENT 'where the suggestion came from',
+    `created_at` DATETIME NOT NULL,
+    `confirmed_at` DATETIME NULL,
+    `confirmed_by` INT NULL COMMENT 'users.id',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `accession` (`accession`),
+    KEY `status` (`status`)
+) ENGINE=InnoDB;

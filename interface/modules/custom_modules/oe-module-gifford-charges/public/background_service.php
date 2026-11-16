@@ -17,12 +17,8 @@ namespace Cmsvt\OpenEMR\Modules\GiffordCharges;
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Globals\GiffordGlobals;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Parse\ChargeRowParser;
-use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMap;
-use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargeLineRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargePoster;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PostSettings;
-use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PriceBook;
-use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\SiteWriter;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\ChargeFileReader;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\ChargeBatchRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\ChargeFileStager;
@@ -99,13 +95,6 @@ function postReadyLines(OEGlobalsBag $globals, LoggerInterface $logger): void
         $logger->notice('Gifford charge import: the facility or billing facility is not set; lines are staged but not posted');
         return;
     }
-    $poster = new ChargePoster(
-        new ChargeLineRepository(),
-        new ChargeRowParser(),
-        new PayerMap(),
-        new PriceBook(),
-        new SiteWriter(),
-        ServiceContainer::getClock(),
-    );
+    $poster = ChargePoster::forSite(ServiceContainer::getClock(), $globals->getBoolean(GiffordGlobals::CONFIRM_DX));
     $logger->info('Gifford charge import: posting run', $poster->run($settings)->toArray());
 }

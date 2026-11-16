@@ -22,11 +22,8 @@ use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerChangeKind;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerImporter;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMap;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMapping;
-use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargeLineRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargePoster;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PostSettings;
-use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PriceBook;
-use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\SiteWriter;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Review\ReviewRepository;
 use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Acl\AccessDeniedHelper;
@@ -102,7 +99,7 @@ if ($request->isMethod('POST')) {
                 $messages[] = ['danger', xl('Set the Facility ID and Billing Facility ID in Admin > Config > Gifford Charge Import first.')];
                 break;
             }
-            $poster = new ChargePoster(new ChargeLineRepository(), $parser, $payers, new PriceBook(), new SiteWriter(), $clock);
+            $poster = ChargePoster::forSite($clock, $globals->getBoolean(GiffordGlobals::CONFIRM_DX));
             $result = $poster->run($settings);
             $messages[] = ['success', sprintf(xl('Posted %d lines; %d held; %d duplicates.'), $result->posted, $result->held, $result->duplicates)];
             break;
