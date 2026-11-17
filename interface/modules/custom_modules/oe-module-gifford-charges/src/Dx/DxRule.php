@@ -16,14 +16,19 @@ namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Dx;
 
 /**
  * The diagnoses on a Gifford claim are coded from the radiologist's report, finding first.
- * A suggestion read from the report posts without a coder only when its first code is high
- * confidence, every code is valid, it passes the coders' workbook checks, and its first code
- * is among the codes Gifford sent for the visit: two sources agree. A coder confirms the
- * rest on Fees > Gifford Diagnoses.
+ * A suggestion read from the report posts without a coder when its first code is high
+ * confidence, every code is valid and it passes the coders' workbook checks. The codes
+ * Gifford sent for the visit post instead on a film taken during surgery (theirs is the
+ * surgical diagnosis), and when there is no suggestion or its first code is not high
+ * confidence, if they pass the same checks. A coder confirms the rest on Fees > Gifford
+ * Diagnoses.
  */
 final class DxRule
 {
     public const HIGH = 'high';
+
+    /** Gifford's location for films taken during surgery. */
+    public const SURGERY_LOCATION = 'GMC.OR';
 
     public const MEDICAID = 'medicaid';
     public const MEDICARE = 'medicare';
@@ -31,33 +36,55 @@ final class DxRule
     public const OTHER = 'other';
 
     /**
-     * Why a coder has to confirm; [] when the suggestion posts as it is.
+     * Which codes the accession posts with, or why a coder has to confirm.
      *
      * @param list<array{code: string, confidence: string}> $suggested in claim order
      * @param list<string> $gifford the codes Gifford sent for the visit
-     * @param list<string> $invalid the suggested codes that are not valid for coding
+     * @param list<string> $invalid the suggested and Gifford codes that are not valid for coding
      * @param list<string> $cpts the accession's procedure codes
      * @param string $payerClass one of the constants, from payerClass()
+     * @param string $location Gifford's location for the study
+     */
+    public static function decide(array $suggested, array $gifford, array $invalid, array $cpts, string $payerClass, string $location, DxLists $lists): DxDecision
+    {
+        $fallback = match (true) {
+            $location === self::SURGERY_LOCATION => 'film taken during surgery',
+            $suggested === [] => 'no suggestion',
+            $suggested[0]['confidence'] !== self::HIGH => 'first code is not high confidence',
+            default => null,
+        };
+        if ($fallback === null) {
+            $codes = array_slice(array_column($suggested, 'code'), 0, DxRepository::MAX_CODES);
+            $why = self::problems($codes, $invalid, $cpts, $payerClass, $lists);
+
+            return $why === [] ? DxDecision::suggestion($codes) : DxDecision::coder($why);
+        }
+        $codes = array_slice($gifford, 0, DxRepository::MAX_CODES);
+        if ($codes === []) {
+            return DxDecision::coder([$fallback, 'Gifford sent no diagnosis']);
+        }
+        $why = self::problems($codes, $invalid, $cpts, $payerClass, $lists);
+
+        return $why === []
+            ? DxDecision::gifford($codes)
+            : DxDecision::coder([$fallback, ...array_map(static fn (string $w): string => "Gifford's: " . $w, $why)]);
+    }
+
+    /**
+     * What the checks have against posting these codes; [] when nothing.
+     *
+     * @param non-empty-list<string> $codes in claim order
+     * @param list<string> $invalid
+     * @param list<string> $cpts
      * @return list<string>
      */
-    public static function reasons(array $suggested, array $gifford, array $invalid, array $cpts, string $payerClass, DxLists $lists): array
+    private static function problems(array $codes, array $invalid, array $cpts, string $payerClass, DxLists $lists): array
     {
-        if ($suggested === []) {
-            return ['no suggestion'];
-        }
-        $codes = array_column($suggested, 'code');
         $first = $codes[0];
         $why = [];
-        if ($gifford === []) {
-            $why[] = 'Gifford sent no diagnosis';
-        } elseif (!in_array($first, $gifford, true)) {
-            $why[] = "first code is not among Gifford's";
-        }
-        if ($suggested[0]['confidence'] !== self::HIGH) {
-            $why[] = 'first code is not high confidence';
-        }
-        if ($invalid !== []) {
-            $why[] = 'not valid for coding: ' . implode(', ', $invalid);
+        $bad = array_values(array_intersect($codes, $invalid));
+        if ($bad !== []) {
+            $why[] = 'not valid for coding: ' . implode(', ', $bad);
         }
         if ($lists->cannotBePrimary($first)) {
             $why[] = 'first code cannot be primary';

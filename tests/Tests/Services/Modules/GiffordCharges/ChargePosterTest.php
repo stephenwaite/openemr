@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace OpenEMR\Tests\Services\Modules\GiffordCharges;
 
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxDecision;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\Measure;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureRepository;
@@ -785,7 +786,7 @@ class ChargePosterTest extends TestCase
         $this->assertSame([], $waits()[0]->otherProblems);
 
         // A suggestion a coder must look at keeps it waiting; the coder's codes end the wait.
-        $this->assertTrue($dx->saveSuggestion($accession, [['code' => $first, 'confidence' => 'medium', 'rationale' => '']], ['first code is not high confidence'], 'run-1', $now));
+        $this->assertTrue($dx->saveSuggestion($accession, [['code' => $first, 'confidence' => 'medium', 'rationale' => '']], DxDecision::coder(['first code is not high confidence']), 'run-1', $now));
         $this->assertSame([true], array_map(static fn ($p): bool => $p->hasSuggestion, $waits()));
         $this->assertSame($before, $dx->pendingCount());
         $this->assertSame([], $dx->confirm($accession, $first, 1, $now));
@@ -819,7 +820,7 @@ class ChargePosterTest extends TestCase
             ['code' => $first, 'confidence' => 'high', 'rationale' => 'The finding.'],
             ['code' => $second, 'confidence' => 'medium', 'rationale' => ''],
         ];
-        $this->assertTrue($dx->saveSuggestion($accession, $suggested, ['Gifford sent no diagnosis'], 'run-1', $now));
+        $this->assertTrue($dx->saveSuggestion($accession, $suggested, DxDecision::coder(['Gifford sent no diagnosis']), 'run-1', $now));
         $this->assertNull($dx->codesFor($accession));
         $waiting = array_values(array_filter($dx->pending(), static fn ($p): bool => $p->accession === $accession));
         $this->assertSame(
@@ -844,7 +845,7 @@ class ChargePosterTest extends TestCase
         $this->assertSame([], $dx->confirm($accession, str_replace('.', '', $second) . ', ' . strtolower($first), 7, $now));
         $this->assertSame([$second, $first], $dx->codesFor($accession));
         // A later suggestion doesn't undo the coder.
-        $this->assertFalse($dx->saveSuggestion($accession, $suggested, [], 'run-2', $now));
+        $this->assertFalse($dx->saveSuggestion($accession, $suggested, DxDecision::suggestion([$first, $second]), 'run-2', $now));
 
         $this->post(dx: $dx);
 
@@ -868,7 +869,7 @@ class ChargePosterTest extends TestCase
             $this->row(['enc_dx_codes' => "$second,$first", 'chg_cpt' => $this->bareCode, 'chg_accession' => 'B' . $this->token]),
         ]);
         $this->assertSame(
-            ['gifford' => [$second, $first], 'cpts' => [$this->code], 'payer' => $this->payer],
+            ['gifford' => [$second, $first], 'cpts' => [$this->code], 'payer' => $this->payer, 'location' => 'GHC.TEST'],
             $dx->staged('A' . $this->token)
         );
         $this->assertNull($dx->staged('Z' . $this->token));
@@ -876,15 +877,18 @@ class ChargePosterTest extends TestCase
         $before = $dx->tally();
 
         // No reason for a coder: agreed, and the first accession posts while the other waits.
-        $this->assertTrue($dx->saveSuggestion('A' . $this->token, [['code' => $first, 'confidence' => 'high', 'rationale' => '']], [], 'run-1', $now));
+        $this->assertTrue($dx->saveSuggestion('A' . $this->token, [['code' => $first, 'confidence' => 'high', 'rationale' => '']], DxDecision::suggestion([$first]), 'run-1', $now));
         $this->post(dx: $dx);
 
         $this->assertSame(['posted', 'held'], [$this->line($one)['status'], $this->line($two)['status']]);
         $this->assertSame([['ICD10', $first, ''], ['CPT4', $this->code, "ICD10|$first:"]], $this->billed($one));
 
-        // The coder gives the second accession its own code: the encounter gains it.
-        $this->assertSame([], $dx->confirm('B' . $this->token, $second, 7, $now));
+        // No suggestion for the second accession: it posts with Gifford's code, and the encounter gains it.
+        $this->assertTrue($dx->saveSuggestion('B' . $this->token, [], DxDecision::gifford([$second]), 'run-1', $now));
         $this->post(dx: $dx);
+        $this->assertSame(1, $dx->tally()['gifford'] - $before['gifford']);
+        // A coder can still confirm it afterwards.
+        $this->assertSame([], $dx->confirm('B' . $this->token, $second, 7, $now));
 
         $this->assertSame(
             [['ICD10', $first, ''], ['CPT4', $this->code, "ICD10|$first:"], ['ICD10', $second, ''], ['CPT4', $this->bareCode, "ICD10|$second:"]],
@@ -892,8 +896,8 @@ class ChargePosterTest extends TestCase
         );
         $after = $dx->tally();
         $this->assertSame(
-            [1, 1, 1],
-            [$after['agreed'] - $before['agreed'], $after['confirmed'] - $before['confirmed'], $after['no_suggestion'] - $before['no_suggestion']]
+            [1, 0, 1, 1],
+            [$after['agreed'] - $before['agreed'], $after['gifford'] - $before['gifford'], $after['confirmed'] - $before['confirmed'], $after['no_suggestion'] - $before['no_suggestion']]
         );
     }
 
