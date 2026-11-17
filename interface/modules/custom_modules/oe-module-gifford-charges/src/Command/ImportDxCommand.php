@@ -17,6 +17,7 @@ namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Command;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxLists;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxRule;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxSource;
 use OpenEMR\BC\ServiceContainer;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -77,7 +78,7 @@ final class ImportDxCommand extends Command
         $dx = new DxRepository();
         $now = ServiceContainer::getClock()->now();
         $source = basename($runPath, '.json');
-        $counts = ['agreed' => 0, 'pending' => 0, 'already confirmed' => 0, 'not staged' => 0, 'not answered' => 0];
+        $counts = ['agreed' => 0, 'gifford' => 0, 'pending' => 0, 'already confirmed' => 0, 'not staged' => 0, 'not answered' => 0];
         $why = [];
         foreach ($run['accessions'] as $id => $asked) {
             $accession = is_array($asked) && is_string($asked['accession'] ?? null) ? $asked['accession'] : '';
@@ -92,31 +93,37 @@ final class ImportDxCommand extends Command
                 continue;
             }
             $suggested = self::suggested($answer['codes'] ?? null);
-            $reasons = DxRule::reasons(
+            $decision = DxRule::decide(
                 $suggested,
                 $staged['gifford'],
-                $dx->invalidCodes(array_column($suggested, 'code')),
+                $dx->invalidCodes(array_values(array_unique([...array_column($suggested, 'code'), ...$staged['gifford']]))),
                 $staged['cpts'],
                 DxRule::payerClass($staged['payer']),
+                $staged['location'],
                 $lists
             );
-            foreach ($reasons as $reason) {
+            foreach ($decision->reasons as $reason) {
                 // Counts only: the invalid codes themselves are not printed.
-                $reason = str_starts_with($reason, 'not valid for coding') ? 'a code is not valid for coding' : $reason;
+                $reason = preg_replace('/not valid for coding: .*$/', 'a code is not valid for coding', $reason) ?? $reason;
                 $why[$reason] = ($why[$reason] ?? 0) + 1;
             }
-            if (!$dryRun && !$dx->saveSuggestion($accession, $suggested, $reasons, $source, $now)) {
+            if (!$dryRun && !$dx->saveSuggestion($accession, $suggested, $decision, $source, $now)) {
                 $counts['already confirmed']++;
                 continue;
             }
-            $counts[$reasons === [] ? 'agreed' : 'pending']++;
+            $counts[match ($decision->source) {
+                DxSource::Suggestion => 'agreed',
+                DxSource::Gifford => 'gifford',
+                DxSource::Coder => 'pending',
+            }]++;
         }
 
         $output->writeln(sprintf(
-            '%s %d accessions in the run: %d post as suggested, %d wait for a coder, %d a coder had already confirmed, %d not in a staged file, %d with no answer.',
+            '%s %d accessions in the run: %d post as suggested, %d post with Gifford\'s codes, %d wait for a coder, %d a coder had already confirmed, %d not in a staged file, %d with no answer.',
             $dryRun ? 'Dry run, nothing written:' : 'Done:',
             count($run['accessions']),
             $counts['agreed'],
+            $counts['gifford'],
             $counts['pending'],
             $counts['already confirmed'],
             $counts['not staged'],

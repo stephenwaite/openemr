@@ -132,11 +132,15 @@ the visit.
   (`--dry-run` to count without writing). The run is the pair of files `dx_compare.php`
   writes (cms repo); they hold patient data and stay on the server. Stage the charge file
   first. The command prints counts only.
-- The suggestion posts without a coder only when its first code is high confidence, every
-  code is valid for coding on the site, it passes the coders' workbook checks (first code
-  not on the cannot-be-primary list; not unspecified when Medicaid is primary; a code on
-  the Medicare list for the exam when Medicare or Medicare Advantage is primary), and its
-  first code is among the codes Gifford sent (`Dx\DxRule`).
+- The suggestion posts without a coder when its first code is high confidence, every
+  code is valid for coding on the site and it passes the coders' workbook checks (first
+  code not on the cannot-be-primary list; not unspecified when Medicaid is primary; a code
+  on the Medicare list for the exam when Medicare or Medicare Advantage is primary). It no
+  longer has to agree with a code Gifford sent.
+- The first two codes Gifford sent post instead, also without a coder, on a film taken
+  during surgery (location `GMC.OR`: Gifford's is the surgical diagnosis) and when there
+  is no suggestion in the run or its first code is not high confidence, if they pass the
+  same checks (`Dx\DxRule`).
 - Every other accession waits on Fees > Gifford Diagnoses, where the coder sees the report,
   Gifford's indication and codes, the suggestion and why it waits, and saves up to two
   codes in claim order. An accession with no suggestion loaded can be coded there too.

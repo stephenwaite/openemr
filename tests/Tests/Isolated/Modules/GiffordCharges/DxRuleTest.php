@@ -18,6 +18,7 @@ require_once __DIR__ . '/autoload.php';
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxLists;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxRule;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxSource;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -35,29 +36,42 @@ final class DxRuleTest extends TestCase
     }
 
     /**
-     * @return array<string, array{list<array{string, string}>, list<string>, list<string>, list<string>, string, list<string>}>
+     * @return array<string, array{list<array{string, string}>, list<string>, list<string>, list<string>, string, string, DxSource, list<string>, list<string>}>
      *
      * @codeCoverageIgnore Data providers run before coverage instrumentation starts.
      */
-    public static function reasonProvider(): array
+    public static function decisionProvider(): array
     {
+        $s = DxSource::Suggestion;
+        $g = DxSource::Gifford;
+        $c = DxSource::Coder;
+
         return [
-            'first code among Gifford\'s, high: posts' => [[['R07.9', 'high'], ['I10', 'medium']], ['I10', 'R07.9'], [], ['71046'], 'other', []],
-            'no suggestion' => [[], ['R07.9'], [], ['71046'], 'other', ['no suggestion']],
-            'Gifford sent none' => [[['R07.9', 'high']], [], [], ['71046'], 'other', ['Gifford sent no diagnosis']],
-            'only a later code matches' => [[['J18.9', 'high'], ['R07.9', 'high']], ['R07.9'], [], ['71046'], 'other', ["first code is not among Gifford's"]],
-            'same category is not a match' => [[['R07.89', 'high']], ['R07.9'], [], ['71046'], 'other', ["first code is not among Gifford's"]],
-            'medium confidence' => [[['R07.9', 'medium']], ['R07.9'], [], ['71046'], 'other', ['first code is not high confidence']],
-            'an invalid code anywhere' => [[['R07.9', 'high'], ['S52.574A', 'high']], ['R07.9'], ['S52.574A'], ['71046'], 'other', ['not valid for coding: S52.574A']],
-            'cannot be primary, any payer' => [[['Z91.81', 'high']], ['Z91.81'], [], ['71046'], 'other', ['first code cannot be primary']],
-            'unspecified, Medicaid primary' => [[['R07.9', 'high']], ['R07.9'], [], ['71046'], 'medicaid', ['first code is unspecified (Medicaid primary)']],
-            'unspecified, Medicare primary: posts' => [[['R07.9', 'high']], ['R07.9'], [], ['71046'], 'medicare', []],
-            'Medicare exam, no code on its list' => [[['M85.80', 'high']], ['M85.80'], [], ['77080'], 'medicare', ['no code on the Medicare list for the exam']],
-            'Medicare Advantage exam, a later code on its list' => [[['M85.80', 'high'], ['Z13.820', 'high']], ['M85.80'], [], ['77080'], 'medicare advantage', []],
-            'Medicare exam, a code inside a range' => [[['E24.3', 'high']], ['E24.3'], [], ['77080'], 'medicare', []],
-            'Medicare exam, a code under the end of a range' => [[['E24.41', 'high']], ['E24.41'], [], ['77080'], 'medicare', []],
-            'the exam list is Medicare\'s: other payers post' => [[['M85.80', 'high']], ['M85.80'], [], ['77080'], 'other', []],
-            'several reasons' => [[['J18.9', 'low']], [], [], ['71046'], 'other', ['Gifford sent no diagnosis', 'first code is not high confidence']],
+            'high: the suggestion posts' => [[['R07.9', 'high'], ['I10', 'medium']], ['I10', 'R07.9'], [], ['71046'], 'other', 'GMC.XRAY', $s, ['R07.9', 'I10'], []],
+            'high, not among Gifford\'s: still posts' => [[['J18.9', 'high']], ['R07.9'], [], ['71046'], 'other', 'GMC.ED', $s, ['J18.9'], []],
+            'high, Gifford sent none: posts' => [[['R07.9', 'high']], [], [], ['71046'], 'other', 'GMC.ED', $s, ['R07.9'], []],
+            'high, more than two codes: the first two' => [[['J18.9', 'high'], ['R05.9', 'high'], ['I10', 'high']], [], [], ['71046'], 'other', 'GMC.ED', $s, ['J18.9', 'R05.9'], []],
+            'high, an invalid code' => [[['R07.9', 'high'], ['S52.574A', 'high']], ['R07.9'], ['S52.574A'], ['71046'], 'other', 'GMC.ED', $c, [], ['not valid for coding: S52.574A']],
+            'high, cannot be primary, any payer' => [[['Z91.81', 'high']], ['Z91.81'], [], ['71046'], 'other', 'GMC.CT', $c, [], ['first code cannot be primary']],
+            'high, unspecified, Medicaid primary' => [[['R07.9', 'high']], ['R07.9'], [], ['71046'], 'medicaid', 'GMC.CT', $c, [], ['first code is unspecified (Medicaid primary)']],
+            'high, unspecified, Medicare primary: posts' => [[['R07.9', 'high']], ['R07.9'], [], ['71046'], 'medicare', 'GMC.CT', $s, ['R07.9'], []],
+            'high, Medicare exam, no code on its list' => [[['M85.80', 'high']], ['M85.80'], [], ['77080'], 'medicare', 'GMC.BD', $c, [], ['no code on the Medicare list for the exam']],
+            'high, Medicare Advantage exam, a later code on its list' => [[['M85.80', 'high'], ['Z13.820', 'high']], ['M85.80'], [], ['77080'], 'medicare advantage', 'GMC.BD', $s, ['M85.80', 'Z13.820'], []],
+            'high, Medicare exam, a code inside a range' => [[['E24.3', 'high']], ['E24.3'], [], ['77080'], 'medicare', 'GMC.BD', $s, ['E24.3'], []],
+            'high, Medicare exam, a code under the end of a range' => [[['E24.41', 'high']], ['E24.41'], [], ['77080'], 'medicare', 'GMC.BD', $s, ['E24.41'], []],
+            'high, the exam list is Medicare\'s: other payers post' => [[['M85.80', 'high']], ['M85.80'], [], ['77080'], 'other', 'GMC.BD', $s, ['M85.80'], []],
+            'medium: Gifford\'s first two post' => [[['J18.9', 'medium']], ['R05.9', 'I10', 'E11.9'], [], ['71046'], 'other', 'GMC.XRAY', $g, ['R05.9', 'I10'], []],
+            'low: Gifford\'s post' => [[['J18.9', 'low']], ['R05.9'], [], ['71046'], 'other', 'GMC.XRAY', $g, ['R05.9'], []],
+            'medium, Gifford sent none' => [[['J18.9', 'medium']], [], [], ['71046'], 'other', 'GMC.ED', $c, [], ['first code is not high confidence', 'Gifford sent no diagnosis']],
+            'medium, the suggestion\'s invalid code does not matter' => [[['S52.574A', 'medium']], ['R05.9'], ['S52.574A'], ['71046'], 'other', 'GMC.ED', $g, ['R05.9'], []],
+            'medium, Gifford\'s code is not valid' => [[['J18.9', 'medium']], ['Q99.9Z'], ['Q99.9Z'], ['71046'], 'other', 'GMC.ED', $c, [], ['first code is not high confidence', "Gifford's: not valid for coding: Q99.9Z"]],
+            'medium, Gifford\'s first cannot be primary' => [[['J18.9', 'medium']], ['Z91.81'], [], ['71046'], 'other', 'GMC.ED', $c, [], ['first code is not high confidence', "Gifford's: first code cannot be primary"]],
+            'medium, Gifford\'s third code is not looked at' => [[['J18.9', 'medium']], ['R05.9', 'I10', 'Q99.9Z'], ['Q99.9Z'], ['71046'], 'other', 'GMC.ED', $g, ['R05.9', 'I10'], []],
+            'no suggestion: Gifford\'s post' => [[], ['R07.9'], [], ['71046'], 'other', 'GMC.MRI', $g, ['R07.9'], []],
+            'no suggestion, Gifford sent none' => [[], [], [], ['71046'], 'other', 'GMC.MRI', $c, [], ['no suggestion', 'Gifford sent no diagnosis']],
+            'surgery film: Gifford\'s, whatever the suggestion' => [[['Z96.642', 'high']], ['M16.12'], [], ['73501'], 'other', 'GMC.OR', $g, ['M16.12'], []],
+            'surgery film, Gifford sent none' => [[['Z96.642', 'high']], [], [], ['73501'], 'other', 'GMC.OR', $c, [], ['film taken during surgery', 'Gifford sent no diagnosis']],
+            'Gifford\'s on a Medicare exam, none on its list' => [[['Z13.820', 'medium']], ['M85.80'], [], ['77080'], 'medicare', 'GMC.BD', $c, [], ['first code is not high confidence', "Gifford's: no code on the Medicare list for the exam"]],
         ];
     }
 
@@ -66,14 +80,18 @@ final class DxRuleTest extends TestCase
      * @param list<string> $gifford
      * @param list<string> $invalid
      * @param list<string> $cpts
-     * @param list<string> $expected
+     * @param list<string> $codes
+     * @param list<string> $reasons
      */
-    #[DataProvider('reasonProvider')]
-    public function testReasons(array $suggested, array $gifford, array $invalid, array $cpts, string $payerClass, array $expected): void
+    #[DataProvider('decisionProvider')]
+    public function testDecide(array $suggested, array $gifford, array $invalid, array $cpts, string $payerClass, string $location, DxSource $source, array $codes, array $reasons): void
     {
         $suggestion = array_map(static fn (array $s): array => ['code' => $s[0], 'confidence' => $s[1]], $suggested);
 
-        $this->assertSame($expected, DxRule::reasons($suggestion, $gifford, $invalid, $cpts, $payerClass, self::lists()));
+        $decision = DxRule::decide($suggestion, $gifford, $invalid, $cpts, $payerClass, $location, self::lists());
+
+        $this->assertSame([$source, $codes, $reasons], [$decision->source, $decision->codes, $decision->reasons]);
+        $this->assertSame($source !== DxSource::Coder, $decision->posts());
     }
 
     public function testPayerClass(): void

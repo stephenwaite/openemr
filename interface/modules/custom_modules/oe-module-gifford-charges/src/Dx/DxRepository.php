@@ -62,7 +62,7 @@ final readonly class DxRepository
      * What the staged lines say about an accession, whatever their status; null when no
      * line has it.
      *
-     * @return ?array{gifford: list<string>, cpts: list<string>, payer: string}
+     * @return ?array{gifford: list<string>, cpts: list<string>, payer: string, location: string}
      */
     public function staged(string $accession): ?array
     {
@@ -73,6 +73,7 @@ final readonly class DxRepository
         $gifford = [];
         $cpts = [];
         $payer = '';
+        $location = '';
         foreach ($rows as $row) {
             $raw = self::raw($row['raw_json'] ?? null);
             foreach (GiffordValues::diagnoses($raw['enc_dx_codes'] ?? '')[0] as $code) {
@@ -87,9 +88,12 @@ final readonly class DxRepository
             if ($payer === '') {
                 $payer = $raw['ins1_mnemonic'] ?? '';
             }
+            if ($location === '') {
+                $location = $raw['chg_location'] ?? '';
+            }
         }
 
-        return ['gifford' => $gifford, 'cpts' => $cpts, 'payer' => $payer];
+        return ['gifford' => $gifford, 'cpts' => $cpts, 'payer' => $payer, 'location' => $location];
     }
 
     /**
@@ -116,26 +120,25 @@ final readonly class DxRepository
     }
 
     /**
-     * Save the suggestion read from an accession's report: agreed when there is no reason
-     * for a coder to confirm it, pending otherwise. A suggestion replaces an earlier one;
-     * returns false, changing nothing, when a coder has already confirmed the accession.
+     * Save the suggestion read from an accession's report with what DxRule decided: agreed
+     * with the codes that post (the suggestion's or Gifford's), pending when a coder has to
+     * confirm. A suggestion replaces an earlier one; returns false, changing nothing, when
+     * a coder has already confirmed the accession.
      *
      * @param list<array{code: string, confidence: string, rationale: string}> $suggested in claim order
-     * @param list<string> $reasons from DxRule::reasons()
      * @param string $source where the suggestion came from (a run's name)
      */
-    public function saveSuggestion(string $accession, array $suggested, array $reasons, string $source, \DateTimeImmutable $now): bool
+    public function saveSuggestion(string $accession, array $suggested, DxDecision $decision, string $source, \DateTimeImmutable $now): bool
     {
         $status = QueryUtils::fetchSingleValue('SELECT `status` FROM `gifford_dx` WHERE `accession` = ?', 'status', [$accession]);
         if ($status === self::STATUS_CONFIRMED) {
             return false;
         }
-        $agreed = $reasons === [] && $suggested !== [];
         $values = [
             json_encode($suggested, JSON_THROW_ON_ERROR),
-            json_encode($reasons, JSON_THROW_ON_ERROR),
-            $agreed ? self::STATUS_AGREED : self::STATUS_PENDING,
-            $agreed ? implode(',', array_slice(array_column($suggested, 'code'), 0, self::MAX_CODES)) : '',
+            json_encode($decision->reasons, JSON_THROW_ON_ERROR),
+            $decision->posts() ? self::STATUS_AGREED : self::STATUS_PENDING,
+            implode(',', array_slice($decision->codes, 0, self::MAX_CODES)),
             $source,
         ];
         if (is_string($status)) {
@@ -334,23 +337,26 @@ final readonly class DxRepository
     /**
      * How the coders' confirmed codes compare with the suggestions, for grading them.
      *
-     * @return array{agreed: int, confirmed: int, as_suggested: int, first_kept: int, first_changed: int, no_suggestion: int}
+     * `agreed` posts with the suggestion and `gifford` with Gifford's codes, neither seen by
+     * a coder.
+     *
+     * @return array{agreed: int, gifford: int, confirmed: int, as_suggested: int, first_kept: int, first_changed: int, no_suggestion: int}
      */
     public function tally(): array
     {
-        $tally = ['agreed' => 0, 'confirmed' => 0, 'as_suggested' => 0, 'first_kept' => 0, 'first_changed' => 0, 'no_suggestion' => 0];
+        $tally = ['agreed' => 0, 'gifford' => 0, 'confirmed' => 0, 'as_suggested' => 0, 'first_kept' => 0, 'first_changed' => 0, 'no_suggestion' => 0];
         $rows = QueryUtils::fetchRecords(
             'SELECT `status`, `codes`, `suggested_json` FROM `gifford_dx` WHERE `status` IN (?, ?)',
             [self::STATUS_AGREED, self::STATUS_CONFIRMED]
         );
         foreach ($rows as $row) {
+            $suggested = array_slice(array_column(self::suggestion($row['suggested_json'] ?? null), 'code'), 0, self::MAX_CODES);
+            $codes = explode(',', self::text($row['codes'] ?? null));
             if (($row['status'] ?? null) === self::STATUS_AGREED) {
-                $tally['agreed']++;
+                $tally[$suggested === $codes ? 'agreed' : 'gifford']++;
                 continue;
             }
             $tally['confirmed']++;
-            $suggested = array_slice(array_column(self::suggestion($row['suggested_json'] ?? null), 'code'), 0, self::MAX_CODES);
-            $codes = explode(',', self::text($row['codes'] ?? null));
             $tally[match (true) {
                 $suggested === [] => 'no_suggestion',
                 $suggested === $codes => 'as_suggested',

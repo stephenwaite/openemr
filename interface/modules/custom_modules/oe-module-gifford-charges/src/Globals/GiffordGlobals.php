@@ -64,7 +64,7 @@ final class GiffordGlobals
             xl('Code Diagnoses From the Report'),
             GlobalSetting::DATA_TYPE_BOOL,
             '1',
-            xl('On: a charge posts with the diagnoses read from its report, once the suggestion agrees with a code Gifford sent or a coder confirms it on Fees > Gifford Diagnoses; it is held until then. Off: charges post with the diagnoses Gifford sent.')
+            xl('On: a charge posts with the diagnoses read from its report, once a high-confidence suggestion is loaded or a coder confirms it on Fees > Gifford Diagnoses, and is held until then; a film taken during surgery, or a suggestion that is not high confidence, posts with the diagnoses Gifford sent. Off: charges post with the diagnoses Gifford sent.')
         ));
     }
 }
