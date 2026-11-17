@@ -769,6 +769,31 @@ class ChargePosterTest extends TestCase
         ];
     }
 
+    public function testAStagedLineWaitsForItsDiagnosesBeforeAnyPostingRun(): void
+    {
+        [$first] = $this->diagnosisCodes(1);
+        $dx = new DxRepository();
+        $now = new \DateTimeImmutable(self::NOW);
+        $accession = 'A' . $this->token;
+        // A site that stages without posting: the line is never held for its diagnoses.
+        [$lineId] = $this->stage([$this->row(['chg_clinical' => 'Cough', 'report_text' => 'FINDINGS: clear.', 'report_status' => 'Signed', 'report_signed' => '08/21/2026 09:15'])]);
+        $waits = static fn (): array => array_values(array_filter($dx->pending(), static fn ($p): bool => $p->accession === $accession));
+        $before = $dx->pendingCount();
+
+        $this->assertSame('staged', $this->line($lineId)['status']);
+        $this->assertCount(1, $waits());
+        $this->assertSame([], $waits()[0]->otherProblems);
+
+        // A suggestion a coder must look at keeps it waiting; the coder's codes end the wait.
+        $this->assertTrue($dx->saveSuggestion($accession, [['code' => $first, 'confidence' => 'medium', 'rationale' => '']], ['first code is not high confidence'], 'run-1', $now));
+        $this->assertSame([true], array_map(static fn ($p): bool => $p->hasSuggestion, $waits()));
+        $this->assertSame($before, $dx->pendingCount());
+        $this->assertSame([], $dx->confirm($accession, $first, 1, $now));
+        $this->assertSame([], $waits());
+        $this->assertSame($before - 1, $dx->pendingCount());
+        $this->assertSame('staged', $this->line($lineId)['status']);
+    }
+
     public function testCodingFromTheReportHoldsALineUntilACoderConfirmsItsDiagnoses(): void
     {
         [$first, $second, $third] = $this->diagnosisCodes(3);

@@ -205,8 +205,25 @@ final readonly class DxRepository
     }
 
     /**
-     * Accessions with lines held for their diagnoses: those held for nothing else first,
-     * then oldest date of service first.
+     * Lines waiting for their accession's diagnoses: held for them by a posting run, or
+     * staged and not yet through one (a site that stages without posting) while the
+     * accession's diagnoses are neither agreed nor confirmed. `l` is the line, `d` its
+     * accession's gifford_dx row.
+     */
+    private const WAITING = '((l.`status` = ? AND l.`problems_json` LIKE ?)'
+        . ' OR (l.`status` = ? AND (d.`status` IS NULL OR d.`status` = ?)))';
+
+    /**
+     * @return list<string>
+     */
+    private static function waitingBinds(): array
+    {
+        return [LineStatus::Held->value, '%diagnosis: confirm it on Fees%', LineStatus::Staged->value, self::STATUS_PENDING];
+    }
+
+    /**
+     * Accessions with lines waiting for their diagnoses: those held for nothing else
+     * first, then oldest date of service first.
      *
      * @return list<PendingDx>
      */
@@ -218,8 +235,8 @@ final readonly class DxRepository
             . ' FROM `gifford_charge_line` AS l'
             . ' JOIN `gifford_charge_batch` AS b ON b.`id` = l.`batch_id`'
             . ' LEFT JOIN `gifford_dx` AS d ON d.`accession` = l.`accession`'
-            . ' WHERE l.`status` = ? AND l.`problems_json` LIKE ? ORDER BY l.`date_of_service`, l.`mrn`, l.`accession`, l.`id`',
-            [LineStatus::Held->value, '%diagnosis: confirm it on Fees%']
+            . ' WHERE ' . self::WAITING . ' ORDER BY l.`date_of_service`, l.`mrn`, l.`accession`, l.`id`',
+            self::waitingBinds()
         );
         /** @var array<string, list<array<string, mixed>>> $groups */
         $groups = [];
@@ -232,7 +249,7 @@ final readonly class DxRepository
         foreach ($groups as $key => $group) {
             $only = true;
             foreach ($group as $row) {
-                $only = $only && self::strings($row['problems_json'] ?? null) === [self::PROBLEM];
+                $only = $only && array_diff(self::strings($row['problems_json'] ?? null), [self::PROBLEM]) === [];
             }
             if ($only) {
                 $postable[$key] = $group;
@@ -305,9 +322,10 @@ final readonly class DxRepository
     public function pendingCount(): int
     {
         $count = QueryUtils::fetchSingleValue(
-            'SELECT COUNT(DISTINCT `accession`) AS `n` FROM `gifford_charge_line` WHERE `status` = ? AND `problems_json` LIKE ?',
+            'SELECT COUNT(DISTINCT l.`accession`) AS `n` FROM `gifford_charge_line` AS l'
+            . ' LEFT JOIN `gifford_dx` AS d ON d.`accession` = l.`accession` WHERE ' . self::WAITING,
             'n',
-            [LineStatus::Held->value, '%diagnosis: confirm it on Fees%']
+            self::waitingBinds()
         );
 
         return is_numeric($count) ? (int) $count : 0;
