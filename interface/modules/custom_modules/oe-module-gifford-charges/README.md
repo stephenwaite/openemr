@@ -121,11 +121,11 @@ did:
 
 ## Diagnoses from the report (Fees > Gifford Diagnoses)
 
-Off by default: charges post with the diagnoses Gifford sent for the visit. With **Code
-Diagnoses From the Report** on (Admin > Config > Gifford Charge Import), each charge posts
-with its own accession's diagnoses, coded from the radiologist's report, finding first, and
-is held until they are settled. A line Gifford sent with no diagnosis is then no longer a
-problem.
+On by default (**Code Diagnoses From the Report**, Admin > Config > Gifford Charge Import):
+each charge posts with its own accession's diagnoses, coded from the radiologist's report,
+finding first, and is held until they are settled. A line Gifford sent with no diagnosis is
+then no longer a problem. Off: charges post with the first two diagnoses Gifford sent for
+the visit.
 
 - A suggestion read from the report is loaded per accession with
   `bin/console gifford:dx-import --site=2400 --run=<run>.json --lists=gifford-dx-lists.json`

@@ -63,7 +63,7 @@ final class GiffordGlobals
         $service->appendToSection($section, self::CONFIRM_DX, new GlobalSetting(
             xl('Code Diagnoses From the Report'),
             GlobalSetting::DATA_TYPE_BOOL,
-            '0',
+            '1',
             xl('On: a charge posts with the diagnoses read from its report, once the suggestion agrees with a code Gifford sent or a coder confirms it on Fees > Gifford Diagnoses; it is held until then. Off: charges post with the diagnoses Gifford sent.')
         ));
     }
