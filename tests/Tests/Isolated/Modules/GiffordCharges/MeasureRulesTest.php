@@ -19,6 +19,7 @@ require_once __DIR__ . '/autoload.php';
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\AcrRow;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\Measure;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureRules;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureSuggestion;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -96,5 +97,18 @@ final class MeasureRulesTest extends TestCase
 
         $this->assertSame('1.1,107816,01/02/2026,030238095,1234567890,MR0012,73,F,QMM26,76706,I7140,PM002,500000413', $row->line('107816', '03-0238095'));
         $this->assertSame('U', explode(',', (new AcrRow(new \DateTimeImmutable('2026-01-02'), '', 'MR1', 40, '', Measure::M364, '71250', '', 'G9345', 'X'))->line('1', ''))[7]);
+    }
+
+    public function testOnlyASureNoFindingStandsWithoutACoder(): void
+    {
+        $s = static fn (Measure $m, int $answer, string $confidence): MeasureSuggestion => new MeasureSuggestion($m, $answer, $confidence, '', '');
+
+        $this->assertTrue($s(Measure::M405, 0, 'high')->standsAlone());
+        $this->assertTrue($s(Measure::M364, 0, 'high')->standsAlone());
+        $this->assertFalse($s(Measure::M405, 0, 'medium')->standsAlone(), 'not sure');
+        $this->assertFalse($s(Measure::M406, 3, 'high')->standsAlone(), 'a finding is the coder\'s');
+        $this->assertFalse($s(Measure::Qmm26, 3, 'high')->standsAlone(), 'QMM26 has no "no finding" answer');
+        $this->assertSame('No incidental lesion', $s(Measure::M405, 0, 'high')->label());
+        $this->assertSame('', $s(Measure::M405, 9, 'high')->label());
     }
 }

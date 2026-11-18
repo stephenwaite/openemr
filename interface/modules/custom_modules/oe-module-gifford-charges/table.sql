@@ -118,3 +118,14 @@ CREATE TABLE IF NOT EXISTS `gifford_dx` (
     UNIQUE KEY `accession` (`accession`),
     KEY `status` (`status`)
 ) ENGINE=InnoDB;
+
+-- The measure answers read from an accession's report, loaded by
+-- `bin/console gifford:measure-import`. A sure "no finding" answers the question by itself;
+-- anything else is shown to the coder on Fees > Quality Measures beside the question.
+CREATE TABLE IF NOT EXISTS `gifford_measure_suggestion` (
+    `accession` VARCHAR(64) NOT NULL COMMENT 'chg_accession',
+    `answers_json` MEDIUMTEXT NOT NULL COMMENT 'measure => answer, confidence, evidence, rationale',
+    `source` VARCHAR(64) NOT NULL DEFAULT '' COMMENT 'where the answers came from',
+    `created_at` DATETIME NOT NULL,
+    PRIMARY KEY (`accession`)
+) ENGINE=InnoDB;

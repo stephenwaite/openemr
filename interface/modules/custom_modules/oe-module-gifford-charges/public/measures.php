@@ -119,6 +119,7 @@ echo $twig->render('@gifford/measures.html.twig', [
     'messages' => $messages,
     'pending' => $measures->pending(),
     'pendingCount' => $measures->pendingCount(),
+    'tally' => $measures->tally(),
     'measureOptions' => $options,
     'acrConfigured' => $globals->getString(GiffordGlobals::ACR_PRACTICE_ID) !== '',
     'postingOn' => $settings !== null,
