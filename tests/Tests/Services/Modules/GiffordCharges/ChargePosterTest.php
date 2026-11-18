@@ -279,28 +279,33 @@ class ChargePosterTest extends TestCase
 
     public function testPricesPickTheProfessionalComponentOrTheBareCodeOrHold(): void
     {
+        $this->price('73030', '26', '25.00');
         [$bare, $none, $tc, $gz] = $this->stage([
             $this->row(['chg_cpt' => $this->bareCode, 'chg_accession' => 'B' . $this->token]),
             $this->row(['chg_cpt' => 'V' . substr($this->token, 0, 4), 'chg_accession' => 'C' . $this->token]),
-            $this->row(['chg_mod1' => 'TC', 'chg_accession' => 'D' . $this->token]),
+            // Gifford's TC says its own claim is technical only: the read is billed with 26.
+            $this->row(['chg_cpt' => '73030', 'chg_mod1' => 'tc', 'chg_mod2' => 'LT', 'chg_accession' => 'D' . $this->token]),
             $this->row(['chg_mod1' => 'RT', 'chg_mod2' => 'gz', 'chg_accession' => 'E' . $this->token]),
         ]);
 
-        $this->assertSame(1, $this->post()->posted);
-        $this->assertSame(['posted', 'held', 'held', 'held'], [$this->line($bare)['status'], $this->line($none)['status'], $this->line($tc)['status'], $this->line($gz)['status']]);
+        $this->assertSame(2, $this->post()->posted);
+        $this->assertSame(['posted', 'held', 'posted', 'held'], [$this->line($bare)['status'], $this->line($none)['status'], $this->line($tc)['status'], $this->line($gz)['status']]);
+        $this->assertSame(
+            '26:LT',
+            self::text(QueryUtils::fetchSingleValue('SELECT `modifier` FROM `billing` WHERE `id` = ?', 'modifier', [$this->line($tc)['billing_id']]))
+        );
         $this->assertSame(['modifier GZ: Gifford expects a denial as not medically necessary, with no ABN; post it with GZ, or skip it'], $this->problems($gz));
 
         // A person releases the GZ line: it posts with the GZ kept, after the 26 and the side.
-        QueryUtils::sqlStatementThrowException('UPDATE `gifford_charge_line` SET `released` = 1 WHERE `id` IN (?, ?)', [$gz, $tc]);
+        QueryUtils::sqlStatementThrowException('UPDATE `gifford_charge_line` SET `released` = 1 WHERE `id` = ?', [$gz]);
         $this->assertSame(1, $this->post()->posted);
-        $this->assertSame(['posted', 'held'], [$this->line($gz)['status'], $this->line($tc)['status']], 'releasing does not post a TC line');
+        $this->assertSame('posted', $this->line($gz)['status']);
         $this->assertSame(
             '26:RT:GZ',
             self::text(QueryUtils::fetchSingleValue('SELECT `modifier` FROM `billing` WHERE `id` = ?', 'modifier', [$this->line($gz)['billing_id']]))
         );
         $this->assertSame(['', '80.00'], self::text2(QueryUtils::querySingleRow('SELECT `modifier`, `fee` FROM `billing` WHERE `id` = ?', [$this->line($bare)['billing_id']])));
         $this->assertSame(['no price for CPT4 V' . substr($this->token, 0, 4)], $this->problems($none));
-        $this->assertSame(['modifier TC: the technical component is Gifford\'s to bill'], $this->problems($tc));
     }
 
     public function testAnUnknownRenderingProviderOrMixedPlacesOfServiceHold(): void
