@@ -41,6 +41,14 @@ final readonly class DxDecision
     }
 
     /**
+     * @param non-empty-list<string> $codes
+     */
+    public static function exam(array $codes): self
+    {
+        return new self(DxSource::Exam, $codes, []);
+    }
+
+    /**
      * @param non-empty-list<string> $reasons
      */
     public static function coder(array $reasons): self

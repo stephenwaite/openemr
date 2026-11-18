@@ -78,7 +78,7 @@ final class ImportDxCommand extends Command
         $dx = new DxRepository();
         $now = ServiceContainer::getClock()->now();
         $source = basename($runPath, '.json');
-        $counts = ['agreed' => 0, 'gifford' => 0, 'pending' => 0, 'already confirmed' => 0, 'not staged' => 0, 'not answered' => 0];
+        $counts = ['agreed' => 0, 'gifford' => 0, 'exam' => 0, 'pending' => 0, 'already confirmed' => 0, 'not staged' => 0, 'not answered' => 0];
         $why = [];
         foreach ($run['accessions'] as $id => $asked) {
             $accession = is_array($asked) && is_string($asked['accession'] ?? null) ? $asked['accession'] : '';
@@ -96,7 +96,7 @@ final class ImportDxCommand extends Command
             $decision = DxRule::decide(
                 $suggested,
                 $staged['gifford'],
-                $dx->invalidCodes(array_values(array_unique([...array_column($suggested, 'code'), ...$staged['gifford']]))),
+                $dx->invalidCodes(array_values(array_unique([DxRule::SCREENING_MAMMOGRAM, ...array_column($suggested, 'code'), ...$staged['gifford']]))),
                 $staged['cpts'],
                 DxRule::payerClass($staged['payer']),
                 $staged['location'],
@@ -114,16 +114,18 @@ final class ImportDxCommand extends Command
             $counts[match ($decision->source) {
                 DxSource::Suggestion => 'agreed',
                 DxSource::Gifford => 'gifford',
+                DxSource::Exam => 'exam',
                 DxSource::Coder => 'pending',
             }]++;
         }
 
         $output->writeln(sprintf(
-            '%s %d accessions in the run: %d post as suggested, %d post with Gifford\'s codes, %d wait for a coder, %d a coder had already confirmed, %d not in a staged file, %d with no answer.',
+            '%s %d accessions in the run: %d post as suggested, %d post with Gifford\'s codes, %d post by exam (screening mammogram), %d wait for a coder, %d a coder had already confirmed, %d not in a staged file, %d with no answer.',
             $dryRun ? 'Dry run, nothing written:' : 'Done:',
             count($run['accessions']),
             $counts['agreed'],
             $counts['gifford'],
+            $counts['exam'],
             $counts['pending'],
             $counts['already confirmed'],
             $counts['not staged'],
