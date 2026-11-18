@@ -22,15 +22,18 @@ use OpenEMR\Common\Database\QueryUtils;
  * Gifford bills the technical component and sends no 26; the site's radiologists bill
  * the professional one. So a code priced with 26 is billed as code-26 (even when a bare
  * price exists too), a code priced only bare (most type 1 procedures) is billed bare,
- * and anything else is held. Modifiers Gifford does send follow the 26 (26:RT); a TC
- * from Gifford is held, since that component is Gifford's, and so is a GZ: Gifford
- * expected its own claim to be denied as not medically necessary with no ABN on file,
- * so a person decides whether the read is billed: released, it posts with the GZ kept.
+ * and anything else is held. Modifiers Gifford does send follow the 26 (26:RT). A TC
+ * from Gifford is dropped: it marks Gifford's own claim as technical only, which every
+ * one of these is, with or without it (Gifford, 2026-11-18), and the read is billed with
+ * 26 like any other. A GZ is held: Gifford expected its own claim to be denied as not
+ * medically necessary with no ABN on file, so a person decides whether the read is
+ * billed: released, it posts with the GZ kept.
  */
 final class PriceBook
 {
     public const PRICE_LEVEL = 'standard';
     public const PROFESSIONAL = '26';
+    public const TECHNICAL = 'TC';
 
     /** The start of the problem a GZ line is held with. */
     public const EXPECTED_DENIAL_PREFIX = 'modifier GZ:';
@@ -45,13 +48,13 @@ final class PriceBook
     public function price(ChargeRecord $charge, bool $released = false): PricedCharge
     {
         $modifiers = array_map(strtoupper(...), $charge->modifiers);
-        if (in_array('TC', $modifiers, true)) {
-            throw new PostProblem('modifier TC: the technical component is Gifford\'s to bill');
-        }
         if (in_array('GZ', $modifiers, true) && !$released) {
             throw new PostProblem(self::EXPECTED_DENIAL_PREFIX . ' Gifford expects a denial as not medically necessary, with no ABN; post it with GZ, or skip it');
         }
-        $modifiers = array_values(array_filter($modifiers, static fn (string $m): bool => $m !== self::PROFESSIONAL));
+        $modifiers = array_values(array_filter(
+            $modifiers,
+            static fn (string $m): bool => $m !== self::PROFESSIONAL && $m !== self::TECHNICAL
+        ));
 
         $professional = $this->lookup($charge->codeType, $charge->code, self::PROFESSIONAL);
         $bare = $professional === null ? $this->lookup($charge->codeType, $charge->code, '') : null;

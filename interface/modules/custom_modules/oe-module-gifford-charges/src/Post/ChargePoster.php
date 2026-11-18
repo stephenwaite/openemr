@@ -43,7 +43,7 @@ use Psr\Clock\ClockInterface;
  * - a payer mnemonic isn't mapped to an insurance company, the rendering NPI isn't a
  *   provider on the site, the visit's lines disagree on place of service (or with the
  *   encounter already posted), or the visit number is too long for the encounter;
- * - it has no price, or Gifford sent TC;
+ * - it has no price;
  * - an earlier file already posted its accession as a different charge (a corrected
  *   re-send), until a person releases it;
  * - the patient already has the same code that day (posted from this file, or from another
