@@ -82,6 +82,12 @@ final class ChargeFileReader
     public const REPORT_COLUMNS = ['report_signed', 'report_status', 'report_text'];
 
     /**
+     * Header names Gifford uses for a column we know by another name (file name => ours).
+     * The 2026-11-18 file's header calls the signed date/time report_signed_on.
+     */
+    private const HEADER_ALIASES = ['report_signed_on' => 'report_signed'];
+
+    /**
      * @return list<RawRow>
      */
     public function read(string $path): array
@@ -103,7 +109,10 @@ final class ChargeFileReader
         }
 
         $firstRow = array_map(
-            static fn(string $name): string => strtolower(trim($name)),
+            static function (string $name): string {
+                $name = strtolower(trim($name));
+                return self::HEADER_ALIASES[$name] ?? $name;
+            },
             $table[0]
         );
         if (array_intersect(self::REQUIRED_COLUMNS, $firstRow) === []) {
