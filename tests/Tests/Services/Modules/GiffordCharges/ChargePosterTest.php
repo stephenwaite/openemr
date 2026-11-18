@@ -416,6 +416,25 @@ class ChargePosterTest extends TestCase
         $this->assertSame('26', $this->billedModifier($column1));
     }
 
+    public function testAnNcciPairOnOppositeSidesStillPostsWith59(): void
+    {
+        // Stephen 2026-11-18: LT and RT don't replace the 59; it goes after the side
+        // (73223-LT with 73221-RT: 73221 as 26:RT:59).
+        $this->cciEdit($this->code, $this->bareCode, '1');
+        [$leftColumn1, $rightColumn2, $both1, $both2] = $this->stage([
+            $this->row(['chg_mod1' => 'LT']),
+            $this->row(['chg_cpt' => $this->bareCode, 'chg_mod1' => 'RT', 'chg_accession' => 'H' . $this->token]),
+            $this->row(['chg_mod1' => '50', 'chg_dos' => '08/22/2026', 'enc_admit_date' => '08/22/2026', 'chg_accession' => 'K' . $this->token]),
+            $this->row(['chg_cpt' => $this->bareCode, 'chg_mod1' => 'LT', 'chg_dos' => '08/22/2026', 'enc_admit_date' => '08/22/2026', 'chg_accession' => 'L' . $this->token]),
+        ]);
+
+        $this->assertSame(4, $this->post()->posted);
+        $this->assertSame(
+            ['26:LT', 'RT:59', '26:50', 'LT:59'],
+            array_map($this->billedModifier(...), [$leftColumn1, $rightColumn2, $both1, $both2])
+        );
+    }
+
     public function testTheSameCodeTwiceInOneFileIsHeldAsARepeatUntilPostedWith76(): void
     {
         // Two chest x-rays the same day, sent without 76/77: a repeat, or a duplicate.
