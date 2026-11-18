@@ -16,6 +16,7 @@ namespace OpenEMR\Tests\Services\Modules\GiffordCharges;
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxDecision;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxRepository;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxRule;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\Measure;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureSuggestion;
@@ -981,6 +982,60 @@ class ChargePosterTest extends TestCase
         );
     }
 
+    public function testAScreeningMammogramIsCodedFromTheExamWithNoReadAndNoCoder(): void
+    {
+        [$family, $knee] = $this->diagnosisCodes(2);
+        $this->validCode(DxRule::SCREENING_MAMMOGRAM);
+        $this->price('77067', '26', '60.00');
+        $this->price('77063', '26', '30.00');
+        $dx = new DxRepository();
+        $now = new \DateTimeImmutable(self::NOW);
+        // The screening and its 3-D add-on on one accession, with a family history from
+        // Gifford; one sent with no diagnosis at all; and two other exams the same day.
+        [$screen, $tomo, $bare, $other, $third] = $this->stage([
+            $this->row(['chg_cpt' => '77067', 'enc_dx_codes' => DxRule::SCREENING_MAMMOGRAM . ",$family,$knee"]),
+            $this->row(['chg_cpt' => '77063', 'enc_dx_codes' => DxRule::SCREENING_MAMMOGRAM . ",$family,$knee"]),
+            $this->row(['chg_cpt' => '77067', 'enc_dx_codes' => '', 'pat_mrn' => $this->mrn . 'B', 'encounter_num' => 'GH-B' . $this->token, 'chg_accession' => 'D' . $this->token]),
+            $this->row(['chg_accession' => 'B' . $this->token]),
+            $this->row(['chg_cpt' => $this->bareCode, 'chg_accession' => 'C' . $this->token]),
+        ]);
+        $before = $dx->tally();
+        $waiting = fn (): array => array_values(array_filter($dx->pending(), fn ($p): bool => str_ends_with($p->accession, $this->token)));
+
+        // Before any posting run, as the diagnoses page does on a site that only stages.
+        $this->assertGreaterThanOrEqual(2, $dx->settleByExam($now));
+        $this->assertSame([DxRule::SCREENING_MAMMOGRAM, $family], $dx->codesFor('A' . $this->token));
+        $this->assertSame([DxRule::SCREENING_MAMMOGRAM], $dx->codesFor('D' . $this->token));
+        $this->assertNull($dx->codesFor('B' . $this->token));
+        $this->assertSame(['B' . $this->token, 'C' . $this->token], array_map(static fn ($p): string => $p->accession, $waiting()));
+        $this->assertSame(2, $dx->tally()['exam'] - $before['exam']);
+
+        $this->post(dx: $dx);
+
+        $this->assertSame(
+            ['posted', 'posted', 'posted', 'held', 'held'],
+            array_map(fn (int $id): string => self::text($this->line($id)['status']), [$screen, $tomo, $bare, $other, $third])
+        );
+        $mammogram = DxRule::SCREENING_MAMMOGRAM;
+        $this->assertSame(
+            [['ICD10', $mammogram, ''], ['ICD10', $family, ''], ['CPT4', '77067', "ICD10|$mammogram:ICD10|$family:"], ['CPT4', '77063', "ICD10|$mammogram:ICD10|$family:"]],
+            $this->billed($screen)
+        );
+        $this->assertSame([['ICD10', $mammogram, ''], ['CPT4', '77067', "ICD10|$mammogram:"]], $this->billed($bare));
+
+        // The screening code is never offered for another exam; a coder's codes are.
+        $this->assertSame([[], []], array_map(static fn ($p): array => $p->sameDay, $waiting()));
+        $this->assertSame([], $dx->confirm('B' . $this->token, "$knee $family", 7, $now));
+        // (B stays listed until the next posting run; its own codes are not offered to it.)
+        $this->assertSame(
+            ['B' . $this->token => [], 'C' . $this->token => [['charges' => $this->code, 'codes' => "$knee $family"]]],
+            array_column(array_map(static fn ($p): array => ['a' => $p->accession, 's' => $p->sameDay], $waiting()), 's', 'a')
+        );
+        // A second run settles nothing new and leaves the coder's accession alone.
+        $dx->settleByExam($now);
+        $this->assertSame([$knee, $family], $dx->codesFor('B' . $this->token));
+    }
+
     public function testWithoutCodingFromTheReportALineWithNoDiagnosisIsStillHeld(): void
     {
         [$lineId] = $this->stage([$this->row(['enc_dx_codes' => ''])]);
@@ -1024,6 +1079,18 @@ class ChargePosterTest extends TestCase
         $this->assertNotNull($settings);
 
         return $this->poster($addOns, $dx)->run($settings);
+    }
+
+    /**
+     * Put a real code in the site's code set (a second row when it is loaded already).
+     */
+    private function validCode(string $code): void
+    {
+        QueryUtils::sqlStatementThrowException(
+            'INSERT INTO `icd10_dx_order_code` (`dx_code`, `formatted_dx_code`, `valid_for_coding`, `short_desc`, `long_desc`, `active`, `revision`)'
+            . " VALUES (?, ?, '1', ?, ?, 1, 1)",
+            [str_pad(str_replace('.', '', $code), 7), str_pad($code, 10), 'Test ' . $this->token, 'Test diagnosis ' . $code]
+        );
     }
 
     /**

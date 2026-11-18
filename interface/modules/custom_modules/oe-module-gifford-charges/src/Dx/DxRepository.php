@@ -24,6 +24,7 @@ use OpenEMR\Common\Database\QueryUtils;
  * One row per accession in gifford_dx. A suggestion that passes DxRule is saved as agreed
  * and its lines post with it; any other is pending until a coder confirms the codes on
  * Fees > Gifford Diagnoses. A coder can also confirm an accession that has no suggestion.
+ * A screening mammogram is settled from the exam alone (settleByExam()).
  * While an accession has neither, ChargePoster holds its lines with PROBLEM.
  */
 final readonly class DxRepository
@@ -139,7 +140,7 @@ final readonly class DxRepository
             json_encode($decision->reasons, JSON_THROW_ON_ERROR),
             $decision->posts() ? self::STATUS_AGREED : self::STATUS_PENDING,
             implode(',', array_slice($decision->codes, 0, self::MAX_CODES)),
-            $source,
+            $decision->source === DxSource::Exam ? DxRule::EXAM_SOURCE : $source,
         ];
         if (is_string($status)) {
             QueryUtils::sqlStatementThrowException(
@@ -155,6 +156,89 @@ final readonly class DxRepository
         }
 
         return true;
+    }
+
+    /**
+     * Settle the accessions the exam itself codes (DxRule::byExam(): a screening
+     * mammogram), so they neither wait for a report read nor for a coder. Looks at
+     * accessions with lines not yet posted that have no diagnoses yet or a suggestion
+     * waiting for a coder; one a coder confirmed is left alone.
+     *
+     * @return int how many it settled
+     */
+    public function settleByExam(\DateTimeImmutable $now): int
+    {
+        $cpts = DxRule::SCREENING_MAMMOGRAM_CPTS;
+        $accessions = QueryUtils::fetchTableColumn(
+            'SELECT l.`accession` FROM `gifford_charge_line` AS l'
+            . ' LEFT JOIN `gifford_dx` AS d ON d.`accession` = l.`accession`'
+            . " WHERE l.`accession` <> '' AND l.`status` IN (?, ?) AND (d.`status` IS NULL OR d.`status` = ?)"
+            . ' GROUP BY l.`accession`'
+            . ' HAVING SUM(CASE WHEN UPPER(l.`code`) IN (' . implode(', ', array_fill(0, count($cpts), '?')) . ') THEN 0 ELSE 1 END) = 0',
+            'accession',
+            [LineStatus::Staged->value, LineStatus::Held->value, self::STATUS_PENDING, ...$cpts]
+        );
+        $settled = 0;
+        foreach ($accessions as $accession) {
+            $staged = is_string($accession) ? $this->staged($accession) : null;
+            if (!is_string($accession) || $staged === null) {
+                continue;
+            }
+            $decision = DxRule::byExam(
+                $staged['cpts'],
+                $staged['gifford'],
+                $this->invalidCodes(array_values(array_unique([DxRule::SCREENING_MAMMOGRAM, ...$staged['gifford']])))
+            );
+            if ($decision !== null && $this->saveSuggestion($accession, [], $decision, DxRule::EXAM_SOURCE, $now)) {
+                $settled++;
+            }
+        }
+
+        return $settled;
+    }
+
+    /**
+     * What the patient's other accessions of the same day post with, for the coder to
+     * reuse with one click (the practice's coding screen repeats the last diagnosis with
+     * a key). Exam-coded accessions are left out: a screening code is never another
+     * exam's diagnosis.
+     *
+     * @param list<array{mrn: string, dateOfService: string}> $days
+     * @return array<string, array<string, array{charges: list<string>, codes: string}>> by mrn and day (dayKey()), then accession
+     */
+    private function settledSameDay(array $days): array
+    {
+        if ($days === []) {
+            return [];
+        }
+        $binds = [self::STATUS_AGREED, self::STATUS_CONFIRMED, DxRule::EXAM_SOURCE];
+        foreach ($days as $day) {
+            array_push($binds, $day['mrn'], $day['dateOfService']);
+        }
+        $rows = QueryUtils::fetchRecords(
+            'SELECT l.`mrn`, l.`date_of_service`, l.`accession`, l.`code`, d.`codes`'
+            . ' FROM `gifford_charge_line` AS l JOIN `gifford_dx` AS d ON d.`accession` = l.`accession`'
+            . " WHERE d.`status` IN (?, ?) AND d.`source` <> ? AND d.`codes` <> '' AND ("
+            . implode(' OR ', array_fill(0, count($days), '(l.`mrn` = ? AND l.`date_of_service` = ?)')) . ') ORDER BY l.`id`',
+            $binds
+        );
+        $settled = [];
+        foreach ($rows as $row) {
+            $day = self::dayKey(self::text($row['mrn'] ?? null), self::text($row['date_of_service'] ?? null));
+            $accession = 'a' . self::text($row['accession'] ?? null);
+            $settled[$day][$accession] ??= ['charges' => [], 'codes' => str_replace(',', ' ', self::text($row['codes'] ?? null))];
+            $code = self::text($row['code'] ?? null);
+            if (!in_array($code, $settled[$day][$accession]['charges'], true)) {
+                $settled[$day][$accession]['charges'][] = $code;
+            }
+        }
+
+        return $settled;
+    }
+
+    private static function dayKey(string $mrn, string $dateOfService): string
+    {
+        return $mrn . "\x1F" . $dateOfService;
     }
 
     /**
@@ -296,6 +380,10 @@ final readonly class DxRepository
             ];
         }
         $texts = $this->descriptions(array_values(array_unique($wanted)));
+        $sameDay = $this->settledSameDay(array_values(array_unique(array_map(
+            static fn (array $b): array => ['mrn' => self::text($b['first']['mrn'] ?? null), 'dateOfService' => self::text($b['first']['date_of_service'] ?? null)],
+            $built
+        ), SORT_REGULAR)));
 
         $pending = [];
         foreach ($built as $b) {
@@ -316,10 +404,32 @@ final readonly class DxRepository
                 $b['others'],
                 is_string($first['suggested_json'] ?? null),
                 ReportView::fromRaw($raw),
+                self::others($sameDay[self::dayKey(self::text($first['mrn'] ?? null), self::text($first['date_of_service'] ?? null))] ?? [], self::text($first['accession'] ?? null)),
             );
         }
 
         return $pending;
+    }
+
+    /**
+     * The day's settled accessions other than this one, one entry per set of codes.
+     *
+     * @param array<string, array{charges: list<string>, codes: string}> $settled by accession
+     * @return list<array{charges: string, codes: string}>
+     */
+    private static function others(array $settled, string $accession): array
+    {
+        unset($settled['a' . $accession]);
+        $byCodes = [];
+        foreach ($settled as $other) {
+            $byCodes[$other['codes']] = array_values(array_unique([...($byCodes[$other['codes']] ?? []), ...$other['charges']]));
+        }
+        $others = [];
+        foreach ($byCodes as $codes => $charges) {
+            $others[] = ['charges' => implode(', ', $charges), 'codes' => (string) $codes];
+        }
+
+        return $others;
     }
 
     public function pendingCount(): int
@@ -337,23 +447,27 @@ final readonly class DxRepository
     /**
      * How the coders' confirmed codes compare with the suggestions, for grading them.
      *
-     * `agreed` posts with the suggestion and `gifford` with Gifford's codes, neither seen by
-     * a coder.
+     * `agreed` posts with the suggestion, `gifford` with Gifford's codes and `exam` with the
+     * exam's own (a screening mammogram), none seen by a coder.
      *
-     * @return array{agreed: int, gifford: int, confirmed: int, as_suggested: int, first_kept: int, first_changed: int, no_suggestion: int}
+     * @return array{agreed: int, gifford: int, exam: int, confirmed: int, as_suggested: int, first_kept: int, first_changed: int, no_suggestion: int}
      */
     public function tally(): array
     {
-        $tally = ['agreed' => 0, 'gifford' => 0, 'confirmed' => 0, 'as_suggested' => 0, 'first_kept' => 0, 'first_changed' => 0, 'no_suggestion' => 0];
+        $tally = ['agreed' => 0, 'gifford' => 0, 'exam' => 0, 'confirmed' => 0, 'as_suggested' => 0, 'first_kept' => 0, 'first_changed' => 0, 'no_suggestion' => 0];
         $rows = QueryUtils::fetchRecords(
-            'SELECT `status`, `codes`, `suggested_json` FROM `gifford_dx` WHERE `status` IN (?, ?)',
+            'SELECT `status`, `codes`, `suggested_json`, `source` FROM `gifford_dx` WHERE `status` IN (?, ?)',
             [self::STATUS_AGREED, self::STATUS_CONFIRMED]
         );
         foreach ($rows as $row) {
             $suggested = array_slice(array_column(self::suggestion($row['suggested_json'] ?? null), 'code'), 0, self::MAX_CODES);
             $codes = explode(',', self::text($row['codes'] ?? null));
             if (($row['status'] ?? null) === self::STATUS_AGREED) {
-                $tally[$suggested === $codes ? 'agreed' : 'gifford']++;
+                $tally[match (true) {
+                    ($row['source'] ?? null) === DxRule::EXAM_SOURCE => 'exam',
+                    $suggested === $codes => 'agreed',
+                    default => 'gifford',
+                }]++;
                 continue;
             }
             $tally['confirmed']++;

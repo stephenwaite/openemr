@@ -20,6 +20,8 @@ enum DxSource
     case Suggestion;
     /** The codes Gifford sent for the visit post. */
     case Gifford;
+    /** The exam itself says the diagnosis (a screening mammogram). */
+    case Exam;
     /** Neither posts: a coder confirms. */
     case Coder;
 }

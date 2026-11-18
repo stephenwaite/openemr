@@ -44,9 +44,14 @@ final class DxRuleTest extends TestCase
     {
         $s = DxSource::Suggestion;
         $g = DxSource::Gifford;
+        $e = DxSource::Exam;
         $c = DxSource::Coder;
 
         return [
+            'screening mammogram: Z12.31, whatever the suggestion' => [[['N63.10', 'high']], [], [], ['77067', '77063'], 'medicare', 'GMC.MAMMO', $e, ['Z12.31'], []],
+            'screening mammogram: Gifford\'s first other valid code comes second' => [[], ['Z99.9Z', 'Z12.31', 'Z80.3', 'Z78.0'], ['Z99.9Z'], ['77067'], 'other', 'GMC.MAMMO', $e, ['Z12.31', 'Z80.3'], []],
+            'screening with another exam on the accession: the usual rule' => [[], ['Z12.31'], [], ['77067', '77065'], 'other', 'GMC.MAMMO', $g, ['Z12.31'], []],
+            'screening mammogram, Z12.31 not in the site\'s code set: the usual rule' => [[], [], ['Z12.31'], ['77067'], 'other', 'GMC.MAMMO', $c, [], ['no suggestion', 'Gifford sent no diagnosis']],
             'high: the suggestion posts' => [[['R07.9', 'high'], ['I10', 'medium']], ['I10', 'R07.9'], [], ['71046'], 'other', 'GMC.XRAY', $s, ['R07.9', 'I10'], []],
             'high, not among Gifford\'s: still posts' => [[['J18.9', 'high']], ['R07.9'], [], ['71046'], 'other', 'GMC.ED', $s, ['J18.9'], []],
             'high, Gifford sent none: posts' => [[['R07.9', 'high']], [], [], ['71046'], 'other', 'GMC.ED', $s, ['R07.9'], []],
@@ -92,6 +97,13 @@ final class DxRuleTest extends TestCase
 
         $this->assertSame([$source, $codes, $reasons], [$decision->source, $decision->codes, $decision->reasons]);
         $this->assertSame($source !== DxSource::Coder, $decision->posts());
+    }
+
+    public function testOnlyAScreeningMammogramIsCodedByExam(): void
+    {
+        $this->assertNull(DxRule::byExam([], ['Z12.31'], []));
+        $this->assertNull(DxRule::byExam(['77066'], ['Z12.31'], []));
+        $this->assertSame(['Z12.31'], DxRule::byExam(['77063', '77067'], ['Z12.31'], [])?->codes);
     }
 
     public function testPayerClass(): void

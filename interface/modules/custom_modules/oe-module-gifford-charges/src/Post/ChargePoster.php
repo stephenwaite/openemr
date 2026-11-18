@@ -128,6 +128,8 @@ final readonly class ChargePoster
     {
         $result = new PostResult();
         $now = $this->clock->now();
+        // A screening mammogram's diagnosis comes from the exam: no read, no coder.
+        $this->dx?->settleByExam($now);
 
         /** @var array<string, list<array{line: PendingLine, parsed: ParsedRow}>> $groups */
         $groups = [];

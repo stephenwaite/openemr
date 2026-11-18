@@ -25,6 +25,7 @@ final readonly class PendingDx
      * @param list<string> $reasons why the suggestion did not post by itself
      * @param list<string> $otherProblems what else holds the accession's lines
      * @param bool $hasSuggestion false when none has been loaded for the accession yet
+     * @param list<array{charges: string, codes: string}> $sameDay what the patient's other accessions that day post with
      */
     public function __construct(
         public string $accession,
@@ -41,6 +42,7 @@ final readonly class PendingDx
         public array $otherProblems,
         public bool $hasSuggestion,
         public ?ReportView $report,
+        public array $sameDay = [],
     ) {
     }
 

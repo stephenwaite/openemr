@@ -22,6 +22,9 @@ namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Dx;
  * surgical diagnosis), and when there is no suggestion or its first code is not high
  * confidence, if they pass the same checks. A coder confirms the rest on Fees > Gifford
  * Diagnoses.
+ *
+ * A screening mammogram needs none of that: the exam says the diagnosis (byExam()), as
+ * the practice's own coding screen has always auto-coded it.
  */
 final class DxRule
 {
@@ -29,6 +32,15 @@ final class DxRule
 
     /** Gifford's location for films taken during surgery. */
     public const SURGERY_LOCATION = 'GMC.OR';
+
+    /** The screening mammogram and its 3-D add-on. */
+    public const SCREENING_MAMMOGRAM_CPTS = ['77067', '77063'];
+
+    /** Encounter for screening mammogram for malignant neoplasm of breast. */
+    public const SCREENING_MAMMOGRAM = 'Z12.31';
+
+    /** gifford_dx.source of an accession byExam() settled. */
+    public const EXAM_SOURCE = 'exam: screening mammogram';
 
     public const MEDICAID = 'medicaid';
     public const MEDICARE = 'medicare';
@@ -47,6 +59,10 @@ final class DxRule
      */
     public static function decide(array $suggested, array $gifford, array $invalid, array $cpts, string $payerClass, string $location, DxLists $lists): DxDecision
     {
+        $exam = self::byExam($cpts, $gifford, $invalid);
+        if ($exam !== null) {
+            return $exam;
+        }
         $fallback = match (true) {
             $location === self::SURGERY_LOCATION => 'film taken during surgery',
             $suggested === [] => 'no suggestion',
@@ -68,6 +84,33 @@ final class DxRule
         return $why === []
             ? DxDecision::gifford($codes)
             : DxDecision::coder([$fallback, ...array_map(static fn (string $w): string => "Gifford's: " . $w, $why)]);
+    }
+
+    /**
+     * The codes an accession posts with because of what the exam is, with no report read
+     * and no coder; null when the exam does not say. A screening mammogram (every
+     * procedure code on the accession is the screening or its 3-D add-on) posts with
+     * Z12.31, then the first other code Gifford sent that is valid for coding (a family
+     * history, say).
+     *
+     * @param list<string> $cpts the accession's procedure codes
+     * @param list<string> $gifford the codes Gifford sent for the visit
+     * @param list<string> $invalid the codes among Z12.31 and Gifford's that are not valid for coding
+     */
+    public static function byExam(array $cpts, array $gifford, array $invalid): ?DxDecision
+    {
+        if ($cpts === [] || array_diff($cpts, self::SCREENING_MAMMOGRAM_CPTS) !== [] || in_array(self::SCREENING_MAMMOGRAM, $invalid, true)) {
+            return null;
+        }
+        $codes = [self::SCREENING_MAMMOGRAM];
+        foreach ($gifford as $code) {
+            if ($code !== self::SCREENING_MAMMOGRAM && !in_array($code, $invalid, true)) {
+                $codes[] = $code;
+                break;
+            }
+        }
+
+        return DxDecision::exam($codes);
     }
 
     /**

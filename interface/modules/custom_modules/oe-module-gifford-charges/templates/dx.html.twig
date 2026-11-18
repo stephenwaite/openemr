@@ -25,6 +25,7 @@
 <p class="small">
     {{ 'Posted or posting as suggested, no coder'|xlt }}: {{ tally.agreed|text }}.
     {{ 'With the codes Gifford sent, no coder'|xlt }}: {{ tally.gifford|text }}.
+    {{ 'Screening mammograms, coded from the exam'|xlt }}: {{ tally.exam|text }}.
     {{ 'Confirmed by a coder'|xlt }}: {{ tally.confirmed|text }}
     ({{ 'as suggested'|xlt }} {{ tally.as_suggested|text }},
     {{ 'first code kept, others changed'|xlt }} {{ tally.first_kept|text }},
@@ -94,6 +95,9 @@
                         {% if item.gifford is not empty %}
                             <button type="submit" name="use_codes" value="{{ item.giffordCodes()|attr }}" class="btn btn-sm btn-outline-secondary" title="{{ item.giffordCodes()|attr }}">{{ 'Use Gifford codes'|xlt }}</button>
                         {% endif %}
+                        {% for other in item.sameDay %}
+                            <button type="submit" name="use_codes" value="{{ other.codes|attr }}" class="btn btn-sm btn-outline-secondary" title="{{ other.codes|attr }}">{{ 'Same as'|xlt }} {{ other.charges|text }}: {{ other.codes|text }}</button>
+                        {% endfor %}
                     </form>
                 </div>
             </div>

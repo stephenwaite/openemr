@@ -141,9 +141,15 @@ the visit.
   during surgery (location `GMC.OR`: Gifford's is the surgical diagnosis) and when there
   is no suggestion in the run or its first code is not high confidence, if they pass the
   same checks (`Dx\DxRule`).
+- A screening mammogram (every code on the accession is 77067 or its 3-D add-on 77063)
+  is coded from the exam, with no report read and no coder: Z12.31, then the first other
+  valid code Gifford sent (a family history, say). The practice's own coding screen has
+  always auto-coded these. `gifford:dx-import` leaves them that way.
 - Every other accession waits on Fees > Gifford Diagnoses, where the coder sees the report,
   Gifford's indication and codes, the suggestion and why it waits, and saves up to two
   codes in claim order. An accession with no suggestion loaded can be coded there too.
+  A **Same as** button fills in what another accession of the patient's that day posts
+  with (not a screening mammogram's).
   Accessions nothing else holds are listed first. The page counts how often the coders kept
   the suggestion, kept its first code, or changed it.
 

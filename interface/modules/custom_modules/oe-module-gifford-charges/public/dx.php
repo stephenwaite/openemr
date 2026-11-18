@@ -73,6 +73,11 @@ if ($request->isMethod('POST')) {
     }
 }
 
+// A site that stages without posting never runs the poster: settle the exam-coded here too.
+if ($confirmOn) {
+    $dx->settleByExam($clock->now());
+}
+
 $twig = ServiceContainer::getTwig();
 $loader = $twig->getLoader();
 if (!$loader instanceof FilesystemLoader) {
