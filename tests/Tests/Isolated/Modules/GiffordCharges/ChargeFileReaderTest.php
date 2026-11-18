@@ -170,6 +170,23 @@ final class ChargeFileReaderTest extends TestCase
     }
 
     #[Test]
+    public function theBillingFeedsHeaderNameForTheSignedDateIsReadAsReportSigned(): void
+    {
+        // The 2026-11-18 file: a header line, the signed date/time named report_signed_on.
+        $header = [...ChargeFileReader::SAMPLE_LAYOUT, 'report_signed_on', 'report_status', 'report_text'];
+        $row = [...$this->sampleRow(['chg_cpt' => '71046']), '11/14/2026 10:05', 'Signed', 'EXAM: Chest'];
+        $path = $this->tempFile('txt', implode("\t", $header) . "\r\n" . implode("\t", $row) . "\r\n");
+
+        $rows = (new ChargeFileReader())->read($path);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame(2, $rows[0]->line);
+        $this->assertSame('11/14/2026 10:05', $rows[0]->get('report_signed'));
+        $this->assertSame('Signed', $rows[0]->get('report_status'));
+        $this->assertSame('EXAM: Chest', $rows[0]->get('report_text'));
+    }
+
+    #[Test]
     public function aHeaderlessFileMixingTheTwoLayoutsIsRejected(): void
     {
         $withReport = [...$this->sampleRow([]), '10/14/2026 09:31', 'Signed', 'EXAM: Chest'];
