@@ -807,6 +807,7 @@ class ChargePosterTest extends TestCase
     public function testAChargeWithNoMeasurePostsAndAHeldOneCanBeReleased(): void
     {
         $this->price('71250', '26', '90.00');
+        $this->price('76706', '26', '60.00');
         [$commercial, $young] = $this->stage([
             $this->row(['chg_cpt' => '71250', 'pat_dob' => '03/25/1964']),
             $this->row(['chg_cpt' => '76706', 'pat_dob' => '03/25/1994', 'pat_mrn' => $this->mrn . 'Y', 'encounter_num' => 'GH-Y' . $this->token, 'chg_accession' => 'Y' . $this->token]),
