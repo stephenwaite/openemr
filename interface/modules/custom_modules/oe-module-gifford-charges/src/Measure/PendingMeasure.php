@@ -23,6 +23,7 @@ final readonly class PendingMeasure
      * @param list<Measure> $measures
      * @param list<string> $otherProblems what else holds the line, if anything
      * @param ?ReportView $report the report the answers are read from, when the file sent one
+     * @param array<array-key, MeasureSuggestion> $suggestions by measure value, where one was loaded
      */
     public function __construct(
         public int $id,
@@ -40,6 +41,7 @@ final readonly class PendingMeasure
         public array $measures,
         public array $otherProblems,
         public ?ReportView $report = null,
+        public array $suggestions = [],
     ) {
     }
 }

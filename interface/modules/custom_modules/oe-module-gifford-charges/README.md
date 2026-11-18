@@ -150,6 +150,29 @@ the visit.
 Go-live needs the module's `table.sql` run again (table `gifford_dx`) and the site's
 ICD-10 code set loaded: a code is valid when it is active and valid for coding there.
 
+## Measure answers from the report (Fees > Quality Measures)
+
+A charge that carries a quality measure (QMM26, 364, 405, 406) is held until its questions
+are answered. The answers can be read from the reports first:
+
+    bin/console gifford:measure-import --site=2400 --run=<run>.json
+
+(`--dry-run` to count without writing). The run is the pair of files `measure_compare.php`
+writes (cms repo); they hold patient data and stay on the server. Stage the charge file
+first. The command prints counts only and can be run again with a later run.
+
+- A "no finding" the reading was sure of (answer 0, high confidence) answers its question
+  by itself. A line posts without a coder when every one of its measures is answered that
+  way: nothing goes to the registry for 364, and 405 and 406 put their "no lesion" and "no
+  nodule" G-codes on the claim, as when a coder answers 0.
+- Every other answer (a finding of any kind, or one the reading was less than sure of) is
+  shown under its question on Fees > Quality Measures with the words of the report it rests
+  on, and the coder answers. QMM26 has no "no finding" answer, so it always goes to a coder.
+- An answer a coder gave, and a released line, are never changed.
+- The page counts the questions answered from the report alone, by a coder, and released.
+
+Needs the module's `table.sql` run again (table `gifford_measure_suggestion`).
+
 ## Review page (Fees > Gifford Charges)
 
 For users with Accounting > Billing (write):

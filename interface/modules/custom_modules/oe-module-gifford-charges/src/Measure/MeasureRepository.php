@@ -52,8 +52,113 @@ final readonly class MeasureRepository
             'INSERT INTO `gifford_measure` (`line_id`, `measures`, `answers_json`, `status`, `created_at`) VALUES (?, ?, \'{}\', ?, ?)',
             [$lineId, implode(',', array_map(static fn (Measure $m): string => $m->value, $measures)), self::STATUS_PENDING, $now->format('Y-m-d H:i:s')]
         );
+        // Answers already read from the report may settle it at once.
+        $accession = QueryUtils::fetchSingleValue('SELECT `accession` FROM `gifford_charge_line` WHERE `id` = ?', 'accession', [$lineId]);
+        if (is_string($accession) && $accession !== '' && $this->applySuggestions($accession, $now) > 0) {
+            $row = QueryUtils::querySingleRow('SELECT `status`, `answers_json`, `answered_by` FROM `gifford_measure` WHERE `line_id` = ?', [$lineId]);
+            if (is_array($row)) {
+                return new MeasureAnswers(
+                    self::text($row['status'] ?? null),
+                    self::answers(self::text($row['answers_json'] ?? null)),
+                    self::int($row['answered_by'] ?? null)
+                );
+            }
+        }
 
         return new MeasureAnswers(self::STATUS_PENDING, [], 0);
+    }
+
+    /**
+     * Keep the answers read from an accession's report, replacing earlier ones.
+     *
+     * @param list<MeasureSuggestion> $suggestions
+     * @param string $source where they came from (a run's name)
+     */
+    public function saveSuggestions(string $accession, array $suggestions, string $source, \DateTimeImmutable $now): void
+    {
+        $answers = [];
+        foreach ($suggestions as $s) {
+            $answers[$s->measure->value] = [
+                'answer' => $s->answer, 'confidence' => $s->confidence, 'evidence' => $s->evidence, 'rationale' => $s->rationale,
+            ];
+        }
+        QueryUtils::sqlStatementThrowException(
+            'REPLACE INTO `gifford_measure_suggestion` (`accession`, `answers_json`, `source`, `created_at`) VALUES (?, ?, ?, ?)',
+            [$accession, json_encode($answers, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE), $source, $now->format('Y-m-d H:i:s')]
+        );
+    }
+
+    /**
+     * The answers read from an accession's report, by measure value.
+     *
+     * @return array<array-key, MeasureSuggestion>
+     */
+    public function suggestionsFor(string $accession): array
+    {
+        return self::suggestions(QueryUtils::fetchSingleValue(
+            'SELECT `answers_json` FROM `gifford_measure_suggestion` WHERE `accession` = ?',
+            'answers_json',
+            [$accession]
+        ));
+    }
+
+    /**
+     * Answer the accession's pending questions that the report answers by itself: a line is
+     * answered when every one of its measures has a sure "no finding"
+     * (MeasureSuggestion::standsAlone()). Recorded with no user: nobody keyed it.
+     *
+     * @return int the lines answered
+     */
+    public function applySuggestions(string $accession, \DateTimeImmutable $now): int
+    {
+        $suggestions = $this->suggestionsFor($accession);
+        if ($suggestions === []) {
+            return 0;
+        }
+        $rows = QueryUtils::fetchRecords(
+            'SELECT m.`id`, m.`measures` FROM `gifford_measure` AS m JOIN `gifford_charge_line` AS l ON l.`id` = m.`line_id`'
+            . ' WHERE l.`accession` = ? AND m.`status` = ?',
+            [$accession, self::STATUS_PENDING]
+        );
+        $answered = 0;
+        foreach ($rows as $row) {
+            $measures = self::measures(self::text($row['measures'] ?? null));
+            $answers = [];
+            foreach ($measures as $measure) {
+                if (($suggestions[$measure->value] ?? null)?->standsAlone() === true) {
+                    $answers[$measure->value] = 0;
+                }
+            }
+            if ($measures === [] || count($answers) !== count($measures)) {
+                continue;
+            }
+            QueryUtils::sqlStatementThrowException(
+                'UPDATE `gifford_measure` SET `answers_json` = ?, `status` = ?, `answered_at` = ?, `answered_by` = 0 WHERE `id` = ? AND `status` = ?',
+                [json_encode($answers, JSON_THROW_ON_ERROR), self::STATUS_ANSWERED, $now->format('Y-m-d H:i:s'), self::int($row['id'] ?? null), self::STATUS_PENDING]
+            );
+            $answered++;
+        }
+
+        return $answered;
+    }
+
+    /**
+     * How the questions got their answers, for watching the automatic ones.
+     *
+     * @return array{automatic: int, coder: int, released: int}
+     */
+    public function tally(): array
+    {
+        $tally = ['automatic' => 0, 'coder' => 0, 'released' => 0];
+        foreach (QueryUtils::fetchRecords('SELECT `status`, `answered_by` FROM `gifford_measure` WHERE `status` <> ?', [self::STATUS_PENDING]) as $row) {
+            if (($row['status'] ?? null) === self::STATUS_RELEASED) {
+                $tally['released']++;
+            } else {
+                $tally[self::int($row['answered_by'] ?? null) === 0 ? 'automatic' : 'coder']++;
+            }
+        }
+
+        return $tally;
     }
 
     /**
@@ -65,10 +170,11 @@ final readonly class MeasureRepository
     {
         $rows = QueryUtils::fetchRecords(
             'SELECT m.`id`, m.`measures`, l.`id` AS `line_id`, l.`line_number`, l.`raw_json`, l.`problems_json`, l.`date_of_service`,'
-            . ' l.`code`, l.`accession`, l.`mrn`, b.`file_name`'
+            . ' l.`code`, l.`accession`, l.`mrn`, b.`file_name`, s.`answers_json` AS `suggested_json`'
             . ' FROM `gifford_measure` AS m'
             . ' JOIN `gifford_charge_line` AS l ON l.`id` = m.`line_id`'
             . ' JOIN `gifford_charge_batch` AS b ON b.`id` = l.`batch_id`'
+            . ' LEFT JOIN `gifford_measure_suggestion` AS s ON s.`accession` = l.`accession`'
             . ' WHERE m.`status` = ? AND l.`status` = ? ORDER BY l.`date_of_service`, l.`mrn`, l.`id`',
             [self::STATUS_PENDING, LineStatus::Held->value]
         );
@@ -100,6 +206,7 @@ final readonly class MeasureRepository
                 self::measures(self::text($row['measures'] ?? null)),
                 $problems,
                 ReportView::fromRaw($raw),
+                self::suggestions($row['suggested_json'] ?? null),
             );
         }
 
@@ -224,6 +331,31 @@ final readonly class MeasureRepository
         }
 
         return $acr;
+    }
+
+    /**
+     * @return array<array-key, MeasureSuggestion> by measure value; answers no option of the measure has are left out
+     */
+    private static function suggestions(mixed $json): array
+    {
+        $decoded = is_string($json) ? json_decode($json, true) : null;
+        $found = [];
+        foreach (is_array($decoded) ? $decoded : [] as $value => $a) {
+            $measure = Measure::tryFrom((string) $value);
+            $answer = is_array($a) && is_int($a['answer'] ?? null) ? $a['answer'] : null;
+            if ($measure === null || !is_array($a) || $answer === null || $measure->option($answer) === null) {
+                continue;
+            }
+            $found[$measure->value] = new MeasureSuggestion(
+                $measure,
+                $answer,
+                self::text($a['confidence'] ?? null),
+                self::text($a['evidence'] ?? null),
+                self::text($a['rationale'] ?? null)
+            );
+        }
+
+        return $found;
     }
 
     /**

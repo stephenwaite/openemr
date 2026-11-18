@@ -18,6 +18,7 @@ use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxDecision;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\Measure;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureRepository;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureSuggestion;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Parse\ChargeRowParser;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMap;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\AddOnCodes;
@@ -81,7 +82,7 @@ class ChargePosterTest extends TestCase
         }
         $loader->addPsr4('Cmsvt\\OpenEMR\\Modules\\GiffordCharges\\', self::root() . self::MODULE_DIR . '/src/');
 
-        if (!QueryUtils::existsTable('gifford_dx')) {
+        if (!QueryUtils::existsTable('gifford_measure_suggestion')) {
             $install = new SQLUpgradeService();
             $install->setRenderOutputToScreen(false);
             $install->setThrowExceptionOnError(true);
@@ -161,6 +162,7 @@ class ChargePosterTest extends TestCase
         QueryUtils::sqlStatementThrowException('DELETE FROM `icd10_dx_order_code` WHERE `short_desc` = ?', ['Test ' . $this->token]);
         QueryUtils::sqlStatementThrowException('DELETE FROM `gifford_cci_edit` WHERE `column1` IN (?, ?)', [$this->code, $this->bareCode]);
         QueryUtils::sqlStatementThrowException('DELETE FROM `gifford_dx` WHERE `accession` LIKE ?', ['%' . $this->token]);
+        QueryUtils::sqlStatementThrowException('DELETE FROM `gifford_measure_suggestion` WHERE `accession` LIKE ?', ['%' . $this->token]);
         parent::tearDown();
     }
 
@@ -723,6 +725,59 @@ class ChargePosterTest extends TestCase
             $rows[0]->line('107816', '')
         );
         $this->assertSame([], array_filter($repository->acrRows(new \DateTimeImmutable('2026-08-21'), new \DateTimeImmutable('2026-08-31')), fn ($r): bool => $r->patientId === $this->mrn));
+    }
+
+    public function testASureNoFindingAnswersTheMeasureAndAFindingWaitsForTheCoder(): void
+    {
+        QueryUtils::sqlStatementThrowException('UPDATE `insurance_companies` SET `ins_type_code` = 2 WHERE `id` = ?', [$this->companyId]);
+        $this->price('71250', '26', '90.00');
+        $this->price('74177', '26', '90.00');
+        [$chest, $abdomen] = $this->stage([
+            $this->row(['chg_cpt' => '71250']),
+            $this->row(['chg_cpt' => '74177', 'chg_accession' => 'B' . $this->token]),
+        ]);
+        $repository = new MeasureRepository();
+        $now = new \DateTimeImmutable(self::NOW);
+        $sure = static fn (Measure $m, int $answer = 0, string $confidence = 'high'): MeasureSuggestion
+            => new MeasureSuggestion($m, $answer, $confidence, 'The kidneys are unremarkable.', 'Nothing noted.');
+        $before = $repository->tally();
+
+        // The chest CT's answers were read before any posting run: it is never held for them.
+        $repository->saveSuggestions('A' . $this->token, [$sure(Measure::M364), $sure(Measure::M405), $sure(Measure::M406)], 'run-1', $now);
+        // The abdomen's: no nodule, but a renal cyst the report says nothing more about.
+        $repository->saveSuggestions('B' . $this->token, [$sure(Measure::M364), $sure(Measure::M405, 3, 'medium')], 'run-1', $now);
+        $this->assertSame(0, $repository->applySuggestions('A' . $this->token, $now), 'no measure row yet');
+
+        $this->post();
+
+        $this->assertSame(['posted', 'held'], [$this->line($chest)['status'], $this->line($abdomen)['status']]);
+        $this->assertSame([MeasureRepository::PROBLEM], $this->problems($abdomen));
+        $row = QueryUtils::querySingleRow('SELECT * FROM `gifford_measure` WHERE `line_id` = ?', [$chest]);
+        $this->assertIsArray($row);
+        $this->assertSame(['answered', '{"364":0,"405":0,"406":0}', 0], [$row['status'], $row['answers_json'], self::int($row['answered_by'])]);
+        $codes = QueryUtils::fetchTableColumn(
+            "SELECT `code` FROM `billing` WHERE `encounter` = ? AND `code_type` = 'HCPCS' AND `activity` = 1 ORDER BY `id`",
+            'code',
+            [$this->line($chest)['encounter']]
+        );
+        $this->assertSame(['G9551', 'G9557'], $codes, 'no lesion and no thyroid nodule go on the claim; 364 sends nothing');
+
+        // The coder sees what was read for the abdomen, and the answer is still theirs.
+        $pending = array_values(array_filter($repository->pending(), fn ($p): bool => $p->mrn === $this->mrn));
+        $this->assertCount(1, $pending);
+        $shown = $pending[0]->suggestions;
+        $this->assertSame(
+            [0, 'high', true, 3, 'medium', false, 'Lesion, follow-up imaging recommended or not addressed (performance not met)'],
+            [$shown['364']->answer, $shown['364']->confidence, $shown['364']->standsAlone(), $shown['405']->answer, $shown['405']->confidence, $shown['405']->standsAlone(), $shown['405']->label()]
+        );
+        $this->assertSame(1, $repository->tally()['automatic'] - $before['automatic']);
+
+        // A later reading that is sure of no lesion answers the held line; the coder's answers are never replaced.
+        $repository->saveSuggestions('B' . $this->token, [$sure(Measure::M364), $sure(Measure::M405)], 'run-2', $now);
+        $this->assertSame(1, $repository->applySuggestions('B' . $this->token, $now));
+        $this->assertSame(0, $repository->applySuggestions('B' . $this->token, $now), 'answered once');
+        $this->assertSame(1, $this->post()->posted);
+        $this->assertSame('posted', $this->line($abdomen)['status']);
     }
 
     public function testAChargeWithNoMeasurePostsAndAHeldOneCanBeReleased(): void

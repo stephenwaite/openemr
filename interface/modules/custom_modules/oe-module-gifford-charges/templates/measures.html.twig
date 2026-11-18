@@ -18,6 +18,11 @@
     <button type="submit" class="btn btn-primary btn-sm"{% if not postingOn %} disabled{% endif %}>{{ 'Post ready lines now'|xlt }}</button>
 </form>
 
+<p class="text-muted">{{ 'Where the answers read from the reports are loaded, a "no finding" the reading was sure of answers its question by itself; every other answer is shown under its question for the coder to decide.'|xlt }}
+    {{ 'Answered from the report alone'|xlt }}: {{ tally.automatic|text }}.
+    {{ 'Answered by a coder'|xlt }}: {{ tally.coder|text }}.
+    {{ 'Released'|xlt }}: {{ tally.released|text }}.</p>
+
 <h5>{{ 'Waiting for an answer'|xlt }}: {{ pendingCount|text }}</h5>
 {% if pending is empty %}
     <p>{{ 'None.'|xlt }}</p>
@@ -65,6 +70,12 @@
                                         <option value="{{ option.value|attr }}">{{ option.label|text }}</option>
                                     {% endfor %}
                                 </select>
+                                {% set s = item.suggestions[measure.value]|default(null) %}
+                                {% if s %}
+                                    <div class="small text-info">{{ 'From the report'|xlt }}: {{ s.label|text }} ({{ s.confidence|text }})</div>
+                                    {% if s.evidence %}<div class="small font-italic">&ldquo;{{ s.evidence|text }}&rdquo;</div>{% endif %}
+                                    {% if s.rationale %}<div class="small text-muted">{{ s.rationale|text }}</div>{% endif %}
+                                {% endif %}
                             </div>
                         {% endfor %}
                     </form>
