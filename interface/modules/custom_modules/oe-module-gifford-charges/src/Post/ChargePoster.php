@@ -44,6 +44,10 @@ use Psr\Clock\ClockInterface;
  *   provider on the site, the visit's lines disagree on place of service (or with the
  *   encounter already posted), or the visit number is too long for the encounter;
  * - it has no price;
+ * - the visit has no encounter yet and the file names no referring provider (prov_ref_npi
+ *   is not a 10-digit NPI): the claim would go out without the ordering provider, which
+ *   Medicare requires on a diagnostic exam. Until a person releases it, to post without one
+ *   and add the provider on the encounter, or skips it;
  * - an earlier file already posted its accession as a different charge (a corrected
  *   re-send), until a person releases it;
  * - the patient already has the same code that day (posted from this file, or from another
@@ -74,6 +78,9 @@ final readonly class ChargePoster
 
     /** The start of the problem an NCCI edit holds a line with. */
     public const CCI_PREFIX = 'NCCI:';
+
+    /** The start of the problem a missing referring provider holds a line with. */
+    public const REFERRER_PREFIX = 'no referring provider:';
 
     /** The modifier added to the column 2 code of an NCCI pair that allows one. */
     private const DISTINCT_SERVICE = '59';
@@ -215,6 +222,14 @@ final readonly class ChargePoster
             $providerId = $this->site->findRenderingProvider(self::encounterOf($parsed)->renderingNpi);
             if ($providerId === null) {
                 $problems[] = sprintf('rendering NPI %s is not a provider on this site', self::encounterOf($parsed)->renderingNpi);
+            }
+            // The referring provider is set when the encounter is created, from the file.
+            if ($existing === null && !$line->released && !self::isNpi($visit->referringNpi)) {
+                $problems[] = sprintf(
+                    '%s prov_ref_npi "%s" is not a 10-digit NPI; post it anyway and add the referring provider on the encounter, or skip it',
+                    self::REFERRER_PREFIX,
+                    $visit->referringNpi
+                );
             }
             // Gifford sending a file again: the same charge on the same accession, posted
             // from an earlier file. Lines of one file are checked as repeats below.
@@ -364,7 +379,7 @@ final readonly class ChargePoster
             }
             $encounter = $existing['encounter'] ?? null;
             if ($encounter === null) {
-                $referrer = preg_match('/^\d{10}$/', $visit->referringNpi) === 1
+                $referrer = self::isNpi($visit->referringNpi)
                     ? $this->site->referringProvider($visit->referringNpi, $visit->referringName)
                     : 0;
                 $encounter = $this->site->createEncounter($pid, $visit, $dateOfService, $ready[0]['providerId'], $referrer, $placeOfService, $settings);
@@ -456,6 +471,11 @@ final readonly class ChargePoster
         }
 
         return [$priced, $problems];
+    }
+
+    private static function isNpi(string $value): bool
+    {
+        return preg_match('/^\d{10}$/', $value) === 1;
     }
 
     private static function dayKey(string $mrn, \DateTimeImmutable $dateOfService): string

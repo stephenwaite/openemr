@@ -69,7 +69,9 @@ in one transaction:
 A line is **held**, with the reason in `gifford_charge_line.problems_json`, when the row
 has problems, a payer mnemonic is not mapped, the rendering NPI is not a provider on the
 site, the visit's lines (or its posted encounter) disagree on place of service, the code
-has no price, Gifford sent `GZ` (expected denial, no ABN; held until a person releases or skips it), the line's accession was posted from an earlier file
+has no price, the visit has no encounter yet and `prov_ref_npi` is not a 10-digit NPI (no referring
+provider for the claim; held until a person posts it anyway, then adds the provider on the
+encounter, or skips it), Gifford sent `GZ` (expected denial, no ABN; held until a person releases or skips it), the line's accession was posted from an earlier file
 as a different charge (a corrected re-send, held until a person releases or skips it), or
 the patient already has the same code that day (posted from the same file, or from another
 file on another accession, or posting in the same run) and the line has no `76`/`77` (a

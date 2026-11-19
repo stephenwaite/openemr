@@ -324,6 +324,36 @@ class ChargePosterTest extends TestCase
         $this->assertSame(['the visit\'s lines have different places of service: 11, 22'], $this->problems($hospital));
     }
 
+    public function testALineWithNoReferringNpiIsHeldUntilAPersonPostsItAnyway(): void
+    {
+        [$blank, $short] = $this->stage([
+            $this->row(['prov_ref_npi' => '']),
+            $this->row(['prov_ref_npi' => '12345', 'encounter_num' => 'V2' . $this->token, 'chg_accession' => 'R' . $this->token, 'chg_dos' => '08/21/2026']),
+        ]);
+
+        $this->assertSame(0, $this->post()->posted);
+        $this->assertSame(['held', 'held'], [$this->line($blank)['status'], $this->line($short)['status']]);
+        $this->assertSame(
+            ['no referring provider: prov_ref_npi "" is not a 10-digit NPI; post it anyway and add the referring provider on the encounter, or skip it'],
+            $this->problems($blank)
+        );
+        $this->assertSame(
+            ['no referring provider: prov_ref_npi "12345" is not a 10-digit NPI; post it anyway and add the referring provider on the encounter, or skip it'],
+            $this->problems($short)
+        );
+
+        // A person posts the first anyway: its encounter has no referring provider.
+        QueryUtils::sqlStatementThrowException('UPDATE `gifford_charge_line` SET `released` = 1 WHERE `id` = ?', [$blank]);
+        $this->assertSame(1, $this->post()->posted);
+        $this->assertSame(['posted', 'held'], [$this->line($blank)['status'], $this->line($short)['status']]);
+        $encounter = QueryUtils::querySingleRow(
+            'SELECT `referring_provider_id` FROM `form_encounter` WHERE `pid` = ? AND `encounter` = ?',
+            [$this->line($blank)['pid'], $this->line($blank)['encounter']]
+        );
+        $this->assertIsArray($encounter);
+        $this->assertSame('0', self::text($encounter['referring_provider_id']));
+    }
+
     public function testALaterFileAddsToTheVisitAndCatchesDuplicatesAndCorrections(): void
     {
         [$first] = $this->stage([$this->row()]);
