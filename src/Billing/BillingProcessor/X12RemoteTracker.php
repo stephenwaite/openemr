@@ -19,6 +19,7 @@ namespace OpenEMR\Billing\BillingProcessor;
 use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\Billing\X12RemoteFilenameFilterEvent;
+use OpenEMR\Events\Billing\X12RemoteTransportEvent;
 use OpenEMR\Services\BaseService;
 use phpseclib3\Net\SFTP;
 
@@ -62,6 +63,27 @@ class X12RemoteTracker extends BaseService
         $cryptoGen = ServiceContainer::getCrypto();
         foreach ($x12_remotes as $x12_remote) {
             if (!is_array($x12_remote)) {
+                continue;
+            }
+
+            // A listener may deliver this partner's files itself (through the payer's web
+            // portal, say); the partner's SFTP settings are then not used.
+            $transport = self::transportFor($x12_remote);
+            if ($transport !== null) {
+                $claim_file = self::claimFilePath($x12_remote);
+                $claim_file_contents = is_file($claim_file) ? file_get_contents($claim_file) : false;
+                if (false === $claim_file_contents) {
+                    $remoteTracker->update(self::withOutcome(
+                        $x12_remote,
+                        self::STATUS_CLAIM_FILE_ERROR,
+                        ["Could not open local claim file: `$claim_file`"]
+                    ));
+                    continue;
+                }
+                // In progress before anything is sent, so an interrupted run never sends it twice.
+                $x12_remote['status'] = self::STATUS_IN_PROGRESS;
+                $remoteTracker->update($x12_remote);
+                $remoteTracker->update(self::sendThroughTransport($transport, $x12_remote, $claim_file_contents));
                 continue;
             }
 
@@ -147,6 +169,82 @@ class X12RemoteTracker extends BaseService
             // Disconnect from the remote server
             $sftp->disconnect();
         }
+    }
+
+    /**
+     * Ask listeners whether one of them delivers this partner's files.
+     *
+     * @param array<mixed> $x12_remote
+     */
+    private static function transportFor(array $x12_remote): ?X12RemoteTransportInterface
+    {
+        $text = static fn (string $key): string => is_string($x12_remote[$key] ?? null) ? $x12_remote[$key] : '';
+        $partnerId = $x12_remote['x12_partner_id'] ?? null;
+        $encrypted = $text('x12_sftp_pass');
+        $event = new X12RemoteTransportEvent(
+            is_numeric($partnerId) ? (int) $partnerId : 0,
+            $text('name'),
+            $text('x12_sftp_host'),
+            $text('x12_sftp_login'),
+            static fn (): string => $encrypted === '' ? '' : ServiceContainer::getCrypto()->decryptFromDatabase($encrypted)
+        );
+        OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()
+            ->dispatch($event, X12RemoteTransportEvent::EVENT_NAME);
+
+        return $event->getTransport();
+    }
+
+    /**
+     * Where the row's claim file is: the partner's local directory, else the site's edi directory.
+     *
+     * @param array<mixed> $x12_remote
+     */
+    private static function claimFilePath(array $x12_remote): string
+    {
+        $filename = is_string($x12_remote['x12_filename'] ?? null) ? $x12_remote['x12_filename'] : '';
+        $localDir = is_string($x12_remote['x12_sftp_local_dir'] ?? null) ? $x12_remote['x12_sftp_local_dir'] : '';
+        if ($localDir !== '' && file_exists($localDir . $filename)) {
+            return $localDir . $filename;
+        }
+
+        return OEGlobalsBag::getInstance()->getString('OE_SITE_DIR') . '/documents/edi/' . $filename;
+    }
+
+    /**
+     * Hand a claim file to a listener's transport and return the tracker row with the
+     * outcome: the status it reports, its messages added to the row's.
+     *
+     * @param array<mixed> $x12_remote
+     * @return array<mixed>
+     */
+    public static function sendThroughTransport(X12RemoteTransportInterface $transport, array $x12_remote, string $claim_file_contents): array
+    {
+        $filename = is_string($x12_remote['x12_filename'] ?? null) ? $x12_remote['x12_filename'] : '';
+        $result = $transport->send($filename, $claim_file_contents);
+
+        $status = match ($result->outcome) {
+            X12RemoteTransportOutcome::Delivered => self::STATUS_SUCCESS,
+            X12RemoteTransportOutcome::LoginFailed => self::STATUS_LOGIN_ERROR,
+            X12RemoteTransportOutcome::UploadFailed => self::STATUS_UPLOAD_ERRROR,
+        };
+
+        return self::withOutcome($x12_remote, $status, $result->messages);
+    }
+
+    /**
+     * @param array<mixed> $x12_remote
+     * @param list<string> $messages added to the row's
+     * @return array<mixed>
+     */
+    private static function withOutcome(array $x12_remote, string $status, array $messages): array
+    {
+        $x12_remote['status'] = $status;
+        if ($messages !== []) {
+            $earlier = is_array($x12_remote['messages'] ?? null) ? $x12_remote['messages'] : [];
+            $x12_remote['messages'] = array_merge($earlier, $messages);
+        }
+
+        return $x12_remote;
     }
 
     /**

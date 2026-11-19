@@ -146,3 +146,14 @@ a note, and podiatry routine foot care rules. Per-site settings:
 `cmsvt_claim_closed_facility_npis` and `cmsvt_claim_rendering_provider_id`
 (through `ClaimProviderFilterEvent`). Uploads to BCBS Vermont's MOVEit server
 are renamed `007111NN.x12` through `X12RemoteFilenameFilterEvent`.
+
+Vermont Medicaid (Gainwell) takes claim files only through the Upload Files page
+of vtmedicaid.com; its SFTP host never answers. With **Claims: Send Vermont
+Medicaid Through Its Portal** on (`cmsvt_claim_vtmedicaid_portal`, off by
+default), `Billing/VtMedicaidPortal` delivers the files of the X12 partner whose
+SFTP host is `vtmedicaid.com` through `X12RemoteTransportEvent`: it signs in
+with that partner's SFTP login and password (the portal account), posts the
+file and records the portal's tracking number in the claim file tracker. A
+failed or unconfirmed upload is left as an error for a person to look at; it is
+never retried by itself. `bin/console cmsvt:vtmedicaid-check --site=<site>`
+signs in and opens the upload page without sending anything.

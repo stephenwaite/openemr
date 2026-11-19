@@ -16,10 +16,13 @@ declare(strict_types=1);
 namespace Cmsvt\OpenEMR\Modules\Customizations\Billing;
 
 use Cmsvt\OpenEMR\Modules\Customizations\Globals\CmsvtGlobals;
+use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use OpenEMR\Core\OEGlobalsBag;
 use OpenEMR\Events\Billing\Claim837PRulesEvent;
 use OpenEMR\Events\Billing\ClaimProviderFilterEvent;
 use OpenEMR\Events\Billing\X12RemoteFilenameFilterEvent;
+use OpenEMR\Events\Billing\X12RemoteTransportEvent;
 
 final readonly class ClaimOptions
 {
@@ -55,6 +58,30 @@ final readonly class ClaimOptions
         if (strcasecmp($event->sftpHost, self::BCBSVT_MOVEIT_HOST) === 0) {
             $event->setFilename('007111' . random_int(20, 99) . '.x12');
         }
+    }
+
+    /**
+     * Vermont Medicaid's claim files go through its web portal when the site says so.
+     */
+    public function applyRemoteTransport(X12RemoteTransportEvent $event): void
+    {
+        if (
+            $this->globals->getBoolean(CmsvtGlobals::CLAIM_VTMEDICAID_PORTAL)
+            && VtMedicaidPortal::isPortalHost($event->sftpHost)
+        ) {
+            $event->setTransport(new VtMedicaidPortal(self::portalClient(), $event->sftpLogin, $event->getPassword()));
+        }
+    }
+
+    public static function portalClient(): ClientInterface
+    {
+        return new Client([
+            'base_uri' => VtMedicaidPortal::BASE_URI,
+            'timeout' => 120,
+            'connect_timeout' => 20,
+            // The portal is a website for browsers; a library's default agent may be turned away.
+            'headers' => ['User-Agent' => 'Mozilla/5.0 (X11; Linux x86_64) OpenEMR claim upload'],
+        ]);
     }
 
     /**

@@ -40,6 +40,7 @@ final class CmsvtGlobals
     // Off switches rather than on switches: a module setting nobody has saved reads
     // as false, and CMS must keep the claim rules and menu without saving anything.
     public const CLAIM_RULES_DISABLED = 'cmsvt_claim_rules_disabled';
+    public const CLAIM_VTMEDICAID_PORTAL = 'cmsvt_claim_vtmedicaid_portal';
     public const ERA_SECONDARY_WRITEOFF_PAYER_IDS = 'cmsvt_era_secondary_writeoff_payer_ids';
     public const ERA_CONTRACTUAL_CO_BY_PROCEDURE = 'cmsvt_era_contractual_co_by_procedure';
     public const ADJUSTMENT_MEMO_USES_TITLE = 'cmsvt_adjustment_memo_uses_title';
@@ -140,6 +141,12 @@ final class CmsvtGlobals
             GlobalSetting::DATA_TYPE_BOOL,
             '0',
             xl('Send claims with the stock 837P rules instead of the CMS Vermont ones (Vermont Medicaid carrier codes, CLIA, routine foot care, NDC and facility rules). For practices outside CMS that use this module.')
+        ));
+        $service->appendToSection($section, self::CLAIM_VTMEDICAID_PORTAL, new GlobalSetting(
+            xl('Claims: Send Vermont Medicaid Through Its Portal'),
+            GlobalSetting::DATA_TYPE_BOOL,
+            '0',
+            xl('Upload claim files for the X12 partner whose SFTP host is vtmedicaid.com through the Vermont Medicaid web portal (Upload Files), signing in with that partner\'s SFTP login and password, instead of over SFTP. The claim file tracker shows the portal\'s tracking number.')
         ));
         $service->appendToSection($section, self::ERA_SECONDARY_WRITEOFF_PAYER_IDS, new GlobalSetting(
             xl('ERA: Secondary Payers Posted as Write-offs'),

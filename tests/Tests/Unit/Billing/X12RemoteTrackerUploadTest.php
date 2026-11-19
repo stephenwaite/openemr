@@ -15,6 +15,8 @@ declare(strict_types=1);
 namespace OpenEMR\Tests\Unit\Billing;
 
 use OpenEMR\Billing\BillingProcessor\X12RemoteTracker;
+use OpenEMR\Billing\BillingProcessor\X12RemoteTransportInterface;
+use OpenEMR\Billing\BillingProcessor\X12RemoteTransportResult;
 use phpseclib3\Net\SFTP;
 use PHPUnit\Framework\TestCase;
 
@@ -89,5 +91,44 @@ class X12RemoteTrackerUploadTest extends TestCase
 
         $this->assertSame(X12RemoteTracker::STATUS_UPLOAD_ERRROR, $row['status']);
         $this->assertSame(['Earlier message.', 'Could not upload file.'], $row['messages']);
+    }
+
+    public function testATransportsDeliveryIsMarkedSuccessWithItsMessage(): void
+    {
+        $transport = $this->createMock(X12RemoteTransportInterface::class);
+        $transport->expects($this->once())
+            ->method('send')
+            ->with('batch-20261001.txt', 'ISA*00*~')
+            ->willReturn(X12RemoteTransportResult::delivered('Tracking number 123.'));
+
+        $row = X12RemoteTracker::sendThroughTransport($transport, $this->waitingRow(), 'ISA*00*~');
+
+        $this->assertSame(X12RemoteTracker::STATUS_SUCCESS, $row['status']);
+        $this->assertSame(['Tracking number 123.'], $row['messages']);
+        $this->assertSame('batch-20261001.txt', $row['x12_filename']);
+    }
+
+    public function testATransportsFailureKeepsItsStatusAndEarlierMessages(): void
+    {
+        $transport = $this->createStub(X12RemoteTransportInterface::class);
+        $transport->method('send')->willReturn(X12RemoteTransportResult::uploadFailed('Not confirmed.'));
+        $row = $this->waitingRow();
+        $row['messages'] = ['Earlier message.'];
+
+        $row = X12RemoteTracker::sendThroughTransport($transport, $row, 'ISA*00*~');
+
+        $this->assertSame(X12RemoteTracker::STATUS_UPLOAD_ERRROR, $row['status']);
+        $this->assertSame(['Earlier message.', 'Not confirmed.'], $row['messages']);
+    }
+
+    public function testATransportThatCannotSignInIsALoginError(): void
+    {
+        $transport = $this->createStub(X12RemoteTransportInterface::class);
+        $transport->method('send')->willReturn(X12RemoteTransportResult::loginFailed());
+
+        $row = X12RemoteTracker::sendThroughTransport($transport, $this->waitingRow(), 'ISA*00*~');
+
+        $this->assertSame(X12RemoteTracker::STATUS_LOGIN_ERROR, $row['status']);
+        $this->assertNull($row['messages']);
     }
 }
