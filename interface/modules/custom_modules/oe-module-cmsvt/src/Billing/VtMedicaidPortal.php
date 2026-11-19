@@ -44,6 +44,13 @@ final readonly class VtMedicaidPortal implements X12RemoteTransportInterface
     private const UPLOAD_FORM_MARK = 'name="WebUploadForm"';
     private const CONFIRMATION_MARK = 'Uploaded successfully';
 
+    /**
+     * The portal answers HTTP/1.1 and then drops the connection without closing it, which
+     * OpenSSL 3 reports as an error ("unexpected eof while reading"); over HTTP/2, as a
+     * browser speaks to it, it answers properly.
+     */
+    private const HTTP_VERSION = '2.0';
+
     public const CHECK_FIRST = 'Look for it on the portal before sending this file again.';
 
     /**
@@ -81,6 +88,7 @@ final readonly class VtMedicaidPortal implements X12RemoteTransportInterface
             $response = $this->http->request('POST', self::UPLOAD_PATH, [
                 'cookies' => $cookies,
                 'http_errors' => false,
+                'version' => self::HTTP_VERSION,
                 'multipart' => [
                     ['name' => 'screen_id', 'contents' => 'Upload'],
                     ['name' => 'directory', 'contents' => ''],
@@ -126,6 +134,7 @@ final readonly class VtMedicaidPortal implements X12RemoteTransportInterface
             $logon = $this->http->request('POST', self::LOGON_PATH, [
                 'cookies' => $cookies,
                 'http_errors' => false,
+                'version' => self::HTTP_VERSION,
                 'form_params' => [
                     'screen_id' => 'logon.jsp',
                     'logon_id' => $this->logonId,
@@ -139,7 +148,7 @@ final readonly class VtMedicaidPortal implements X12RemoteTransportInterface
                     $logon->getStatusCode()
                 ));
             }
-            $form = $this->http->request('GET', self::UPLOAD_FORM_PATH, ['cookies' => $cookies, 'http_errors' => false]);
+            $form = $this->http->request('GET', self::UPLOAD_FORM_PATH, ['cookies' => $cookies, 'http_errors' => false, 'version' => self::HTTP_VERSION]);
             $page = (string) $form->getBody();
         } catch (GuzzleException $e) {
             return X12RemoteTransportResult::loginFailed(sprintf(

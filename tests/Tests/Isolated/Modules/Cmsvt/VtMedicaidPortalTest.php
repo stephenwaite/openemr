@@ -112,6 +112,8 @@ namespace OpenEMR\Tests\Isolated\Modules\Cmsvt {
             $this->assertSame(['POST /secure/logon.do', 'GET /secure/upload.do', 'POST /secure/translator.do'], $this->requests());
 
             $this->assertSame('www.vtmedicaid.com', $this->request(0)->getUri()->getHost());
+            // Over HTTP/2: the portal drops an HTTP/1.1 connection after answering.
+            $this->assertSame(['2.0', '2.0', '2.0'], array_map(fn (int $i): string => $this->request($i)->getProtocolVersion(), [0, 1, 2]));
             parse_str((string) $this->request(0)->getBody(), $logon);
             $this->assertSame(['screen_id' => 'logon.jsp', 'logon_id' => 'cmsvt01', 'password' => 'secret', 'action' => 'Log In'], $logon);
 
