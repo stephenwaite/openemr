@@ -138,3 +138,11 @@ ALTER TABLE `form_misc_billing_options` MODIFY `original_reference_number` VARCH
 #IfColumn form_misc_billing_options medicaid_resubmission_code
 ALTER TABLE `form_misc_billing_options` CHANGE `medicaid_resubmission_code` `resubmission_code` VARCHAR(10) DEFAULT NULL;
 #EndIf
+
+-- cms-rel-840: from upstream #15439 (8_5_0-to-8_6_0_upgrade.sql on master). The same
+-- #IfMissingColumn block there skips once this has run.
+-- The service facility's FDA (MQSA) mammography certification number, sent on a professional
+-- claim for a mammogram (837P loop 2300 REF*EW).
+#IfMissingColumn facility mammography_cert_number
+ALTER TABLE `facility` ADD `mammography_cert_number` varchar(30) DEFAULT NULL COMMENT 'FDA (MQSA) mammography certification number, sent as REF*EW on the 837P';
+#EndIf
