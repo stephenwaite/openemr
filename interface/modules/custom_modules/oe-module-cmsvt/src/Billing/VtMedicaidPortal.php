@@ -80,6 +80,7 @@ final readonly class VtMedicaidPortal implements X12RemoteTransportInterface
         try {
             $response = $this->http->request('POST', self::UPLOAD_PATH, [
                 'cookies' => $cookies,
+                'http_errors' => false,
                 'multipart' => [
                     ['name' => 'screen_id', 'contents' => 'Upload'],
                     ['name' => 'directory', 'contents' => ''],
@@ -90,12 +91,20 @@ final readonly class VtMedicaidPortal implements X12RemoteTransportInterface
                 ],
             ]);
             $page = (string) $response->getBody();
-        } catch (GuzzleException) {
+        } catch (GuzzleException $e) {
             // The file may or may not have arrived.
-            return X12RemoteTransportResult::uploadFailed('The connection to the Vermont Medicaid portal failed during the upload. ' . self::CHECK_FIRST);
+            return X12RemoteTransportResult::uploadFailed(sprintf(
+                'The connection to the Vermont Medicaid portal failed during the upload (%s). %s',
+                self::reason($e),
+                self::CHECK_FIRST
+            ));
         }
         if (!str_contains($page, self::CONFIRMATION_MARK)) {
-            return X12RemoteTransportResult::uploadFailed('The Vermont Medicaid portal did not confirm the upload. ' . self::CHECK_FIRST);
+            return X12RemoteTransportResult::uploadFailed(sprintf(
+                'The Vermont Medicaid portal did not confirm the upload (HTTP %d). %s',
+                $response->getStatusCode(),
+                self::CHECK_FIRST
+            ));
         }
         if (preg_match('/Tracking Number:\s*(\d+)/', strip_tags($page), $match) !== 1) {
             return X12RemoteTransportResult::delivered('Uploaded through the Vermont Medicaid portal; it gave no tracking number.');
@@ -112,9 +121,11 @@ final readonly class VtMedicaidPortal implements X12RemoteTransportInterface
         if ($this->logonId === '' || $this->password === '') {
             return X12RemoteTransportResult::loginFailed('The X12 partner has no login or password for the Vermont Medicaid portal (its SFTP Login and SFTP Password).');
         }
+        // An error status is read here, not thrown: the message then says which step and status.
         try {
-            $this->http->request('POST', self::LOGON_PATH, [
+            $logon = $this->http->request('POST', self::LOGON_PATH, [
                 'cookies' => $cookies,
+                'http_errors' => false,
                 'form_params' => [
                     'screen_id' => 'logon.jsp',
                     'logon_id' => $this->logonId,
@@ -122,14 +133,39 @@ final readonly class VtMedicaidPortal implements X12RemoteTransportInterface
                     'action' => 'Log In',
                 ],
             ]);
-            $page = (string) $this->http->request('GET', self::UPLOAD_FORM_PATH, ['cookies' => $cookies])->getBody();
-        } catch (GuzzleException) {
-            return X12RemoteTransportResult::loginFailed('Could not reach the Vermont Medicaid portal. Nothing was sent.');
+            if ($logon->getStatusCode() >= 400) {
+                return X12RemoteTransportResult::loginFailed(sprintf(
+                    'The Vermont Medicaid portal answered the sign-in with HTTP %d. Nothing was sent.',
+                    $logon->getStatusCode()
+                ));
+            }
+            $form = $this->http->request('GET', self::UPLOAD_FORM_PATH, ['cookies' => $cookies, 'http_errors' => false]);
+            $page = (string) $form->getBody();
+        } catch (GuzzleException $e) {
+            return X12RemoteTransportResult::loginFailed(sprintf(
+                'Could not reach the Vermont Medicaid portal (%s). Nothing was sent.',
+                self::reason($e)
+            ));
         }
         if (!str_contains($page, self::UPLOAD_FORM_MARK)) {
-            return X12RemoteTransportResult::loginFailed('The Vermont Medicaid portal did not show its Upload Files page after signing in: the login or password is wrong, or the portal has changed. Nothing was sent.');
+            return X12RemoteTransportResult::loginFailed(sprintf(
+                'The Vermont Medicaid portal did not show its Upload Files page after signing in (HTTP %d): the login or password is wrong, or the portal has changed. Nothing was sent.',
+                $form->getStatusCode()
+            ));
         }
 
         return null;
+    }
+
+    /**
+     * What the HTTP client says went wrong, for the tracker: the error without the
+     * library's documentation link. Requests carry the login in their body, never in
+     * the URL, so the message holds no credentials.
+     */
+    private static function reason(GuzzleException $e): string
+    {
+        $message = preg_replace('/\s*\(see https?:[^)]*\)/', '', $e->getMessage()) ?? $e->getMessage();
+
+        return substr(trim($message), 0, 200);
     }
 }

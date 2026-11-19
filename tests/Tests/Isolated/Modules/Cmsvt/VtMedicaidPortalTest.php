@@ -97,7 +97,7 @@ namespace OpenEMR\Tests\Isolated\Modules\Cmsvt {
 
         private static function dropped(): ConnectException
         {
-            return new ConnectException('timed out', new Request('GET', '/'));
+            return new ConnectException('cURL error 28: Operation timed out (see https://curl.haxx.se/libcurl/c/libcurl-errors.html) for https://www.vtmedicaid.com/secure/logon.do', new Request('GET', '/'));
         }
 
         public function testSignsInUploadsTheFileAndReportsTheTrackingNumber(): void
@@ -159,7 +159,10 @@ namespace OpenEMR\Tests\Isolated\Modules\Cmsvt {
             $result = $this->portal([self::dropped()])->send('batch.txt', 'ISA~');
 
             $this->assertSame(X12RemoteTransportOutcome::LoginFailed, $result->outcome);
-            $this->assertSame(['Could not reach the Vermont Medicaid portal. Nothing was sent.'], $result->messages);
+            $this->assertSame(
+                ['Could not reach the Vermont Medicaid portal (cURL error 28: Operation timed out for https://www.vtmedicaid.com/secure/logon.do). Nothing was sent.'],
+                $result->messages
+            );
         }
 
         public function testAnUploadThePortalDoesNotConfirmIsAnErrorToLookAt(): void
@@ -169,7 +172,7 @@ namespace OpenEMR\Tests\Isolated\Modules\Cmsvt {
             $result = $portal->send('batch.txt', 'ISA~');
 
             $this->assertSame(X12RemoteTransportOutcome::UploadFailed, $result->outcome);
-            $this->assertSame(['The Vermont Medicaid portal did not confirm the upload. ' . VtMedicaidPortal::CHECK_FIRST], $result->messages);
+            $this->assertSame(['The Vermont Medicaid portal did not confirm the upload (HTTP 200). ' . VtMedicaidPortal::CHECK_FIRST], $result->messages);
         }
 
         public function testAConnectionLostDuringTheUploadIsAnErrorToLookAt(): void
@@ -186,7 +189,25 @@ namespace OpenEMR\Tests\Isolated\Modules\Cmsvt {
         {
             $portal = $this->portal([new Response(200), new Response(200, [], self::UPLOAD_FORM), new Response(500)]);
 
-            $this->assertSame(X12RemoteTransportOutcome::UploadFailed, $portal->send('batch.txt', 'ISA~')->outcome);
+            $result = $portal->send('batch.txt', 'ISA~');
+
+            $this->assertSame(X12RemoteTransportOutcome::UploadFailed, $result->outcome);
+            $this->assertStringContainsString('(HTTP 500)', $result->messages[0]);
+        }
+
+        public function testAnErrorStatusWhileSigningInSaysWhichStepAndStatus(): void
+        {
+            // The sign-in itself refused.
+            $result = $this->portal([new Response(403)])->check();
+            $this->assertSame(X12RemoteTransportOutcome::LoginFailed, $result->outcome);
+            $this->assertSame(['The Vermont Medicaid portal answered the sign-in with HTTP 403. Nothing was sent.'], $result->messages);
+            $this->assertSame(['POST /secure/logon.do'], $this->requests());
+
+            // Signed in or not, the upload page is refused.
+            $result = $this->portal([new Response(200, [], self::LANDING), new Response(401)])->send('batch.txt', 'ISA~');
+            $this->assertSame(X12RemoteTransportOutcome::LoginFailed, $result->outcome);
+            $this->assertStringContainsString('after signing in (HTTP 401)', $result->messages[0]);
+            $this->assertSame(['POST /secure/logon.do', 'GET /secure/upload.do'], $this->requests());
         }
 
         public function testTheCheckSignsInAndUploadsNothing(): void
