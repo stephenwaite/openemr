@@ -124,7 +124,7 @@
                             <button type="submit" class="btn btn-sm btn-secondary text-nowrap" title="{{ (modifier == '76' ? 'Repeat procedure by the same physician' : 'Repeat procedure by another physician')|xla }}">{{ 'Post with'|xlt }} {{ modifier|text }}</button>
                         </form>
                         {% endfor %}
-                    {% elseif (line.correction or line.cci) and not line.released %}
+                    {% elseif (line.correction or line.cci or line.referrer) and not line.released %}
                         <form method="post" class="mb-1" onsubmit="return top.restoreSession()">
                             {{ csrfToken('default', 'csrf_token_form') }}
                             <input type="hidden" name="form_action" value="release" />
