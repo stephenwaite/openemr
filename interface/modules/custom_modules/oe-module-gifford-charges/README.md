@@ -197,6 +197,18 @@ For users with Accounting > Billing (write):
   **Post it** also releases a line an NCCI edit holds;
   **Post with GZ** releases a line Gifford sent with `GZ` (it expected a denial as not
   medically necessary, with no ABN), which then posts with the `GZ` kept (`26:GZ`).
+- **Change a charge code:** for a charge not yet posted whose report is for another exam
+  than Gifford charged (a venous duplex sent as 93926, the arterial code, posts as
+  93971). Give the accession, the code on the charge now and the code to post; every
+  waiting line of the accession with that code changes. The new code must be an active
+  code of the same type on the site. The row keeps the code Gifford sent
+  (`gifford_charge_line.changed_code` holds the new one), Fees > Gifford Diagnoses shows
+  `93971-LT (sent as 93926)`, and changing back to the sent code undoes it. Gifford
+  sending the charge again, as it was or corrected, is a duplicate of the posted one.
+  The same action is on each accession of Fees > Gifford Diagnoses: change the code,
+  then check the diagnoses against the new exam and Save. A posted charge is changed in
+  the encounter's fee sheet instead. Needs the module's `table.sql` run again (column
+  `changed_code`).
 - **Post ready lines now** runs posting without waiting for the hour.
 
 ## Setting it up on a site

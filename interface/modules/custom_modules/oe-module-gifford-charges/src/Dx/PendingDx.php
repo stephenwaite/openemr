@@ -26,6 +26,7 @@ final readonly class PendingDx
      * @param list<string> $otherProblems what else holds the accession's lines
      * @param bool $hasSuggestion false when none has been loaded for the accession yet
      * @param list<array{charges: string, codes: string}> $sameDay what the patient's other accessions that day post with
+     * @param list<string> $codes the procedure codes of the accession's waiting charges, for changing one
      */
     public function __construct(
         public string $accession,
@@ -43,6 +44,7 @@ final readonly class PendingDx
         public bool $hasSuggestion,
         public ?ReportView $report,
         public array $sameDay = [],
+        public array $codes = [],
     ) {
     }
 

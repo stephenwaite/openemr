@@ -183,6 +183,63 @@ final readonly class ReviewRepository
     }
 
     /**
+     * Post an accession's charge that has not posted yet with another procedure code than
+     * Gifford sent (the report shows a venous study charged as an arterial one, say). Every
+     * waiting line of the accession with the code $from changes. The code Gifford sent stays
+     * in the line's row; changing back to it undoes the change. The new code must be an
+     * active code of the same type on the site.
+     *
+     * @return list<string> what is wrong; [] when the change was saved
+     */
+    public function changeCode(string $accession, string $from, string $to, \DateTimeImmutable $at): array
+    {
+        $accession = trim($accession);
+        $from = strtoupper(trim($from));
+        $to = strtoupper(trim($to));
+        if ($accession === '' || preg_match('/^[A-Z0-9]{5}$/', $from) !== 1 || preg_match('/^[A-Z0-9]{5}$/', $to) !== 1) {
+            return ['give the accession, the code on the charge now and the code to post, each code 5 letters or digits'];
+        }
+        if ($from === $to) {
+            return ['the charge already has that code'];
+        }
+        $waiting = [LineStatus::Staged->value, LineStatus::Held->value];
+        $lines = QueryUtils::fetchRecords(
+            'SELECT `id`, `raw_json` FROM `gifford_charge_line` WHERE `accession` = ? AND `code` = ? AND `status` IN (?, ?)',
+            [$accession, $from, ...$waiting]
+        );
+        if ($lines === []) {
+            return [sprintf('accession %s has no %s charge waiting to post', $accession, $from)];
+        }
+        $changes = [];
+        foreach ($lines as $line) {
+            $raw = self::raw($line['raw_json'] ?? null);
+            $cpt = strtoupper($raw['chg_cpt'] ?? '');
+            $sent = $cpt !== '' ? $cpt : strtoupper($raw['chg_hcpcs'] ?? '');
+            $codeType = $cpt !== '' ? 'CPT4' : 'HCPCS';
+            if ($to !== $sent) {
+                $found = QueryUtils::fetchSingleValue(
+                    'SELECT COUNT(*) AS n FROM `codes` AS c JOIN `code_types` AS t ON t.`ct_id` = c.`code_type`'
+                    . ' WHERE t.`ct_key` = ? AND c.`code` = ? AND c.`active` = 1',
+                    'n',
+                    [$codeType, $to]
+                );
+                if (!is_numeric($found) || (int) $found === 0) {
+                    return [sprintf('%s is not an active %s code on this site', $to, $codeType)];
+                }
+            }
+            $changes[] = [$to === $sent ? '' : $to, self::int($line['id'] ?? null)];
+        }
+        foreach ($changes as [$changed, $lineId]) {
+            QueryUtils::sqlStatementThrowException(
+                'UPDATE `gifford_charge_line` SET `changed_code` = ?, `code` = ?, `updated_at` = ? WHERE `id` = ? AND `status` IN (?, ?)',
+                [$changed, $to, $at->format('Y-m-d H:i:s'), $lineId, ...$waiting]
+            );
+        }
+
+        return [];
+    }
+
+    /**
      * @return array<string, string>
      */
     private static function raw(mixed $json): array

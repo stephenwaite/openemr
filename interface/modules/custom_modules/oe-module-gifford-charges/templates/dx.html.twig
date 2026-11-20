@@ -99,6 +99,18 @@
                             <button type="submit" name="use_codes" value="{{ other.codes|attr }}" class="btn btn-sm btn-outline-secondary" title="{{ other.codes|attr }}">{{ 'Same as'|xlt }} {{ other.charges|text }}: {{ other.codes|text }}</button>
                         {% endfor %}
                     </form>
+                    <form method="post" class="form-inline mt-2" onsubmit="return top.restoreSession()">
+                        {{ csrfToken('default', 'csrf_token_form') }}
+                        <input type="hidden" name="form_action" value="change_code" />
+                        <label class="small mr-1" for="line-{{ loop.index|attr }}">{{ 'Report is for another exam? Post'|xlt }}</label>
+                        <input type="hidden" name="accession" value="{{ item.accession|attr }}" />
+                        <select class="form-control form-control-sm mr-1" id="line-{{ loop.index|attr }}" name="from_code">
+                            {% for code in item.codes %}<option value="{{ code|attr }}">{{ code|text }}</option>{% endfor %}
+                        </select>
+                        <label class="small mr-1" for="new-code-{{ loop.index|attr }}">{{ 'as'|xlt }}</label>
+                        <input type="text" class="form-control form-control-sm mr-1" id="new-code-{{ loop.index|attr }}" name="new_code" size="6" maxlength="5" autocomplete="off" />
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">{{ 'Change code'|xlt }}</button>
+                    </form>
                 </div>
             </div>
         </div>

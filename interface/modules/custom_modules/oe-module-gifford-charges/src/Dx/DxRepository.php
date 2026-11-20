@@ -317,7 +317,7 @@ final readonly class DxRepository
     public function pending(?int $limit = null): array
     {
         $rows = QueryUtils::fetchRecords(
-            'SELECT l.`accession`, l.`date_of_service`, l.`mrn`, l.`code`, l.`raw_json`, l.`problems_json`, b.`file_name`,'
+            'SELECT l.`accession`, l.`date_of_service`, l.`mrn`, l.`code`, l.`changed_code`, l.`raw_json`, l.`problems_json`, b.`file_name`,'
             . ' d.`suggested_json`, d.`reasons_json`'
             . ' FROM `gifford_charge_line` AS l'
             . ' JOIN `gifford_charge_batch` AS b ON b.`id` = l.`batch_id`'
@@ -355,12 +355,20 @@ final readonly class DxRepository
             $first = $group[0];
             $raw = self::raw($first['raw_json'] ?? null);
             $charges = [];
+            $lines = [];
             $gifford = [];
             $others = [];
             foreach ($group as $row) {
                 $lineRaw = self::raw($row['raw_json'] ?? null);
                 $modifiers = array_filter([$lineRaw['chg_mod1'] ?? '', $lineRaw['chg_mod2'] ?? '', $lineRaw['chg_mod3'] ?? '']);
-                $charges[] = self::text($row['code'] ?? null) . ($modifiers === [] ? '' : '-' . implode(':', $modifiers));
+                $charge = self::text($row['code'] ?? null) . ($modifiers === [] ? '' : '-' . implode(':', $modifiers));
+                $sent = ($lineRaw['chg_cpt'] ?? '') !== '' ? $lineRaw['chg_cpt'] : ($lineRaw['chg_hcpcs'] ?? '');
+                $changed = self::text($row['changed_code'] ?? null) !== '';
+                $charges[] = $charge . ($changed ? ' (sent as ' . $sent . ')' : '');
+                $code = self::text($row['code'] ?? null);
+                if (!in_array($code, $lines, true)) {
+                    $lines[] = $code;
+                }
                 foreach (GiffordValues::diagnoses($lineRaw['enc_dx_codes'] ?? '')[0] as $code) {
                     if (!in_array($code, $gifford, true)) {
                         $gifford[] = $code;
@@ -375,7 +383,7 @@ final readonly class DxRepository
             $suggested = self::suggestion($first['suggested_json'] ?? null);
             array_push($wanted, ...$gifford, ...array_column($suggested, 'code'));
             $built[] = [
-                'first' => $first, 'raw' => $raw, 'charges' => $charges, 'gifford' => $gifford, 'others' => $others,
+                'first' => $first, 'raw' => $raw, 'charges' => $charges, 'codes' => $lines, 'gifford' => $gifford, 'others' => $others,
                 'suggested' => $suggested,
             ];
         }
@@ -405,6 +413,7 @@ final readonly class DxRepository
                 is_string($first['suggested_json'] ?? null),
                 ReportView::fromRaw($raw),
                 self::others($sameDay[self::dayKey(self::text($first['mrn'] ?? null), self::text($first['date_of_service'] ?? null))] ?? [], self::text($first['accession'] ?? null)),
+                $b['codes'],
             );
         }
 

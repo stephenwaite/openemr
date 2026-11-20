@@ -94,6 +94,12 @@ if ($request->isMethod('POST')) {
                     : sprintf(xl('Line released with modifier %s; it posts on the next run.'), $modifier)]
                 : ['warning', xl('That line is no longer held.')];
             break;
+        case 'change_code':
+            $errors = $review->changeCode($form->getString('accession'), $form->getString('from_code'), $form->getString('new_code'), $now);
+            $messages[] = $errors === []
+                ? ['success', xl('Charge code changed; the charge posts with the new code.')]
+                : ['danger', xl('Not changed') . ': ' . implode('; ', $errors)];
+            break;
         case 'post':
             if ($settings === null) {
                 $messages[] = ['danger', xl('Set the Facility ID and Billing Facility ID in Admin > Config > Gifford Charge Import first.')];
