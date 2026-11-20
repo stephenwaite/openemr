@@ -23,21 +23,22 @@ final class ChargeLineRepository
     private const DATETIME = 'Y-m-d H:i:s';
 
     /**
-     * Lines not yet finished (staged, or held for any reason), oldest file first.
+     * Lines not yet finished (staged, or held for any reason), oldest file first. A line
+     * whose code a person changed comes with that code in its row.
      *
      * @return list<PendingLine>
      */
     public function pendingLines(): array
     {
         $rows = QueryUtils::fetchRecords(
-            'SELECT `id`, `batch_id`, `line_number`, `raw_json`, `released`, `added_modifier` FROM `gifford_charge_line`'
+            'SELECT `id`, `batch_id`, `line_number`, `raw_json`, `released`, `added_modifier`, `changed_code` FROM `gifford_charge_line`'
             . ' WHERE `status` IN (?, ?) ORDER BY `batch_id`, `line_number`',
             [LineStatus::Staged->value, LineStatus::Held->value]
         );
 
         $lines = [];
         foreach ($rows as $row) {
-            $values = self::rawValues($row['raw_json'] ?? null);
+            $values = self::withCode(self::rawValues($row['raw_json'] ?? null), self::text($row['changed_code'] ?? null));
             $lines[] = new PendingLine(
                 self::int($row['id'] ?? null),
                 self::int($row['batch_id'] ?? null),
@@ -52,14 +53,15 @@ final class ChargeLineRepository
 
     /**
      * Charges already posted for this accession: from earlier files, and from lines
-     * before $lineNumber in the same file.
+     * before $lineNumber in the same file. `raw` is the row as Gifford sent it and
+     * `posted` the row as it posted: they differ when a person changed the code.
      *
-     * @return list<array{line_id: int, same_file: bool, raw: array<string, string>}>
+     * @return list<array{line_id: int, same_file: bool, raw: array<string, string>, posted: array<string, string>}>
      */
     public function postedEarlier(string $accession, int $batchId, int $lineNumber): array
     {
         $rows = QueryUtils::fetchRecords(
-            'SELECT `id`, `batch_id`, `raw_json` FROM `gifford_charge_line`'
+            'SELECT `id`, `batch_id`, `raw_json`, `changed_code` FROM `gifford_charge_line`'
             . ' WHERE `accession` = ? AND `status` = ? AND (`batch_id` < ? OR (`batch_id` = ? AND `line_number` < ?))'
             . ' ORDER BY `batch_id`, `line_number`',
             [$accession, LineStatus::Posted->value, $batchId, $batchId, $lineNumber]
@@ -71,6 +73,7 @@ final class ChargeLineRepository
                 'line_id' => self::int($row['id'] ?? null),
                 'same_file' => self::int($row['batch_id'] ?? null) === $batchId,
                 'raw' => $values,
+                'posted' => self::withCode($values, self::text($row['changed_code'] ?? null)),
             ];
         }
 
@@ -207,6 +210,27 @@ final class ChargeLineRepository
         foreach (is_array($raw) ? $raw : [] as $column => $value) {
             if (is_string($column) && is_string($value)) {
                 $values[$column] = $value;
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * The row with the code a person changed it to, in the column Gifford's code came in.
+     *
+     * @param array<string, string> $values
+     * @return array<string, string>
+     */
+    public static function withCode(array $values, string $changedCode): array
+    {
+        if ($changedCode === '') {
+            return $values;
+        }
+        // Gifford may send the same code in both columns.
+        foreach (['chg_cpt', 'chg_hcpcs'] as $column) {
+            if (($values[$column] ?? '') !== '') {
+                $values[$column] = $changedCode;
             }
         }
 

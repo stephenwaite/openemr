@@ -79,6 +79,20 @@
     </table>
 {% endif %}
 
+<h5 class="mt-4">{{ 'Change a charge code'|xlt }}</h5>
+<p class="text-muted small">{{ 'For a charge not yet posted whose report is for another exam than Gifford charged. The code Gifford sent stays on record; changing back to it undoes the change.'|xlt }}</p>
+<form method="post" class="form-inline mb-3" onsubmit="return top.restoreSession()">
+    {{ csrfToken('default', 'csrf_token_form') }}
+    <input type="hidden" name="form_action" value="change_code" />
+    <label class="small mr-1" for="change-accession">{{ 'Accession'|xlt }}</label>
+    <input type="text" class="form-control form-control-sm mr-2" id="change-accession" name="accession" size="16" autocomplete="off" />
+    <label class="small mr-1" for="change-from">{{ 'Code now'|xlt }}</label>
+    <input type="text" class="form-control form-control-sm mr-2" id="change-from" name="from_code" size="6" maxlength="5" autocomplete="off" />
+    <label class="small mr-1" for="change-to">{{ 'Post as'|xlt }}</label>
+    <input type="text" class="form-control form-control-sm mr-2" id="change-to" name="new_code" size="6" maxlength="5" autocomplete="off" />
+    <button type="submit" class="btn btn-sm btn-outline-secondary">{{ 'Change code'|xlt }}</button>
+</form>
+
 <h5 class="mt-4">{{ 'Held lines'|xlt }}</h5>
 {% if heldLines is empty %}
     <p>{{ 'None.'|xlt }}</p>

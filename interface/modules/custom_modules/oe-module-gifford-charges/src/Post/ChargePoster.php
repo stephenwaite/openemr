@@ -243,10 +243,14 @@ final readonly class ChargePoster
                 if ($earlier === null) {
                     continue;
                 }
-                if (self::sameCharge($earlier, $charge)) {
+                // A line posted with a code a person changed is the same charge whether
+                // Gifford sends it again as it was or corrected.
+                $corrected = $posted['posted'] === $posted['raw'] ? null : $this->parser->parse(new RawRow(0, $posted['posted']))->charge;
+                if (self::sameCharge($earlier, $charge) || ($corrected !== null && self::sameCharge($corrected, $charge))) {
                     $duplicateOf = $posted['line_id'];
                     break;
                 }
+                $earlier = $corrected ?? $earlier;
                 $postedAs[] = sprintf('%s%s x%d', $earlier->code, $earlier->modifiers === [] ? '' : '-' . implode(':', $earlier->modifiers), $earlier->units);
             }
             if ($duplicateOf !== null) {

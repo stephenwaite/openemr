@@ -17,6 +17,7 @@ namespace OpenEMR\Tests\Services\Modules\GiffordCharges;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxDecision;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxRule;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\PendingDx;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\Measure;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Measure\MeasureSuggestion;
@@ -30,6 +31,7 @@ use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PostSettings;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PriceBook;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\SiteWriter;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\RawRow;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Review\ReviewRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\ChargeBatchRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\StagedLine;
 use Composer\Autoload\ClassLoader;
@@ -83,7 +85,11 @@ class ChargePosterTest extends TestCase
         }
         $loader->addPsr4('Cmsvt\\OpenEMR\\Modules\\GiffordCharges\\', self::root() . self::MODULE_DIR . '/src/');
 
-        if (!QueryUtils::existsTable('gifford_measure_suggestion')) {
+        // Also when the tables are from before the newest column: table.sql adds what is missing.
+        if (
+            !QueryUtils::existsTable('gifford_measure_suggestion')
+            || QueryUtils::fetchRecords("SHOW COLUMNS FROM `gifford_charge_line` LIKE 'changed_code'") === []
+        ) {
             $install = new SQLUpgradeService();
             $install->setRenderOutputToScreen(false);
             $install->setThrowExceptionOnError(true);
@@ -1073,6 +1079,62 @@ class ChargePosterTest extends TestCase
         $this->post();
 
         $this->assertSame(['held', [ChargeRowParser::NO_DIAGNOSES]], [$this->line($lineId)['status'], $this->problems($lineId)]);
+    }
+
+    public function testAChargePostsWithTheCodeAPersonChangedItToAndItsResendIsADuplicate(): void
+    {
+        $review = new ReviewRepository(new ChargeRowParser(), new PayerMap());
+        $now = new \DateTimeImmutable(self::NOW);
+        $accession = 'A' . $this->token;
+        [$line] = $this->stage([$this->row()]);
+
+        $this->assertSame(['ZZ9ZZ is not an active CPT4 code on this site'], $review->changeCode($accession, $this->code, 'ZZ9ZZ', $now));
+        $this->assertSame(['accession ' . $accession . ' has no ' . $this->bareCode . ' charge waiting to post'], $review->changeCode($accession, $this->bareCode, $this->code, $now));
+        $this->assertSame(['the charge already has that code'], $review->changeCode($accession, $this->code, $this->code, $now));
+        $this->assertCount(1, $review->changeCode($accession, $this->code, 'nope', $now));
+        $this->assertSame('', $this->line($line)['changed_code'], 'a refused change leaves the line alone');
+
+        // Changed, changed back (which undoes it), and changed again.
+        $this->assertSame([], $review->changeCode($accession, $this->code, strtolower($this->bareCode), $now));
+        $this->assertSame([$this->bareCode, $this->bareCode], [$this->line($line)['code'], $this->line($line)['changed_code']]);
+        $this->assertSame([], $review->changeCode($accession, $this->bareCode, $this->code, $now));
+        $this->assertSame([$this->code, ''], [$this->line($line)['code'], $this->line($line)['changed_code']]);
+        $this->assertSame([], $review->changeCode($accession, $this->code, $this->bareCode, $now));
+        $this->assertStringContainsString('"chg_cpt":"' . $this->code . '"', self::text($this->line($line)['raw_json']), 'the row keeps the code Gifford sent');
+
+        $this->assertSame(1, $this->post()->posted);
+        $this->assertContains(['CPT4', $this->bareCode, 'ICD10|I50.20:ICD10|Z95.811:'], $this->billed($line));
+        $this->assertSame('80.00', self::text(QueryUtils::fetchSingleValue('SELECT `fee` FROM `billing` WHERE `id` = ?', 'fee', [$this->line($line)['billing_id']])));
+        $this->assertSame(['accession ' . $accession . ' has no ' . $this->bareCode . ' charge waiting to post'], $review->changeCode($accession, $this->bareCode, $this->code, $now), 'a posted charge is changed on the fee sheet');
+
+        // Gifford sends it again, as it was and corrected: both are the charge already posted.
+        [$asSent, $corrected] = $this->stage([$this->row(), $this->row(['chg_cpt' => $this->bareCode])]);
+        $result = $this->post();
+        $this->assertSame([0, 2], [$result->posted, $result->duplicates]);
+        $this->assertSame(['duplicate', 'duplicate'], [$this->line($asSent)['status'], $this->line($corrected)['status']]);
+    }
+
+    public function testTheDiagnosesPageNamesTheCodeGiffordSentBesideAChangedOne(): void
+    {
+        $accession = 'A' . $this->token;
+        $this->stage([$this->row(['chg_mod1' => 'LT'])]);
+        $dx = new DxRepository();
+        $find = static function () use ($dx, $accession): ?PendingDx {
+            foreach ($dx->pending() as $item) {
+                if ($item->accession === $accession) {
+                    return $item;
+                }
+            }
+            return null;
+        };
+        $before = $find();
+        $this->assertNotNull($before);
+        $this->assertSame([[$this->code . '-LT'], [$this->code]], [$before->charges, $before->codes]);
+
+        $this->assertSame([], (new ReviewRepository(new ChargeRowParser(), new PayerMap()))->changeCode($accession, $this->code, $this->bareCode, new \DateTimeImmutable(self::NOW)));
+        $after = $find();
+        $this->assertNotNull($after);
+        $this->assertSame([[$this->bareCode . '-LT (sent as ' . $this->code . ')'], [$this->bareCode]], [$after->charges, $after->codes]);
     }
 
     private function cciEdit(string $column1, string $column2, string $indicator): void

@@ -17,8 +17,11 @@ require_once __DIR__ . '/../../../../globals.php';
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Dx\DxRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Globals\GiffordGlobals;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Parse\ChargeRowParser;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMap;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargePoster;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PostSettings;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Review\ReviewRepository;
 use OpenEMR\BC\ServiceContainer;
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
@@ -61,6 +64,13 @@ if ($request->isMethod('POST')) {
                 $messages[] = ['danger', xl('Not saved') . ': ' . implode('; ', $errors)];
                 $entered[$accession] = $codes;
             }
+            break;
+        case 'change_code':
+            $errors = (new ReviewRepository(new ChargeRowParser(), new PayerMap()))
+                ->changeCode($form->getString('accession'), $form->getString('from_code'), $form->getString('new_code'), $clock->now());
+            $messages[] = $errors === []
+                ? ['success', xl('Charge code changed. Check the diagnoses against the new code, then Save.')]
+                : ['danger', xl('Not changed') . ': ' . implode('; ', $errors)];
             break;
         case 'post':
             if ($settings === null) {
