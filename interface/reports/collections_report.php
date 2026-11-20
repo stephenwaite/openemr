@@ -29,10 +29,12 @@ use OpenEMR\Billing\SLEOB;
 use OpenEMR\Common\Acl\AccessDeniedHelper;
 use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Http\CurrentRequest;
 use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Common\Utils\FormatMoney;
 use OpenEMR\Core\Header;
 use OpenEMR\Core\OEGlobalsBag;
+use OpenEMR\Events\Billing\CollectionsReportFilterEvent;
 
 $session = SessionWrapperFactory::getInstance()->getActiveSession();
 if (!empty($_POST)) {
@@ -555,7 +557,7 @@ if (!empty($_POST['form_csvexport'])) {
                         <td>
                            <select name='form_category' class='form-control'>
                         <?php
-                        foreach (['Open' => xl('Open'),'Due Pt' => xl('Due Pt'),'Due Ins' => xl('Due Ins'),'Ins Summary' => xl('Ins Summary'),'Credits' => xl('Credits'),'All' => xl('All')] as $key => $value) {
+                        foreach (['Due Ins' => xl('Due Ins'),'Due Pt' => xl('Due Pt'),'Open' => xl('Open'),'Ins Summary' => xl('Ins Summary'),'Credits' => xl('Credits'),'All' => xl('All')] as $key => $value) {
                             echo "    <option value='" . attr($key) . "'";
                             if ($form_category == $key) {
                                 echo " selected";
@@ -709,7 +711,8 @@ if (!empty($_POST['form_refresh']) || !empty($_POST['form_export']) || !empty($_
              $newkey = $key_newval['pid'];
              $newencounter =  $key_newval['encounter'];
              # added this condition to handle the downloading of individual invoices (TLH)
-            if (($_POST['form_individual'] ?? '') == 1) {
+            // Exporting to collections always sends each encounter as its own invoice.
+            if (($_POST['form_individual'] ?? '') == 1 || CurrentRequest::get()->request->getString('form_export') !== '') {
                 $where .= " OR f.encounter = ? ";
                 array_push($sqlArray, $newencounter);
             } else {
@@ -1459,9 +1462,15 @@ if (empty($_POST['form_csvexport'])) {
     <a href='javascript:;' class='btn btn-secondary btn-transmit' onclick='$("#form_csvexport").attr("value","true"); $("#theform").submit();'>
             <?php echo xlt('Export Selected as CSV'); ?>
     </a>
+        <?php
+        $collectionsOptions = new CollectionsReportFilterEvent();
+        OEGlobalsBag::getInstance()->getKernel()->getEventDispatcher()
+            ->dispatch($collectionsOptions, CollectionsReportFilterEvent::EVENT_NAME);
+        if ($collectionsOptions->showExportToCollections()) { ?>
     <a href='javascript:;' class='btn btn-secondary btn-transmit' onclick='$("#form_export").attr("value","true"); $("#form_csvexport").val(""); $("#form_clear_ins_debt").val("");$("#theform").submit();'>
             <?php echo xlt('Export Selected to Collections'); ?>
     </a>
+        <?php } ?>
     <a href='javascript:;' class='btn btn-secondary btn-transmit' onclick='$("#form_clear_ins_debt").attr("value", "true"); $("#form_export").val(""); $("#form_csvexport").attr("value", "true"); $("#theform").submit();'>
             <?php echo xlt('Clear Insurance Debt'); ?>
     </a>

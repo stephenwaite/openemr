@@ -316,7 +316,7 @@ class ParseERA
             } elseif ($segid == 'NM1' && $out['loopid'] == '2100') { // PR = Corrected Payer
                 // $out['warnings'] .= "NM1 segment at claim level ignored.\n";
             } elseif ($segid == 'MOA' && $out['loopid'] == '2100') {
-                $out['warnings'] .= "MOA segment at claim level ignored.\n";
+                // MOA (claim-level outpatient adjudication) is not used; ignored without a warning.
             } elseif ($segid == 'REF' && $seg[1] == '1W' && $out['loopid'] == '2100') {
                 // REF segments may provide various identifying numbers, where REF02
                 // indicates the type of number.
@@ -354,15 +354,29 @@ class ParseERA
                     // We will log a note and treat it as adjustments to our originally submitted coding.
                     $svc = explode($delimiter3, $seg[6]);
                     $tmp = explode($delimiter3, $seg[1]);
-                    $out['warnings'] .= "Payer is restating our procedure " . $svc[1] .
-                        " as " . $tmp[1] . ".\n";
+                    // SVC01 without a modifier 51 the payer added (multiple procedures).
+                    $withoutMod51 = array_values(array_filter(
+                        $tmp,
+                        static fn(string $part, int $index): bool => $index < 2 || $part !== '51',
+                        ARRAY_FILTER_USE_BOTH
+                    ));
+                    if ($svc[0] == 'N4') {
+                        // An NDC restatement: keep the procedure code reported in SVC01.
+                        $warnings = $out['warnings'];
+                        $out['warnings'] = (is_string($warnings) ? $warnings : '') .
+                            "SVC segment with N4 qualifier at service level ignored.\n";
+                        $svc = $tmp;
+                    } elseif (count($withoutMod51) < count($tmp)) {
+                        $svc = $withoutMod51;
+                    } else {
+                        $out['warnings'] .= "Payer is restating our procedure " . $svc[1] .
+                            " as " . $tmp[1] . ".\n";
+                    }
                 } else {
                     $svc = explode($delimiter3, $seg[1]);
                 }
 
-                if ($svc[0] != 'HC') {
-                    return 'SVC segment has unexpected qualifier';
-                }
+                // Any SVC qualifier is accepted (HC, N4 for NDCs, and others), as 7.0.1 did.
 
                 // TBD: Other qualifiers are possible; see IG pages 140-141.
                 $i = count($out['svc']);
@@ -398,12 +412,7 @@ class ParseERA
                         break;
                     }
 
-                    // removing inversion for CO*144 MIPS incentive adjustment to prevent claim balancing
-                    if ($seg[1] == 'CO' && $seg[$k + 1] < 0 && $seg[$k] !== '144') {
-                        $out['warnings'] .= "Negative Contractual Obligation adjustment " .
-                            "seems wrong. Inverting, but should be checked!\n";
-                        $seg[$k + 1] = 0 - $seg[$k + 1];
-                    }
+                    // Negative CO adjustments are posted as reported, not inverted.
 
                     $j = count($out['svc'][$i]['adj']);
                     $out['svc'][$i]['adj'][$j] = [];

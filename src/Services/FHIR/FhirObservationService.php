@@ -84,6 +84,7 @@ class FhirObservationService extends FhirServiceBase implements IResourceSearcha
             'category' => new FhirSearchParameterDefinition('category', SearchFieldType::TOKEN, ['category']),
             'date' => new FhirSearchParameterDefinition('date', SearchFieldType::DATETIME, ['date']),
             '_id' => new FhirSearchParameterDefinition('_id', SearchFieldType::TOKEN, ['uuid']),
+            'external_id' => new FhirSearchParameterDefinition('external_id', SearchFieldType::TOKEN, ['external_id']),
             '_lastUpdated' => $this->getLastModifiedSearchField()
         ];
     }
@@ -147,6 +148,13 @@ class FhirObservationService extends FhirServiceBase implements IResourceSearcha
             }
             if (empty($services)) {
                 $services = $this->getMappedServices();
+            }
+            if (is_array($fhirSearchParameters) && isset($fhirSearchParameters['external_id']) && is_array($services)) {
+                // Only laboratory results carry an order external ID.
+                $services = array_filter(
+                    $services,
+                    static fn($service): bool => $service instanceof FhirObservationLaboratoryService
+                );
             }
             $fhirSearchResult = $this->searchServices($services, $fhirSearchParameters, $puuidBind);
         } catch (SearchFieldException $exception) {

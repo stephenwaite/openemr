@@ -1,0 +1,173 @@
+{% macro status(value, criterion) %}
+    {%- set role = value.role.name -%}
+    {%- if criterion.inverse and role == 'Met' %}{% set role = 'NotMet' %}{% elseif criterion.inverse and role == 'NotMet' %}{% set role = 'Met' %}{% endif -%}
+    {%- set css = role == 'Missing' ? 'text-danger font-italic'
+        : role == 'Exception' ? 'text-warning font-weight-bold'
+        : role == 'NotMet' ? 'text-danger font-weight-bold'
+        : 'text-success font-weight-bold' -%}
+    <span class="{{ css|attr }}">{{ value.label|text }}</span>
+{%- endmacro %}
+{% macro list(entries) %}
+    {%- if entries is empty %}<span class="text-muted">&mdash;</span>{% else %}{% for entry in entries %}{{ entry|text }}{% if not loop.last %}<br />{% endif %}{% endfor %}{% endif -%}
+{% endmacro %}
+{% macro patientLink(pid) %}
+    <a href="#" class="font-weight-bold" onclick="return goPid({{ pid|js_escape|attr }});" title="{{ 'Open patient dashboard'|xla }}">{{ pid|text }}</a>
+{%- endmacro %}
+{% import _self as m %}
+{% set query = '?form_measure=' ~ measure.id()|url_encode ~ '&form_year=' ~ report.period.year|url_encode %}
+<html>
+<head>
+    <title>{{ 'MIPS Quality Measures'|xlt }}</title>
+    {{ setupHeader() }}
+    <style>
+        .codes { font-size: 0.85rem; white-space: nowrap; }
+    </style>
+    <script>
+        function goPid(pid) {
+            top.restoreSession();
+            top.RTop.location = {{ (webroot ~ '/interface/patient_file/summary/demographics.php?set_pid=')|js_escape }} + encodeURIComponent(pid);
+            return false;
+        }
+    </script>
+</head>
+<body class="body_top">
+<div class="container-fluid">
+<h4>{{ 'MIPS Quality Measures'|xlt }}</h4>
+
+<form method="get" class="form-inline mb-3" onsubmit="return top.restoreSession()">
+    <label class="mr-2" for="form_measure">{{ 'Measure'|xlt }}:</label>
+    <select name="form_measure" id="form_measure" class="form-control mr-3" onchange="top.restoreSession(); this.form.submit();">
+        {% for option in measures %}
+            <option value="{{ option.id()|attr }}"{% if option.id() == measure.id() %} selected{% endif %}>{{ option.id()|text }}: {{ option.title()|text }}</option>
+        {% endfor %}
+    </select>
+    <label class="mr-2" for="form_year">{{ 'Performance Year'|xlt }}:</label>
+    <select name="form_year" id="form_year" class="form-control mr-3" onchange="top.restoreSession(); this.form.submit();">
+        {% for y in years %}
+            <option value="{{ y|attr }}"{% if y == report.period.year %} selected{% endif %}>{{ y|text }}</option>
+        {% endfor %}
+    </select>
+    <a class="btn btn-primary btn-sm mr-2" href="{{ (query ~ '&export=csv')|attr }}" onclick="top.restoreSession()">{{ 'Export Encounter Detail to CSV'|xlt }}</a>
+    <a class="btn btn-primary btn-sm" href="{{ (query ~ '&export=csv_tracking')|attr }}" onclick="top.restoreSession()">{{ 'Export Patient Tracking to CSV'|xlt }}</a>
+</form>
+
+<div class="border rounded bg-light p-3 mb-3">
+    <h5>{{ 'MIPS'|xlt }} {{ measure.id()|text }}: {{ measure.title()|text }}</h5>
+    <div><strong>{{ 'Performance Period'|xlt }}:</strong> {{ report.period.start()|text }} {{ 'to{{Range}}'|xlt }} {{ report.period.end()|text }}</div>
+    <div class="mt-2">
+        <strong>{{ 'Patients Listed'|xlt }}:</strong> {{ report.patients|length|text }}
+        &nbsp;|&nbsp; <strong>{{ 'Denominator'|xlt }} ({{ measure.denominatorLabel()|text }}):</strong> {{ report.denominatorCount()|text }}
+        &nbsp;|&nbsp; <strong>{{ 'Qualifying Visits'|xlt }}:</strong> {{ report.encounterCount()|text }}
+        {% for flag, count in report.flagCounts() %}
+            &nbsp;|&nbsp; <strong>{{ flag|text }}:</strong> {{ count|text }}
+        {% endfor %}
+    </div>
+</div>
+
+<div class="alert alert-warning">
+    {% for note in measure.notes() %}<p class="{{ loop.last ? 'mb-0' : 'mb-2' }}">{{ note|text }}</p>{% endfor %}
+</div>
+
+{% if report.patients is not empty %}
+    <div class="d-flex flex-wrap">
+    {% for criterion in report.criteria %}
+        <table class="table table-sm table-bordered w-auto mr-4">
+            <thead class="thead-light">
+                <tr><th>{{ criterion.label|text }}</th><th>{{ 'All Listed'|xlt }}</th><th>{{ 'In Denominator'|xlt }}</th></tr>
+            </thead>
+            {% for label, count in report.counts(criterion) %}
+                <tr><td>{{ label|text }}</td><td>{{ count.all|text }}</td><td>{{ count.denominator|text }}</td></tr>
+            {% endfor %}
+            {% set completeness = report.completeness(criterion) %}
+            {% set rate = report.performanceRate(criterion) %}
+            <tr><td colspan="2"><strong>{{ 'Data Completeness'|xlt }}</strong></td><td>{{ completeness is null ? 'n/a' : (completeness|text ~ '%') }}</td></tr>
+            <tr>
+                <td colspan="2"><strong>{{ 'Performance Rate'|xlt }}</strong>{% if criterion.inverse %} ({{ 'inverse: lower is better'|xlt }}){% endif %}</td>
+                <td>{{ rate is null ? 'n/a' : (rate|text ~ '%') }}</td>
+            </tr>
+        </table>
+    {% endfor %}
+    </div>
+{% endif %}
+
+<h5 class="mt-4">{{ 'Tracking by Patient'|xlt }}</h5>
+{% if report.patients is not empty %}
+    <table class="table table-sm table-bordered table-striped">
+        <thead class="thead-light">
+            <tr>
+                <th>{{ 'Patient ID'|xlt }}</th>
+                <th>{{ 'Patient Name'|xlt }}</th>
+                <th>{{ 'DOB'|xlt }}</th>
+                <th>{{ 'Qualifying Visits'|xlt }}</th>
+                <th>{{ 'In Denominator'|xlt }}</th>
+                {% for column in report.columns %}<th>{{ column|text }}</th>{% endfor %}
+                {% for criterion in report.criteria %}<th>{{ criterion.label|text }}</th>{% endfor %}
+                <th>{{ 'Flags'|xlt }}</th>
+            </tr>
+        </thead>
+        {% for patient in report.patients %}
+            <tr>
+                <td>{{ m.patientLink(patient.pid) }}</td>
+                <td>{{ patient.lname|text }}, {{ patient.fname|text }}</td>
+                <td>{{ patient.dob|text }}</td>
+                <td>{{ patient.encounters|length|text }}</td>
+                <td>{{ patient.inDenominator ? 'Yes'|xlt : 'No'|xlt }}</td>
+                {% for column in report.columns %}<td class="codes">{{ m.list(patient.columns[column] ?? []) }}</td>{% endfor %}
+                {% for criterion in report.criteria %}<td>{{ m.status(patient.statuses[criterion.key], criterion) }}</td>{% endfor %}
+                <td class="text-danger">{{ m.list(patient.flags) }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p>{{ 'No patients found for this measure in the performance year.'|xlt }}</p>
+{% endif %}
+
+<h5 class="mt-4">{{ 'Qualifying Visits'|xlt }} {{ report.period.year|text }}</h5>
+{% if report.encounterCount() > 0 %}
+    <table class="table table-sm table-bordered table-striped">
+        <thead class="thead-light">
+            <tr>
+                <th>{{ 'Patient ID'|xlt }}</th>
+                <th>{{ 'Patient Name'|xlt }}</th>
+                <th>{{ 'Sex'|xlt }}</th>
+                <th>{{ 'DOB'|xlt }}</th>
+                <th>{{ 'Age'|xlt }}</th>
+                <th>{{ 'Encounter Date'|xlt }}</th>
+                <th>{{ 'Encounter ID'|xlt }}</th>
+                <th>{{ 'Visit Codes'|xlt }}</th>
+                <th>{{ 'Measure Codes on This Fee Sheet'|xlt }}</th>
+                <th>{{ measure.diagnosisLabel()|text }}</th>
+            </tr>
+        </thead>
+        {% for patient in report.patients %}
+            {% for encounter in patient.encounters %}
+                <tr>
+                    <td>{{ m.patientLink(patient.pid) }}</td>
+                    <td>{{ patient.lname|text }}, {{ patient.fname|text }}</td>
+                    <td>{{ patient.sex|text }}</td>
+                    <td>{{ patient.dob|text }}</td>
+                    <td>{{ encounter.age|text }}</td>
+                    <td>{{ encounter.date|text }}</td>
+                    <td>{{ encounter.encounter|text }}</td>
+                    <td>{{ encounter.visitCodes|text }}</td>
+                    <td class="codes">{{ m.list(encounter.measureCodes) }}</td>
+                    <td>{{ patient.dxHistory|text }}</td>
+                </tr>
+            {% endfor %}
+        {% endfor %}
+    </table>
+{% else %}
+    <p>{{ 'No qualifying visits in the performance year.'|xlt }}</p>
+{% endif %}
+
+<div class="alert alert-info mt-4">
+    <h6>{{ 'Codes Tracked (2026 specification)'|xlt }}</h6>
+    <ul class="mb-0">
+        {% for item in measure.codeLegend() %}
+            <li><strong>{{ item[0]|text }}</strong> &mdash; {{ item[1]|text }}</li>
+        {% endfor %}
+    </ul>
+</div>
+</div>
+</body>
+</html>

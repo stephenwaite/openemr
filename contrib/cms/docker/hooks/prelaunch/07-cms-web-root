@@ -1,0 +1,45 @@
+#!/bin/bash
+# Prelaunch hook (runs on every container start, before Apache).
+#
+# The image serves OpenEMR at the root of the site (https://host/interface/...).
+# The 7.0.1 host served it under /openemr/ (https://host/openemr/interface/...),
+# which is what bookmarks, the patient portal address and OAuth redirect URIs
+# stored in every site's database use. Move Apache's document root up one
+# level so the same URLs keep working: OpenEMR works out its web root from
+# the difference between its directory and the document root.
+set -euo pipefail
+
+conf="${CMS_APACHE_CONF:-/etc/apache2/conf.d/openemr.conf}"
+docroot='/var/www/localhost/htdocs'
+openemr="${docroot}/openemr"
+marker='# CMS: OpenEMR under /openemr/ as on the 7.0.1 host'
+
+if grep -qF "${marker}" "${conf}"; then
+    echo "cms web root: already configured"
+    exit 0
+fi
+if ! grep -q "^DocumentRoot ${openemr}\$" "${conf}"; then
+    echo "cms web root: no 'DocumentRoot ${openemr}' line in ${conf}" >&2
+    exit 1
+fi
+
+sed -i "s@^DocumentRoot ${openemr}\$@${marker}\nDocumentRoot ${docroot}@" "${conf}"
+cat >> "${conf}" <<EOF
+
+${marker}
+# The parent directory is now the document root: no listing, nothing but
+# /openemr/ to see there, and / goes to the login page.
+<Directory "${docroot}">
+    Options -Indexes
+    AllowOverride None
+    Require all granted
+</Directory>
+RedirectMatch 301 ^/\$ /openemr/
+# The image's certbot writes its HTTP check files under OpenEMR's directory
+# (ssl.sh: certbot --webroot -w ${openemr}/), which is no longer the root.
+Alias /.well-known/acme-challenge ${openemr}/.well-known/acme-challenge
+# The image's HSTS header also covers every subdomain of the hostname; the
+# 7.0.1 host sent none. Keep it for the hostname only.
+Header set Strict-Transport-Security "max-age=31536000"
+EOF
+echo "cms web root: OpenEMR served under /openemr/"

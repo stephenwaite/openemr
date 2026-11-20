@@ -86,8 +86,8 @@ body {
             f.submit();
         }
     }
-    let stayHere = './single_order_results.php?orderid=' + <?php echo js_escape($orderid); ?>;
-    window.location.assign(stayHere);
+    // Signed: back to the refreshed list.
+    window.close();
 </script>
 <?php } ?>
 </body>

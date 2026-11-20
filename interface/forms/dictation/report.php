@@ -32,7 +32,7 @@ function dictation_report($pid, $encounter, $cols, $id): void
 
             $key = ucwords(str_replace("_", " ", $key));
             // @phpstan-ignore argument.type (legacy on-the-fly translation of dynamic value; migration tracked in #11498)
-            printf('<h3>%s: </h3><p>%s</p>', xlt($key), nl2br(text($value)));
+            printf('<h4>%s: </h4><p>%s</p>', xlt($key), nl2br(text($value)));
             $count++;
         }
     }

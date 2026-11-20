@@ -3,7 +3,7 @@
 --
 -- Keep v_database in sync with $v_database in version.php.
 -- CI will fail if they don't match.
--- v_database: 543
+-- v_database: 546
 --
 
 --
@@ -1613,6 +1613,9 @@ CREATE TABLE `drugs` (
   `route` varchar(31) NOT NULL default '0',
   `substitute` int(11) NOT NULL default '0',
   `related_code` varchar(255) NOT NULL DEFAULT '' COMMENT 'may reference a related codes.code',
+  `billing_units` int(11) DEFAULT NULL COMMENT 'default units when the related HCPCS code is added to a fee sheet',
+  `ndc_uom` varchar(2) NOT NULL DEFAULT '' COMMENT 'NDC unit of measure for the related HCPCS service line',
+  `ndc_quantity` decimal(10,3) DEFAULT NULL COMMENT 'NDC quantity for the related HCPCS service line',
   `cyp_factor` float NOT NULL DEFAULT 0 COMMENT 'quantity representing a years supply',
   `active` TINYINT(1) DEFAULT 1 COMMENT '0 = inactive, 1 = active',
   `allow_combining` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 = allow filling an order from multiple lots',
@@ -1884,6 +1887,7 @@ CREATE TABLE `facility` (
   `date_created` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `organization_type` VARCHAR(50) NOT NULL DEFAULT 'prov' COMMENT 'Organization type as defined by HL7 Value Set: OrganizationType',
+  `mammography_cert_number` varchar(30) default NULL COMMENT 'FDA (MQSA) mammography certification number, sent as REF*EW on the 837P',
   UNIQUE KEY `uuid` (`uuid`),
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4;
@@ -1892,7 +1896,7 @@ CREATE TABLE `facility` (
 -- Inserting data for table `facility`
 --
 
-INSERT INTO `facility` VALUES (3, NULL, 'Your Clinic Name Here', '000-000-0000', '000-000-0000', '', '', '', '', '', '', NULL, NULL, 1, 1, 1, NULL, '', '', '', '', '', '','#99FFFF','0', '', '1', '', '', '', '', '', '', '', '', NULL, 0, NOW(), NOW(), 'prov');
+INSERT INTO `facility` VALUES (3, NULL, 'Your Clinic Name Here', '000-000-0000', '000-000-0000', '', '', '', '', '', '', NULL, NULL, 1, 1, 1, NULL, '', '', '', '', '', '','#99FFFF','0', '', '1', '', '', '', '', '', '', '', '', NULL, 0, NOW(), NOW(), 'prov', NULL);
 
 -- --------------------------------------------------------
 
@@ -2095,8 +2099,8 @@ CREATE TABLE `form_misc_billing_options` (
   `is_hospitalized` tinyint(1) default NULL,
   `hospitalization_date_from` date default NULL,
   `hospitalization_date_to` date default NULL,
-  `medicaid_resubmission_code` varchar(10) default NULL,
-  `medicaid_original_reference` varchar(15) default NULL,
+  `resubmission_code` varchar(10) default NULL,
+  `original_reference_number` varchar(50) default NULL,
   `prior_auth_number` varchar(20) default NULL,
   `comments` varchar(255) default NULL,
   `replacement_claim` tinyint(1) default 0,
@@ -9765,6 +9769,10 @@ INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_re
 ('ICD10', 'CMS', '2025-10-01', 'icd10orderfiles.zip', '781ce6e72697181f1ef0d4230921e902');
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
 ('ICD10', 'CMS', '2025-10-01', 'zip-file-3-2026-icd-10-pcs-codes-file.zip', '86a5fb7a3269bea68b74565152e4b849');
+INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
+('ICD10', 'CMS', '2026-10-01', '2027-code-descriptions-in-tabular-order.zip', 'd71d4467481e3396991576a02e030213');
+INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
+('ICD10', 'CMS', '2026-10-01', 'zip-file-3-2027-icd-10-pcs-codes-file.zip', 'ca7dd9e61622a3b9faf766ac6b1cd15d');
 
 -- --------------------------------------------------------
 
@@ -10215,7 +10223,7 @@ CREATE TABLE ar_activity (
   reason_code varchar(255) DEFAULT NULL COMMENT 'Use as needed to show the primary payer adjustment reason code',
   deleted        datetime DEFAULT NULL COMMENT 'NULL if active, otherwise when voided',
   post_date      date DEFAULT NULL COMMENT 'Posting date if specified at payment time',
-  payer_claim_number varchar(30) DEFAULT NULL,
+  payer_claim_number varchar(50) DEFAULT NULL COMMENT 'CLP07 from the payer 835',
   PRIMARY KEY (pid, encounter, sequence_no),
   KEY session_id (session_id)
 ) ENGINE=InnoDB;

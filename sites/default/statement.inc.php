@@ -25,6 +25,8 @@
  * @license https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+use OpenEMR\Billing\Statement\CustomPdfStatementText;
+use OpenEMR\Common\Http\CurrentRequest;
 use OpenEMR\Core\OEGlobalsBag;
 
 // The location/name of a temporary file to hold printable statements.
@@ -44,6 +46,10 @@ $STMT_TEMP_FILE_PDF = OEGlobalsBag::getInstance()->getString('temporary_files_di
  *      Adjust directory paths per your installation.
  *      Further customize 2. manually in functions report_2() and create_HTML_statement(), below.
  *
+ *  3.  PDF Custom (statement_appearance 2): fixed-width text printed over a full-page
+ *      letterhead PNG named in the Statement Logo global (see CustomPdfStatementText
+ *      and CustomPdfStatementPdf).
+ *
  */
 function make_statement($stmt)
 {
@@ -53,6 +59,21 @@ function make_statement($stmt)
         } else {
             return create_HTML_statement($stmt);
         }
+    } elseif (OEGlobalsBag::getInstance()->get('statement_appearance') == "2") {
+        if (!is_array($stmt) || !is_numeric($stmt['pid'] ?? null) || (int) $stmt['pid'] === 0) {
+            return "";
+        }
+        // Same print exclusion as create_statement(), except that the "All" category prints everything.
+        $minimumToPrint = OEGlobalsBag::getInstance()->get('minimum_amount_to_print');
+        $amount = is_numeric($stmt['amount'] ?? null) ? (float) $stmt['amount'] : 0.0;
+        if (
+            OEGlobalsBag::getInstance()->getBoolean('use_statement_print_exclusion')
+            && $amount <= (is_numeric($minimumToPrint) ? (float) $minimumToPrint : 0.0)
+            && CurrentRequest::get()->request->getString('form_category') !== 'All'
+        ) {
+            return "";
+        }
+        return (new CustomPdfStatementText(new DateTimeImmutable()))->render($stmt);
     } else {
         return create_statement($stmt);
     }

@@ -772,8 +772,9 @@ SQL;
         $details_encoded = json_encode($details);
         $sentDate = date('Y-m-d H:i:s');
 
-        $sql = "INSERT INTO `oe_faxsms_queue` (`id`, `uid`, `account`, `job_id`, `date`, `receive_date`, `calling_number`, `called_number`, `mime`, `details_json`)
-        VALUES (NULL, ?, ?, ?, current_timestamp(), ?, ?, ?, 'application/pdf', ?)";
+        // direction defaults to 'inbound', so a sent fax must say so.
+        $sql = "INSERT INTO `oe_faxsms_queue` (`id`, `uid`, `account`, `job_id`, `date`, `receive_date`, `calling_number`, `called_number`, `mime`, `details_json`, `direction`)
+        VALUES (NULL, ?, ?, ?, current_timestamp(), ?, ?, ?, 'application/pdf', ?, 'outbound')";
 
         return sqlInsert($sql, [$uid, $account, $jobId, $sentDate, $callerId, $dialNumber, $details_encoded]);
     }
@@ -839,11 +840,14 @@ SQL;
     }
 
     /**
+     * Received faxes still in the local queue (not deleted). Sent faxes
+     * share the table and are left out.
+     *
      * @return int
      */
     public function fetchQueueCount(): int
     {
-        return (int)sqlQuery("SELECT COUNT(id) as count FROM `oe_faxsms_queue` WHERE deleted = 0")['count'] ?? 0;
+        return (int)sqlQuery("SELECT COUNT(id) as count FROM `oe_faxsms_queue` WHERE deleted = 0 AND direction = 'inbound'")['count'] ?? 0;
     }
 
     /**

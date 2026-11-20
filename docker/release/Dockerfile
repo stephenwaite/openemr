@@ -132,8 +132,11 @@ RUN sed -i 's/^Listen 80$/Listen 0.0.0.0:80/' /etc/apache2/httpd.conf
 # ============================================================================
 # Set Apache user UID to 1000 to ensure consistent permissions across
 # shared volumes when using multiple containers (OpenEMR, nginx, php-fpm)
-# This prevents permission conflicts in multi-container deployments
-RUN usermod -u 1000 apache
+# This prevents permission conflicts in multi-container deployments.
+# Override with --build-arg APACHE_UID=<uid> to match a dedicated host account
+# that owns bind-mounted site directories (uid 1000 is often a person's login).
+ARG APACHE_UID=1000
+RUN usermod -u "${APACHE_UID}" apache
 
 # ============================================================================
 # PHP CONFIGURATION
@@ -153,13 +156,16 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin -
 # Use git clone instead of GitHub archive because OpenEMR's .gitattributes
 # marks tests/, phpunit*.xml, and other dev files as export-ignore, which
 # excludes them from archives but not from clones.
-# Supports branches or tags via OPENEMR_VERSION build argument.
+# Supports branches or tags via OPENEMR_VERSION build argument, and building
+# from a fork or mirror via OPENEMR_GIT (must be clonable without credentials).
 # Examples:
 #   - Branch: --build-arg OPENEMR_VERSION=master
 #   - Tag:    --build-arg OPENEMR_VERSION=v7.0.5
+#   - Fork:   --build-arg OPENEMR_GIT=https://github.com/<you>/openemr.git --build-arg OPENEMR_VERSION=<branch>
 ARG OPENEMR_VERSION=rel-840
 FROM base AS openemr-source
-RUN git clone https://github.com/openemr/openemr.git --branch "${OPENEMR_VERSION}" --depth 1 \
+ARG OPENEMR_GIT=https://github.com/openemr/openemr.git
+RUN git clone "${OPENEMR_GIT}" --branch "${OPENEMR_VERSION}" --depth 1 openemr \
     && rm -rf openemr/.git
 
 # Stage 2: Install PHP dependencies (Composer)
