@@ -77,7 +77,7 @@ if ($request->isMethod('POST')) {
                 $messages[] = ['danger', xl('Set the Facility ID and Billing Facility ID in Admin > Config > Gifford Charge Import first.')];
                 break;
             }
-            $result = ChargePoster::forSite($clock, $confirmOn)->run($settings);
+            $result = ChargePoster::forSite($clock, $confirmOn, $globals->getString(GiffordGlobals::HOLD_CODES))->run($settings);
             $messages[] = ['success', sprintf(xl('Posted %d lines; %d held; %d duplicates.'), $result->posted, $result->held, $result->duplicates)];
             break;
     }

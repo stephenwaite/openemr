@@ -17,6 +17,7 @@ namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Review;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Parse\ChargeRowParser;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMap;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargePoster;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\HoldCodes;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PriceBook;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\RawRow;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\LineStatus;
@@ -84,6 +85,7 @@ final readonly class ReviewRepository
                 array_filter($problems, static fn (string $p): bool => str_starts_with($p, PriceBook::EXPECTED_DENIAL_PREFIX)) !== [],
                 array_filter($problems, static fn (string $p): bool => str_starts_with($p, ChargePoster::CCI_PREFIX)) !== [],
                 array_filter($problems, static fn (string $p): bool => str_starts_with($p, ChargePoster::REFERRER_PREFIX)) !== [],
+                array_filter($problems, static fn (string $p): bool => str_starts_with($p, HoldCodes::PREFIX)) !== [],
             );
         }
 

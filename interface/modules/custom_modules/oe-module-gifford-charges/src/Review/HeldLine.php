@@ -26,6 +26,7 @@ final readonly class HeldLine
      * @param bool $expectedDenial held for Gifford's GZ modifier, which a person can release to post with GZ
      * @param bool $cci held by an NCCI edit, which a person can release to post anyway
      * @param bool $referrer held for want of a referring provider, which a person can release to post without one
+     * @param bool $onHold its code is on the Hold These Codes setting: no person can release it, only skip it
      */
     public function __construct(
         public int $id,
@@ -47,6 +48,7 @@ final readonly class HeldLine
         public bool $expectedDenial = false,
         public bool $cci = false,
         public bool $referrer = false,
+        public bool $onHold = false,
     ) {
     }
 }

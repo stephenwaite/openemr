@@ -125,10 +125,11 @@
                 <td>{{ line.accession|text }}</td>
                 <td>
                     {% for problem in line.problems %}<div>{{ problem|text }}</div>{% endfor %}
-                    {% if line.released %}<div class="text-success">{% if line.addedModifier %}{{ 'Released with modifier'|xlt }} {{ line.addedModifier|text }}: {% else %}{{ 'Released'|xlt }}: {% endif %}{{ 'posts on the next run.'|xlt }}</div>{% endif %}
+                    {% if line.released and not line.onHold %}<div class="text-success">{% if line.addedModifier %}{{ 'Released with modifier'|xlt }} {{ line.addedModifier|text }}: {% else %}{{ 'Released'|xlt }}: {% endif %}{{ 'posts on the next run.'|xlt }}</div>{% endif %}
                 </td>
                 <td>
-                    {% if line.repeat and not line.released %}
+                    {% if line.onHold %}
+                    {% elseif line.repeat and not line.released %}
                         {% for modifier in ['76', '77'] %}
                         <form method="post" class="mb-1" onsubmit="return top.restoreSession()">
                             {{ csrfToken('default', 'csrf_token_form') }}

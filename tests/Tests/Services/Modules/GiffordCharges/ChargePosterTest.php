@@ -26,11 +26,13 @@ use Cmsvt\OpenEMR\Modules\GiffordCharges\Payer\PayerMap;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\AddOnCodes;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargeLineRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\ChargePoster;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\HoldCodes;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PostResult;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PostSettings;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\PriceBook;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Post\SiteWriter;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\RawRow;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Review\HeldLine;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Review\ReviewRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\ChargeBatchRepository;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Stage\StagedLine;
@@ -1114,6 +1116,43 @@ class ChargePosterTest extends TestCase
         $this->assertSame(['duplicate', 'duplicate'], [$this->line($asSent)['status'], $this->line($corrected)['status']]);
     }
 
+    public function testACodeOnTheHoldListIsHeldUntilItIsTakenOffAndTheVisitsOtherLinePosts(): void
+    {
+        [$onHold, $other] = $this->stage([$this->row(), $this->row(['chg_cpt' => $this->bareCode])]);
+        $list = 'ZZ9ZZ, ' . strtolower($this->code);
+
+        $this->post(holdCodes: $list);
+        $this->assertSame(['held', 'posted'], [$this->line($onHold)['status'], $this->line($other)['status']]);
+        $this->assertSame([HoldCodes::problem('CPT4', $this->code)], $this->problems($onHold));
+        $review = new ReviewRepository(new ChargeRowParser(), new PayerMap());
+        $held = array_values(array_filter($review->heldLines(), static fn (HeldLine $l): bool => $l->id === $onHold));
+        $this->assertCount(1, $held);
+        $this->assertTrue($held[0]->onHold);
+
+        // A person cannot post it anyway: only the list lets it go.
+        QueryUtils::sqlStatementThrowException('UPDATE `gifford_charge_line` SET `released` = 1 WHERE `id` = ?', [$onHold]);
+        $this->post(holdCodes: $list);
+        $this->assertSame('held', $this->line($onHold)['status']);
+
+        // Off the list, it posts on the next run, onto the visit's encounter.
+        $this->post(holdCodes: 'ZZ9ZZ');
+        $this->assertSame('posted', $this->line($onHold)['status']);
+        $this->assertSame($this->line($other)['encounter'], $this->line($onHold)['encounter']);
+    }
+
+    public function testAHeldCodeChangedToOneOffTheListPosts(): void
+    {
+        [$line] = $this->stage([$this->row()]);
+        $this->post(holdCodes: $this->code);
+        $this->assertSame('held', $this->line($line)['status']);
+
+        $review = new ReviewRepository(new ChargeRowParser(), new PayerMap());
+        $this->assertSame([], $review->changeCode('A' . $this->token, $this->code, $this->bareCode, new \DateTimeImmutable(self::NOW)));
+        $this->post(holdCodes: $this->code);
+        $this->assertSame('posted', $this->line($line)['status']);
+        $this->assertContains(['CPT4', $this->bareCode, 'ICD10|I50.20:ICD10|Z95.811:'], $this->billed($line));
+    }
+
     public function testTheDiagnosesPageNamesTheCodeGiffordSentBesideAChangedOne(): void
     {
         $accession = 'A' . $this->token;
@@ -1165,12 +1204,12 @@ class ChargePosterTest extends TestCase
         return new AddOnCodes(AddOnCodes::PARENTS + [$this->bareCode => [$this->code]]);
     }
 
-    private function post(AddOnCodes $addOns = new AddOnCodes(), ?DxRepository $dx = null): PostResult
+    private function post(AddOnCodes $addOns = new AddOnCodes(), ?DxRepository $dx = null, string $holdCodes = ''): PostResult
     {
         $settings = PostSettings::load($this->facilityId, $this->facilityId);
         $this->assertNotNull($settings);
 
-        return $this->poster($addOns, $dx)->run($settings);
+        return $this->poster($addOns, $dx, $holdCodes)->run($settings);
     }
 
     /**
@@ -1217,7 +1256,7 @@ class ChargePosterTest extends TestCase
         );
     }
 
-    private function poster(AddOnCodes $addOns, ?DxRepository $dx = null): ChargePoster
+    private function poster(AddOnCodes $addOns, ?DxRepository $dx = null, string $holdCodes = ''): ChargePoster
     {
         $clock = $this->createStub(ClockInterface::class);
         $clock->method('now')->willReturn(new \DateTimeImmutable(self::NOW));
@@ -1231,6 +1270,7 @@ class ChargePosterTest extends TestCase
             $clock,
             addOns: $addOns,
             dx: $dx,
+            holdCodes: HoldCodes::fromSetting($holdCodes),
         );
     }
 

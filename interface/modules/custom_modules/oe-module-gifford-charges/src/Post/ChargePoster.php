@@ -44,6 +44,9 @@ use Psr\Clock\ClockInterface;
  *   provider on the site, the visit's lines disagree on place of service (or with the
  *   encounter already posted), or the visit number is too long for the encounter;
  * - it has no price;
+ * - its code is on the Hold These Codes setting (HoldCodes), until the code is taken off
+ *   the list: a person cannot release it. A line whose code a person changed is checked by
+ *   its new code;
  * - the visit has no encounter yet and the file names no referring provider (prov_ref_npi
  *   is not a 10-digit NPI): the claim would go out without the ordering provider, which
  *   Medicare requires on a diagnostic exam. Until a person releases it, to post without one
@@ -111,14 +114,16 @@ final readonly class ChargePoster
         private MeasureRepository $measures = new MeasureRepository(),
         private CciEdits $cci = new CciEdits(),
         private ?DxRepository $dx = null,
+        private ?HoldCodes $holdCodes = null,
     ) {
     }
 
     /**
      * The poster as the site is set up: with the diagnoses read from the report when
-     * $confirmDiagnoses (the Code Diagnoses From the Report setting) is on.
+     * $confirmDiagnoses (the Code Diagnoses From the Report setting) is on, holding the
+     * codes in $holdCodes (the Hold These Codes setting's text).
      */
-    public static function forSite(ClockInterface $clock, bool $confirmDiagnoses): self
+    public static function forSite(ClockInterface $clock, bool $confirmDiagnoses, string $holdCodes = ''): self
     {
         return new self(
             new ChargeLineRepository(),
@@ -128,6 +133,7 @@ final readonly class ChargePoster
             new SiteWriter(),
             $clock,
             dx: $confirmDiagnoses ? new DxRepository() : null,
+            holdCodes: HoldCodes::fromSetting($holdCodes),
         );
     }
 
@@ -264,6 +270,9 @@ final readonly class ChargePoster
                     $charge->accession,
                     implode(', ', $postedAs)
                 );
+            }
+            if ($this->holdCodes?->holds($charge->code) === true) {
+                $problems[] = HoldCodes::problem($charge->codeType, $charge->code);
             }
 
             // The same procedure again for the patient that day, posted or posting now: a

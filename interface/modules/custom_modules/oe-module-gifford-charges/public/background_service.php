@@ -95,6 +95,6 @@ function postReadyLines(OEGlobalsBag $globals, LoggerInterface $logger): void
         $logger->notice('Gifford charge import: the facility or billing facility is not set; lines are staged but not posted');
         return;
     }
-    $poster = ChargePoster::forSite(ServiceContainer::getClock(), $globals->getBoolean(GiffordGlobals::CONFIRM_DX));
+    $poster = ChargePoster::forSite(ServiceContainer::getClock(), $globals->getBoolean(GiffordGlobals::CONFIRM_DX), $globals->getString(GiffordGlobals::HOLD_CODES));
     $logger->info('Gifford charge import: posting run', $poster->run($settings)->toArray());
 }

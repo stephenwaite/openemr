@@ -91,6 +91,13 @@ facility where the studies are done, Gifford: the claim's service location, loop
 and **Billing Facility ID** (the reading practice); while either is 0, lines are staged
 only. The rendering providers keep their own default facility (where they read).
 
+**Hold These Codes** (same place) is a list of procedure codes, separated by commas, whose
+charges are staged and held instead of posted: mammograms until the facility has its FDA
+certification number, say, or a code Gifford's charge master maps wrongly. The visit's
+other lines post meanwhile. A held charge shows on Fees > Gifford Charges with "on hold:";
+it cannot be posted anyway from there, only skipped. It posts on the next run after its code
+is taken off the list, or once its code is changed to one that is not on it.
+
 **Service location on the 837P.** Commercial claims for a Gifford encounter send the
 Facility ID facility (Gifford, where the image was done) as the service location, loop
 2310C (BCBSVT's guidance). Medicare (claim filing code MA/MB) and Medicaid (MC) claims

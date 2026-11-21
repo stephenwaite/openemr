@@ -30,6 +30,8 @@ final class GiffordGlobals
 
     public const CONFIRM_DX = 'gifford_charges_confirm_dx';
 
+    public const HOLD_CODES = 'gifford_charges_hold_codes';
+
     public function register(GlobalsInitializedEvent $event): void
     {
         $service = $event->getGlobalsService();
@@ -65,6 +67,12 @@ final class GiffordGlobals
             GlobalSetting::DATA_TYPE_BOOL,
             '1',
             xl('On: a charge posts with the diagnoses read from its report, once a high-confidence suggestion is loaded or a coder confirms it on Fees > Gifford Diagnoses, and is held until then; a film taken during surgery, or a suggestion that is not high confidence, posts with the diagnoses Gifford sent. Off: charges post with the diagnoses Gifford sent.')
+        ));
+        $service->appendToSection($section, self::HOLD_CODES, new GlobalSetting(
+            xl('Hold These Codes'),
+            GlobalSetting::DATA_TYPE_TEXT,
+            '',
+            xl('Procedure codes, separated by commas, whose charges are staged and held instead of posted, for example mammograms until the facility has its FDA certification number. A held charge posts on the next run after its code is taken off this list. Blank: no code is held.')
         ));
     }
 }
