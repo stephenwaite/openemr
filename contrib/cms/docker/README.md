@@ -24,6 +24,8 @@ configuration applied by the image's vendor hooks (`docker/HOOKS.md`).
       hooks/prelaunch/20-cms-site-settings
                                          every start: applies per-site SQL, once per file
       hooks/prelaunch/cms-apply-sql.php  helper for the above
+      hooks/prelaunch/cms-apply-module-sql.php
+                                         helper for the above: an installed module's table.sql
       tools/x12-diff.py                  compares two 837P files claim by claim
       tools/decrypt-hl7.php              decrypts an archived HL7 result (dry-run lab tests)
       tools/poll-labs.php                runs Process Results for one lab, summary only
@@ -317,6 +319,12 @@ Both run on every start, after the database upgrade and before Apache:
   ```sh
   docker compose exec openemr /root/hooks/prelaunch/20-cms-site-settings
   ```
+  On a site where the Gifford charge import module is installed it also runs
+  that module's `table.sql` again when the file has changed
+  (`cms-apply-module-sql.php`, through OpenEMR so the file's
+  `#IfMissingColumn` guards apply): a new image can read a column the site's
+  tables don't have yet. A failure there is logged as `gifford-table FAILED`
+  and the start goes on.
   At every start it also moves each numbered site's EDI control-number
   counter (`edi_sequences`, used for ISA13 and GS06) up to site × 100,000,
   so site 200's 837s count from 20000000. Each site counts on its own and

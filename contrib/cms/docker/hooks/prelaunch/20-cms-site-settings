@@ -6,6 +6,8 @@
 #   1. oe-module-cmsvt's table.sql (CREATE TABLE IF NOT EXISTS)
 #   2. ${CMS_CONFIG_ROOT}/sql/all-sites.sql
 #   3. ${CMS_CONFIG_ROOT}/sql/<site>.sql
+#   4. oe-module-gifford-charges's table.sql, on the sites where that module
+#      is installed: a new image can read a column the site's tables lack
 # Each file is applied to a site once; a checksum in sites/<site>/cms-applied/
 # records it, so later starts don't overwrite changes made in OpenEMR. Edit a
 # file and it is applied again at the next start.
@@ -20,6 +22,7 @@ set -euo pipefail
 config_root="${CMS_CONFIG_ROOT:-/cms-config}"
 oe_root="${OE_ROOT:-/var/www/localhost/htdocs/openemr}"
 helper="$(dirname "$0")/cms-apply-sql.php"
+module_helper="$(dirname "$0")/cms-apply-module-sql.php"
 module_sql="${oe_root}/interface/modules/custom_modules/oe-module-cmsvt/table.sql"
 
 apply_once() {
@@ -43,6 +46,43 @@ apply_once() {
     echo "${sum}" > "${marker}"
     chown -R apache:apache "${site_dir}/cms-applied"
     echo "cms settings: ${site}: ${name} applied"
+}
+
+# An installed module's table.sql, run again when it has changed. It goes
+# through OpenEMR (cms-apply-module-sql.php) and not the helper above, because
+# the file adds its newer columns under #IfMissingColumn guards that only
+# OpenEMR's upgrade service reads. A site without the module is skipped and
+# gets no marker, so it is looked at again once the module is installed. A
+# failure is reported and the start goes on: one module's tables are no reason
+# to keep every site down.
+apply_module_once() {
+    local site="$1" site_dir="$2" module="$3" name="$4" sql_file marker sum applied="" status=0
+    sql_file="${oe_root}/interface/modules/custom_modules/${module}/table.sql"
+    [[ -f "${sql_file}" ]] || return 0
+    marker="${site_dir}/cms-applied/${name}.sha256"
+    sum="$(sha256sum "${sql_file}")"
+    sum="${sum%% *}"
+    if [[ -f "${marker}" ]]; then
+        read -r applied < "${marker}" || true
+    fi
+    if [[ "${applied}" = "${sum}" ]]; then
+        echo "cms settings: ${site}: ${name} already applied"
+        return 0
+    fi
+    # The helper is fed on stdin because apache cannot read /root/hooks, and
+    # the site goes in the environment, so nothing is pasted into the command.
+    CMS_SITE="${site}" CMS_MODULE="${module}" OE_ROOT="${oe_root}" \
+        su -s /bin/sh apache -c 'exec php' < "${module_helper}" || status=$?
+    case "${status}" in
+        0)
+            mkdir -p "${site_dir}/cms-applied"
+            echo "${sum}" > "${marker}"
+            chown -R apache:apache "${site_dir}/cms-applied"
+            echo "cms settings: ${site}: ${name} applied"
+            ;;
+        3) ;;
+        *) echo "cms settings: ${site}: ${name} FAILED" >&2 ;;
+    esac
 }
 
 # EDI control numbers (ISA13, GS06) come from each site's own edi_sequences,
@@ -73,6 +113,7 @@ for site_dir in "${oe_root}"/sites/*/; do
     apply_once "${site}" "${site_dir}" "${module_sql}" module-table
     apply_once "${site}" "${site_dir}" "${config_root}/sql/all-sites.sql" all-sites
     apply_once "${site}" "${site_dir}" "${config_root}/sql/${site}.sql" "site-${site}"
+    apply_module_once "${site}" "${site_dir}" oe-module-gifford-charges gifford-table
     edi_control_range "${site}" "${site_dir}"
 done
 
