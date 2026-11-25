@@ -47,7 +47,11 @@ class ReviewRepositoryTest extends TestCase
             self::fail('Composer ClassLoader not available to register module autoload prefix.');
         }
         $loader->addPsr4('Cmsvt\\OpenEMR\\Modules\\GiffordCharges\\', dirname(__DIR__, 5) . self::MODULE_DIR . '/src/');
-        if (!QueryUtils::existsTable('gifford_payer_map')) {
+        // Also when the tables are from before the newest column: table.sql adds what is missing.
+        if (
+            !QueryUtils::existsTable('gifford_payer_map')
+            || QueryUtils::fetchRecords("SHOW COLUMNS FROM `gifford_charge_line` LIKE 'unique_id'") === []
+        ) {
             $install = new SQLUpgradeService();
             $install->setRenderOutputToScreen(false);
             $install->setThrowExceptionOnError(true);

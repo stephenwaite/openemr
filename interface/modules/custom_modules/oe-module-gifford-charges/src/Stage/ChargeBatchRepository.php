@@ -50,8 +50,8 @@ final class ChargeBatchRepository
             foreach ($lines as $line) {
                 QueryUtils::sqlInsert(
                     'INSERT INTO `gifford_charge_line` (`batch_id`, `line_number`, `visit_number`, `mrn`, `accession`,'
-                    . ' `date_of_service`, `code`, `raw_json`, `problems_json`, `status`, `updated_at`)'
-                    . ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    . ' `date_of_service`, `code`, `unique_id`, `raw_json`, `problems_json`, `status`, `updated_at`)'
+                    . ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                     [
                         $batchId,
                         $line->lineNumber,
@@ -60,6 +60,7 @@ final class ChargeBatchRepository
                         mb_substr($line->accession, 0, 64),
                         $line->dateOfService?->format('Y-m-d'),
                         mb_substr($line->code, 0, 16),
+                        mb_substr($line->uniqueId, 0, 128),
                         json_encode($line->rawValues, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
                         json_encode($line->problems, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
                         $line->status->value,
