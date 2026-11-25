@@ -24,11 +24,16 @@ use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\ChargeFileReader;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class ChargeFileReaderTest extends TestCase
 {
+    private const TEXT_HEADER = "chg_cpt\tencounter_num\tpat_mrn\tpat_last\tpat_first\tpat_dob\tpat_sex\tenc_dx_codes\tprov_rend_npi\tchg_dos\tchg_units\tchg_accession\tchg_location";
+
+    private const TEXT_ROW = "71046\tGH0000000006\tMR0000000006\tTestpatient\tDee\t03/25/1964\tF\tR05.9\t1234567893\t08/25/2026\t1\tA0000000006\tGMC.XRAY";
+
     /** @var list<string> */
     private array $files = [];
 
@@ -135,6 +140,73 @@ final class ChargeFileReaderTest extends TestCase
         $this->assertSame(2, $rows[0]->line);
         $this->assertSame('71046', $rows[0]->get('chg_cpt'));
         $this->assertSame('GMC.XRAY', $rows[0]->get('chg_location'));
+    }
+
+    #[Test]
+    public function aFieldAfterTheHeadersLastColumnOnEveryRowIsTheUniqueId(): void
+    {
+        // The 2026-11-25 file: the header names 116 columns, every row has 117 fields.
+        $path = $this->tempFile('txt', "\xEF\xBB\xBF" . implode("\r\n", [
+            self::TEXT_HEADER,
+            self::TEXT_ROW . "\tGMC.RA1-B20261125123107001.1.00001@001",
+            '',
+            self::TEXT_ROW . "\tGMC.RA1-B20261125123107001.12.00002@001",
+        ]) . "\r\n");
+
+        $rows = (new ChargeFileReader())->read($path);
+
+        $this->assertCount(2, $rows);
+        $this->assertSame('GMC.RA1-B20261125123107001.1.00001@001', $rows[0]->get(ChargeFileReader::UNIQUE_ID_COLUMN));
+        $this->assertSame('GMC.RA1-B20261125123107001.12.00002@001', $rows[1]->get(ChargeFileReader::UNIQUE_ID_COLUMN));
+        $this->assertSame(4, $rows[1]->line, 'the blank line is counted');
+        $this->assertSame('GMC.XRAY', $rows[0]->get('chg_location'), 'the named columns are where they were');
+    }
+
+    #[Test]
+    public function aNamedUniqueIdColumnIsReadWhereverItIs(): void
+    {
+        $path = $this->tempFile('txt', implode("\n", [
+            ChargeFileReader::UNIQUE_ID_COLUMN . "\t" . self::TEXT_HEADER,
+            "ID-1\t" . self::TEXT_ROW,
+        ]));
+
+        $rows = (new ChargeFileReader())->read($path);
+
+        $this->assertSame('ID-1', $rows[0]->get(ChargeFileReader::UNIQUE_ID_COLUMN));
+        $this->assertSame('71046', $rows[0]->get('chg_cpt'));
+    }
+
+    /**
+     * @param list<string> $lines the lines after the header
+     */
+    #[Test]
+    #[DataProvider('filesWithNoUniqueId')]
+    public function anExtraFieldThatIsNotOnEveryRowNamesNothing(array $lines): void
+    {
+        $path = $this->tempFile('txt', implode("\n", [self::TEXT_HEADER, ...$lines]));
+
+        $rows = (new ChargeFileReader())->read($path);
+
+        $this->assertNotSame([], $rows);
+        foreach ($rows as $row) {
+            $this->assertFalse($row->has(ChargeFileReader::UNIQUE_ID_COLUMN));
+            $this->assertSame('GMC.XRAY', $row->get('chg_location'));
+        }
+    }
+
+    /**
+     * @return array<string, array{list<string>}>
+     *
+     * @codeCoverageIgnore Data providers run before coverage instrumentation starts.
+     */
+    public static function filesWithNoUniqueId(): array
+    {
+        return [
+            'no row has one' => [[self::TEXT_ROW, self::TEXT_ROW]],
+            'one row has a stray field' => [[self::TEXT_ROW, self::TEXT_ROW . "\tstray"]],
+            'two fields too many' => [[self::TEXT_ROW . "\ta\tb"]],
+            'the extra field is empty on every row' => [[self::TEXT_ROW . "\t", self::TEXT_ROW . "\t "]],
+        ];
     }
 
     #[Test]

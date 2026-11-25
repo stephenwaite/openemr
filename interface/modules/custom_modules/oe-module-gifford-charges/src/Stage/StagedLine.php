@@ -15,11 +15,13 @@ declare(strict_types=1);
 namespace Cmsvt\OpenEMR\Modules\GiffordCharges\Stage;
 
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Model\ParsedRow;
+use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\ChargeFileReader;
 use Cmsvt\OpenEMR\Modules\GiffordCharges\Reader\RawRow;
 
 final readonly class StagedLine
 {
     /**
+     * @param string $uniqueId Gifford's id for the charge, '' when the file sent none
      * @param array<string, string> $rawValues the row as read, by lower-case column name
      * @param list<string> $problems
      */
@@ -30,6 +32,7 @@ final readonly class StagedLine
         public string $accession,
         public ?\DateTimeImmutable $dateOfService,
         public string $code,
+        public string $uniqueId,
         public array $rawValues,
         public array $problems,
         public LineStatus $status,
@@ -53,6 +56,7 @@ final readonly class StagedLine
             $parsed->charge->accession ?? $row->get('chg_accession'),
             $parsed->charge?->dateOfService,
             $code,
+            $row->get(ChargeFileReader::UNIQUE_ID_COLUMN),
             $row->values,
             $parsed->problems,
             $parsed->isImportable() ? LineStatus::Staged : LineStatus::Held,

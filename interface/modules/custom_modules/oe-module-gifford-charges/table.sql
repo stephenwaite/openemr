@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS `gifford_charge_line` (
     `accession` VARCHAR(64) NOT NULL DEFAULT '' COMMENT 'chg_accession',
     `date_of_service` DATE NULL COMMENT 'chg_dos, when it parsed',
     `code` VARCHAR(16) NOT NULL DEFAULT '' COMMENT 'chg_cpt or chg_hcpcs',
+    `unique_id` VARCHAR(128) NOT NULL DEFAULT '' COMMENT 'chg_unique_id: the id the Gifford extract gives the charge; empty for a file sent without one',
     `raw_json` MEDIUMTEXT NOT NULL COMMENT 'the row as read: column name => value',
     `problems_json` TEXT NOT NULL COMMENT 'JSON list of problems; empty list when none',
     `status` VARCHAR(16) NOT NULL COMMENT 'staged: ready to post; held: has problems; posted; duplicate: already posted from an earlier file; skipped: a person chose not to post it',
@@ -42,7 +43,8 @@ CREATE TABLE IF NOT EXISTS `gifford_charge_line` (
     KEY `batch_id` (`batch_id`),
     KEY `visit_number` (`visit_number`),
     KEY `accession` (`accession`),
-    KEY `status` (`status`)
+    KEY `status` (`status`),
+    KEY `unique_id` (`unique_id`)
 ) ENGINE=InnoDB;
 
 #IfMissingColumn gifford_charge_line added_modifier
@@ -51,6 +53,10 @@ ALTER TABLE `gifford_charge_line` ADD COLUMN `added_modifier` VARCHAR(2) NOT NUL
 
 #IfMissingColumn gifford_charge_line changed_code
 ALTER TABLE `gifford_charge_line` ADD COLUMN `changed_code` VARCHAR(16) NOT NULL DEFAULT '' COMMENT 'the code a person chose to post the line with in place of the one Gifford sent, which stays in raw_json' AFTER `added_modifier`;
+#EndIf
+
+#IfMissingColumn gifford_charge_line unique_id
+ALTER TABLE `gifford_charge_line` ADD COLUMN `unique_id` VARCHAR(128) NOT NULL DEFAULT '' COMMENT 'chg_unique_id: the id the Gifford extract gives the charge; empty for a file sent without one' AFTER `code`, ADD KEY `unique_id` (`unique_id`);
 #EndIf
 
 -- Which insurance company each Gifford payer mnemonic (ins1_mnemonic ...) is billed to.

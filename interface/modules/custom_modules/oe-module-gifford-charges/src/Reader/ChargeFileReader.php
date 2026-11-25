@@ -15,6 +15,11 @@
  * an .xlsx number cell becomes its plain decimal form ("25917", not "25917.0"), so Excel
  * serial dates reach the parser unchanged.
  *
+ * Gifford's id for the charge (UNIQUE_ID_COLUMN) came first, in the 2026-11-25 file, as one
+ * more field after the header's last column on every row, the header line naming only the
+ * columns before it. A file with a header whose rows all carry exactly one field more than
+ * the header names, at least one of them filled, is read with that field as the id.
+ *
  * @package   OpenEMR
  * @link      https://www.open-emr.org
  * @author    Stephen Waite <stephen.waite@cmsvt.com>
@@ -87,6 +92,9 @@ final class ChargeFileReader
      */
     private const HEADER_ALIASES = ['report_signed_on' => 'report_signed'];
 
+    /** Gifford's own id for the charge: one per row of a file, the same row sent again keeps it. */
+    public const UNIQUE_ID_COLUMN = 'chg_unique_id';
+
     /**
      * @return list<RawRow>
      */
@@ -140,6 +148,7 @@ final class ChargeFileReader
             if ($missing !== []) {
                 throw new ChargeFileException('Charge file is missing columns: ' . implode(', ', $missing));
             }
+            $header = self::withUniqueId($header, $table);
         }
 
         $rows = [];
@@ -195,6 +204,43 @@ final class ChargeFileReader
             throw new ChargeFileException('Charge file could not be read as .csv', 0, $e);
         }
         return $table;
+    }
+
+    /**
+     * The header, with the charge's unique id named when the rows carry it unnamed: every
+     * row that is not blank has exactly one field more than the header names and at least
+     * one of those fields is filled. Otherwise the header as it came: a row with a stray
+     * extra field, or a sheet padded with empty cells, names nothing.
+     *
+     * @param list<string> $header
+     * @param list<list<string>> $rows the rows after the header
+     * @return list<string>
+     */
+    private static function withUniqueId(array $header, array $rows): array
+    {
+        while ($header !== [] && $header[array_key_last($header)] === '') {
+            array_pop($header);
+        }
+        if (in_array(self::UNIQUE_ID_COLUMN, $header, true)) {
+            return $header;
+        }
+
+        $position = count($header);
+        $filled = false;
+        foreach ($rows as $cells) {
+            if (trim(implode('', $cells)) === '') {
+                continue;
+            }
+            if (count($cells) !== $position + 1) {
+                return $header;
+            }
+            $filled = $filled || trim($cells[$position] ?? '') !== '';
+        }
+        if ($filled) {
+            $header[] = self::UNIQUE_ID_COLUMN;
+        }
+
+        return $header;
     }
 
     /**

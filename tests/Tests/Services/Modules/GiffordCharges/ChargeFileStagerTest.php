@@ -55,8 +55,12 @@ class ChargeFileStagerTest extends TestCase
         $loader->addPsr4('Cmsvt\\OpenEMR\\Modules\\GiffordCharges\\', self::root() . self::MODULE_DIR . '/src/');
 
         // The tables exist only where the module is installed; table.sql is what
-        // installing runs, and every statement in it is guarded.
-        if (!QueryUtils::existsTable('gifford_charge_batch')) {
+        // installing runs, and every statement in it is guarded. Also when the tables
+        // are from before the newest column: table.sql adds what is missing.
+        if (
+            !QueryUtils::existsTable('gifford_charge_batch')
+            || QueryUtils::fetchRecords("SHOW COLUMNS FROM `gifford_charge_line` LIKE 'unique_id'") === []
+        ) {
             $install = new SQLUpgradeService();
             $install->setRenderOutputToScreen(false);
             $install->setThrowExceptionOnError(true);
@@ -149,11 +153,46 @@ class ChargeFileStagerTest extends TestCase
         $raw = json_decode(self::text($clean['raw_json']), true, 512, JSON_THROW_ON_ERROR);
         $this->assertIsArray($raw);
         $this->assertSame('GHC.TEST', $raw['chg_location'] ?? null);
+        $this->assertSame('', $clean['unique_id'], 'a file without the id column');
 
         $this->assertSame('held', $held['status']);
         $this->assertSame('GH-HELD-' . $this->token, $held['visit_number']);
         $this->assertSame('', $held['accession']);
         $this->assertSame(['chg_accession is empty'], json_decode(self::text($held['problems_json']), true, 512, JSON_THROW_ON_ERROR));
+    }
+
+    public function testTheUnnamedIdAfterTheLastColumnIsSavedOnEachLine(): void
+    {
+        // As Gifford's 2026-11-25 file: the header stops at the last named column, each row has the id after it.
+        $first = $this->row(['encounter_num' => 'GH-ID1-' . $this->token]);
+        $second = $this->row(['encounter_num' => 'GH-ID2-' . $this->token, 'chg_cpt' => '93010']);
+        $this->writeFile('GIFFORD_CMSVT_RadiologyBilling_20261125-123107.txt', "\xEF\xBB\xBF" . implode("\r\n", [
+            implode("\t", array_keys($first)),
+            implode("\t", $first) . "\tGMC.RA1-B" . $this->token . '.1.00001@001',
+            implode("\t", $second) . "\tGMC.RA1-B" . $this->token . '.2.00001@001',
+        ]) . "\r\n");
+
+        $results = $this->stager()->run($this->dropDir);
+
+        $this->assertCount(1, $results);
+        $this->batchIds[] = $results[0]->batchId;
+        $this->assertSame([FileOutcome::Staged, 2, 0], [$results[0]->outcome, $results[0]->lineCount, $results[0]->heldCount]);
+
+        $lines = QueryUtils::fetchRecords(
+            'SELECT `unique_id`, `code`, `raw_json` FROM `gifford_charge_line` WHERE `batch_id` = ? ORDER BY `line_number`',
+            [$results[0]->batchId]
+        );
+        $this->assertSame(
+            [
+                ['GMC.RA1-B' . $this->token . '.1.00001@001', '93005'],
+                ['GMC.RA1-B' . $this->token . '.2.00001@001', '93010'],
+            ],
+            array_map(static fn (array $line): array => [$line['unique_id'], $line['code']], $lines)
+        );
+        $raw = json_decode(self::text($lines[0]['raw_json']), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertIsArray($raw);
+        $this->assertSame('GMC.RA1-B' . $this->token . '.1.00001@001', $raw['chg_unique_id'] ?? null);
+        $this->assertSame('38097', $raw['ins1_member_id'] ?? null, 'the named columns are where they were');
     }
 
     public function testTheSameBytesAreNotStagedTwice(): void

@@ -90,7 +90,7 @@ class ChargePosterTest extends TestCase
         // Also when the tables are from before the newest column: table.sql adds what is missing.
         if (
             !QueryUtils::existsTable('gifford_measure_suggestion')
-            || QueryUtils::fetchRecords("SHOW COLUMNS FROM `gifford_charge_line` LIKE 'changed_code'") === []
+            || QueryUtils::fetchRecords("SHOW COLUMNS FROM `gifford_charge_line` LIKE 'unique_id'") === []
         ) {
             $install = new SQLUpgradeService();
             $install->setRenderOutputToScreen(false);
