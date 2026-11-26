@@ -326,6 +326,41 @@ final class SiteWriter
     }
 
     /**
+     * Whether the patient has a policy with an insurance company in effect that day,
+     * at any level.
+     */
+    public function hasInsuranceOn(int $pid, \DateTimeImmutable $day): bool
+    {
+        $date = $day->format('Y-m-d');
+        return QueryUtils::fetchRecords(
+            'SELECT 1 FROM `insurance_data` WHERE `pid` = ? AND `provider` IS NOT NULL AND `provider` NOT IN (\'\', \'0\')'
+            . ' AND (`date` IS NULL OR `date` <= ?) AND (`date_end` IS NULL OR `date_end` >= ?) LIMIT 1',
+            [$pid, $date, $date]
+        ) !== [];
+    }
+
+    /**
+     * Marks the encounter's unbilled charges as billed with no claim, as Mark as Cleared
+     * in the Billing Manager does (BillingUtilities::updateClaim with status 2 and no
+     * payer): the charges are billed today to payer 0 and the encounter gets a claims
+     * row saying so. For a self pay visit, which has nobody to send a claim to; the
+     * balance is the patient's and goes out on a statement.
+     */
+    public function markBilledWithoutClaim(int $pid, int $encounter): void
+    {
+        QueryUtils::sqlStatementThrowException(
+            'UPDATE `billing` SET `billed` = 1, `bill_date` = NOW(), `payer_id` = 0'
+            . ' WHERE `pid` = ? AND `encounter` = ? AND `activity` = 1 AND `billed` = 0',
+            [$pid, $encounter]
+        );
+        QueryUtils::sqlStatementThrowException(
+            'INSERT INTO `claims` (`patient_id`, `encounter_id`, `version`, `payer_id`, `status`, `payer_type`, `bill_time`, `submitted_claim`)'
+            . ' SELECT ?, ?, IFNULL(MAX(`version`), 0) + 1, 0, 2, 0, NOW(), \'\' FROM `claims` WHERE `patient_id` = ? AND `encounter_id` = ?',
+            [$pid, $encounter, $pid, $encounter]
+        );
+    }
+
+    /**
      * A quality measure G-code beside the charge: no fee, the coder as the user.
      *
      * @param list<string> $diagnoses the charge's, already cut to two

@@ -54,6 +54,12 @@ in one transaction:
   to (`gifford_payer_map`, see Payers). When the policy in effect on the date of service
   has another payer or member id, a new one starts that day and an open-ended older one
   ends the day before. `SP` (self pay) adds none.
+- **Self pay:** a visit whose only payer is `SP` has no claim to send, so its charges are
+  marked billed as they post (what **Mark as Cleared** does in the Billing Manager) and
+  never wait in the unbilled list; the balance goes out on the patient's statement. Two
+  cases stay unbilled for a person to look at: a row that names no payer at all (the
+  insurance may only be missing), and a self pay visit of a patient who has a policy in
+  effect that day from another visit.
 - **Encounter:** found by patient, `external_id` = `encounter_num` and date, else created
   on the date of service with the settings' facility and billing facility, the file's
   place of service (`pos_code`), the rendering provider (the active, authorized user

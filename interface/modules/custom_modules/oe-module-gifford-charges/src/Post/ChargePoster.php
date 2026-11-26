@@ -410,6 +410,12 @@ final readonly class ChargePoster
                     $this->measures->markPosted($r['line']->id, $pid, $encounter, $billingId, $now);
                 }
             }
+            // A visit Gifford marked self pay has no claim to send: its charges are
+            // done, and must not wait in the Billing Manager's unbilled list. Unless the
+            // patient has insurance that day from another visit: then a person decides.
+            if ($first->selfPay && !$this->site->hasInsuranceOn($pid, $dateOfService)) {
+                $this->site->markBilledWithoutClaim($pid, $encounter);
+            }
         });
     }
 
