@@ -58,7 +58,27 @@ final class ChargeRowParser
             $policies,
             $problems,
             $report,
+            $this->selfPay($row, $policies),
         );
+    }
+
+    /**
+     * Gifford says the patient pays: a self pay mnemonic and no payer beside it. A row
+     * with no payer named at all is not self pay: the insurance may only be missing.
+     *
+     * @param list<PolicyRecord> $policies
+     */
+    private function selfPay(RawRow $row, array $policies): bool
+    {
+        if ($policies !== []) {
+            return false;
+        }
+        foreach ([1, 2, 3] as $group) {
+            if (in_array(strtoupper($row->get("ins{$group}_mnemonic")), self::SELF_PAY_MNEMONICS, true)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

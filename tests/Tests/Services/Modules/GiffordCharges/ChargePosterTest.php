@@ -146,6 +146,7 @@ class ChargePosterTest extends TestCase
                 QueryUtils::sqlStatementThrowException('DELETE FROM `contact_address` WHERE `contact_id` = ?', [$contactId]);
                 QueryUtils::sqlStatementThrowException('DELETE FROM `contact` WHERE `id` = ?', [$contactId]);
             }
+            QueryUtils::sqlStatementThrowException('DELETE FROM `claims` WHERE `patient_id` = ?', [$pid]);
             foreach (['billing', 'forms', 'form_encounter', 'insurance_data', 'employer_data', 'patient_data'] as $table) {
                 QueryUtils::sqlStatementThrowException('DELETE FROM `' . $table . '` WHERE `pid` = ?', [$pid]);
             }
@@ -255,6 +256,76 @@ class ChargePosterTest extends TestCase
                 )
             )
         );
+    }
+
+    public function testASelfPayVisitIsMarkedBilledWithNoClaimAndAVisitWithNoPayerNamedIsNot(): void
+    {
+        [$selfPay, $noPayer] = $this->stage([
+            $this->row(['ins1_mnemonic' => 'SP', 'ins1_payer_name' => 'SELF PAY']),
+            $this->row([
+                // Another day, so the same code is not taken for a repeat procedure.
+                'encounter_num' => 'GN-' . $this->token,
+                'enc_admit_date' => '08/21/2026',
+                'chg_dos' => '08/21/2026',
+                'chg_accession' => 'N' . $this->token,
+                'ins1_mnemonic' => '',
+                'ins1_payer_name' => '',
+            ]),
+        ]);
+
+        $this->post();
+
+        $cleared = $this->line($selfPay);
+        $waiting = $this->line($noPayer);
+        $this->assertSame(['posted', 'posted'], [$cleared['status'], $waiting['status']]);
+        $this->assertNotSame(self::text($cleared['encounter']), self::text($waiting['encounter']));
+        $this->assertSame([], QueryUtils::fetchRecords('SELECT 1 FROM `insurance_data` WHERE `pid` = ?', [$cleared['pid']]), 'self pay adds no policy');
+
+        // Self pay: every charge row of the visit is billed today, to no payer, and the
+        // encounter has the claims row Mark as Cleared would have written.
+        $billing = QueryUtils::fetchRecords(
+            'SELECT `billed`, `payer_id`, `bill_date` IS NOT NULL AS `dated` FROM `billing` WHERE `encounter` = ? AND `activity` = 1',
+            [$cleared['encounter']]
+        );
+        $this->assertCount(3, $billing);
+        foreach ($billing as $row) {
+            $this->assertSame(['1', '0', '1'], array_values(array_map(self::text(...), $row)));
+        }
+        $claims = QueryUtils::fetchRecords(
+            'SELECT `version`, `status`, `payer_id`, `payer_type`, `bill_time` IS NOT NULL AS `timed` FROM `claims` WHERE `patient_id` = ? AND `encounter_id` = ?',
+            [$cleared['pid'], $cleared['encounter']]
+        );
+        $this->assertSame([['1', '2', '0', '0', '1']], array_map(static fn (array $r): array => array_values(array_map(self::text(...), $r)), $claims));
+
+        // No payer named is not self pay: the charges wait in the Billing Manager.
+        $unbilled = QueryUtils::fetchTableColumn('SELECT `billed` FROM `billing` WHERE `encounter` = ? AND `activity` = 1', 'billed', [$waiting['encounter']]);
+        $this->assertSame(['0', '0', '0'], array_map(self::text(...), $unbilled));
+        $this->assertSame([], QueryUtils::fetchRecords('SELECT 1 FROM `claims` WHERE `patient_id` = ? AND `encounter_id` = ?', [$waiting['pid'], $waiting['encounter']]));
+    }
+
+    public function testASelfPayVisitOfAPatientInsuredThatDayIsLeftForAPerson(): void
+    {
+        // The insured visit gives the patient a policy from 08/20; Gifford sends the
+        // next day's visit as self pay.
+        [$insured, $selfPay] = $this->stage([
+            $this->row(),
+            $this->row([
+                'encounter_num' => 'GS-' . $this->token,
+                'enc_admit_date' => '08/21/2026',
+                'chg_dos' => '08/21/2026',
+                'chg_accession' => 'S' . $this->token,
+                'ins1_mnemonic' => 'SP',
+                'ins1_payer_name' => 'SELF PAY',
+            ]),
+        ]);
+
+        $this->post();
+
+        $line = $this->line($selfPay);
+        $this->assertSame(['posted', 'posted'], [$this->line($insured)['status'], $line['status']]);
+        $unbilled = QueryUtils::fetchTableColumn('SELECT `billed` FROM `billing` WHERE `encounter` = ? AND `activity` = 1', 'billed', [$line['encounter']]);
+        $this->assertSame(['0', '0', '0'], array_map(self::text(...), $unbilled));
+        $this->assertSame([], QueryUtils::fetchRecords('SELECT 1 FROM `claims` WHERE `patient_id` = ? AND `encounter_id` = ?', [$line['pid'], $line['encounter']]));
     }
 
     public function testAChargeTakesTheVisitsFirstTwoDiagnoses(): void

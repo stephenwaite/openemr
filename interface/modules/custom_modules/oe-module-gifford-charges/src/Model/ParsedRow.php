@@ -23,6 +23,7 @@ final readonly class ParsedRow
      * @param list<PolicyRecord> $policies by rank; self-pay ranks are left out
      * @param list<string> $problems
      * @param ?ReportRecord $report null when the file has no report columns, or the report has a problem
+     * @param bool $selfPay Gifford named self pay as the payer and no other payer: nobody to send a claim to
      */
     public function __construct(
         public int $line,
@@ -34,6 +35,7 @@ final readonly class ParsedRow
         public array $policies,
         public array $problems,
         public ?ReportRecord $report = null,
+        public bool $selfPay = false,
     ) {
     }
 
@@ -50,6 +52,7 @@ final readonly class ParsedRow
             $this->policies,
             array_values(array_filter($this->problems, static fn (string $p): bool => $p !== $problem)),
             $this->report,
+            $this->selfPay,
         );
     }
 

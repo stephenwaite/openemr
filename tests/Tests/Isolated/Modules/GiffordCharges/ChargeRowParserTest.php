@@ -126,6 +126,24 @@ final class ChargeRowParserTest extends TestCase
     }
 
     #[Test]
+    public function aVisitIsSelfPayOnlyWhenSelfPayIsItsOnePayer(): void
+    {
+        $parser = new ChargeRowParser();
+
+        // The sample row: Medicaid first, self pay second.
+        $this->assertFalse($parser->parse(self::row())->selfPay, 'a payer beside self pay gets the claim');
+
+        $selfPay = $parser->parse(self::row(['ins1_mnemonic' => 'sp', 'ins1_payer_name' => 'SELF PAY', 'ins2_mnemonic' => '']));
+        $this->assertSame([], $selfPay->policies);
+        $this->assertTrue($selfPay->selfPay);
+        $this->assertTrue($selfPay->without(ChargeRowParser::NO_DIAGNOSES)->selfPay, 'kept when a problem is dropped');
+
+        $noPayer = $parser->parse(self::row(['ins1_mnemonic' => '', 'ins2_mnemonic' => '']));
+        $this->assertSame([], $noPayer->policies);
+        $this->assertFalse($noPayer->selfPay, 'no payer named is not self pay: the insurance may be missing');
+    }
+
+    #[Test]
     public function aSpouseSubscriberKeepsTheSubscriberColumns(): void
     {
         $parsed = (new ChargeRowParser())->parse(self::row([
