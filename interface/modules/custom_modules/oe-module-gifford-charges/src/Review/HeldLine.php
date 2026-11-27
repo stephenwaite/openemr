@@ -27,6 +27,7 @@ final readonly class HeldLine
      * @param bool $cci held by an NCCI edit, which a person can release to post anyway
      * @param bool $referrer held for want of a referring provider, which a person can release to post without one
      * @param bool $onHold its code is on the Hold These Codes setting: no person can release it, only skip it
+     * @param bool $accident held as an accident claim missing its date or state, which a person can release and complete on the encounter
      */
     public function __construct(
         public int $id,
@@ -49,6 +50,7 @@ final readonly class HeldLine
         public bool $cci = false,
         public bool $referrer = false,
         public bool $onHold = false,
+        public bool $accident = false,
     ) {
     }
 }

@@ -369,6 +369,31 @@ class ChargePosterTest extends TestCase
         ));
     }
 
+    public function testAnAccidentVisitWithNoAccidentDateIsHeldUntilAPersonPostsItAnyway(): void
+    {
+        [$lineId] = $this->stage([$this->row(['enc_workcomp' => 'Y'])]);
+
+        $this->assertSame(0, $this->post()->posted);
+        $this->assertSame('held', $this->line($lineId)['status']);
+        $this->assertSame(
+            ["accident claim: Gifford did not send the accident date; post it anyway and add it on the encounter's Misc Billing Options, or skip it"],
+            $this->problems($lineId)
+        );
+
+        // A person posts it anyway: the form has the cause and waits for its date.
+        QueryUtils::sqlStatementThrowException('UPDATE `gifford_charge_line` SET `released` = 1 WHERE `id` = ?', [$lineId]);
+        $this->assertSame(1, $this->post()->posted);
+        $line = $this->line($lineId);
+        $this->assertSame('posted', $line['status']);
+        $options = QueryUtils::fetchRecords(
+            'SELECT m.`employment_related`, m.`box_15_date_qual`, m.`date_initial_treatment`'
+            . ' FROM `forms` AS f JOIN `form_misc_billing_options` AS m ON m.`id` = f.`form_id`'
+            . " WHERE f.`encounter` = ? AND f.`formdir` = 'misc_billing_options'",
+            [$line['encounter']]
+        );
+        $this->assertSame([['1', '', '']], array_map(static fn (array $r): array => array_values(array_map(self::text(...), $r)), $options));
+    }
+
     public function testAChargeTakesTheVisitsFirstTwoDiagnoses(): void
     {
         [$first, $second, $third] = $this->diagnosisCodes(3);
