@@ -147,6 +147,7 @@ class ChargePosterTest extends TestCase
                 QueryUtils::sqlStatementThrowException('DELETE FROM `contact` WHERE `id` = ?', [$contactId]);
             }
             QueryUtils::sqlStatementThrowException('DELETE FROM `claims` WHERE `patient_id` = ?', [$pid]);
+            QueryUtils::sqlStatementThrowException('DELETE FROM `form_misc_billing_options` WHERE `pid` = ?', [$pid]);
             foreach (['billing', 'forms', 'form_encounter', 'insurance_data', 'employer_data', 'patient_data'] as $table) {
                 QueryUtils::sqlStatementThrowException('DELETE FROM `' . $table . '` WHERE `pid` = ?', [$pid]);
             }
@@ -326,6 +327,44 @@ class ChargePosterTest extends TestCase
         $unbilled = QueryUtils::fetchTableColumn('SELECT `billed` FROM `billing` WHERE `encounter` = ? AND `activity` = 1', 'billed', [$line['encounter']]);
         $this->assertSame(['0', '0', '0'], array_map(self::text(...), $unbilled));
         $this->assertSame([], QueryUtils::fetchRecords('SELECT 1 FROM `claims` WHERE `patient_id` = ? AND `encounter_id` = ?', [$line['pid'], $line['encounter']]));
+    }
+
+    public function testAnAccidentVisitGetsItsMiscBillingOptionsAndAnotherVisitGetsNone(): void
+    {
+        [$workComp, $plain] = $this->stage([
+            $this->row(['enc_workcomp' => 'Y', 'enc_accident_date' => '08/01/2026']),
+            $this->row([
+                // Another day, so the same code is not taken for a repeat procedure.
+                'encounter_num' => 'GP-' . $this->token,
+                'enc_admit_date' => '08/21/2026',
+                'chg_dos' => '08/21/2026',
+                'chg_accession' => 'P' . $this->token,
+            ]),
+        ]);
+
+        $this->post();
+
+        $accident = $this->line($workComp);
+        $other = $this->line($plain);
+        $this->assertSame(['posted', 'posted'], [$accident['status'], $other['status']]);
+
+        // The form the 837P reads: one row, linked to the encounter as a saved form is.
+        $options = QueryUtils::fetchRecords(
+            'SELECT m.`employment_related`, m.`auto_accident`, m.`other_accident`, m.`accident_state`, m.`box_15_date_qual`,'
+            . ' m.`date_initial_treatment`, m.`pid`, f.`form_name`, f.`deleted`'
+            . ' FROM `forms` AS f JOIN `form_misc_billing_options` AS m ON m.`id` = f.`form_id`'
+            . " WHERE f.`encounter` = ? AND f.`formdir` = 'misc_billing_options'",
+            [$accident['encounter']]
+        );
+        $this->assertSame(
+            [['1', '0', '0', '', '439', '2026-08-01', self::text($accident['pid']), 'Misc Billing Options', '0']],
+            array_map(static fn (array $r): array => array_values(array_map(self::text(...), $r)), $options)
+        );
+
+        $this->assertSame([], QueryUtils::fetchRecords(
+            "SELECT 1 FROM `forms` WHERE `encounter` = ? AND `formdir` = 'misc_billing_options'",
+            [$other['encounter']]
+        ));
     }
 
     public function testAChargeTakesTheVisitsFirstTwoDiagnoses(): void

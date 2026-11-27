@@ -65,6 +65,14 @@ in one transaction:
   place of service (`pos_code`), the rendering provider (the active, authorized user
   with `prov_rend_npi`) and the referring provider (any user with `prov_ref_npi`, else a
   new address book entry, External Provider, with the file's name and NPI).
+- **Accident claims:** a new encounter gets a Misc Billing Options form when the visit is
+  an accident claim: `enc_workcomp` is `Y`, or there is an `enc_accident_date`, or the
+  primary payer's insurance type is workers' compensation, automobile medical or liability.
+  The form has one cause (Employment related for work comp, by the file or the payer; else
+  Auto Accident for an auto payer; else Other Accident) and, when the file gives the date,
+  box 15 "Accident" with it, so the 837P carries `CLM11` and `DTP*439`. The file has no
+  state for an auto accident: add it on the form before the claim goes. An encounter
+  that already exists is left as it is.
 - **Billing:** the visit's first two diagnoses (`enc_dx_codes`) the encounter does not have yet, then the
   charge, unbilled, so it is in the Billing Manager. A code priced on the site with
   modifier 26 (standard price level) is billed as code-26, Gifford's modifiers after it

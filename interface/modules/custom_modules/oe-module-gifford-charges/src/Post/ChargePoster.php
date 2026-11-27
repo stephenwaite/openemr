@@ -388,6 +388,11 @@ final readonly class ChargePoster
                     : 0;
                 $encounter = $this->site->createEncounter($pid, $visit, $dateOfService, $ready[0]['providerId'], $referrer, $placeOfService, $settings);
                 $result->encountersCreated++;
+                // An accident claim needs its cause and accident date on the claim.
+                $accident = AccidentOptions::forVisit($visit, isset($companies[1]) ? $this->site->claimType($companies[1]) : '');
+                if ($accident !== null) {
+                    $this->site->addAccidentOptions($pid, $encounter, $accident);
+                }
             }
             foreach ($ready as $r) {
                 $this->site->addDiagnoses($pid, $encounter, $r['diagnoses'], $r['providerId']);

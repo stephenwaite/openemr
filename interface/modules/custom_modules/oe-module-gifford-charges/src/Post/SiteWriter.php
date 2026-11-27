@@ -302,6 +302,50 @@ final class SiteWriter
     }
 
     /**
+     * The insurance company's claim filing indicator (WC, AM, MB ...), '' when its type has none.
+     */
+    public function claimType(int $insuranceCompanyId): string
+    {
+        $type = QueryUtils::fetchSingleValue(
+            'SELECT t.`claim_type` FROM `insurance_companies` AS c JOIN `insurance_type_codes` AS t ON t.`id` = c.`ins_type_code` WHERE c.`id` = ?',
+            'claim_type',
+            [$insuranceCompanyId]
+        );
+
+        return is_string($type) ? $type : '';
+    }
+
+    /**
+     * The encounter's Misc Billing Options form, as a biller would fill it in for an
+     * accident claim: the cause, and box 15 "Accident" (439) with the accident date when
+     * the file gave one. The auto accident state stays blank: the file has none.
+     */
+    public function addAccidentOptions(int $pid, int $encounter, AccidentOptions $options): void
+    {
+        $date = $options->accidentDate?->format('Y-m-d');
+        $formId = QueryUtils::sqlInsert(
+            'INSERT INTO `form_misc_billing_options` (`date`, `pid`, `user`, `groupname`, `authorized`, `activity`,'
+            . ' `employment_related`, `auto_accident`, `accident_state`, `other_accident`, `box_15_date_qual`,'
+            . ' `date_initial_treatment`, `encounter`) VALUES (NOW(), ?, ?, \'Default\', 1, 1, ?, ?, \'\', ?, ?, ?, ?)',
+            [
+                $pid,
+                self::IMPORT_USER,
+                $options->employmentRelated ? 1 : 0,
+                $options->autoAccident ? 1 : 0,
+                $options->otherAccident ? 1 : 0,
+                $date === null ? null : '439',
+                $date,
+                $encounter,
+            ]
+        );
+        QueryUtils::sqlInsert(
+            'INSERT INTO `forms` (`date`, `encounter`, `form_name`, `form_id`, `pid`, `user`, `groupname`, `authorized`,'
+            . ' `formdir`) VALUES (NOW(), ?, \'Misc Billing Options\', ?, ?, ?, \'Default\', 1, \'misc_billing_options\')',
+            [$encounter, $formId, $pid, self::IMPORT_USER]
+        );
+    }
+
+    /**
      * The procedure line, unbilled, so it shows in the Billing Manager.
      *
      * @param list<string> $diagnoses pointed to by the line, already cut to the two a charge takes
