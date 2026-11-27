@@ -304,25 +304,41 @@ function common_diagnoses($limit = 10)
  */
 function fee_sheet_items($pid, $encounter, &$diagnoses, &$procedures): void
 {
-    $param = [$encounter];
+    // Procedures are priced at today's fee for the patient's price level (times units),
+    // falling back to the fee stored when billed. The code is matched on its first
+    // modifier and picked like FeeSheet does (active first, then lowest id), so a code
+    // with several codes/prices rows never repeats a billing line.
+    $param = [$pid, $encounter];
     $sql = <<<'SQL'
-        SELECT code,
-               code_type,
-               code_text,
-               fee,
-               modifier,
-               justify,
-               units,
-               ndc_info, -- added by google-labs-jules
-               ct_diag,
-               ct_fee,
-               ct_mod
-          FROM billing,
-               code_types as ct
-         WHERE encounter = ?
+        SELECT billing.code,
+               billing.code_type,
+               billing.code_text,
+               COALESCE(
+                   (SELECT prices.pr_price
+                      FROM codes
+                      JOIN prices ON prices.pr_id = codes.id
+                                 AND prices.pr_selector = ''
+                                 AND prices.pr_level = COALESCE(NULLIF(pd.pricelevel, ''), 'standard')
+                     WHERE codes.code = billing.code
+                       AND codes.code_type = ct.ct_id
+                       AND COALESCE(codes.modifier, '') = COALESCE(NULLIF(SUBSTRING_INDEX(billing.modifier, ':', 1), ''), '')
+                  ORDER BY codes.active DESC, codes.id
+                     LIMIT 1) * NULLIF(billing.units, 0),
+                   billing.fee
+               ) AS fee,
+               billing.modifier,
+               billing.justify,
+               billing.units,
+               billing.ndc_info, -- added by google-labs-jules
+               ct.ct_diag,
+               ct.ct_fee,
+               ct.ct_mod
+          FROM billing
+          JOIN code_types AS ct ON ct.ct_key = billing.code_type
+     LEFT JOIN patient_data AS pd ON pd.pid = ?
+         WHERE billing.encounter = ?
            AND billing.activity > 0
-           AND ct.ct_key = billing.code_type
-      ORDER BY id
+      ORDER BY billing.id
     SQL;
     $results = sqlStatement($sql, $param);
     while ($res = sqlFetchArray($results)) {

@@ -84,6 +84,7 @@ use OpenEMR\OeUI\RenderFormFieldHelper;
 use OpenEMR\Services\Globals\GlobalAppearanceEnum;
 use OpenEMR\Services\Globals\GlobalConnectorsEnum;
 use OpenEMR\Services\Globals\GlobalFeaturesEnum;
+use OpenEMR\Services\Globals\GlobalSetting;
 use OpenEMR\Services\Globals\GlobalsService;
 
 // OS-dependent stuff.
@@ -1300,8 +1301,8 @@ $GLOBALS_METADATA = [
         'void_checkout_reopen' => [
             xl('Void Checkout and Reopen in Fee Sheet'),
             'bool',                           // data type
-            '1',                              // default = true
-            xl('Void Checkout and Reopen in Fee Sheet')
+            '0',                              // default = false
+            xl('When on, re-opening a billed visit from the fee sheet also voids its checkout: every payment and adjustment posted to the visit is removed and has to be entered again. When off, re-opening only marks the charges as not billed.')
         ],
 
         'support_fee_sheet_line_item_provider' => [
@@ -1330,6 +1331,13 @@ $GLOBALS_METADATA = [
             'bool',                           // data type
             '0',                              // default = false
             xl('Automatically replicate justification codes in Fee Sheet (basically fills in the blanks with the justification code above it).')
+        ],
+
+        'fee_sheet_save_appt_status' => [
+            xl('Fee Sheet Save: Ask to Set Appointment Status'),
+            'text',                           // data type
+            '',                               // default = off
+            xl('Code of an appointment status, for example $ for Coding done. When set, Save on the fee sheet asks whether to set the patient\'s appointment on the visit date to this status, and on Yes opens the calendar on that date. Not asked for an appointment that already has the status or is canceled or a no show. Blank: off.')
         ],
 
         'display_units_in_billing' => [
@@ -1376,10 +1384,11 @@ $GLOBALS_METADATA = [
             xl('Statement Appearance'),
             [
                 '0' => xl('Plain Text'),
-                '1' => xl('Modern/images')
+                '1' => xl('Modern/images'),
+                '2' => xl('PDF Custom'),
             ],                          // data type
             '1',                              // default = true
-            xl('Patient statements can be generated as plain text or with a modern graphical appearance.')
+            xl('Patient statements can be generated as plain text or with a modern graphical appearance. PDF Custom prints fixed-width text over a full-page letterhead PNG named in Statement Logo.')
         ],
 
         'billing_phone_number' => [
@@ -3466,6 +3475,14 @@ $GLOBALS_METADATA = [
             'bool',                           // data type
             '0',
             xl('Enable MedEx Communication Service')
+        ],
+
+        'medex_cancelled_apptstatus' => [
+            xl('MedEx Cancelled Appointment Statuses'),
+            GlobalSetting::DATA_TYPE_MULTI_SORTED_LIST_SELECTOR,
+            '%;x',
+            xl('Appointment statuses that mean the appointment is cancelled or rescheduled. MedEx sends no reminders for these appointments and withdraws messages already queued. Add any custom statuses your practice uses for this.'),
+            [GlobalSetting::DATA_TYPE_OPTION_LIST_ID => 'apptstat'],
         ],
 
         'erx_enable' => [

@@ -11,6 +11,7 @@ namespace PatientFilter;
 
 use Laminas\ModuleManager\ModuleManager;
 use Laminas\Mvc\MvcEvent;
+use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Events\Appointments\AppointmentsFilterEvent;
 use OpenEMR\Events\PatientDemographics\UpdateEvent;
 use OpenEMR\Events\PatientDemographics\ViewEvent;
@@ -28,6 +29,9 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  */
 class Module
 {
+    /** @var list<int|string>|null every patient pid, loaded once for allow-list entries */
+    private ?array $allPids = null;
+
     public function getAutoloaderConfig()
     {
         return [
@@ -84,19 +88,51 @@ class Module
      * @param $username
      * @return array
      *
-     * Load the list of patients that this user cannot access from our blacklist file
+     * Load the list of patients that this user cannot access from our blacklist file.
+     * An entry with 'whitelist' instead allows only the listed patients and blocks all others.
      */
     public function getBlacklist($username)
     {
-        $blacklist = include __DIR__ . "/config/blacklist.php";
+        $config = include __DIR__ . "/config/blacklist.php";
         $pids = [];
-        foreach ($blacklist as $item) {
-            if ($username == $item['username']) {
+        foreach (is_array($config) ? $config : [] as $item) {
+            if (!is_array($item) || ($item['username'] ?? null) !== $username) {
+                continue;
+            }
+            if (is_array($item['whitelist'] ?? null)) {
+                $allowed = [];
+                foreach ($item['whitelist'] as $allowedPid) {
+                    if (is_int($allowedPid) || is_string($allowedPid)) {
+                        $allowed[(string) $allowedPid] = true;
+                    }
+                }
+                foreach ($this->getAllPids() as $pid) {
+                    if (!isset($allowed[(string) $pid])) {
+                        $pids[] = $pid;
+                    }
+                }
+            } elseif (is_array($item['blacklist'] ?? null)) {
                 $pids = array_merge($pids, $item['blacklist']);
             }
         }
 
         return $pids;
+    }
+
+    /**
+     * @return list<int|string>
+     */
+    private function getAllPids(): array
+    {
+        if ($this->allPids === null) {
+            $this->allPids = [];
+            foreach (QueryUtils::fetchTableColumn('SELECT `pid` FROM `patient_data`', 'pid') as $pid) {
+                if (is_int($pid) || is_string($pid)) {
+                    $this->allPids[] = $pid;
+                }
+            }
+        }
+        return $this->allPids;
     }
 
     /**

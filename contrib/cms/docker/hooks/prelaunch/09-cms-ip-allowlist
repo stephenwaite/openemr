@@ -1,0 +1,101 @@
+#!/bin/bash
+# Prelaunch hook (runs on every container start, before Apache).
+#
+# Optional IP allowlist: when the config folder has ip-allowlist.txt, only those
+# addresses (and the server itself, CMS_LOCAL_FROM) can reach anything Apache serves,
+# on either port. Let's Encrypt's HTTP check (/.well-known/acme-challenge/) stays open
+# to everyone so the certificate still renews. Everyone else gets 403 before any PHP
+# runs. Without the file there is no allowlist.
+#
+# ip-allowlist.txt: one IPv4 or IPv6 address or network (CIDR) per line; '#' starts a
+# comment; blank lines are ignored. A line that isn't an address is reported and
+# skipped. If no line is usable the allowlist is left off (with a warning) rather than
+# locking everyone out.
+#
+# The Apache file is rewritten on every run, so after editing the list (as root, in
+# /opt/cms/kit):
+#   docker compose exec -T openemr /root/hooks/prelaunch/09-cms-ip-allowlist
+#   docker compose exec -T openemr httpd -k graceful
+#
+# It loads after openemr.conf (zz- sorts last) and uses AuthMerging And, so it narrows
+# every other access rule (hook 08's OAuth2 restriction stays local-only) instead of
+# replacing it.
+set -euo pipefail
+
+config_root="${CMS_CONFIG_ROOT:-/cms-config}"
+list="${config_root}/ip-allowlist.txt"
+conf="${CMS_ALLOWLIST_CONF:-/etc/apache2/conf.d/zz-cms-ip-allowlist.conf}"
+local_from="${CMS_LOCAL_FROM:-127.0.0.1 ::1 172.16.0.0/12}"
+if [[ ! "${local_from}" =~ ^[0-9a-fA-F.:/\ ]+$ ]]; then
+    echo "cms ip allowlist: CMS_LOCAL_FROM must be IP addresses or networks separated by spaces" >&2
+    exit 1
+fi
+
+if [[ ! -f "${list}" ]]; then
+    rm -f "${conf}"
+    echo "cms ip allowlist: no ${list}; open to all addresses"
+    exit 0
+fi
+
+allowed=()
+line_number=0
+while IFS= read -r line || [[ -n "${line}" ]]; do
+    line_number=$((line_number + 1))
+    entry="${line%%#*}"
+    entry="${entry//[[:space:]]/}"
+    [[ -z "${entry}" ]] && continue
+    # IPv4 (optionally /0-32) or IPv6 (hex and colons, optionally /0-128).
+    if [[ "${entry}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}(/([0-9]|[12][0-9]|3[0-2]))?$ ]] \
+        || [[ "${entry}" =~ ^[0-9a-fA-F:]*:[0-9a-fA-F:]*(/([0-9]|[1-9][0-9]|1[01][0-9]|12[0-8]))?$ ]]; then
+        allowed+=("${entry}")
+    else
+        echo "cms ip allowlist: ${list} line ${line_number} is not an address, skipped: ${entry}" >&2
+    fi
+done < "${list}"
+
+if [[ ${#allowed[@]} -eq 0 ]]; then
+    rm -f "${conf}"
+    echo "cms ip allowlist: WARNING ${list} has no usable addresses; allowlist left OFF" >&2
+    exit 0
+fi
+
+tmp="$(mktemp)"
+{
+    echo "# CMS: IP allowlist, written by hook 09-cms-ip-allowlist from ${list}."
+    echo "# Edit that file, not this one."
+    echo '<Location "/">'
+    echo '    AuthMerging And'
+    echo '    <RequireAny>'
+    echo "        Require ip ${local_from}"
+    printf '        Require ip %s\n' "${allowed[@]}"
+    echo '    </RequireAny>'
+    echo '</Location>'
+    echo "<Location \"/.well-known/acme-challenge/\">"
+    echo '    Require all granted'
+    echo '</Location>'
+} > "${tmp}"
+
+previous="$(mktemp)"
+had_previous=0
+if [[ -f "${conf}" ]]; then
+    cp "${conf}" "${previous}"
+    had_previous=1
+fi
+cp "${tmp}" "${conf}"
+chmod 644 "${conf}"
+rm -f "${tmp}"
+
+# Never leave Apache with a configuration it can't load.
+if ! httpd -t >/dev/null 2>&1; then
+    if [[ ${had_previous} -eq 1 ]]; then
+        cp "${previous}" "${conf}"
+    else
+        rm -f "${conf}"
+    fi
+    rm -f "${previous}"
+    echo "cms ip allowlist: WARNING the new allowlist failed Apache's config test; previous one kept" >&2
+    httpd -t >&2 || true
+    exit 0
+fi
+rm -f "${previous}"
+echo "cms ip allowlist: ${#allowed[@]} address(es) allowed, plus ${local_from}"

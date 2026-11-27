@@ -1,0 +1,33 @@
+-- Template for a site's own settings. Copy to <site>.sql, where <site> is the
+-- site's directory name under sites/, keep only the settings that site used
+-- in production (DEPLOYMENT.md section 3), fill in the values and uncomment.
+-- The prelaunch settings hook applies each <site>.sql once to that site.
+
+-- Billing Manager: default to the last N months of service dates.
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_billing_manager_dos_months', 0, '<months>');
+
+-- Eligibility (270): a fixed provider and receiver name. Confirm the user's
+-- NPI matches.
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_elig_provider_id', 0, '<users.id>');
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_elig_receiver_name', 0, '<receiver name>');
+
+-- Collections report: hide Export to Collections (agency).
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_collections_hide_agency_export', 0, '1');
+
+-- Claims: payers that get no NDCs, and the user to bill under.
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_claim_ndc_skip_payer_ids', 0, '<payer id>, <payer id>');
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_claim_rendering_provider_id', 0, '<users.id>');
+
+-- Claims: closed service facility NPIs.
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_claim_closed_facility_npis', 0, '<npi>');
+
+-- Labs: match results to patients by MRN only, and Electronic Reports
+-- defaults (filter Reviewed; results processed per lab).
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_hl7_match_patient_by_mrn', 0, '1');
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_lab_list_default_reviewed', 0, '1');
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_lab_results_per_lab', 0, '<count>');
+
+-- Podiatry (primary business entity taxonomy 213E00000X): label the onset
+-- date "Date Last Seen", and the billing NPIs that get routine foot care rules.
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_encounter_date_last_seen', 0, '1');
+-- REPLACE INTO globals (gl_name, gl_index, gl_value) VALUES ('cmsvt_claim_routine_foot_care_npis', 0, '<npi>');
