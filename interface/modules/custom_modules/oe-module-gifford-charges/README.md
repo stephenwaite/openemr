@@ -71,8 +71,11 @@ in one transaction:
   The form has one cause (Employment related for work comp, by the file or the payer; else
   Auto Accident for an auto payer; else Other Accident) and, when the file gives the date,
   box 15 "Accident" with it, so the 837P carries `CLM11` and `DTP*439`. The file has no
-  state for an auto accident: add it on the form before the claim goes. An encounter
-  that already exists is left as it is.
+  state for an auto accident. An accident visit the file leaves incomplete (no accident
+  date, or an auto accident, which never has its state) is held on Fees > Gifford Charges:
+  **Post it** posts it with the cause set, and a person then adds the date or the state on
+  the encounter's Misc Billing Options before the claim goes. An encounter that already
+  exists is left as it is.
 - **Billing:** the visit's first two diagnoses (`enc_dx_codes`) the encounter does not have yet, then the
   charge, unbilled, so it is in the Billing Manager. A code priced on the site with
   modifier 26 (standard price level) is billed as code-26, Gifford's modifiers after it
@@ -208,7 +211,8 @@ For users with Accounting > Billing (write):
   corrected re-send so it posts on the next run (fix or void the earlier charge in the
   encounter's fee sheet as needed); **Post with 76** / **Post with 77** releases a possible
   repeat procedure, which then posts with that modifier after the others (`26:76`);
-  **Post it** also releases a line an NCCI edit holds;
+  **Post it** also releases a line an NCCI edit holds, and an accident claim held for its
+  accident date or state (add it on the encounter's Misc Billing Options afterwards);
   **Post with GZ** releases a line Gifford sent with `GZ` (it expected a denial as not
   medically necessary, with no ABN), which then posts with the `GZ` kept (`26:GZ`).
 - **Change a charge code:** for a charge not yet posted whose report is for another exam

@@ -26,6 +26,7 @@ final readonly class HeldLine
      * @param bool $expectedDenial held for Gifford's GZ modifier, which a person can release to post with GZ
      * @param bool $cci held by an NCCI edit, which a person can release to post anyway
      * @param bool $referrer held for want of a referring provider, which a person can release to post without one
+     * @param bool $accident held as an accident claim missing its date or state, which a person can release and complete on the encounter
      */
     public function __construct(
         public int $id,
@@ -47,6 +48,7 @@ final readonly class HeldLine
         public bool $expectedDenial = false,
         public bool $cci = false,
         public bool $referrer = false,
+        public bool $accident = false,
     ) {
     }
 }

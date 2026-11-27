@@ -55,4 +55,21 @@ final readonly class AccidentOptions
 
         return new self($employment, $auto, !$employment && !$auto, $visit->accidentDate);
     }
+
+    /**
+     * What the claim needs and the file did not give, for a person to add on the form:
+     * the accident date, the auto accident's state, or both. Null when nothing is missing.
+     */
+    public function missing(): ?string
+    {
+        $missing = [];
+        if ($this->accidentDate === null) {
+            $missing[] = 'the accident date';
+        }
+        if ($this->autoAccident) {
+            $missing[] = 'the auto accident state';
+        }
+
+        return $missing === [] ? null : implode(' and ', $missing);
+    }
 }

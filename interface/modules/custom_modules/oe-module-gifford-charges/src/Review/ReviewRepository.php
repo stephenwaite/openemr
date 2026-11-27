@@ -84,6 +84,7 @@ final readonly class ReviewRepository
                 array_filter($problems, static fn (string $p): bool => str_starts_with($p, PriceBook::EXPECTED_DENIAL_PREFIX)) !== [],
                 array_filter($problems, static fn (string $p): bool => str_starts_with($p, ChargePoster::CCI_PREFIX)) !== [],
                 array_filter($problems, static fn (string $p): bool => str_starts_with($p, ChargePoster::REFERRER_PREFIX)) !== [],
+                array_filter($problems, static fn (string $p): bool => str_starts_with($p, ChargePoster::ACCIDENT_PREFIX)) !== [],
             );
         }
 

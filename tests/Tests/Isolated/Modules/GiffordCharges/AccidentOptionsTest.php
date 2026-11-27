@@ -62,6 +62,20 @@ class AccidentOptionsTest extends TestCase
         ];
     }
 
+    #[Test]
+    public function itNamesWhatTheFileLeftOut(): void
+    {
+        $complete = AccidentOptions::forVisit(self::visit(true, '2026-10-03'), 'WC');
+        $noDate = AccidentOptions::forVisit(self::visit(true, null), 'WC');
+        $auto = AccidentOptions::forVisit(self::visit(false, '2026-11-02'), 'AM');
+        $autoNoDate = AccidentOptions::forVisit(self::visit(false, null), 'AM');
+
+        $this->assertNull($complete?->missing());
+        $this->assertSame('the accident date', $noDate?->missing());
+        $this->assertSame('the auto accident state', $auto?->missing(), 'the file never carries the state');
+        $this->assertSame('the accident date and the auto accident state', $autoNoDate?->missing());
+    }
+
     private static function visit(bool $workersComp, ?string $accidentDate): EncounterRecord
     {
         return new EncounterRecord(

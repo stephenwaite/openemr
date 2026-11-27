@@ -82,6 +82,9 @@ final readonly class ChargePoster
     /** The start of the problem a missing referring provider holds a line with. */
     public const REFERRER_PREFIX = 'no referring provider:';
 
+    /** The start of the problem an accident claim missing its date or state holds a line with. */
+    public const ACCIDENT_PREFIX = 'accident claim:';
+
     /** The modifier added to the column 2 code of an NCCI pair that allows one. */
     private const DISTINCT_SERVICE = '59';
 
@@ -214,6 +217,7 @@ final readonly class ChargePoster
 
         // Each line's own checks.
         $medicare = isset($companies[1]) && $this->site->isMedicare($companies[1]);
+        $primaryClaimType = isset($companies[1]) ? $this->site->claimType($companies[1]) : '';
         $age = MeasureRules::ageOn($patient->dateOfBirth, $dateOfService);
         $ready = [];
         foreach ($group as ['line' => $line, 'parsed' => $parsed]) {
@@ -229,6 +233,18 @@ final readonly class ChargePoster
                     '%s prov_ref_npi "%s" is not a 10-digit NPI; post it anyway and add the referring provider on the encounter, or skip it',
                     self::REFERRER_PREFIX,
                     $visit->referringNpi
+                );
+            }
+            // An accident claim the file leaves incomplete: a person posts it, then adds what is
+            // missing on the form the encounter gets.
+            $missing = $existing === null && !$line->released
+                ? AccidentOptions::forVisit($visit, $primaryClaimType)?->missing()
+                : null;
+            if ($missing !== null) {
+                $problems[] = sprintf(
+                    '%s Gifford did not send %s; post it anyway and add it on the encounter\'s Misc Billing Options, or skip it',
+                    self::ACCIDENT_PREFIX,
+                    $missing
                 );
             }
             // Gifford sending a file again: the same charge on the same accession, posted
