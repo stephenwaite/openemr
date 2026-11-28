@@ -39,21 +39,18 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
     <?php Header::setupHeader(['datatables', 'datatables-colreorder', 'datatables-dt', 'datatables-bs']); ?>
     <title><?php echo xlt("Claim File Tracker"); ?></title>
     <style>
-        table.dataTable td.details-control:before {
-            content: '\f152';
-            font-family: 'Font Awesome\ 5 Free';
+        table.dataTable td.details-control {
             cursor: pointer;
-            font-size: 22px;
-            color: #55a4be;
-        }
-        table.dataTable tr.shown td.details-control:before {
-            content: '\f150';
-            color: black;
         }
     </style>
     <script type="text/javascript">
         $(document).ready(function() {
             const serverUrl = "<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/library/ajax/billing_tracker_ajax.php?csrf_token_form=" + <?php echo js_url(CsrfUtils::collectCsrfToken(session: $session)); ?>;
+            // The control that opens a row's claims and messages. An icon element, not a glyph
+            // written from CSS by font name: that stops showing when the icon font's name changes.
+            const detailsToggle = '<button type="button" class="btn btn-link p-0 details-toggle" aria-expanded="false" title="'
+                + jsAttr(<?php echo xlj('Show or hide the claims and messages'); ?>) + '">'
+                + '<i class="fa fa-lg fa-caret-square-right" aria-hidden="true"></i></button>';
             const oTable = $('#billing-tracker-table').DataTable({
                 "processing": true,
                 // next 2 lines invoke server side processing
@@ -69,7 +66,7 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
                         "class": 'details-control',
                         "orderable": false,
                         "data": null,
-                        "defaultContent": ''
+                        "defaultContent": detailsToggle
                     },
                     {
                         "data": "status",
@@ -174,17 +171,18 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
             $('#billing-tracker-table tbody').on('click', 'td.details-control', function () {
                 var tr = $(this).parents('tr');
                 var row = oTable.row( tr );
+                var open = !row.child.isShown();
 
-                if ( row.child.isShown() ) {
-                    // This row is already open - close it
-                    row.child.hide();
-                    tr.removeClass('shown');
-                }
-                else {
+                if (open) {
                     // Open this row
                     row.child( format(row.data()) ).show();
-                    tr.addClass('shown');
+                } else {
+                    // This row is already open - close it
+                    row.child.hide();
                 }
+                tr.toggleClass('shown', open);
+                $(this).find('.details-toggle').attr('aria-expanded', open ? 'true' : 'false')
+                    .find('i').toggleClass('fa-caret-square-right', !open).toggleClass('fa-caret-square-down', open);
             } );
         });
     </script>

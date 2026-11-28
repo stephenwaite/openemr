@@ -34,9 +34,17 @@ class X12RemoteTracker extends BaseService
 
     const TABLE_NAME = 'x12_remote_tracker';
 
+    /** The port an SFTP server listens on; used when a partner's SFTP Port is left empty. */
+    public const DEFAULT_SFTP_PORT = 22;
+
+    /**
+     * The SFTP settings a partner must have, with their labels. The port is not
+     * one of them: see sftpPort().
+     *
+     * @var array<string, string>
+     */
     protected static $x12_partner_field_keys = [
         'x12_sftp_host' => 'X12 SFTP Host',
-        'x12_sftp_port' => 'X12 SFTP Port',
         'x12_sftp_login' => 'X12 SFTP Login',
         'x12_sftp_pass' => 'X12 SFTP Password',
         'x12_sftp_remote_dir' => 'X12 SFTP Remote Dir',
@@ -100,7 +108,8 @@ class X12RemoteTracker extends BaseService
             $connector = new SftpConnector(logger: ServiceContainer::getLogger());
             $sftp = $connector->connect(
                 is_string($sftpHost) ? $sftpHost : '',
-                is_numeric($sftpPort) ? (int) $sftpPort : 22,
+                // A port that is not a port number was reported above and never gets here.
+                self::sftpPort($sftpPort) ?? self::DEFAULT_SFTP_PORT,
                 is_string($sftpLogin) ? $sftpLogin : '',
                 $decrypted_password
             );
@@ -165,17 +174,58 @@ class X12RemoteTracker extends BaseService
         return $x12_remote;
     }
 
-    protected function validateSFTPCredentials($credentials)
+    protected function validateSFTPCredentials($credentials): bool
     {
-        $this->validationMessages = [];
-        $valid = true;
+        $this->validationMessages = self::sftpSettingProblems(is_array($credentials) ? $credentials : []);
+        return $this->validationMessages === [];
+    }
+
+    /**
+     * The port to connect to for a partner's SFTP Port setting: the setting
+     * when it is a port number, DEFAULT_SFTP_PORT when it is empty, and null
+     * when it is anything else.
+     */
+    public static function sftpPort(mixed $setting): ?int
+    {
+        if ($setting === null) {
+            return self::DEFAULT_SFTP_PORT;
+        }
+        if (is_int($setting)) {
+            $setting = (string) $setting;
+        }
+        if (!is_string($setting)) {
+            return null;
+        }
+        $setting = trim($setting);
+        if ($setting === '') {
+            return self::DEFAULT_SFTP_PORT;
+        }
+        if (!ctype_digit($setting) || strlen($setting) > 5) {
+            return null;
+        }
+        $port = (int) $setting;
+        return $port >= 1 && $port <= 65535 ? $port : null;
+    }
+
+    /**
+     * What keeps a claim file from being sent with a partner's SFTP settings,
+     * as messages for the tracker row; none when the settings are usable.
+     *
+     * @param array<mixed> $partner An x12_partners row (the x12_sftp_* columns)
+     * @return list<string>
+     */
+    public static function sftpSettingProblems(array $partner): array
+    {
+        $problems = [];
         foreach (self::$x12_partner_field_keys as $key => $label) {
-            if (empty($credentials[$key])) {
-                $this->validationMessages[] = "`$label` is required";
-                $valid = false;
+            if (empty($partner[$key])) {
+                $problems[] = "`$label` is required";
             }
         }
-        return $valid;
+        if (self::sftpPort($partner['x12_sftp_port'] ?? null) === null) {
+            $problems[] = '`X12 SFTP Port` must be a port number (1 to 65535), or empty for port ' . self::DEFAULT_SFTP_PORT;
+        }
+        return $problems;
     }
 
     public static function create($fields)
