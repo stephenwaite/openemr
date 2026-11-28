@@ -29,7 +29,11 @@
 // any questions contact Daniel Pflieger at daniel@growlingflea.com
 
 
+use OpenEMR\Billing\EraAutoPost\EngineCheckPoster;
+use OpenEMR\Billing\EraAutoPost\RemittancePayer;
+use OpenEMR\Billing\EraAutoPost\RemittanceReader;
 use OpenEMR\Billing\EraFilenameValidator;
+use OpenEMR\Billing\EraWorklist\WorklistRepository;
 use OpenEMR\Billing\Invoice\InvoiceCategory;
 use OpenEMR\Billing\Invoice\InvoiceList;
 use OpenEMR\Billing\Invoice\InvoiceSearchCriteria;
@@ -574,9 +578,28 @@ if ($searchRequest->getString('form_search') === 'Search') {
                         </table>
                     </div><!--End of table-responsive div-->
                 </fieldset>
-                <?php if ($eracount && $eraname !== '') { ?>
+                <?php if ($eracount && $eraname !== '') {
+                    // The posting window looks for an earlier posting of a check, and of each claim
+                    // payment, under the insurance company it is opened for: unattended posting and
+                    // the ERA worklist post for one, so this page asks for it too. The company
+                    // unattended posting would post the file for comes chosen.
+                    $eraPayer = (new RemittancePayer(
+                        new RemittanceReader(),
+                        new EngineCheckPoster(OEGlobalsBag::getInstance()->getBoolean('add_unmatched_code_from_ins_co_era_to_billing'))
+                    ))->forFile(OEGlobalsBag::getInstance()->getString('OE_SITE_DIR') . '/documents/era/' . $eraname . '.edi');
+                    $eraPayers = (new WorklistRepository())->insuranceCompanies($eraPayer > 0 ? [$eraPayer] : []);
+                    ?>
                 <div class="form-group clearfix">
                     <div class="form-row text-left position-override oe-show-hide" id="era-process">
+                        <div class="form-group col-sm-4">
+                            <label class="control-label" for="form_era_payer"><?php echo xlt('Insurance Company to Post For'); ?>:</label>
+                            <select name="form_era_payer" id="form_era_payer" class="form-control">
+                                <option value=""><?php echo xlt('Choose an insurance company'); ?></option>
+                                <?php foreach ($eraPayers as $eraPayerOption) { ?>
+                                <option value="<?php echo attr((string) $eraPayerOption->id); ?>"<?php echo $eraPayerOption->id === $eraPayer ? ' selected' : ''; ?>><?php echo text($eraPayerOption->name . ' (' . $eraPayerOption->id . ')'); ?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
                         <div class="btn-group" role="group">
                             <button type="button" class="btn btn-secondary btn-save" name="Submit" onclick='processERA()' value="<?php echo xla('Process ERA File'); ?>">
                                 <?php echo xlt('Process ERA File'); ?></button>
@@ -613,12 +636,19 @@ if ($searchRequest->getString('form_search') === 'Search') {
         var f = document.forms[0];
         var debug = f.form_without.checked ? '1' : '0';
         var paydate = f.form_paydate.value;
+        // A check or claim payment already posted is recognized only under its insurance company.
+        if (f.form_era_payer.value === '') {
+            alert(<?php echo xlj('Choose the insurance company the ERA is posted for.'); ?>);
+            f.form_era_payer.focus();
+            return false;
+        }
         const params = new URLSearchParams({
             csrf_token_form: <?php echo js_escape(CsrfUtils::collectCsrfToken(session: $session)); ?>,
             debug: debug,
             eraname: <?php echo js_escape($eraname); ?>,
             original: 'original',
-            paydate: paydate
+            paydate: paydate,
+            InsId: f.form_era_payer.value
         });
         window.open('sl_eob_process.php?' + params, '_blank');
         return false;

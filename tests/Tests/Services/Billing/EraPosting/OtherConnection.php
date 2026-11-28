@@ -17,6 +17,7 @@ namespace OpenEMR\Tests\Services\Billing\EraPosting;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use OpenEMR\BC\DatabaseConnectionOptions;
+use OpenEMR\Common\Database\QueryUtils;
 use OpenEMR\Core\OEGlobalsBag;
 
 final readonly class OtherConnection
@@ -47,10 +48,23 @@ final readonly class OtherConnection
     }
 
     /**
-     * End the connection, as when the process that held it is gone.
+     * End the connection, as when the process that held it is gone. Returns once the
+     * database has dropped it, and with it the locks it held: the server does that a
+     * moment after the client hangs up.
      */
     public function close(): void
     {
+        if (!$this->connection->isConnected()) {
+            return;
+        }
+        $id = $this->connection->fetchOne('SELECT CONNECTION_ID()');
         $this->connection->close();
+        for ($tries = 0; $tries < 200; $tries++) {
+            $alive = QueryUtils::fetchSingleValue('SELECT COUNT(*) AS n FROM `information_schema`.`PROCESSLIST` WHERE `ID` = ?', 'n', [$id]);
+            if (!is_numeric($alive) || (int) $alive === 0) {
+                return;
+            }
+            usleep(10000);
+        }
     }
 }
