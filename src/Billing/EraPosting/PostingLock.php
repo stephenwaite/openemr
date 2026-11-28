@@ -29,11 +29,15 @@ final class PostingLock
      * payment session, and posting its claim payments. The insurance company is not part of
      * it, so a posting for one company and a posting for another still take turns.
      *
+     * Letter case and trailing spaces are not part of it either: the payment session is
+     * looked up by ar_session.reference, whose collation ignores both, and two numbers that
+     * find the same session have to share a lock.
+     *
      * @param string $checkDate yyyymmdd (BPR16), or '' when the check carries none
      */
     public static function forCheck(string $checkNumber, string $checkDate): string
     {
-        return 'era_check_' . sha1($checkNumber . "\0" . $checkDate);
+        return 'era_check_' . sha1(mb_strtoupper(rtrim($checkNumber)) . "\0" . $checkDate);
     }
 
     /**

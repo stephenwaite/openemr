@@ -89,6 +89,11 @@ final readonly class EngineCheckPoster implements CheckPoster
             return CheckRecord::held($check, HoldReason::BeingPosted, $payerId);
         }
         try {
+            // The run looked for another company's posting of the check before it asked for
+            // the lock, and a person may have finished one while it waited.
+            if ($run->otherPayers($check->checkNumber, $check->checkDate) !== []) {
+                return CheckRecord::held($check, HoldReason::PostedForAnotherPayer, $payerId);
+            }
             $sessionId = $this->session($run, $check, $payerId, $postUser, $today);
             $posting = new ClaimPosting(
                 checkPosting: $run,

@@ -44,6 +44,9 @@ class PostingLockTest extends TestCase
         $this->assertNotSame($lock, PostingLock::forCheck(self::CHECK, '20261021'));
         $this->assertNotSame($lock, PostingLock::forCheck(self::CHECK, ''));
         $this->assertNotSame($lock, PostingLock::forCheck('LOCKTEST-CHK2', '20261020'));
+        // The session lookup ignores letter case and trailing spaces, so the lock does too.
+        $this->assertSame($lock, PostingLock::forCheck('locktest-chk1', '20261020'));
+        $this->assertSame($lock, PostingLock::forCheck('LockTest-Chk1  ', '20261020'));
         // The database takes a lock name of 64 characters at most, however long the check number.
         $this->assertLessThanOrEqual(64, strlen(PostingLock::forCheck(str_repeat('9', 300), '20261020')));
         $this->assertSame('era_file_99990991', PostingLock::forFile(99990991));

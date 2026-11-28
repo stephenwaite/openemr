@@ -30,10 +30,10 @@ final class EraCheckPosting
     /** @var array<string, array<string, int>> claim and level => code => service lines still pended in this run */
     private array $pendedLines = [];
 
-    /** @var array<string, string> the lock held for each check this run is posting, by check number */
+    /** @var array<string, true> the check locks this run holds, by lock name (check number and date) */
     private array $heldLocks = [];
 
-    /** @var array<string, bool> checks another posting holds, and whether that was reported yet */
+    /** @var array<string, bool> by lock name: checks another posting holds, and whether that was reported yet */
     private array $busyChecks = [];
 
     /**
@@ -48,42 +48,54 @@ final class EraCheckPosting
      * Take the check for this run, so that no other posting of it, by a person or by
      * unattended posting, runs alongside. Held until releaseLocks().
      *
+     * A file may list a check more than once: the run takes its lock once, since the database
+     * wants a release for every time a lock was taken, and a check that was busy stays busy
+     * for the run, so that none of it is posted even if the other posting ends meanwhile.
+     *
      * @return bool false when another posting has the check: nothing of it is to be posted now
      */
     public function lockCheck(string $checkNumber, string $checkDate): bool
     {
         $lock = PostingLock::forCheck($checkNumber, $checkDate);
-        if (!PostingLock::acquire($lock, $this->lockWaitSeconds)) {
-            $this->busyChecks[$checkNumber] = false;
+        if (isset($this->heldLocks[$lock])) {
+            return true;
+        }
+        if (isset($this->busyChecks[$lock])) {
             return false;
         }
-        $this->heldLocks[$checkNumber] = $lock;
+        if (!PostingLock::acquire($lock, $this->lockWaitSeconds)) {
+            $this->busyChecks[$lock] = false;
+            return false;
+        }
+        $this->heldLocks[$lock] = true;
         return true;
     }
 
     /**
-     * Whether another posting had the check when this run asked for it.
+     * Whether another posting had the check when this run asked for it. The same number on
+     * another date is another check.
      */
-    public function isBusy(string $checkNumber): bool
+    public function isBusy(string $checkNumber, string $checkDate): bool
     {
-        return isset($this->busyChecks[$checkNumber]);
+        return isset($this->busyChecks[PostingLock::forCheck($checkNumber, $checkDate)]);
     }
 
     /**
      * True the first time it is asked about a busy check, so that it is reported once.
      */
-    public function takeBusyNotice(string $checkNumber): bool
+    public function takeBusyNotice(string $checkNumber, string $checkDate): bool
     {
-        if (($this->busyChecks[$checkNumber] ?? true) === true) {
+        $lock = PostingLock::forCheck($checkNumber, $checkDate);
+        if (($this->busyChecks[$lock] ?? true) === true) {
             return false;
         }
-        $this->busyChecks[$checkNumber] = true;
+        $this->busyChecks[$lock] = true;
         return true;
     }
 
     public function releaseLocks(): void
     {
-        foreach ($this->heldLocks as $lock) {
+        foreach (array_keys($this->heldLocks) as $lock) {
             PostingLock::release($lock);
         }
         $this->heldLocks = [];

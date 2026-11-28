@@ -299,6 +299,7 @@ function eob_process_era_callback(array &$out): void
     global $InsertionId;
 
     $checkNumber = is_string($out['check_number'] ?? null) ? $out['check_number'] : '';
+    $checkDate = is_string($out['check_date'] ?? null) ? $out['check_date'] : '';
 
     // Some heading information.
     $chk_123 = str_replace(' ', '_', $out['check_number']);
@@ -318,8 +319,8 @@ function eob_process_era_callback(array &$out): void
             }
         }
         $eraRun = EraCheckPosting::forRequest(CurrentRequest::get());
-        if ($eraRun->isBusy($checkNumber)) {
-            if ($eraRun->takeBusyNotice($checkNumber)) {
+        if ($eraRun->isBusy($checkNumber, $checkDate)) {
+            if ($eraRun->takeBusyNotice($checkNumber, $checkDate)) {
                 echo getMessageLine(
                     'var(--white)',
                     'errdetail',

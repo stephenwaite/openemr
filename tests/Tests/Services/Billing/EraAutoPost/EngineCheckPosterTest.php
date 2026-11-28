@@ -205,6 +205,29 @@ class EngineCheckPosterTest extends TestCase
         }
     }
 
+    public function testACheckPostedForAnotherPayerWhileTheRunWaitedIsHeld(): void
+    {
+        $poster = new EngineCheckPoster(false, lockWaitSeconds: 0);
+        $check = $this->check([$this->claim(0)]);
+        // The run saw no other posting of the check; then a person posted it for another insurance company.
+        $this->assertFalse($poster->postedForAnotherPayer($check, (string) self::PAYER_A));
+        QueryUtils::sqlInsert(
+            'INSERT INTO ar_session (payer_id, user_id, reference, check_date, deposit_date, pay_total, modified_time,'
+            . " global_amount, payment_type, adjustment_code, post_to_date, patient_id, payment_method)"
+            . " VALUES (?, 1, ?, ?, ?, 70, NOW(), 0, 'insurance', 'insurance_payment', ?, 0, 'electronic')",
+            [self::PAYER_B, self::CHECK, self::CHECK_DATE, self::CHECK_DATE, self::CHECK_DATE]
+        );
+
+        $record = $poster->post($check, (string) self::PAYER_A, self::POST_USER, new \DateTimeImmutable('2026-11-19'));
+
+        $this->assertSame(CheckStatus::Held, $record->status);
+        $this->assertSame(HoldReason::PostedForAnotherPayer, $record->holdReason);
+        $this->assertSame(0, $record->sessionId);
+        $this->assertEquals(0, QueryUtils::fetchSingleValue('SELECT COUNT(*) AS n FROM ar_session WHERE reference = ?', 'n', ['ePay - ' . self::CHECK]));
+        $this->assertEquals(0, QueryUtils::fetchSingleValue('SELECT COUNT(*) AS n FROM ar_activity WHERE pid = ?', 'n', [self::PID]));
+        $this->assertFalse(PostingLock::isHeld(PostingLock::forCheck(self::CHECK, self::CHECK_DATE)));
+    }
+
     public function testACheckPostedByHandForAnotherPayerIsSeen(): void
     {
         $poster = new EngineCheckPoster(false);

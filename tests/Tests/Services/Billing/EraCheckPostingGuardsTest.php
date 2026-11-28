@@ -26,6 +26,7 @@ class EraCheckPostingGuardsTest extends TestCase
     private const CHECK = 'GUARDCHK1';
     private const OTHER_CHECK = 'GUARDCHK2';
     private const CHECK_DATE = '20261020';
+    private const LATER_DATE = '20261021';
     private const PAYER_A = 99990361;
     private const PAYER_B = 99990362;
     /** A payer id with no insurance company on file. */
@@ -48,6 +49,7 @@ class EraCheckPostingGuardsTest extends TestCase
         $this->other->close();
         foreach ([self::CHECK, self::OTHER_CHECK] as $check) {
             PostingLock::release(PostingLock::forCheck($check, self::CHECK_DATE));
+            PostingLock::release(PostingLock::forCheck($check, self::LATER_DATE));
         }
         $this->cleanUp();
     }
@@ -60,8 +62,8 @@ class EraCheckPostingGuardsTest extends TestCase
         $this->assertTrue($run->lockCheck(self::CHECK, self::CHECK_DATE));
         $this->assertTrue($run->lockCheck(self::OTHER_CHECK, self::CHECK_DATE));
 
-        $this->assertFalse($run->isBusy(self::CHECK));
-        $this->assertFalse($run->takeBusyNotice(self::CHECK));
+        $this->assertFalse($run->isBusy(self::CHECK, self::CHECK_DATE));
+        $this->assertFalse($run->takeBusyNotice(self::CHECK, self::CHECK_DATE));
         $this->assertFalse($this->other->lock($lock));
 
         $run->releaseLocks();
@@ -79,16 +81,63 @@ class EraCheckPostingGuardsTest extends TestCase
         $this->assertFalse($run->lockCheck(self::CHECK, self::CHECK_DATE));
         $this->assertTrue($run->lockCheck(self::OTHER_CHECK, self::CHECK_DATE));
 
-        $this->assertTrue($run->isBusy(self::CHECK));
-        $this->assertFalse($run->isBusy(self::OTHER_CHECK));
-        $this->assertTrue($run->takeBusyNotice(self::CHECK));
-        $this->assertFalse($run->takeBusyNotice(self::CHECK));
-        $this->assertTrue($run->isBusy(self::CHECK));
+        $this->assertTrue($run->isBusy(self::CHECK, self::CHECK_DATE));
+        $this->assertFalse($run->isBusy(self::OTHER_CHECK, self::CHECK_DATE));
+        $this->assertTrue($run->takeBusyNotice(self::CHECK, self::CHECK_DATE));
+        $this->assertFalse($run->takeBusyNotice(self::CHECK, self::CHECK_DATE));
+        $this->assertTrue($run->isBusy(self::CHECK, self::CHECK_DATE));
 
         // Letting go of this run's checks leaves the other posting its own.
         $run->releaseLocks();
         $this->assertTrue(PostingLock::isHeld(PostingLock::forCheck(self::CHECK, self::CHECK_DATE)));
         $this->assertFalse(PostingLock::isHeld(PostingLock::forCheck(self::OTHER_CHECK, self::CHECK_DATE)));
+    }
+
+    public function testTheSameNumberOnAnotherDateIsAnotherCheck(): void
+    {
+        $first = PostingLock::forCheck(self::CHECK, self::CHECK_DATE);
+        $later = PostingLock::forCheck(self::CHECK, self::LATER_DATE);
+        // Another posting has the check of the first date only.
+        $this->assertTrue($this->other->lock(PostingLock::forCheck(self::OTHER_CHECK, self::CHECK_DATE)));
+        $run = new EraCheckPosting((string) self::PAYER_A, lockWaitSeconds: 0);
+
+        $this->assertTrue($run->lockCheck(self::CHECK, self::CHECK_DATE));
+        $this->assertTrue($run->lockCheck(self::CHECK, self::LATER_DATE));
+        $this->assertFalse($run->lockCheck(self::OTHER_CHECK, self::CHECK_DATE));
+        $this->assertTrue($run->lockCheck(self::OTHER_CHECK, self::LATER_DATE));
+
+        $this->assertTrue($run->isBusy(self::OTHER_CHECK, self::CHECK_DATE));
+        $this->assertFalse($run->isBusy(self::OTHER_CHECK, self::LATER_DATE));
+        $this->assertTrue($run->takeBusyNotice(self::OTHER_CHECK, self::CHECK_DATE));
+        $this->assertFalse($run->takeBusyNotice(self::OTHER_CHECK, self::LATER_DATE));
+
+        // Both dates' locks are this run's, and both go when it lets go.
+        $this->assertFalse($this->other->lock($first));
+        $this->assertFalse($this->other->lock($later));
+        $run->releaseLocks();
+        $this->assertTrue($this->other->lock($first));
+        $this->assertTrue($this->other->lock($later));
+    }
+
+    public function testACheckListedTwiceIsTakenOnceAndABusyOneStaysBusy(): void
+    {
+        $lock = PostingLock::forCheck(self::CHECK, self::CHECK_DATE);
+        $busy = PostingLock::forCheck(self::OTHER_CHECK, self::CHECK_DATE);
+        $this->assertTrue($this->other->lock($busy));
+        $run = new EraCheckPosting((string) self::PAYER_A, lockWaitSeconds: 0);
+
+        $this->assertTrue($run->lockCheck(self::CHECK, self::CHECK_DATE));
+        $this->assertTrue($run->lockCheck(self::CHECK, self::CHECK_DATE));
+        $this->assertFalse($run->lockCheck(self::OTHER_CHECK, self::CHECK_DATE));
+        // The other posting ends before the file lists the check again: none of it is posted by this run.
+        $this->other->unlock($busy);
+        $this->assertFalse($run->lockCheck(self::OTHER_CHECK, self::CHECK_DATE));
+        $this->assertTrue($run->isBusy(self::OTHER_CHECK, self::CHECK_DATE));
+        $this->assertFalse(PostingLock::isHeld($busy));
+
+        // Taken once, so letting go once frees it: the database counts each time a lock is taken.
+        $run->releaseLocks();
+        $this->assertTrue($this->other->lock($lock));
     }
 
     public function testTheOtherInsuranceCompaniesACheckWasPostedForAreNamed(): void
