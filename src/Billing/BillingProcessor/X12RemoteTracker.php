@@ -174,9 +174,12 @@ class X12RemoteTracker extends BaseService
         return $x12_remote;
     }
 
-    protected function validateSFTPCredentials($credentials): bool
+    /**
+     * @param array<mixed> $credentials A tracker row joined to its x12_partners row
+     */
+    protected function validateSFTPCredentials(array $credentials): bool
     {
-        $this->validationMessages = self::sftpSettingProblems(is_array($credentials) ? $credentials : []);
+        $this->validationMessages = self::sftpSettingProblems($credentials);
         return $this->validationMessages === [];
     }
 
@@ -228,7 +231,10 @@ class X12RemoteTracker extends BaseService
         return $problems;
     }
 
-    public static function create($fields)
+    /**
+     * @param array<mixed> $fields
+     */
+    public static function create(array $fields)
     {
         $now = self::formatTimestamp(time());
         $fields['created_at'] = $now;
@@ -237,7 +243,10 @@ class X12RemoteTracker extends BaseService
         return $remoteTracker->insert($fields);
     }
 
-    public function insert($fields)
+    /**
+     * @param array<mixed> $fields
+     */
+    public function insert(array $fields)
     {
         $setQueryPart = $this->buildInsertColumns($this->onlyRealFields($fields));
         $sql = " INSERT INTO x12_remote_tracker SET ";
@@ -251,7 +260,10 @@ class X12RemoteTracker extends BaseService
         return $results;
     }
 
-    public function update($fields)
+    /**
+     * @param array<mixed> $fields
+     */
+    public function update(array $fields)
     {
         if (is_array($fields['messages'])) {
             $fields['messages'] = json_encode($fields['messages']);
@@ -274,7 +286,11 @@ class X12RemoteTracker extends BaseService
         return date('Y-m-d H:i:s', $timestamp);
     }
 
-    protected function onlyRealFields($passed_in): array
+    /**
+     * @param array<mixed> $passed_in
+     * @return array<mixed>
+     */
+    protected function onlyRealFields(array $passed_in): array
     {
         $realFields = [];
         foreach ($passed_in as $key => $value) {
