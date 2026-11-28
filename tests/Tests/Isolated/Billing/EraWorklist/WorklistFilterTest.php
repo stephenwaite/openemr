@@ -183,6 +183,30 @@ final class WorklistFilterTest extends TestCase
         self::assertSame(0, self::fileRecordedFor([17, 23])->payerId());
     }
 
+    #[Test]
+    public function aFileIsTakenFromUnattendedPostingOnlyWhenNoRunIsWorkingOnIt(): void
+    {
+        $file = static fn(?AutoPostFileStatus $status, bool $runIsLive): ReceivedFile => new ReceivedFile(
+            1,
+            'Partner',
+            'remote.RMT',
+            'a.edi',
+            new \DateTimeImmutable('2026-11-19 10:00:00'),
+            $status,
+            [],
+            null,
+            [],
+            $runIsLive,
+        );
+
+        self::assertTrue($file(AutoPostFileStatus::Pending, false)->canBeTaken());
+        self::assertTrue($file(AutoPostFileStatus::Running, false)->canBeTaken());
+        self::assertFalse($file(AutoPostFileStatus::Running, true)->canBeTaken());
+        self::assertFalse($file(AutoPostFileStatus::Interrupted, false)->canBeTaken());
+        self::assertFalse($file(AutoPostFileStatus::Done, false)->canBeTaken());
+        self::assertFalse($file(null, false)->canBeTaken());
+    }
+
     /**
      * @param list<int> $payerIds
      */

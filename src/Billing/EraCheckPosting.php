@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 namespace OpenEMR\Billing;
 
+use OpenEMR\Billing\EraPosting\PostingLock;
 use OpenEMR\Common\Database\QueryUtils;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -29,11 +30,89 @@ final class EraCheckPosting
     /** @var array<string, array<string, int>> claim and level => code => service lines still pended in this run */
     private array $pendedLines = [];
 
+    /** @var array<string, string> the lock held for each check this run is posting, by check number */
+    private array $heldLocks = [];
+
+    /** @var array<string, bool> checks another posting holds, and whether that was reported yet */
+    private array $busyChecks = [];
+
     /**
-     * @param string $payerId the insurance company the ERA is posted for
+     * @param string $payerId         the insurance company the ERA is posted for
+     * @param int    $lockWaitSeconds how long this run waits for another posting of a check to finish
      */
-    public function __construct(private readonly string $payerId)
+    public function __construct(private readonly string $payerId, private readonly int $lockWaitSeconds = 5)
     {
+    }
+
+    /**
+     * Take the check for this run, so that no other posting of it, by a person or by
+     * unattended posting, runs alongside. Held until releaseLocks().
+     *
+     * @return bool false when another posting has the check: nothing of it is to be posted now
+     */
+    public function lockCheck(string $checkNumber, string $checkDate): bool
+    {
+        $lock = PostingLock::forCheck($checkNumber, $checkDate);
+        if (!PostingLock::acquire($lock, $this->lockWaitSeconds)) {
+            $this->busyChecks[$checkNumber] = false;
+            return false;
+        }
+        $this->heldLocks[$checkNumber] = $lock;
+        return true;
+    }
+
+    /**
+     * Whether another posting had the check when this run asked for it.
+     */
+    public function isBusy(string $checkNumber): bool
+    {
+        return isset($this->busyChecks[$checkNumber]);
+    }
+
+    /**
+     * True the first time it is asked about a busy check, so that it is reported once.
+     */
+    public function takeBusyNotice(string $checkNumber): bool
+    {
+        if (($this->busyChecks[$checkNumber] ?? true) === true) {
+            return false;
+        }
+        $this->busyChecks[$checkNumber] = true;
+        return true;
+    }
+
+    public function releaseLocks(): void
+    {
+        foreach ($this->heldLocks as $lock) {
+            PostingLock::release($lock);
+        }
+        $this->heldLocks = [];
+    }
+
+    /**
+     * The insurance companies other than this run's that have a payment session for the
+     * check, as when it was posted before for a different one. Posting it for this run's
+     * company does not see those postings and would repeat them.
+     *
+     * @return list<string> their names, each once; '' for a session with no insurance company
+     */
+    public function otherPayers(string $checkNumber, string $checkDate): array
+    {
+        [$bare, $era] = self::references($checkNumber);
+        $rows = QueryUtils::fetchRecords(
+            'SELECT DISTINCT s.`payer_id`, i.`name` FROM `ar_session` AS s'
+            . ' LEFT JOIN `insurance_companies` AS i ON i.`id` = s.`payer_id`'
+            . " WHERE s.`reference` IN (?, ?) AND s.`payer_id` != ? AND s.`payment_type` = 'insurance'"
+            . " AND (? = '' OR s.`check_date` = ?) ORDER BY s.`payer_id`",
+            [$bare, $era, $this->payerId, $checkDate, $checkDate]
+        );
+        $names = [];
+        foreach ($rows as $row) {
+            $name = $row['name'] ?? null;
+            $id = $row['payer_id'] ?? null;
+            $names[] = is_string($name) && $name !== '' ? $name : (is_numeric($id) && (int) $id > 0 ? '#' . (int) $id : '');
+        }
+        return $names;
     }
 
     /**

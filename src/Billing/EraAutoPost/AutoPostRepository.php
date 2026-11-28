@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace OpenEMR\Billing\EraAutoPost;
 
+use OpenEMR\Billing\EraPosting\PostingLock;
 use OpenEMR\Billing\X12Receive\ReceivedStatus;
 use OpenEMR\Billing\X12Receive\X12FileType;
 use OpenEMR\Common\Database\QueryUtils;
@@ -41,6 +42,16 @@ final class AutoPostRepository implements AutoPostLog
             }
         }
         return $pending;
+    }
+
+    public function lockFile(int $receivedId): bool
+    {
+        return PostingLock::acquire(PostingLock::forFile($receivedId), 0);
+    }
+
+    public function unlockFile(int $receivedId): void
+    {
+        PostingLock::release(PostingLock::forFile($receivedId));
     }
 
     public function take(PendingRemittance $file): bool

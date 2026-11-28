@@ -177,6 +177,37 @@ class EraAutoPosterTest extends TestCase
         $this->assertSame(0, $summary->files);
     }
 
+    public function testAFileAnotherRunHoldsIsNotTaken(): void
+    {
+        Era835::write($this->directory, 'a.edi', Era835::file(Era835::check('CHK1', '70.00', [['10-20', '1', '70.00']])));
+        Era835::write($this->directory, 'b.edi', Era835::file(Era835::check('CHK2', '25.00', [['12-22', '1', '25.00']])));
+        $log = $this->log([new PendingRemittance(5, 'a.edi', 9), new PendingRemittance(6, 'b.edi', 9)]);
+        $log->heldElsewhere = [5];
+        $poster = $this->poster();
+
+        $summary = $this->autoPoster($log, $poster)->run();
+
+        $this->assertSame([6 => true], $log->taken);
+        $this->assertSame([6 => AutoPostFileStatus::Done], $log->finished);
+        $this->assertSame([['CHK2', '77', 9]], $poster->posted);
+        $this->assertSame(1, $summary->files);
+    }
+
+    public function testARunHoldsAFileFromBeforeItTakesItUntilItHasFinishedIt(): void
+    {
+        Era835::write($this->directory, 'a.edi', Era835::file(Era835::check('BOOM', '70.00', [['10-20', '1', '70.00']])));
+        Era835::write($this->directory, 'b.edi', Era835::file(Era835::check('CHK2', '25.00', [['12-22', '1', '25.00']])));
+        $log = $this->log([new PendingRemittance(5, 'a.edi', 9), new PendingRemittance(6, 'b.edi', 9), new PendingRemittance(7, 'c.edi', 9)]);
+        // Another run took the third file, and let go of it, before this one came to it.
+        $log->taken[7] = true;
+
+        $this->autoPoster($log, $this->poster(failOn: 'BOOM'))->run();
+
+        // Let go of whether the file was posted, an error stopped it, or it was not this run's to take.
+        $this->assertSame(['lock 5', 'unlock 5', 'lock 6', 'unlock 6', 'lock 7', 'unlock 7'], $log->locking);
+        $this->assertSame([5 => AutoPostFileStatus::Interrupted, 6 => AutoPostFileStatus::Done], $log->finished);
+    }
+
     public function testAnErrorPartWayLeavesTheFileInterruptedAndTheNextFileStillPosts(): void
     {
         Era835::write($this->directory, 'a.edi', Era835::file(Era835::check('BOOM', '70.00', [['10-20', '1', '70.00']])));

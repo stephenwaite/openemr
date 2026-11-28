@@ -25,6 +25,18 @@ interface AutoPostLog
     public function pending(): array;
 
     /**
+     * Keep the file for this run for as long as it works on it, from before it takes the
+     * file until it has finished it. The ERA worklist reads the lock to tell a run still
+     * working on a file from one that stopped without finishing it. The lock goes with the
+     * run's database connection, so a run that died does not keep it.
+     *
+     * @return bool false when another run holds the file
+     */
+    public function lockFile(int $receivedId): bool;
+
+    public function unlockFile(int $receivedId): void;
+
+    /**
      * Mark the file as taken by this run. False when another run took it first, or when
      * its partner no longer has that user, still active, to post as.
      */

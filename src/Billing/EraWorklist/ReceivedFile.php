@@ -26,6 +26,7 @@ final readonly class ReceivedFile
      * @param list<HeldCheck>     $heldChecks     its checks that unattended posting held
      * @param list<int>           $payerIds       the insurance companies unattended posting posted or held its
      *                                            checks for, lowest id first; none when it recorded none
+     * @param bool                $runIsLive      a posting run took the file and is still working on it
      */
     public function __construct(
         public int $id,
@@ -37,7 +38,18 @@ final readonly class ReceivedFile
         public array $heldChecks,
         public ?WorkedMark $worked,
         public array $payerIds = [],
+        public bool $runIsLive = false,
     ) {
+    }
+
+    /**
+     * Whether a person can take the file from unattended posting: it is waiting for a run,
+     * or the run that took it stopped without finishing it.
+     */
+    public function canBeTaken(): bool
+    {
+        return $this->autoPostStatus === AutoPostFileStatus::Pending
+            || ($this->autoPostStatus === AutoPostFileStatus::Running && !$this->runIsLive);
     }
 
     /**

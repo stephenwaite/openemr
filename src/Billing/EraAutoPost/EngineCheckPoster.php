@@ -16,6 +16,7 @@ namespace OpenEMR\Billing\EraAutoPost;
 
 use OpenEMR\Billing\EraCheckPosting;
 use OpenEMR\Billing\EraPosting\ClaimPosting;
+use OpenEMR\Billing\EraPosting\PostingLock;
 use OpenEMR\Billing\EraReversal;
 use OpenEMR\Billing\SLEOB;
 use OpenEMR\Common\Database\QueryUtils;
@@ -25,8 +26,10 @@ final readonly class EngineCheckPoster implements CheckPoster
 {
     /**
      * @param bool $addUnmatchedCodes the global add_unmatched_code_from_ins_co_era_to_billing
+     * @param int  $lockWaitSeconds   how long a run waits for another posting of the same check to
+     *                                finish before it holds the check
      */
-    public function __construct(private bool $addUnmatchedCodes)
+    public function __construct(private bool $addUnmatchedCodes, private int $lockWaitSeconds = 10)
     {
     }
 
@@ -72,46 +75,39 @@ final readonly class EngineCheckPoster implements CheckPoster
 
     public function postedForAnotherPayer(RemittanceCheck $check, string $payerId): bool
     {
-        [$bare, $era] = EraCheckPosting::references($check->checkNumber);
-        $count = QueryUtils::fetchSingleValue(
-            'SELECT COUNT(*) AS n FROM `ar_session` WHERE `reference` IN (?, ?) AND `payer_id` != ?'
-            . " AND `payment_type` = 'insurance' AND (? = '' OR `check_date` = ?)",
-            'n',
-            [$bare, $era, $payerId, $check->checkDate, $check->checkDate]
-        );
-        return is_numeric($count) && (int) $count > 0;
+        return (new EraCheckPosting($payerId))->otherPayers($check->checkNumber, $check->checkDate) !== [];
     }
 
     public function post(RemittanceCheck $check, string $payerId, int $postUser, \DateTimeImmutable $today): CheckRecord
     {
         $run = new EraCheckPosting($payerId);
-        // Looking for the check's session and creating it must not interleave with another
-        // run doing the same, or the check would end up with two sessions.
-        $lock = 'era_check_' . sha1($payerId . "\0" . $check->checkNumber . "\0" . $check->checkDate);
-        $locked = QueryUtils::fetchSingleValue('SELECT GET_LOCK(?, 30) AS locked', 'locked', [$lock]);
-        if (!is_numeric($locked) || (int) $locked !== 1) {
-            throw new \RuntimeException('Another run is posting this check');
+        // One posting of a check at a time, from looking for its session to its last claim
+        // payment: a person posting it in the posting window takes the same lock. Both look
+        // for what was posted before and then post, and side by side would each see nothing.
+        $lock = PostingLock::forCheck($check->checkNumber, $check->checkDate);
+        if (!PostingLock::acquire($lock, $this->lockWaitSeconds)) {
+            return CheckRecord::held($check, HoldReason::BeingPosted, $payerId);
         }
         try {
             $sessionId = $this->session($run, $check, $payerId, $postUser, $today);
+            $posting = new ClaimPosting(
+                checkPosting: $run,
+                reversal: new EraReversal($payerId),
+                recorder: new Recorder(),
+                postUser: $postUser,
+                payerId: $payerId,
+                withoutUpdate: false,
+                payDate: '',
+                addUnmatchedCodes: $this->addUnmatchedCodes,
+            );
+            $claims = [];
+            foreach ($check->claims as $claim) {
+                $claims[] = ClaimRecord::fromResult($claim, $posting->post($claim, $sessionId));
+            }
+            return new CheckRecord($check, CheckStatus::Posted, null, $payerId, $sessionId, $claims);
         } finally {
-            QueryUtils::fetchSingleValue('SELECT RELEASE_LOCK(?) AS released', 'released', [$lock]);
+            PostingLock::release($lock);
         }
-        $posting = new ClaimPosting(
-            checkPosting: $run,
-            reversal: new EraReversal($payerId),
-            recorder: new Recorder(),
-            postUser: $postUser,
-            payerId: $payerId,
-            withoutUpdate: false,
-            payDate: '',
-            addUnmatchedCodes: $this->addUnmatchedCodes,
-        );
-        $claims = [];
-        foreach ($check->claims as $claim) {
-            $claims[] = ClaimRecord::fromResult($claim, $posting->post($claim, $sessionId));
-        }
-        return new CheckRecord($check, CheckStatus::Posted, null, $payerId, $sessionId, $claims);
     }
 
     /**

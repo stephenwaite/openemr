@@ -27,6 +27,10 @@ final class InMemoryAutoPostLog implements AutoPostLog
     public array $finished = [];
     /** @var list<array{int, int, CheckRecord, \DateTimeImmutable}> */
     public array $records = [];
+    /** @var list<int> the files another run holds */
+    public array $heldElsewhere = [];
+    /** @var list<string> each lock taken and let go, in order, as "lock 5" and "unlock 5" */
+    public array $locking = [];
 
     /**
      * @param list<PendingRemittance> $pending
@@ -38,6 +42,20 @@ final class InMemoryAutoPostLog implements AutoPostLog
     public function pending(): array
     {
         return $this->pending;
+    }
+
+    public function lockFile(int $receivedId): bool
+    {
+        if (in_array($receivedId, $this->heldElsewhere, true)) {
+            return false;
+        }
+        $this->locking[] = 'lock ' . $receivedId;
+        return true;
+    }
+
+    public function unlockFile(int $receivedId): void
+    {
+        $this->locking[] = 'unlock ' . $receivedId;
     }
 
     public function take(PendingRemittance $file): bool

@@ -191,13 +191,16 @@ function eob_process_era_callback_check(array &$out): void
         $StringToEcho .= "</thead>";
         $StringToEcho .= "<tbody>";
         $WarningFlag = false;
+        /** @var array<string, list<string>> $otherPayerChecks */
+        $otherPayerChecks = [];
         for ($check_count = 1; $check_count <= $out['check_count']; $check_count++) {
             $bgcolor = $check_count % 2 === 1 ? '#ddddff' : '#ffdddd';
 
             $listedCheck = $out['check_number' . $check_count];
+            $listedCheck = is_string($listedCheck) ? $listedCheck : '';
             $records = QueryUtils::fetchRecords(
                 "select reference from ar_session where reference IN (?, ?)",
-                EraCheckPosting::references(is_string($listedCheck) ? $listedCheck : '')
+                EraCheckPosting::references($listedCheck)
             );
 
             if (!empty($records)) {
@@ -205,9 +208,20 @@ function eob_process_era_callback_check(array &$out): void
                 $WarningFlag = true;
             }
 
+            // A payment session for the check under another insurance company: posting it
+            // for this one would not see what was posted there, so it is never ticked by
+            // Check All, only by the person.
+            $listedDate = $out['check_date' . $check_count] ?? '';
+            $otherPayers = EraCheckPosting::forRequest(CurrentRequest::get())
+                ->otherPayers($listedCheck, is_string($listedDate) ? $listedDate : '');
+            if ($otherPayers !== []) {
+                $otherPayerChecks[$listedCheck] = $otherPayers;
+            }
+
             $StringToEcho .= "<tr bgcolor='" . attr($bgcolor) . "'>";
             $StringToEcho .= "<th scope='row'>";
-            $StringToEcho .= "<input type='checkbox' name='chk" . attr($out['check_number' . $check_count]) . "' id='chk" . attr($out['check_number' . $check_count]) . "'/>";
+            $StringToEcho .= "<input type='checkbox' name='chk" . attr($out['check_number' . $check_count]) . "' id='chk" . attr($out['check_number' . $check_count]) . "'"
+                . ($otherPayers !== [] ? " data-other-payer='1'" : '') . "/>";
             $StringToEcho .= "<label for='chk" . attr($out['check_number' . $check_count]) . "'>";
             $StringToEcho .= "&nbsp" . text($out['check_number' . $check_count]) . "</label>";
             $StringToEcho .= "</th>";
@@ -223,6 +237,14 @@ function eob_process_era_callback_check(array &$out): void
 
         if ($WarningFlag === true) {
             $StringToEcho .= "<tr class='table-danger'><td colspan='4' align='center'>" . xlt('Warning, Check Number already exist in the database') . "</td></tr>";
+        }
+        foreach ($otherPayerChecks as $otherCheck => $otherPayers) {
+            $named = array_map(static fn(string $name): string => $name !== '' ? $name : xl('no insurance company'), $otherPayers);
+            $StringToEcho .= "<tr class='table-danger other-payer-warning'><td colspan='4'>"
+                . xlt('Check') . ' ' . text($otherCheck) . ' '
+                . xlt('has a payment session for another insurance company') . ': ' . text(implode('; ', $named)) . '. '
+                . xlt('Posting it here would post it again. Check All leaves it out; tick it yourself only if that is what you mean to do.')
+                . "</td></tr>";
         }
         $StringToEcho .= "</tbody>";
         $StringToEcho .= "</table>";
@@ -240,6 +262,11 @@ function eob_process_era_callback_check(array &$out): void
                 $thisCheck = is_string($thisCheck) ? $thisCheck : '';
                 $thisCheckDate = $out['check_date' . $check_count];
                 $eraRun = EraCheckPosting::forRequest(CurrentRequest::get());
+                // One posting of a check at a time: unattended posting takes the same lock, and
+                // so does another person posting this file. Held until the end of the request.
+                if (!$debug && !$eraRun->lockCheck($thisCheck, is_string($thisCheckDate) ? $thisCheckDate : '')) {
+                    continue;
+                }
                 $existingSession = $eraRun->existingSession($thisCheck, is_string($thisCheckDate) ? $thisCheckDate : '');
                 if ($existingSession > 0) {
                     $eraRun->reuseSession($thisCheck, $existingSession);
@@ -291,6 +318,17 @@ function eob_process_era_callback(array &$out): void
             }
         }
         $eraRun = EraCheckPosting::forRequest(CurrentRequest::get());
+        if ($eraRun->isBusy($checkNumber)) {
+            if ($eraRun->takeBusyNotice($checkNumber)) {
+                echo getMessageLine(
+                    'var(--white)',
+                    'errdetail',
+                    "Check $checkNumber is being posted by another user or by unattended posting; "
+                    . "nothing from it was posted here. Open the file again in a moment to see what was posted"
+                );
+            }
+            return;
+        }
         $reusedSession = $eraRun->takeReusedSession($checkNumber);
         if ($reusedSession !== null) {
             echo getMessageLine(
@@ -477,10 +515,14 @@ if (!empty($_GET['original']) && $_GET['original'] === 'original') {
     <?php
     global $InsertionId;
 
-    $alertmsg = (
-        ParseERA::parseERAForCheck($eraFilePath)
-        . ParseERA::parseERA($eraFilePath, 'eob_process_era_callback')
-    );
+    try {
+        $alertmsg = (
+            ParseERA::parseERAForCheck($eraFilePath)
+            . ParseERA::parseERA($eraFilePath, 'eob_process_era_callback')
+        );
+    } finally {
+        EraCheckPosting::forRequest(CurrentRequest::get())->releaseLocks();
+    }
     if (!$debug) {
           $StringIssue = xl("Total Distribution for following check number is not full") . ': ';
           $StringPrint = 'No';
@@ -549,7 +591,8 @@ function checkAll(checked) {
     var f = document.forms[0];
     for (var i = 0; i < f.elements.length; ++i) {
         var etype = f.elements[i].type;
-        if (etype === 'checkbox')
+        // A check with a payment session under another insurance company is ticked by hand only.
+        if (etype === 'checkbox' && !(checked && f.elements[i].dataset.otherPayer))
             f.elements[i].checked = checked;
     }
 }

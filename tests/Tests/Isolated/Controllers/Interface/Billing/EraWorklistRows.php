@@ -145,7 +145,8 @@ final class EraWorklistRows
             self::file(44, AutoPostFileStatus::Unreadable),
             self::file(45, AutoPostFileStatus::Interrupted, [self::held(HoldReason::NoPayer, '')]),
             self::file(46, AutoPostFileStatus::Done, [self::held(HoldReason::OutOfBalance), self::held(HoldReason::PostedForAnotherPayer), self::held(null)], payerIds: [17]),
-            self::file(48, AutoPostFileStatus::Interrupted, payerIds: [17, 23]),
+            self::file(48, AutoPostFileStatus::Interrupted, [self::held(HoldReason::BeingPosted)], payerIds: [17, 23]),
+            self::file(49, AutoPostFileStatus::Running, runIsLive: true),
             self::file(47, null, worked: new WorkedMark('Billie <Biller>', new \DateTimeImmutable('2026-11-27 09:30:00'))),
         ];
     }
@@ -190,7 +191,7 @@ final class EraWorklistRows
      * @param list<HeldCheck> $heldChecks
      * @param list<int>       $payerIds
      */
-    private static function file(int $id, ?AutoPostFileStatus $status, array $heldChecks = [], ?WorkedMark $worked = null, array $payerIds = []): ReceivedFile
+    private static function file(int $id, ?AutoPostFileStatus $status, array $heldChecks = [], ?WorkedMark $worked = null, array $payerIds = [], bool $runIsLive = false): ReceivedFile
     {
         return new ReceivedFile(
             id: $id,
@@ -202,6 +203,7 @@ final class EraWorklistRows
             heldChecks: $heldChecks,
             worked: $worked,
             payerIds: $payerIds,
+            runIsLive: $runIsLive,
         );
     }
 }

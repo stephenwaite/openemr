@@ -25,4 +25,6 @@ enum HoldReason: string
     case NoPayer = 'no_payer';
     /** A payment session for this check exists under a different insurance company. */
     case PostedForAnotherPayer = 'posted_for_another_payer';
+    /** Another posting of this check, by a person in the posting window or by another run, was under way. */
+    case BeingPosted = 'being_posted';
 }

@@ -72,11 +72,13 @@ interface Worklist
 
     /**
      * Take a file from unattended posting so that a person can post it: one waiting for a
-     * posting run is no longer for unattended posting, and one a run took and did not
-     * finish is recorded as interrupted. Only a person can say that the run has stopped.
+     * posting run is no longer for unattended posting, and one a run took and stopped
+     * without finishing is recorded as interrupted. A file a run is still working on is
+     * not taken.
      *
      * @param AutoPostFileStatus $seen the state the person saw the file in
-     * @return bool false when the file is no longer in that state, or the state is not one a file is taken from
+     * @return bool false when the file is no longer in that state, a run is working on it, or the state is
+     *              not one a file is taken from
      */
     public function takeFromUnattended(int $receivedId, AutoPostFileStatus $seen): bool;
 

@@ -109,7 +109,7 @@
                         <td>Demo &lt;Clearinghouse&gt;</td>
                         <td>REMIT&lt;43&gt;.RMT<br /><span class="text-muted">20261020_43_60054.edi</span></td>
                         <td>
-                                                            A posting run took this file and has not finished it.
+                                                            The posting run that took this file stopped without finishing it. See the Auto-posted list for what it posted.
                                                                                 </td>
                         <td class="d-print-none text-nowrap">
                                                                                             <form method="post" action="era_worklist.php?view=files&amp;worked=1" class="d-inline mb-0" onsubmit="return takeFromRun(&quot;running&quot;)">
@@ -210,7 +210,12 @@
                         <td>REMIT&lt;48&gt;.RMT<br /><span class="text-muted">20261020_48_60054.edi</span></td>
                         <td>
                                                             The posting run stopped part way through this file, or the file was taken from the run. See the Auto-posted list for what the run posted.
-                                                                                </td>
+                                                                                        <div class="held-check">
+                                    <strong>Check held:</strong> EFT&lt;9&gt; 2026-10-20,
+                                    PLAN &lt;B&gt;, 200.00, 2 claim payments.
+                                                                            Another posting of this check was under way, by a person in the posting window or by another run. See what that posted before posting it here.
+                                                                    </div>
+                                                    </td>
                         <td class="d-print-none text-nowrap">
                                                             <button type="button" class="btn btn-sm btn-secondary" onclick="choosePayer(&quot;20261020_48_60054&quot;, false, [17,23])">Open in Posting Window</button>
                                                         <button type="button" class="btn btn-sm btn-link" onclick="choosePayer(&quot;20261020_48_60054&quot;, true, [17,23])">Preview</button>
@@ -220,10 +225,22 @@
         <input type="hidden" name="kind" value="file" />
         <input type="hidden" name="id" value="48" />
                                 <input type="hidden" name="state" value="interrupted" />
-            <input type="hidden" name="held" value="0" />
+            <input type="hidden" name="held" value="1" />
                             <button type="submit" name="action" value="worked" class="btn btn-sm btn-primary d-print-none">Mark worked</button>
             </form>
 </td>
+                    </tr>
+                                    <tr id="file-49">
+                        <td class="text-nowrap">2026-11-26 03:00</td>
+                        <td>Demo &lt;Clearinghouse&gt;</td>
+                        <td>REMIT&lt;49&gt;.RMT<br /><span class="text-muted">20261020_49_60054.edi</span></td>
+                        <td>
+                                                            A posting run is working on this file now.
+                                                                                </td>
+                        <td class="d-print-none text-nowrap">
+                                                        <button type="button" class="btn btn-sm btn-link" onclick="choosePayer(&quot;20261020_49_60054&quot;, true, [])">Preview</button>
+                        </td>
+                        <td class="text-nowrap"></td>
                     </tr>
                                     <tr id="file-47">
                         <td class="text-nowrap">2026-11-26 03:00</td>
@@ -330,12 +347,12 @@
         openPostingWindow(fileToOpen.eraName, fileToOpen.preview, select.value);
     }
 
-    // A file a posting run is still to take, or took and did not finish, is taken from the
-    // run before it is posted by hand, so the two never post the same check together. For a
-    // file a run took, only the person can say that the run has stopped.
+    // A file a posting run is still to take, or took and stopped without finishing, is taken
+    // from unattended posting before it is posted by hand, so the two never post the same
+    // check together. A file a run is working on is not offered, and is not taken if asked for.
     function takeFromRun(state) {
         const question = state === 'running'
-            ? "A posting run took this file and has not finished it. Take the file only if that run has stopped: if it is still running, posting by hand can post a check twice. The file will be recorded as interrupted. Take it?"
+            ? "The posting run that took this file has stopped. The file will be recorded as interrupted and stay on this list for you to post. Take it?"
             : "Unattended posting will no longer post this file. It will stay on this list for you to post. Take it?";
         if (!window.confirm(question)) {
             return false;

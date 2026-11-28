@@ -25,7 +25,8 @@ use Psr\Log\LoggerInterface;
  *
  * - its claim payments less its provider-level adjustments do not equal the check amount;
  * - none of its claims leads to an insurance company to post it for;
- * - the check was already posted for a different insurance company.
+ * - the check was already posted for a different insurance company;
+ * - another posting of the check, by a person or by another run, was under way.
  *
  * A file is only waiting when its partner had a user to post as at the moment it was
  * received, so turning the setting on does not post a partner's older files.
@@ -51,28 +52,40 @@ final readonly class EraAutoPoster
     {
         $summary = new AutoPostSummary();
         foreach ($this->log->pending() as $file) {
-            if (!$this->log->take($file)) {
+            if (!$this->log->lockFile($file->receivedId)) {
                 continue;
             }
-            $summary->files++;
             try {
-                $status = $this->postFile($file, $summary);
-            } catch (\RuntimeException $e) {
-                $status = AutoPostFileStatus::Interrupted;
-                $this->logger->error('ERA auto-post: a file was interrupted', [
-                    'received' => $file->receivedId,
-                    'file' => $file->storedName,
-                    'exception' => $e,
-                ]);
+                $this->runFile($file, $summary);
+            } finally {
+                $this->log->unlockFile($file->receivedId);
             }
-            match ($status) {
-                AutoPostFileStatus::Unreadable => $summary->filesUnreadable++,
-                AutoPostFileStatus::Interrupted => $summary->filesInterrupted++,
-                AutoPostFileStatus::Pending, AutoPostFileStatus::Running, AutoPostFileStatus::Done => null,
-            };
-            $this->log->finish($file->receivedId, $status);
         }
         return $summary;
+    }
+
+    private function runFile(PendingRemittance $file, AutoPostSummary $summary): void
+    {
+        if (!$this->log->take($file)) {
+            return;
+        }
+        $summary->files++;
+        try {
+            $status = $this->postFile($file, $summary);
+        } catch (\RuntimeException $e) {
+            $status = AutoPostFileStatus::Interrupted;
+            $this->logger->error('ERA auto-post: a file was interrupted', [
+                'received' => $file->receivedId,
+                'file' => $file->storedName,
+                'exception' => $e,
+            ]);
+        }
+        match ($status) {
+            AutoPostFileStatus::Unreadable => $summary->filesUnreadable++,
+            AutoPostFileStatus::Interrupted => $summary->filesInterrupted++,
+            AutoPostFileStatus::Pending, AutoPostFileStatus::Running, AutoPostFileStatus::Done => null,
+        };
+        $this->log->finish($file->receivedId, $status);
     }
 
     private function postFile(PendingRemittance $file, AutoPostSummary $summary): AutoPostFileStatus

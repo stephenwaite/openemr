@@ -22,13 +22,16 @@ use OpenEMR\Billing\EraAutoPost\CheckStatus;
 use OpenEMR\Billing\EraAutoPost\ClaimOutcome;
 use OpenEMR\Billing\EraAutoPost\EngineCheckPoster;
 use OpenEMR\Billing\EraAutoPost\EraAutoPoster;
+use OpenEMR\Billing\EraAutoPost\HoldReason;
 use OpenEMR\Billing\EraAutoPost\PendingRemittance;
 use OpenEMR\Billing\EraAutoPost\RemittanceCheck;
 use OpenEMR\Billing\EraAutoPost\RemittanceReader;
 use OpenEMR\Billing\EraPosting\Adjustment;
 use OpenEMR\Billing\EraPosting\ClaimPayment;
+use OpenEMR\Billing\EraPosting\PostingLock;
 use OpenEMR\Billing\EraPosting\ServiceLine;
 use OpenEMR\Common\Database\QueryUtils;
+use OpenEMR\Tests\Services\Billing\EraPosting\OtherConnection;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
 use Psr\Log\NullLogger;
@@ -170,6 +173,38 @@ class EngineCheckPosterTest extends TestCase
         $this->assertEquals(1, QueryUtils::fetchSingleValue('SELECT COUNT(*) AS n FROM ar_session WHERE reference = ?', 'n', ['ePay - ' . self::CHECK]));
     }
 
+    public function testACheckAnotherPostingHasIsHeldAndNothingOfItIsPosted(): void
+    {
+        $poster = new EngineCheckPoster(false, lockWaitSeconds: 0);
+        $check = $this->check([$this->claim(0)]);
+        $lock = PostingLock::forCheck(self::CHECK, self::CHECK_DATE);
+        // A person is posting the check in the posting window: for whichever insurance company, it is the same lock.
+        $other = new OtherConnection();
+        $this->assertTrue($other->lock($lock));
+
+        try {
+            $record = $poster->post($check, (string) self::PAYER_A, self::POST_USER, new \DateTimeImmutable('2026-11-19'));
+
+            $this->assertSame(CheckStatus::Held, $record->status);
+            $this->assertSame(HoldReason::BeingPosted, $record->holdReason);
+            $this->assertSame((string) self::PAYER_A, $record->payerId);
+            $this->assertSame(0, $record->sessionId);
+            $this->assertSame(['check_held'], $record->claims[0]->reasons);
+            $this->assertEquals(0, QueryUtils::fetchSingleValue('SELECT COUNT(*) AS n FROM ar_session WHERE reference = ?', 'n', ['ePay - ' . self::CHECK]));
+            $this->assertEquals(0, QueryUtils::fetchSingleValue('SELECT COUNT(*) AS n FROM ar_activity WHERE pid = ?', 'n', [self::PID]));
+
+            // The other posting is done: the check posts, and the lock is let go after its last claim payment.
+            $other->unlock($lock);
+            $posted = $poster->post($check, (string) self::PAYER_A, self::POST_USER, new \DateTimeImmutable('2026-11-19'));
+
+            $this->assertSame(CheckStatus::Posted, $posted->status);
+            $this->assertFalse(PostingLock::isHeld($lock));
+            $this->assertTrue($other->lock($lock));
+        } finally {
+            $other->close();
+        }
+    }
+
     public function testACheckPostedByHandForAnotherPayerIsSeen(): void
     {
         $poster = new EngineCheckPoster(false);
@@ -242,6 +277,16 @@ class EngineCheckPosterTest extends TestCase
                     $this->repository->pending(),
                     fn(PendingRemittance $file): bool => $file->receivedId === $this->receivedId
                 ));
+            }
+
+            public function lockFile(int $receivedId): bool
+            {
+                return $this->repository->lockFile($receivedId);
+            }
+
+            public function unlockFile(int $receivedId): void
+            {
+                $this->repository->unlockFile($receivedId);
             }
 
             public function take(PendingRemittance $file): bool

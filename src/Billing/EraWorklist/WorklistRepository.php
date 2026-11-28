@@ -19,6 +19,7 @@ use OpenEMR\Billing\EraAutoPost\AutoPostFileStatus;
 use OpenEMR\Billing\EraAutoPost\CheckStatus;
 use OpenEMR\Billing\EraAutoPost\ClaimOutcome;
 use OpenEMR\Billing\EraAutoPost\HoldReason;
+use OpenEMR\Billing\EraPosting\PostingLock;
 use OpenEMR\Billing\X12Receive\ReceivedStatus;
 use OpenEMR\Billing\X12Receive\X12FileType;
 use OpenEMR\Common\Database\QueryUtils;
@@ -132,6 +133,8 @@ final class WorklistRepository implements Worklist
         $rows = QueryUtils::fetchRecords(
             'SELECT r.`id`, r.`remote_name`, r.`stored_name`, r.`received_at`, r.`auto_post_status`, r.`worked_by`,'
             . ' r.`worked_at`, p.`name` AS partner_name,'
+            // A run holds this lock on a file from before it takes the file until it has finished it.
+            . " IS_USED_LOCK(CONCAT('" . PostingLock::FILE_PREFIX . "', r.`id`)) IS NOT NULL AS run_holds_file,"
             . ' u.`fname` AS worked_fname, u.`lname` AS worked_lname, u.`username` AS worked_username'
             . ' FROM `x12_remote_received` AS r'
             . ' LEFT JOIN `x12_partners` AS p ON p.`id` = r.`x12_partner_id`'
@@ -156,6 +159,8 @@ final class WorklistRepository implements Worklist
                 heldChecks: $held[$id] ?? [],
                 worked: self::worked($row),
                 payerIds: $payers[$id] ?? [],
+                runIsLive: self::text($row, 'auto_post_status') === AutoPostFileStatus::Running->value
+                    && self::int($row, 'run_holds_file') === 1,
             );
         }
         return new WorklistPage(
@@ -231,11 +236,21 @@ final class WorklistRepository implements Worklist
             return false;
         }
         // The state is checked in the statement that changes it, as the run's own take is:
-        // of a run and a person reaching for a waiting file, only one gets it.
+        // of a run and a person reaching for a waiting file, only one gets it. A run holds
+        // the file's lock from before it takes the file, so a file a run took is given up
+        // only when that run is gone.
         QueryUtils::sqlStatementThrowException(
             'UPDATE `x12_remote_received` SET `auto_post_status` = ?'
-            . ' WHERE `id` = ? AND `file_type` = ? AND `status` = ? AND `auto_post_status` = ?',
-            [$becomes, $receivedId, X12FileType::Remittance835->value, ReceivedStatus::Stored->value, $seen->value]
+            . ' WHERE `id` = ? AND `file_type` = ? AND `status` = ? AND `auto_post_status` = ?'
+            . ' AND IS_USED_LOCK(?) IS NULL',
+            [
+                $becomes,
+                $receivedId,
+                X12FileType::Remittance835->value,
+                ReceivedStatus::Stored->value,
+                $seen->value,
+                PostingLock::forFile($receivedId),
+            ]
         );
         return self::changedOne();
     }

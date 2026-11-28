@@ -17,6 +17,7 @@ use OpenEMR\Billing\EraAutoPost\AutoPostRepository;
 use OpenEMR\Billing\EraAutoPost\ClaimOutcome;
 use OpenEMR\Billing\EraAutoPost\HoldReason;
 use OpenEMR\Billing\EraPosting\ClaimIssue;
+use OpenEMR\Billing\EraPosting\PostingLock;
 use OpenEMR\Billing\EraWorklist\InsuranceCompanyOption;
 use OpenEMR\Billing\EraWorklist\PostedCheck;
 use OpenEMR\Billing\EraWorklist\PostedLine;
@@ -26,6 +27,7 @@ use OpenEMR\Billing\EraWorklist\WorklistFilter;
 use OpenEMR\Billing\EraWorklist\WorklistRepository;
 use OpenEMR\Billing\EraWorklist\WorklistUser;
 use OpenEMR\Common\Database\QueryUtils;
+use OpenEMR\Tests\Services\Billing\EraPosting\OtherConnection;
 use PHPUnit\Framework\TestCase;
 
 class WorklistRepositoryTest extends TestCase
@@ -338,6 +340,38 @@ class WorklistRepositoryTest extends TestCase
         $this->assertFalse($runningFile->awaitsRun());
         $this->assertTrue($this->worklist->markFileWorked($pending, $by, $at, null, 0));
         $this->assertTrue($this->worklist->markFileWorked($running, $by, $at, AutoPostFileStatus::Interrupted, 0));
+    }
+
+    public function testAFileAPostingRunIsWorkingOnIsNotTaken(): void
+    {
+        $running = $this->received('running.edi', autoPostStatus: 'running');
+        $pending = $this->received('pending.edi', autoPostStatus: 'pending', receivedAt: '2026-11-19 09:00:00');
+        // A run holds each file's lock from before it takes the file until it has finished it.
+        $run = new OtherConnection();
+        $this->assertTrue($run->lock(PostingLock::forFile($running)));
+        $this->assertTrue($run->lock(PostingLock::forFile($pending)));
+
+        try {
+            [$runningFile, $pendingFile] = $this->files(new WorklistFilter(), [$running, $pending]);
+            $this->assertTrue($runningFile->runIsLive);
+            $this->assertFalse($runningFile->canBeTaken());
+            // Waiting until the run marks it taken; the run has it all the same.
+            $this->assertFalse($pendingFile->runIsLive);
+            $this->assertFalse($this->worklist->takeFromUnattended($running, AutoPostFileStatus::Running));
+            $this->assertFalse($this->worklist->takeFromUnattended($pending, AutoPostFileStatus::Pending));
+
+            // The run died with the first file: its connection is gone, and its locks with it.
+            $run->close();
+
+            [$stopped] = $this->files(new WorklistFilter(), [$running]);
+            $this->assertSame(AutoPostFileStatus::Running, $stopped->autoPostStatus);
+            $this->assertFalse($stopped->runIsLive);
+            $this->assertTrue($stopped->canBeTaken());
+            $this->assertTrue($this->worklist->takeFromUnattended($running, AutoPostFileStatus::Running));
+            $this->assertTrue($this->worklist->takeFromUnattended($pending, AutoPostFileStatus::Pending));
+        } finally {
+            $run->close();
+        }
     }
 
     public function testAMarkDoesNotOutlastAPostingRunThatWasStillGoing(): void
