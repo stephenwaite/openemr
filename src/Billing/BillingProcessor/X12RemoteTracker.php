@@ -31,6 +31,8 @@ class X12RemoteTracker extends BaseService
     const STATUS_IN_PROGRESS = 'in-progress';
     const STATUS_UPLOAD_ERRROR = 'upload-error';
     const STATUS_SUCCESS = 'success';
+    /** Not sent by this row, and dealt with another way: see X12RemoteTrackerActions. */
+    const STATUS_RESOLVED = 'resolved';
 
     const TABLE_NAME = 'x12_remote_tracker';
 
@@ -71,15 +73,14 @@ class X12RemoteTracker extends BaseService
             if (!is_array($x12_remote)) {
                 continue;
             }
+            // A file queued to be sent again still has its earlier messages, stored as JSON.
+            $x12_remote['messages'] = X12RemoteTrackerActions::decodeMessages($x12_remote['messages'] ?? null);
 
             // Make sure required parameters are filled in on the X12 partner form, otherwise, log a message
             if (false === $remoteTracker->validateSFTPCredentials($x12_remote)) {
                 // there was a problem, get messages, log them and continue
                 $x12_remote['status'] = self::STATUS_PARAMETER_ERROR;
-                $x12_remote['messages'] = array_merge(
-                    ($x12_remote['messages'] ?? []),
-                    $remoteTracker->validationMessages
-                );
+                $x12_remote['messages'] = array_merge($x12_remote['messages'], $remoteTracker->validationMessages);
                 $remoteTracker->update($x12_remote);
                 continue;
             }

@@ -77,7 +77,7 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
                             if (type !== 'display') {
                                 return data;
                             }
-                            const variants = { success: 'success', waiting: 'info' };
+                            const variants = { success: 'success', waiting: 'info', resolved: 'secondary' };
                             const variant = variants[data] || 'warning';
                             const label = row.status_label || data;
                             return `<span class="badge badge-${variant}">${jsText(label)}</span>`;
@@ -143,6 +143,25 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
                     });
                 }
 
+                // What can be done about a file that was not sent
+                if (d.can_send_again || d.can_resolve) {
+                    output += '<div class="tracker-actions form-inline mb-3" data-id="' + jsAttr(d.id) + '">';
+                    if (d.can_send_again) {
+                        output += '<button type="button" class="btn btn-primary btn-sm mr-4 tracker-send-again" title="'
+                            + jsAttr(<?php echo xlj('Queue this same file to be sent at the next run. Fix the cause first.'); ?>) + '">'
+                            + jsText(<?php echo xlj('Send Again'); ?>) + '</button>';
+                    }
+                    if (d.can_resolve) {
+                        output += '<input type="text" class="form-control form-control-sm mr-2 tracker-note" size="45" maxlength="255" aria-label="'
+                            + jsAttr(<?php echo xlj('How it was dealt with'); ?>) + '" placeholder="'
+                            + jsAttr(<?php echo xlj('How it was dealt with (sent by hand, generated again...)'); ?>) + '">'
+                            + '<button type="button" class="btn btn-secondary btn-sm tracker-resolve" title="'
+                            + jsAttr(<?php echo xlj('This file was dealt with another way and will not be sent from here.'); ?>) + '">'
+                            + jsText(<?php echo xlj('Mark as Resolved'); ?>) + '</button>';
+                    }
+                    output += '</div>';
+                }
+
                 // Now output the claims in this batch
                 output += '<table class="table" cellpadding="5" cellspacing="0" border="0" style="padding-left:50px;">';
                 output +=
@@ -167,6 +186,47 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
                 return output;
             }
 
+            // Act on one file, then show the list as it now is
+            function trackerAction(id, action, note) {
+                top.restoreSession();
+                $.post(
+                    "<?php echo OEGlobalsBag::getInstance()->getWebRoot(); ?>/library/ajax/billing_tracker_ajax.php",
+                    {
+                        csrf_token_form: <?php echo js_escape(CsrfUtils::collectCsrfToken(session: $session)); ?>,
+                        id: id,
+                        action: action,
+                        note: note
+                    },
+                    null,
+                    'json'
+                ).done(function (result) {
+                    if (!result || !result.success) {
+                        alert(<?php echo xlj('Nothing was changed. The file may have been sent or changed by someone else: the list has been refreshed.'); ?>);
+                    }
+                }).fail(function () {
+                    alert(<?php echo xlj('The request failed. Nothing was changed.'); ?>);
+                }).always(function () {
+                    oTable.ajax.reload(null, false);
+                });
+            }
+
+            $('#billing-tracker-table tbody').on('click', '.tracker-send-again', function () {
+                if (confirm(<?php echo xlj('Send this same file again at the next run? Do this only after fixing the cause, and only if the file was not sent another way.'); ?>)) {
+                    trackerAction($(this).closest('.tracker-actions').data('id'), 'send_again', '');
+                }
+            });
+
+            $('#billing-tracker-table tbody').on('click', '.tracker-resolve', function () {
+                const actions = $(this).closest('.tracker-actions');
+                if (confirm(<?php echo xlj('Mark this file as resolved? It will not be sent from here.'); ?>)) {
+                    trackerAction(actions.data('id'), 'resolve', actions.find('.tracker-note').val());
+                }
+            });
+
+            $('#tracker-refresh').on('click', function () {
+                oTable.ajax.reload(null, false);
+            });
+
             // Add event listener for opening and closing details
             $('#billing-tracker-table tbody').on('click', 'td.details-control', function () {
                 var tr = $(this).parents('tr');
@@ -190,6 +250,9 @@ $session = SessionWrapperFactory::getInstance()->getActiveSession();
 <body>
     <div id="container_div" class="mt-3">
          <div class="w-100 p-4">
+             <button type="button" class="btn btn-secondary btn-sm mb-3" id="tracker-refresh">
+                 <i class="fa fa-sync" aria-hidden="true"></i> <?php echo xlt('Refresh'); ?>
+             </button>
 
              <table id="billing-tracker-table">
                  <thead>
